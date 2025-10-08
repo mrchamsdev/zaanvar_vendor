@@ -1,0 +1,128 @@
+.container {
+  display: flex;
+  align-items: center;
+  /* justify-content: space-between; */
+  padding: 50px 32px;
+  gap: 3rem;
+  background: #fff;
+  flex-direction: row;
+  /* flex-wrap: wrap; */
+}
+
+.imageSection {
+  width: 42%;
+  display: flex;
+  /* justify-content: center; */
+}
+
+.image {
+  width: 100%;
+max-width: 511px;
+    height: 579px;
+    /* object-fit: cover; */
+  margin: 27px;
+  border-radius: 50px;
+}
+
+.textSection {
+  width: 57%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: justify;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1c1c1c;
+}
+
+.paragraph {
+  font-size: 18px;
+  color: #333;
+  line-height: 1.6;
+  font-weight: 400;
+  padding-bottom: 20px;
+  margin: 0px;
+}
+
+.button {
+  background-color: #fff;
+  color: #f5790c;
+  border: 1px solid #f5790c;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: fit-content;
+  margin-top: 1rem;
+  border: 1px solid #F5790C;
+}
+
+.button:hover {
+  background-color: #fef2e7;
+  color: #F5790C;
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+  }
+
+  .imageSection,
+  .textSection {
+    width: 100%;
+  }
+
+  .textSection {
+    text-align: center;
+    align-items: center;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .paragraph {
+    font-size: 1rem;
+    padding-bottom: 16px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .container {
+    padding: 32px 16px;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .image {
+    margin: 0;
+    width: 100%;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 18px;
+    margin-bottom: 0.75rem;
+  }
+
+  .paragraph {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    padding-bottom: 14px;
+  }
+
+  .button {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}

@@ -140,4 +140,100 @@ opacity: 0.9;
   display: flex;
   align-items: center;
   transition: transform 0.5s ease-in-out; /* smooth sliding */
+  overflow: hidden;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: #d1d5db;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.dotActive {
+  background-color: #f97316;
+}
+
+.dash {
+  width: 1.5rem;   /* longer dash */
+  height: 0.35rem;
+  border-radius: 0.25rem;
+}
+
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .carouselContainer {
+    margin-bottom: 80px; 
+  }
+
+  .headerTitle {
+    font-size: 32px;
+  }
+  .carouselTrack {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .headerSubtitle {
+    font-size: 18px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .below-text {
+    font-size: 14px;
+  }
+
+  .carouselItem {
+    transform: scale(0.6);
+    margin: 0 5px;
+  }
+
+  .carouselItem.left,
+  .carouselItem.right {
+    transform: scale(0.75);
+  }
+
+  .carouselItem.center {
+    transform: scale(0.9);
+  }
+
+  .card {
+    width: 200px; /* smaller cards */
+  }
+
+  .card img {
+    height: 200px;
+  }
+
+  .cardContent {
+    bottom: 0.5rem;
+    left: 0.5rem;
+    font-size: 12px;
+  }
+
+  .dots {
+    gap: 0.25rem;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+  }
+
+  .dash {
+    width: 1rem;
+    height: 0.25rem;
+  }
+}
+@media (max-width:786px) {
+  .card{
+    width: 150px;
+        height: 150px;
+  }
 }

@@ -38,3 +38,24 @@
     border-radius: 50px;
     margin-top: 20px;
 }
+
+@media (max-width:768px) {
+  .image-wrapper{
+    overflow: hidden;
+height: 280px;
+    margin: 0xp;
+  }
+  .image-wrapper img{
+    display: n;
+  }
+  .main-header{
+    width: 100%;
+    font-size: 32px;
+    margin: 0px;
+        font-size: 30px;
+        padding-top: 20px;
+  }
+  .overlay-text{
+    top: 10px;
+  }
+}

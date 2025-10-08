@@ -1,0 +1,100 @@
+.header-div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 50px;
+}
+
+.title-header {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #F5790C;
+}
+
+.below-text {
+  font-size: 48px;
+  font-weight: 600;
+  margin: 0;
+  padding-top: 20px;
+}
+.para{
+    font-size: 20px;
+    font-weight: 400;
+}
+.image-container {
+  position: relative;
+    height: 500px;
+    margin: 0 80px 0px 80px;   
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.image {
+  /* object-fit: contain;   */
+  border-radius: 12px;  
+}
+
+.overlay-text {
+ position: absolute;
+    top: 25%;
+    left: 10%;
+    color: black;
+    font-size: 40px;
+    width: 500px;
+    font-weight: 600;
+    
+    padding: 0 20px;   
+}
+.header-title{
+margin: 0px;
+font-size: 40px;
+}
+.button-div{
+padding: 10px 20px;
+border-radius: 50px;
+font-size: 18px;
+color: #fff;
+border: none;
+cursor: pointer;
+}
+
+
+
+.thumbnails {
+  display: flex;
+  justify-content: space-between;  
+  /* gap: 1px;                */
+  margin: 20px 80px 100px 80px;
+  flex-wrap: wrap;
+}
+
+.thumbnail {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;   
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.thumbnail img {
+  border-radius: 8px;
+}
+
+.dash {
+  margin-top: 5px;       
+  width: 20px;             
+  height: 5px;
+  border-radius: 2px;
+  background-color: transparent;
+  transition: background-color 0.3s;
+}
+
+.thumbnail.active .dash {
+  background-color: #f5790c;  
+}
+
