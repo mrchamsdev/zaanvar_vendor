@@ -1,0 +1,71 @@
+/* Header block */
+.header-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 50px;
+}
+
+.header-text {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #F5790C;
+}
+
+.Below-text {
+  font-size: 48px;
+  font-weight: 600;
+  margin: 0;
+  padding-top: 20px;
+}
+
+/* Cards container */
+.contain-block {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
+  gap: 2rem;
+  margin-bottom: 100px;
+  padding: 0 32px;
+}
+
+/* Individual card */
+.card {
+  background: rgba(255, 248, 245, 1);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  /* text-align: center; */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  width: 50px;
+  height: 50px;
+}
+
+.title {
+  font-size: 20px;
+  margin: 0;
+  padding: 12px 0 6px 0;
+}
+
+.para {
+  margin: 0;
+  padding: 6px 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .contain-block {
+    grid-template-columns: repeat(2, 1fr); /* 2 per row on tablets */
+  }
+}
+
+@media (max-width: 640px) {
+  .contain-block {
+    grid-template-columns: 1fr; /* 1 per row on mobile */
+  }
+}
