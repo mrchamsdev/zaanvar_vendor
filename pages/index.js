@@ -1,11 +1,30 @@
 import Head from "next/head";
 import style from "../../zaanvar_vendor/styles/home.module.css";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import Header from "./components/header/header"
 import SliderImage from "./components/Vender/SliderImage";
 import WeManageBussiness from "./components/Vender/WeManageBussiness";
 import AutomationTools from "./components/Vender/AutoMationTools";
+import ServicesWeOffer from "./components/Vender/servicesWeOffer";
+import PetBussiness from "./components/Vender/petBussiness";
+import FrequentlyQuastion from "./components/Vender/frequentlyQuastion";
+import ChooseUs from "./components/Vender/chooseUs";
+
 export default function Home() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check initial window width
+    setIsMobile(window.innerWidth < 768);
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <>
       <Head>
@@ -15,29 +34,37 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-
-<Header />
+      <Header />
 
       <div className={style["image-wrapper"]}>
-        <Image
-          src="https://zaanvar-care.b-cdn.net/media/1759815026083-Frame%201261154195.png"
-          alt="Banner"
-          fill
-          style={{ objectFit: "cover" }}
-        />
+        {!isMobile && (
+          <Image
+            src="https://zaanvar-care.b-cdn.net/media/1759815026083-Frame%201261154195.png"
+            alt="Banner"
+            fill
+            style={{ objectFit: "cover" }}
+          />
+        )}
+
         <div className={style["overlay-text"]}>
-          <h1 className={style["main-header"]}><span>Zaanvar</span> is a Free Business Portal for Pet Vendors</h1>
-          <p className={style["below-text"]}>Exclusively for breeders, clinics, trainers, and all pet service providers. Free to use. No hidden fees.</p>
+          <h1 className={style["main-header"]}>
+            <span>Zaanvar</span> is a Free Business Portal for Pet Vendors
+          </h1>
+          <p className={style["below-text"]}>
+            Exclusively for breeders, clinics, trainers, and all pet service providers. Free to use. No hidden fees.
+          </p>
           <button className={style["register-button"]}>Register Today</button>
         </div>
       </div>
 
-
-
-{/* Components Added here */}
-      <SliderImage/>
-      <WeManageBussiness/>
-      <AutomationTools/>
+      {/* Components */}
+      <SliderImage />
+      <WeManageBussiness />
+      <ServicesWeOffer />
+      <AutomationTools />
+      <PetBussiness />
+      <ChooseUs />
+      <FrequentlyQuastion />
     </>
   );
 }

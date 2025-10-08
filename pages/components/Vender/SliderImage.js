@@ -2,13 +2,20 @@ import { useState, useEffect } from "react";
 import styles from "../../../styles/vender/vender.module.css";
 
 const categories = [
-  { title: "Breeders", img: "https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?cs=srgb&dl=pexels-chevanon-1108099.jpg&fm=jpg", tagline: "Short tagline under each category" },
-  { title: "Photographer", img: "https://zaanvar-care.b-cdn.net/media/1759826497755-Group 1000011989.png", tagline: "Short tagline under each category" },
-  { title: "Trainers", img: "https://images.squarespace-cdn.com/content/v1/54822a56e4b0b30bd821480c/45ed8ecf-0bb2-4e34-8fcf-624db47c43c8/Golden+Retrievers+dans+pet+care.jpeg", tagline: "Short tagline under each category" },
-  { title: "Mating", img: "https://media.istockphoto.com/id/1252455620/photo/golden-retriever-dog.jpg?s=612x612&w=0&k=20&c=3KhqrRiCyZo-RWUeWihuJ5n-qRH1MfvEboFpf5PvKFg=", tagline: "Short tagline under each category" },
-  { title: "Extra 1", img: "https://www.treehugger.com/thmb/NUlijZHVHyNSSmuz0zCvO-CrAeA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/__opt__aboutcom__coeus__resources__content_migration__mnn__images__2017__05__largest-dog-breeds-new-c650038edfa14695b3c93fa16918c296.jpg", tagline: "Short tagline under each category" },
-  { title: "Extra 2", img: "https://zaanvar-care.b-cdn.net/media/1759826497755-Group 1000011989.png", tagline: "Short tagline under each category" },
-  { title: "Extra 3", img: "https://zaanvar-care.b-cdn.net/media/1759826497755-Group 1000011989.png", tagline: "Short tagline under each category" },
+  { title: "Breeders", img: "https://zaanvar-care.b-cdn.net/media/1759918986265-breederMan.png", tagline: " Where Responsible Breeding Meets the Right Buyers" },
+
+  { title: "Photographer", img: "https://zaanvar-care.b-cdn.net/media/1759918994438-Photo.png", tagline: "Capturing Paws, Personalities, and Precious Moments" },
+
+  { title: "Trainers", img: "https://zaanvar-care.b-cdn.net/media/1759919001755-tainer.png", tagline: "Short tagline under each category" },
+
+  { title: "Mating", img: "https://zaanvar-care.b-cdn.net/media/1759918981023-matingdog.png", tagline: "Your Trusted Partner in Responsible Pet Matting" },
+
+
+
+  { title: "Extra 1", img: "https://zaanvar-care.b-cdn.net/media/1759918973864-doctorGirl.png", tagline: "Short tagline under each category" },
+
+ 
+
 ];
 
 export default function SliderImage() {
@@ -79,14 +86,21 @@ export default function SliderImage() {
         </div>
       </div>
 
-      <div className={styles.dots}>
-        {categories.map((_, idx) => (
-          <span
-            key={idx}
-            className={`${styles.dot} ${currentIndex === idx ? styles.dotActive : ""}`}
-          />
-        ))}
-      </div>
+     <div className={styles.dots}>
+  {Array.from({ length: 5 }).map((_, i) => {
+    const idx = (currentIndex - 2 + i + categories.length) % categories.length;
+    const isCenter = i === 2; // middle one always
+
+    return (
+      <span
+        key={idx}
+        className={`${styles.dot} ${currentIndex === idx ? styles.dotActive : ""} ${isCenter ? styles.dash : ""}`}
+      />
+    );
+  })}
+</div>
+
+
     </div>
 
 

@@ -7,7 +7,9 @@
     align-items: center;
      box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 
-
+}
+.mobile-nav, .mobile-actions, .mobile-toggle, .mobile-panel-logo{
+    display: none;
 }
 .image-blog{
     padding: 20px 0px;
@@ -39,4 +41,296 @@
     border-radius: 50px;
     color: #F5790C;
     
+}
+
+
+
+@media (max-width: 768px) {
+  .header-wrapper {
+    position: relative;
+    padding: 8px 12px;
+    align-items: center;
+  }
+
+.mobile-nav , .mobile-actions, .mobile-toggle,.mobile-panel-logo{
+    display: block;
+}
+  .nav-links,
+  .button-container {
+    display: none !important;
+  }
+
+  /* Mobile toggle (hamburger) - fixed left */
+  .mobile-toggle {
+    display: inline-flex;
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 80;
+    color: #111;
+  }
+
+  /* Center the logo in the header */
+  .logo-link {
+    margin: 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  }
+
+  .image-blog {
+    width: 64px; /* adjust size as needed */
+    height: auto;
+    padding: 6px 0;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Mobile dropdown menu (hidden by default) */
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    padding: 12px 14px;
+    border-top: 1px solid rgba(0,0,0,0.04);
+    flex-direction: column;
+    gap: 12px;
+    z-index: 70;
+  }
+
+  .mobile-menu.open {
+    display: flex;
+  }
+
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mobile-nav a {
+    text-decoration: none;
+    color: #111;
+    font-size: 15px;
+    padding: 10px 8px;
+    border-radius: 8px;
+  }
+  .mobile-nav a:hover,
+  .mobile-nav a:focus {
+    background: rgba(245,121,12,0.06);
+  }
+
+  .mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .mobile-actions .btn-outline {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 999px;
+    font-size: 15px;
+    border: 1px solid #F5790C;
+    color: #F5790C;
+    background: none;
+    cursor: pointer;
+  }
+
+  /* slightly smaller on very small phones */
+  @media (max-width: 420px) {
+    .image-blog { width: 52px; }
+    .mobile-toggle { left: 8px; }
+    .mobile-nav a { font-size: 14px; padding: 8px 6px; }
+    .mobile-actions .btn-outline { padding: 9px 10px; font-size: 14px; }
+  }
+}
+
+
+/* Mobile animation: slide-down panel from top + overlay
+   Paste this at the end of header.module.css
+   Only affects <= 768px */
+@media (max-width: 768px) {
+  .header-wrapper {
+    position: relative;
+    padding: 8px 12px;
+    align-items: center;
+  }
+
+  /* Hide desktop nav/buttons */
+  .nav-links,
+  .button-container {
+    display: none !important;
+  }
+
+  /* Mobile toggle (hamburger) fixed-left inside header */
+  .mobile-toggle {
+    display: inline-flex;
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 8px;
+    z-index: 94;
+    color: #111;
+  }
+
+  /* Center the logo in the header */
+  .logo-link {
+    margin: 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .image-blog {
+    width: 64px;
+    height: auto;
+    padding: 6px 0;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Dim overlay (fades in) - sits below panel z-index */
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms ease;
+    z-index: 92;
+    will-change: opacity;
+  }
+  .mobile-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Sliding panel that comes from top */
+  .mobile-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;               /* start at very top, slide in from above */
+    height: 100vh;
+    background: #fff;
+    transform: translateY(-100%);  /* hidden above viewport */
+    transition: transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 200ms;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+    z-index: 93;
+    display: flex;
+    flex-direction: column;
+    padding: 84px 20px 20px; /* top padding leaves space for header area */
+    gap: 12px;
+    will-change: transform;
+  }
+  .mobile-panel.open {
+    transform: translateY(0); /* slide down into view */
+  }
+
+  /* Centered nav inside panel */
+  .mobile-nav {
+    display: flex;
+        flex-direction: column;
+        gap: 18px;
+        /* align-items: center; */
+        justify-content: center;
+        /* flex: 1 1; */
+        padding-top: 10px;
+        padding-bottom: 200px;
+    padding-top: 6px;
+  }
+  .mobile-nav a {
+    text-decoration: none;
+    color: #111;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 360px;
+    /* text-align: center; */
+  }
+  .mobile-nav a:focus, .mobile-nav a:hover {
+    background: rgba(245,121,12,0.06);
+  }
+
+
+    .mobile-panel-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;    /* keep it fixed near top-center of the panel */
+    top: 20px;             /* adjust vertical position as preferred */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 95;
+    width: 100%;
+    pointer-events: none;  /* so taps fall through to panel/overlay if needed */
+  }
+
+  /* size the image inside popup slightly larger or smaller as needed */
+  .mobile-panel-logo :global(img) {
+    display: block;
+    width: 72px;   /* tweak this to 64/72 depending on desired size */
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* Buttons pinned to bottom inside the panel */
+  .mobile-actions {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* padding: 12px 16px; */
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,1));
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mobile-actions .btn-outline,
+  .mobile-actions .btn-primary {
+    width: 100%;
+    max-width: 678px;
+    padding: 12px 14px;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #F5790C;
+  }
+  .mobile-actions .btn-primary {
+    background: #F5790C;
+    color: #fff;
+    border: none;
+  }
+
+  /* Slightly smaller sizes on very small phones */
+  @media (max-width: 420px) {
+    .image-blog { width: 52px; }
+    .mobile-nav a { font-size: 16px; padding: 8px 10px; }
+    .mobile-actions .btn-outline,
+    .mobile-actions .btn-primary { padding: 10px 12px; font-size: 15px; }
+    .mobile-panel { padding: 72px 14px 14px; }
+  }
 }
