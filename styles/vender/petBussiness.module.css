@@ -125,4 +125,10 @@ max-width: 511px;
     padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
   }
+  .image{
+    height: 350px;
+  }
+  .paragraph{
+    text-align: justify;
+  }
 }
