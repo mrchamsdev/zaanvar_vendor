@@ -66,7 +66,26 @@ cursor: pointer;
   justify-content: space-between;  
   /* gap: 1px;                */
   margin: 20px 80px 100px 80px;
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
+      overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 5px
+}
+.thumbnails {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto; /* enable horizontal scrolling */
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+  
+  /* Hide scrollbar for WebKit browsers (Chrome, Safari) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.thumbnails::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .thumbnail {
@@ -98,3 +117,99 @@ cursor: pointer;
   background-color: #f5790c;  
 }
 
+/* Responsive below 768px */
+@media (max-width: 768px) {
+  .image-container {
+    margin: 0 16px;
+    height: 400px;
+  }
+  .thumbnail img {
+  border-radius: 8px;
+  padding-left: 10px;
+}
+
+.thumbnail.active .dash {
+  background-color: #f5790c;
+  margin-left: 10px; 
+  /* padding: 1px;  */
+}
+
+  .overlay-text {
+    top: 15%;
+    left: 5%;
+    width: 90%;
+    font-size: 28px;
+    padding: 0 10px;
+  }
+
+  .header-title {
+    font-size: 28px;
+    width: 400px;
+  }
+
+  .para {
+    font-size: 16px;
+    width: 450px;
+  }
+
+  .button-div {
+    font-size: 16px;
+    padding: 8px 16px;
+  }
+
+  .thumbnails {
+    padding: 20px 16px 50px 16px;
+    justify-content: flex-start;
+    gap: 40px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    margin: 0px;
+  }
+
+  .thumbnail {
+    min-width: 80px;
+    margin-right: 10px;
+  }
+}
+
+/* Optional: Further adjustment below 480px */
+@media (max-width: 480px) {
+  .image-container {
+    height: 300px;
+  }
+
+  .overlay-text {
+    font-size: 22px;
+  }
+
+  .header-title {
+    font-size: 18px;
+        width: 220px;
+    
+  }
+
+  .para {
+    font-size: 12px;
+    width: 200px;
+  }
+
+  .button-div {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+  .thumbnail {
+    min-width: 60px;
+  }
+  .below-text{
+    font-size: 24px;
+    padding-top: 10px;
+  }
+  .title-header{
+    font-size: 14px;
+  }
+  .header-div{
+    padding-bottom: 30px;
+  }
+}

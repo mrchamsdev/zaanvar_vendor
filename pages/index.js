@@ -10,12 +10,18 @@ import ServicesWeOffer from "./components/Vender/servicesWeOffer";
 import PetBussiness from "./components/Vender/petBussiness";
 import FrequentlyQuastion from "./components/Vender/frequentlyQuastion";
 import ChooseUs from "./components/Vender/chooseUs";
+import Footer from "./components/Footer/footer";
+import { Router, useRouter } from "next/router";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
+  const Router = useRouter();
+const handleOnclick = ()=>{
+  Router.push("/register")
+}
 
   useEffect(() => {
-    // Check initial window width
+
     setIsMobile(window.innerWidth < 768);
 
     const handleResize = () => {
@@ -53,7 +59,7 @@ export default function Home() {
           <p className={style["below-text"]}>
             Exclusively for breeders, clinics, trainers, and all pet service providers. Free to use. No hidden fees.
           </p>
-          <button className={style["register-button"]}>Register Today</button>
+          <button className={style["register-button"]} onClick={handleOnclick}>Register Today</button>
         </div>
       </div>
 
@@ -65,6 +71,7 @@ export default function Home() {
       <PetBussiness />
       <ChooseUs />
       <FrequentlyQuastion />
+      <Footer/>
     </>
   );
 }

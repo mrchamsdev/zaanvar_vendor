@@ -7,22 +7,30 @@
   text-align: center;
   margin-bottom: 2rem;
 }
-.title{
-   font-size: 24px; 
-   margin: 0px;
-   padding-bottom: 8px;
+
+.title {
+  font-size: 24px; 
+  margin: 0px;
+  padding-bottom: 8px;
+  color: white;
+  z-index: 2;
+  position: relative;
 }
-.below-text{
-    font-size: 18px;
-    margin: 0px;
+
+.belowText {
+  font-size: 18px;
+  margin: 0px;
+  color: white;
+  z-index: 2;
+  position: relative;
 }
 
 .headerSubtitle {
   color: rgba(245, 121, 12, 1);
   font-weight: 600;
-      font-size: 24px;
-    margin: 0px;
-    padding-bottom: 10px;
+  font-size: 24px;
+  margin: 0px;
+  padding-bottom: 10px;
 }
 
 .headerTitle {
@@ -43,7 +51,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
- 
   transition: transform 0.5s;
 }
 
@@ -51,7 +58,6 @@
   flex: 0 0 auto;
   transition: transform 0.5s, opacity 0.5s;
   cursor: pointer;
-
   transform: scale(0.7);
   z-index: 1;
 }
@@ -65,14 +71,14 @@
 .carouselItem.left,
 .carouselItem.right {
   transform: scale(0.85);
-opacity: 0.9;
+  opacity: 0.9;
   z-index: 5;
 }
 
 .carouselItem.farLeft,
 .carouselItem.farRight {
   transform: scale(0.7);
- opacity: 0.6;
+  opacity: 0.6;
   z-index: 1;
 }
 
@@ -84,20 +90,49 @@ opacity: 0.9;
   width: 300px;
 }
 
-.card img {
+.imageContainer {
+  position: relative;
   width: 100%;
   height: 310px;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
+/* Image Mask Overlay */
+.imageMask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Active mask - only for center card */
+.maskActive {
+  opacity: 1;
+}
 
 .cardContent {
   position: absolute;
   bottom: 1rem;
-  left: 1rem;
+  left: 0;
+  right: 0;
   color: white;
-  align-items: center;
   text-align: center;
+  padding: 0 1rem;
+  z-index: 3;
 }
 
 .navButton {
@@ -136,10 +171,11 @@ opacity: 0.9;
 .dotActive {
   background-color: #f97316;
 }
+
 .carouselTrack {
   display: flex;
   align-items: center;
-  transition: transform 0.5s ease-in-out; /* smooth sliding */
+  transition: transform 0.5s ease-in-out;
   overflow: hidden;
 }
 
@@ -157,35 +193,41 @@ opacity: 0.9;
 }
 
 .dash {
-  width: 1.5rem;   /* longer dash */
+  width: 1.5rem;
   height: 0.35rem;
   border-radius: 0.25rem;
 }
 
-
 /* Responsive Styles */
 @media (max-width: 768px) {
   .carouselContainer {
-    margin-bottom: 80px; 
+    margin-bottom: 40px; 
+    padding-top: 20px;
   }
 
   .headerTitle {
     font-size: 32px;
   }
+  
   .carouselTrack {
     width: 100%;
     overflow: hidden;
   }
 
   .headerSubtitle {
-    font-size: 18px;
+    font-size: 14px;
+    padding: 0px;
+  }
+  
+  .header {
+    margin-bottom: 10px;
   }
 
   .title {
     font-size: 18px;
   }
 
-  .below-text {
+  .belowText {
     font-size: 14px;
   }
 
@@ -204,16 +246,16 @@ opacity: 0.9;
   }
 
   .card {
-    width: 200px; /* smaller cards */
+    width: 200px;
   }
 
-  .card img {
+  .imageContainer {
     height: 200px;
   }
 
   .cardContent {
     bottom: 0.5rem;
-    left: 0.5rem;
+    padding: 0 0.5rem;
     font-size: 12px;
   }
 
@@ -231,9 +273,31 @@ opacity: 0.9;
     height: 0.25rem;
   }
 }
-@media (max-width:786px) {
-  .card{
+
+@media (max-width: 786px) {
+  .card {
     width: 150px;
-        height: 150px;
+  }
+  
+  .imageContainer {
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    width: 150px;
+  }
+  
+  .imageContainer {
+    height: 150px;
+  }
+  
+  .title {
+    font-size: 16px;
+  }
+  
+  .belowText {
+    font-size: 12px;
   }
 }

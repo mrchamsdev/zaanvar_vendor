@@ -1,0 +1,143 @@
+.contain-block {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-bottom: 50px;
+  padding: 0px 32px;
+}
+
+.card {
+  padding: 20px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.09);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+}
+
+.card-button {
+  padding: 10px 20px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 73px;
+  color: rgb(245, 121, 12);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: none;
+  border: 1px solid rgb(245, 121, 12);
+  margin-top: 10px;
+}
+
+.card-button:hover {
+  filter: brightness(90%);
+}
+
+.header-text {
+  margin: 0px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #f5790c;
+}
+
+.Below-text {
+  font-size: 36px;
+  font-weight: 600;
+  margin: 0px;
+  padding-top: 20px;
+  text-align: center;
+}
+
+.Below-text span {
+  color: #f5790c;
+}
+
+.title {
+  font-size: 20px;
+  margin: 0px;
+  padding: 12px 0px 6px 0px;
+}
+
+.para {
+  margin: 0px;
+  padding: 6px 0px;
+}
+
+.header-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 215px;
+}
+.para-container{
+    padding: 0px 32px;
+    padding-bottom: 70px;
+}
+.para-container span{
+    color: #f5790c;
+}
+
+@media (max-width: 1024px) {
+  .contain-block {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .header-text {
+    font-size: 14px;
+  }
+
+  .Below-text {
+    font-size: 24px;
+    padding-top: 10px;
+    font-weight: 600px;
+  }
+}
+
+/* Mobile: 1 per row */
+@media (max-width: 640px) {
+  .contain-block {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Extra small mobile: below 480px */
+@media (max-width: 480px) {
+  .contain-block {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 16px;
+    margin-bottom: 50px;
+  }
+
+  .header-text {
+    font-size: 14px;
+  }
+
+  .Below-text {
+    font-size: 24px;
+    padding-top: 10px;
+    font-weight: 600px;
+  }
+  .header-block {
+    padding: 30px;
+  }
+
+  .title {
+    font-size: 18px;
+    padding: 8px 0 4px 0;
+  }
+
+  .para {
+    font-size: 14px;
+    padding: 4px 0;
+  }
+  .card {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.09);
+  }
+}

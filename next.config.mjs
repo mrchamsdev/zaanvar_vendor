@@ -8,8 +8,15 @@ const nextConfig = {
      {
       protocol: "https",
       hostname: "zaanvar-care.b-cdn.net"
+     },
+       {
+      protocol: "https",
+      hostname: "cdn.builder.io"
      }
     ],
+  
+    
+
   },
 
 };

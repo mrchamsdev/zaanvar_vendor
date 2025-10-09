@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import React, { useState } from 'react'
 import styles from "../../../styles/vender/servicesWeOffer.module.css"
+import { useRouter } from 'next/router'
 
 
 
@@ -119,6 +120,12 @@ const ServicesWeOffer = () => {
   "#dc143c"
 ];
 
+const Router= useRouter();
+
+const handleClick = ()=>{
+Router.push("/register")
+}
+
   return (
     <>
       <div className={styles["header-div"]}>
@@ -147,11 +154,11 @@ WITH YOUR PETS
           <p className={styles["para"]}>
            {mainImages[activeIndex].para} </p>
             
-<button
+<button onClick={handleClick}
   className={styles["button-div"]}
   style={{ backgroundColor: buttonColors[activeIndex] }}
 >
-  Read More
+ Register
 </button>
         </div>
       </div>
