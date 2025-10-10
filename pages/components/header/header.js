@@ -7,12 +7,12 @@ const Header = () => {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const toggleMenu = () => setOpen(s => !s);
+  const toggleMenu = () => setOpen((s) => !s);
   const closeMenu = () => setOpen(false);
 
   // track viewport
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 769);
     handleResize(); // initial check
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -36,7 +36,13 @@ const Header = () => {
           aria-expanded={open}
         >
           {open ? (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden
+            >
               <path
                 d="M6 6L18 18M6 18L18 6"
                 stroke="currentColor"
@@ -46,7 +52,13 @@ const Header = () => {
               />
             </svg>
           ) : (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden
+            >
               <path
                 d="M4 7h16M4 12h16M4 17h16"
                 stroke="currentColor"
@@ -76,13 +88,18 @@ const Header = () => {
         <>
           <nav className={style["nav-links"]} aria-label="Main navigation">
             <Link href="/">Home</Link>
-            <Link href="/about">About Us</Link>
-            <Link href="/sources">Sources</Link>
+            <Link href="/about-us">About Us</Link>
+            {/* <Link href="/sources">Sources</Link> */}
             <Link href="/contact">Contact Us</Link>
           </nav>
           <div className={style["button-container"]}>
             <button className={style["btn-outline"]}>LOGIN</button>
-            <button className={style["btn-outline"]}>Start FREE Trial</button>
+            <button
+              className={style["btn-outline"]}
+              style={{ background: "#F5790C", color:"#fff" }}
+            >
+              Start FREE Trial
+            </button>
           </div>
         </>
       )}
@@ -91,7 +108,9 @@ const Header = () => {
       {isMobile && (
         <>
           <div
-            className={`${style["mobile-overlay"]} ${open ? style["open"] : ""}`}
+            className={`${style["mobile-overlay"]} ${
+              open ? style["open"] : ""
+            }`}
             onClick={closeMenu}
             aria-hidden={!open}
           />
@@ -112,15 +131,25 @@ const Header = () => {
             </div>
 
             <nav className={style["mobile-nav"]}>
-              <Link href="/" onClick={closeMenu}>Home</Link>
-              <Link href="/about" onClick={closeMenu}>About Us</Link>
-              <Link href="/sources" onClick={closeMenu}>Sources</Link>
-              <Link href="/contact" onClick={closeMenu}>Contact Us</Link>
+              <Link href="/" onClick={closeMenu}>
+                Home
+              </Link>
+              <Link href="/about-us" onClick={closeMenu}>
+                About Us
+              </Link>
+              {/* <Link href="/sources" onClick={closeMenu}>Sources</Link> */}
+              <Link href="/contact" onClick={closeMenu}>
+                Contact Us
+              </Link>
             </nav>
 
             <div className={style["mobile-actions"]}>
-              <button className={style["btn-outline"]} onClick={closeMenu}>LOGIN</button>
-              <button className={style["btn-primary"]} onClick={closeMenu}>Start FREE Trial</button>
+              <button className={style["btn-outline"]} onClick={closeMenu}>
+                LOGIN
+              </button>
+              <button className={style["btn-primary"]} onClick={closeMenu}>
+                Start FREE Trial
+              </button>
             </div>
           </div>
         </>

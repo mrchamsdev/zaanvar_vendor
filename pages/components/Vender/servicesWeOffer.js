@@ -25,12 +25,14 @@ const mainImages = [
     text: "BOOK YOUR TICKETS TO ENJOY ",
     para:"Easily and confidently find the right match to your pet. We match breeders and owners of pets in safe, ethical, and transparent matings. We have healthy practices of pairing which ensure genetic variation and breed standardization. Proper relationships ensure that each and every match is worthy and fruitful both to the pets and owners.",
   },
-//   Photographer
-  {
-    src: "https://zaanvar-care.b-cdn.net/media/1759898702657-Group 1000012699.png",
-   text: "BOOK YOUR TICKETS TO ENJOY ",
-    para:"The most beautiful moments in the life of your pet can be captured by the professional photographers who know animals. Whether it is playful portraits or capturing some of the most candid shots of your pet, they are able to bring out the individuality in them. The comfort, patience and creativity of each photo session make your pet charming become the unforgettable memories you will enjoy all your life.",
-  },
+  
+//!   Photographer
+
+  // {
+  //   src: "https://zaanvar-care.b-cdn.net/media/1759898702657-Group 1000012699.png",
+  //  text: "BOOK YOUR TICKETS TO ENJOY ",
+  //   para:"The most beautiful moments in the life of your pet can be captured by the professional photographers who know animals. Whether it is playful portraits or capturing some of the most candid shots of your pet, they are able to bring out the individuality in them. The comfort, patience and creativity of each photo session make your pet charming become the unforgettable memories you will enjoy all your life.",
+  // },
 //   Clinic
   {
     src: "https://zaanvar-care.b-cdn.net/media/1759903036265-Clinic2.png",
@@ -50,37 +52,38 @@ const mainImages = [
    text: "BOOK YOUR TICKETS TO ENJOY",
     para:"Establish contact with recognized blood organizations and donors of bloodshed. With our network, we can get you to life-saving blood at the time when your pet needs it the most. You may also sign your pet to be a donor and assist the needy. Every dollar is important - united we can make a community that can save lives, one drop at a time.",
   },
-//   NGOs
-  {
-    src: "https://zaanvar-care.b-cdn.net/media/1759902395433-BloodBank2.png",
-    text: "BOOK YOUR TICKETS TO ENJOY",
-    para:"Identify and fund NGOs that focus on animal rescue and adoption as well as welfare. These charities strive hard to attend to the lost, injured, and homeless pets. You may volunteer, give a donation, or cooperate to make a difference. Work side by side with reputable NGOs and build a better world with all the pets in need.",
-  },
-//   Day Care
+//!   NGOs
+  // {
+  //   src: "https://zaanvar-care.b-cdn.net/media/1759902395433-BloodBank2.png",
+  //   text: "BOOK YOUR TICKETS TO ENJOY",
+  //   para:"Identify and fund NGOs that focus on animal rescue and adoption as well as welfare. These charities strive hard to attend to the lost, injured, and homeless pets. You may volunteer, give a donation, or cooperate to make a difference. Work side by side with reputable NGOs and build a better world with all the pets in need.",
+  // },
+
+//!   Day Care
   {
     src: "https://zaanvar-care.b-cdn.net/media/1759903073537-DayCare2.png",
     text: "BOOK YOUR TICKETS TO ENJOY",
     para:"When you are out of town, provide your pets with a safe and loving environment. Professional daycare provides social facilities, rest and play under professionally trained supervision. Pets have a good time there, as every facility has comfort and companionship at the core of them. Be stress free knowing that your furry friend is in caring hands throughout the day.",
   },
-//   Location 
+//!   Location 
   {
     src: "https://zaanvar-care.b-cdn.net/media/1759903400688-Location2.png",
     text: "BOOK YOUR TICKETS TO ENJOY",
     para:"The smart location based search of Zaanvar helps locate nearby pet services without difficulties. You can find a trusted provider of the trainer, groomer, vet, or even store, and we assist you in it and help find the nearest one. Spend less time and effort and get access to quality services. Caring about pets will be quicker, easier, and accessible at all times and all locations."
   },
-//   Events
+//!   Events
   {
     src: "https://zaanvar-care.b-cdn.net/media/1759902372815-Event2.png",
    text: "BOOK YOUR TICKETS TO ENJOY",
     para:"Be in touch with all the current pet events, shows, and neighborhood events. Find adoption drives and workshops and awareness programs in your area. They combine professional people, enthusiasts, and pet owners in order to exchange knowledge and happiness. Get to know and love pets, and enjoy yourself growing in an active and a loving environment."
   },
 
-//   E-commerse Not Done
-  {
-    src: "https://zaanvar-care.b-cdn.net/media/1759898702657-Group 1000012699.png",
-    text: "BOOK YOUR TICKETS TO ENJOY",
-    para:"The ecommerce site by Zaanvar helps shoppers compare prices of pet products in reputable online shops. Get the best offers on food, toys, grooming and accessories all under one roof. Saving money and time and yet getting your pet quality products. Make the world easier: all your pet requires is incorporated into one and simple."
-  },
+//!   E-commerse Not Done
+  // {
+  //   src: "https://zaanvar-care.b-cdn.net/media/1759898702657-Group 1000012699.png",
+  //   text: "BOOK YOUR TICKETS TO ENJOY",
+  //   para:"The ecommerce site by Zaanvar helps shoppers compare prices of pet products in reputable online shops. Get the best offers on food, toys, grooming and accessories all under one roof. Saving money and time and yet getting your pet quality products. Make the world easier: all your pet requires is incorporated into one and simple."
+  // },
 ]
 
 // Use Numbering Format for the Image Adding 
@@ -88,17 +91,23 @@ const thumbnails = [
   { src: "https://zaanvar-care.b-cdn.net/media/1759901324934-taining.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901313634-breeder.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901304871-Mating.png" },
-  { src: "https://zaanvar-care.b-cdn.net/media/1759901266144-Photographer.png" },
+
+
+  //! PhotoGrapher
+  // { src: "https://zaanvar-care.b-cdn.net/media/1759901266144-Photographer.png" },
+
   { src: "https://zaanvar-care.b-cdn.net/media/1759901252129-Clinic.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901245184-Grooming.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901751033-Blood Bank.png" },
-  //   NGOS Not Done
-    { src: "https://zaanvar-care.b-cdn.net/media/1759901679110-Ngo.png" },
+
+  //!  NGOS 
+    // { src: "https://zaanvar-care.b-cdn.net/media/1759901679110-Ngo.png" },
       
   { src: "https://zaanvar-care.b-cdn.net/media/1759903182406-DayCare.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901210828-Location.png" },
   { src: "https://zaanvar-care.b-cdn.net/media/1759901204786-Events.png" },
-  { src: "https://zaanvar-care.b-cdn.net/media/1759901194355-E-commerce.png" },
+
+  // { src: "https://zaanvar-care.b-cdn.net/media/1759901194355-E-commerce.png" },
 
  
 ]
@@ -123,7 +132,7 @@ const ServicesWeOffer = () => {
 const Router= useRouter();
 
 const handleClick = ()=>{
-Router.push("/register")
+Router.push("/book-demo")
 }
 
   return (

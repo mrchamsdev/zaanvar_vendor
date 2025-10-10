@@ -260,6 +260,44 @@ margin-bottom: 0px;
 .border{
   border: 1px solid #72727140;
 }
+.companyContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 22%;
+}
+
+.companyContainer h5 {
+  color: #F5790C;
+  font-size: 20px;
+}
+
+.companyContainer p {
+  color: #131313;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+  font-size: 18px;
+}
+
+/* Add this new class for grid layout */
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  column-gap: 20px;
+  row-gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .companyContainer {
+    width: 100%;
+  }
+
+  .servicesGrid {
+    grid-template-columns: 1fr; /* stack on mobile */
+  }
+}
+
 
 @media(max-width:1025px){
   .footerContainer{

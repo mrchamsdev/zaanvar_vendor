@@ -5,7 +5,7 @@ import Footer from './components/Footer/footer'
 import WeManageBussiness from './components/Vender/WeManageBussiness'
 import SimplyAndGrow from './components/register/simplyAndGrow'
 
-const register = () => {
+const BookDemo = () => {
   return (
    
    <>
@@ -17,4 +17,4 @@ const register = () => {
   )
 }
 
-export default register
+export default BookDemo
