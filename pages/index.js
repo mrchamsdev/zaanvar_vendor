@@ -17,7 +17,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const Router = useRouter();
 const handleOnclick = ()=>{
-  Router.push("/register")
+  Router.push("/book-demo")
 }
 
   useEffect(() => {

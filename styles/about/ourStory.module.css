@@ -1,0 +1,370 @@
+.ourstoryContainer {
+    position: relative;
+    overflow: hidden;
+    padding-left: 80px;
+    padding-right: 80px;
+    margin-top: 90px;
+}
+.mainContent {
+    position: relative;
+    width: 100%;
+}
+
+.triangles {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    width: 200px;
+    height: 100px; 
+}
+
+.triangle1 {
+    position: absolute;
+    top: -40px;
+    right: 130px;
+}
+
+.triangle2 {
+    position: absolute;
+    top: -30px;
+    right: 30px;
+}
+.contentSection {
+    position: relative;
+    z-index: 1;
+    margin-top: 40px; /* Add space for triangles */
+}
+.contentWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #F5790C;
+    overflow: hidden;
+    margin: 30px;
+    margin-top: -86px;
+    border-radius: 25px;
+}
+
+.imageContainer {
+    width: 100%;
+    object-fit: cover;
+    position: relative;
+}
+
+.storyImage {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.textContent {
+    width: 100%;
+    padding: 40px;
+    color: white;
+}
+
+.textContent h5 {
+    font-size: 40px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+.textContent p {
+  font-weight: 400;
+font-size: 18px;
+line-height: 140%;
+letter-spacing: 0%;
+text-align: justify;
+
+}
+.ourstoryContainer {
+    position: relative;
+    overflow: hidden;
+    padding-left: 32px;
+    padding-right: 32px;
+    margin-top: 40px;
+}
+.mainContent {
+    position: relative;
+    width: 100%;
+}
+
+.triangles {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    width: 200px;
+    height: 100px; 
+}
+
+.triangle1 {
+    position: absolute;
+    top: -40px;
+    right: 130px;
+}
+
+.triangle2 {
+    position: absolute;
+    top: -30px;
+    right: 30px;
+}
+.contentSection {
+    position: relative;
+    z-index: 1;
+    margin-top: 40px; /* Add space for triangles */
+}
+.contentWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #F5790C;
+    overflow: hidden;
+    margin: 30px;
+    margin-top: -86px;
+    border-radius: 25px;
+}
+
+.imageContainer {
+    width: 100%;
+    object-fit: cover;
+    position: relative;
+}
+
+.storyImage {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.textContent {
+    width: 100%;
+    padding: 40px;
+    color: white;
+}
+
+.textContent h5 {
+    font-size: 40px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    margin-top: 0px;
+  }
+
+.textContent p {
+  font-weight: 400;
+font-size: 18px;
+line-height: 140%;
+letter-spacing: 0%;
+text-align: justify;
+
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+
+    .contentWrapper {
+        flex-direction: column;
+    }
+    .triangles {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+        width: 200px;
+        height: 100px; 
+    }
+    
+    .triangle1 {
+        position: absolute;
+        top: -60px;
+        right: 130px;
+    }
+    
+    .triangle2 {
+        position: absolute;
+        top: -60px;
+        right: 30px;
+    }
+    .imageContainer {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .textContent {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .triangles {
+        transform: scale(0.7);
+    }
+}
+
+@media (max-width: 768px) {
+    .ourstoryContainer {
+        margin-top: 50px;
+        padding: 20px;
+    }
+    .triangles {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+        width: 200px;
+        height: 100px; 
+    }
+    
+    .triangle1 {
+        position: absolute;
+        top: -80px;
+        right: 130px;
+    }
+
+    
+    .triangle2 {
+        position: absolute;
+        top: -70px;
+        right: 30px;
+    }
+
+    .contentWrapper{
+        margin: 20px;
+        margin-top: -50px;
+    }
+    .textContent h5 {
+        font-size: 24px;
+        padding: 0px 10px;
+    }
+
+    .textContent p {
+        font-size: 14px;
+        padding: 0px 10px;
+    }
+
+    .triangles {
+        transform: scale(0.5);
+    }
+}
+
+@media (max-width: 500px) {
+    .ourstoryContainer {
+        margin-top: 30px;
+        padding: 15px;
+    }
+    .triangles {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+        width: 200px;
+        height: 100px; 
+    }
+    
+    .triangle1 {
+        position: absolute;
+        top: -80px;
+        right: 130px;
+    }
+
+    
+    .triangle2 {
+        position: absolute;
+        top: -75px;
+        right: 30px;
+    }
+
+    .contentWrapper{
+        margin: 15px;
+        margin-top: -45px;
+    }
+    .textContent h5 {
+        font-size: 20px;
+    }
+
+    .textContent p {
+        font-size: 12px;
+    }
+
+    .triangles {
+        transform: scale(0.5);
+    }
+}
+
+@media (max-width: 600px) {
+    .ourstoryContainer {
+        margin-top: 20px;
+        padding: 15px;
+    }
+    .triangles {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
+        width: 200px;
+        height: 100px; 
+    }
+    
+    .triangle1 {
+        position: absolute;
+        top: -80px;
+        right: 130px;
+    }
+
+    
+    .triangle2 {
+        position: absolute;
+        top: -75px;
+        right: 30px;
+    }
+
+    .contentWrapper{
+        margin: 15px;
+        margin-top: -45px;
+    }
+    .textContent h5 {
+        font-size: 16px;
+    }
+
+    .textContent p {
+        font-size: 10px;
+    }
+
+    .triangles {
+        transform: scale(0.5);
+    }
+}
+
+@media (max-width: 440px) {
+    .contentWrapper{
+        margin: 10px;
+        margin-top: -15px;
+    }
+    .triangle2 {
+        position: absolute;
+        top: -75px;
+        right: -60px;
+    }
+    .triangle1 {
+        position: absolute;
+        top: -80px;
+        right: 50px;
+    }
+    .readMoreButton {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 5px;
+        padding: 0px;
+        padding-left: 10px;
+      }
+      
+      .readMoreButton:hover {
+        color: white;
+      }
+      
+}

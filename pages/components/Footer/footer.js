@@ -26,7 +26,7 @@ const Footer = () => {
           <div className={styles.footerNav}>
             <p>For your daily dose of happiness, follow us on</p>
             <div className={styles.links}>
-              <img src="/images/Blog_Icons/blogwhatsapp.svg" alt="WhatsApp" className={styles.socialIcon} />
+              {/* <img src="/images/Blog_Icons/blogwhatsapp.svg" alt="WhatsApp" className={styles.socialIcon} /> */}
               <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/ba7884bde25bf0dfd146a8050c79764f13b338aefa372c70618b7711094f0e8a?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="LinkedIn" className={styles.socialIcon} />
               <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/995aa139b3143c5f3bf50c2fb4d2127534320761d0fdb0e24f2fee9bd742d450?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="Twitter" className={styles.socialIcon} />
               <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/0f834d2a593e4f9bb766085ed949e9f5b939d223910580cb67714670e4ca4990?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="Instagram" className={styles.socialIcon} />
@@ -43,7 +43,30 @@ const Footer = () => {
             <p>About Us</p>
             <p>Contact Us</p>
           </div>
+{/* <div className={styles.servicesGrid}>
+    <p>Grooming</p>
+    <p>Day Care</p>
+    <p>Tinder</p>
+    <p>Matting</p>
+    <p>Pet Walker</p>
+    <p>Events</p>
+    <p>Training</p>
+    <p>Insurance</p>
+    <p>Cremation</p>
+    <p>Nutrition Diet</p>
+    <p>E-Reports</p>
+    <p>Pet Diary</p>
+    <p>Location</p>
+    <p>Ride</p>
+    <p>Tailgram</p>
+    <p>Tail Talks</p>
+    <p>Blood Bank</p>
+    <p>Found & Missing</p>
+    <p>Adoption</p>
+    <p>Pet Breeds</p>
+    <p>Animal NGOs</p>
 
+  </div> */}
           <div className={styles.companyContainer}>
             <h5>Services</h5>
             <div className={styles.border}></div>

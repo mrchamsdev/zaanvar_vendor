@@ -1,0 +1,178 @@
+.bannerContainer{
+    height: 500px;
+    position: relative;
+    background-image: url('/images/tinder/lines 2.png'); 
+    background-size: cover; 
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+}
+.bannerContent{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+}
+.bannerTitleContainer{
+    display: block;
+}
+.bannerTitleContent{
+    position: relative;
+}
+
+.bannerSubtitle{
+    color: #131313;
+text-align: center;
+/* font-size: 20px; */
+font-size: clamp(10px, 1vw + 0.5rem, 20px);
+font-style: normal;
+font-weight: 400;
+}
+.bannerTitle{
+    color: #131313;
+text-align: center;
+/* font-size: 48px; */
+font-size: clamp(24px, 3vw + 1rem, 48px);
+font-style: normal;
+font-weight: 600;
+}
+.bannerTitle2{
+    color: #131313;
+text-align: center;
+/* font-size: 64px; */
+font-size: clamp(32px, 4vw + 1rem, 64px);
+font-style: normal;
+font-weight: 600;
+}
+.bannerImageContainer{
+    display: block;
+    position: absolute;
+    bottom: 88px;
+    right: 40px;
+}
+
+/* Large Devices (laptops/desktops, 1200px and down) */
+@media screen and (max-width: 1200px) {
+    .bannerContainer {
+        height: 450px;
+    }
+
+    .bannerTitle {
+        /* font-size: 42px; */
+    }
+
+    .bannerTitle2 {
+        /* font-size: 56px; */
+    }
+
+    .bannerSubtitle {
+        /* font-size: 18px; */
+    }
+}
+
+/* Medium Devices (tablets, 992px and down) */
+@media screen and (max-width: 992px) {
+    .bannerContainer {
+        height: 400px;
+    }
+
+    .bannerTitle {
+        /* font-size: 36px; */
+    }
+
+    .bannerTitle2 {
+        /* font-size: 48px; */
+    }
+
+    .bannerSubtitle {
+        /* font-size: 16px; */
+    }
+
+    .bannerImageContainer {
+        bottom: 60px;
+        right: 30px;
+    }
+}
+
+/* Small Devices (landscape phones, 768px and down) */
+@media screen and (max-width: 768px) {
+    .bannerContainer {
+        height: 350px;
+    }
+
+    .bannerTitle {
+        /* font-size: 32px; */
+    }
+
+    .bannerTitle2 {
+        /* font-size: 40px; */
+    }
+
+    .bannerSubtitle {
+        /* font-size: 15px; */
+        margin: 10px 20px;
+    }
+
+    .bannerImageContainer {
+        bottom: 40px;
+        right: 20px;
+    }
+}
+
+/* Extra Small Devices (phones, 576px and down) */
+@media screen and (max-width: 576px) {
+    .bannerContainer {
+        height: 300px;
+    }
+
+    .bannerTitle {
+        /* font-size: 28px; */
+        margin-bottom: 5px;
+    }
+
+    .bannerTitle2 {
+        /* font-size: 32px; */
+        margin-bottom: 10px;
+    }
+
+    .bannerSubtitle {
+        /* font-size: 14px; */
+        margin: 8px 15px;
+        line-height: 1.4;
+    }
+
+    .bannerImageContainer {
+        bottom: 30px;
+        right: 15px;
+    }
+}
+
+/* Extra Extra Small Devices (small phones, 400px and down) */
+@media screen and (max-width: 400px) {
+    .bannerContainer {
+        height: 280px;
+    }
+.bannerContent{
+    padding: 10px;
+}
+    .bannerTitle {
+        /* font-size: 24px; */
+    }
+
+    .bannerTitle2 {
+        /* font-size: 28px; */
+    }
+
+    .bannerSubtitle {
+        /* font-size: 13px; */
+        margin: 6px 10px;
+    }
+
+    .bannerImageContainer {
+        bottom: 20px;
+        right: 10px;
+    }
+}
+

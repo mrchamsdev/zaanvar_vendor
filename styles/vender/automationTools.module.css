@@ -64,9 +64,18 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .contain-block {
     grid-template-columns: 1fr; /* 1 per row on mobile */
+  }
+  .header-text {
+    font-size: 14px;
+  }
+
+  .Below-text {
+    font-size: 32px;
+    padding-top: 10px;
+    font-weight: 600px;
   }
 }
 @media (max-width: 480px) {

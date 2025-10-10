@@ -1,0 +1,243 @@
+
+.ourmission{
+    background-image: url('/images/about/missionvisionbg.png'); 
+}
+
+.missionContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* width: 100%; */
+    min-height: 300px; /* Ensures it covers the full viewport height */
+    position: relative;
+    background-color: white;
+    background-image: url('/images/about/missionvisionbg.png'); 
+    background-size: cover;  
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 50px 40px;
+    margin-top: 50px;
+}
+
+.missionContent {
+    display: flex;
+    flex-direction: column;
+    z-index: 1; /* Ensures content is above the background */
+}
+
+.missionTitle {
+    font-size: 40px;
+    font-weight: 500;
+    margin: 0px;
+}
+
+.missionText {
+    font-size: 20px;
+    font-weight: 400;
+}
+
+.missionImages {
+    /* display: flex; */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -550px;
+}
+
+.missionImage {
+    width: 100%;
+    height: auto;
+    
+}
+/* ... your existing styles ... */
+
+/* Media Queries */
+@media (max-width: 1024px) {
+    .missionContainer {
+        flex-direction: column;
+        padding: 25px;
+        min-height: auto;
+    }
+
+    .missionContent {
+        width: 100%;
+        text-align: center;
+
+    }
+
+    .missionTitle {
+        font-size: 32px;
+    }
+
+    .missionText {
+        font-size: 18px;
+    }
+
+    .missionImages {
+        width: 100%;
+        margin-top: -500px;
+    }
+
+    .missionImage {
+        width: 50%;
+    }
+}
+
+@media (max-width: 768px) {
+    .missionContainer {
+        margin-top: 30px;
+        padding: 25px;
+    }
+    .missionContent {
+        width: 100%;
+        text-align: center;
+        padding-top: 20px;
+    }
+
+    .missionTitle {
+        font-size: 28px;
+    }
+
+    .missionText {
+        font-size: 16px;
+    }
+
+    .missionImages {
+     /* margin-top: 0px; */
+     width: 100%;
+     margin-top: -460px;
+    }
+
+    .missionImage {
+        width: 50%;
+    }
+}
+
+@media (max-width: 700px) {
+ 
+
+    .missionImages {
+     /* margin-top: 0px; */
+     width: 100%;
+     margin-top: -360px;
+    }
+
+    .missionImage {
+        width: 50%;
+    }
+}
+
+@media (max-width: 600px) {
+    .missionContainer {
+        margin-top: 20px;
+        padding: 25px;
+    }
+    .missionContent {
+        width: 100%;
+        text-align: left;
+        padding-top: 20px;
+    }
+    .missionTitle {
+        font-size: 24px;
+    }
+
+    .missionText {
+        font-size: 14px;
+    }
+
+    .missionImages {
+        width: 100%;
+        margin-top: -360px;
+    }
+
+    .missionImage {
+        width: 65%;
+    }
+  
+}
+
+/* For very small devices */
+@media (max-width: 480px) {
+    .missionContainer {
+        padding:  25px;
+        margin-top: 50px;
+    }
+    
+    .missionContent {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        z-index: 0;
+        padding-top: 20px;
+    }
+    
+    .missionTitle {
+        font-size: 20px;
+
+    }
+    
+    .missionText {
+        font-size:  16px;
+        font-weight: 400;
+    }
+    
+    .missionImages {
+        margin-top: -235px;
+    }
+    
+    .missionImage {
+        width: 50%;
+        height: auto;
+        
+    }
+}
+
+@media (max-width: 400px) {
+ 
+    
+    .missionImages {
+        margin-top: -210px;
+
+    }
+    
+    .missionImage {
+        width: 50%;
+        height: auto;
+        
+    }
+}
+@media (max-width: 350px) {
+    .missionContainer {
+        padding:  25px;
+        margin-top: 10px;
+    }
+    
+    .missionContent {
+        display: flex;
+        flex-direction: column;
+        z-index: 0;
+        padding-top: 20px;
+        text-align: left;
+        margin-bottom: 142px;
+    }
+    
+    .missionTitle {
+        font-size: 20px;
+
+    }
+    
+    .missionText {
+        font-size:  16px;
+        font-weight: 400;
+    }
+    
+    .missionImages {
+        margin-top: -310px;
+    }
+    
+    .missionImage {
+        width: 50%;
+        height: auto;
+        
+    }
+}

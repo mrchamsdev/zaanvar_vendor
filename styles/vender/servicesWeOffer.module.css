@@ -171,6 +171,13 @@ cursor: pointer;
     min-width: 80px;
     margin-right: 10px;
   }
+  .below-text{
+    font-size: 32px;
+    padding-top: 10px;
+  }
+  .title-header{
+    font-size: 14px;
+  }
 }
 
 /* Optional: Further adjustment below 480px */
@@ -212,4 +219,5 @@ cursor: pointer;
   .header-div{
     padding-bottom: 30px;
   }
+
 }
