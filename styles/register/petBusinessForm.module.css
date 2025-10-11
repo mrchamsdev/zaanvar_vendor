@@ -1,8 +1,14 @@
 .container {
   display: flex;
   /* gap: 32px; */
-  padding: 32px;
+  padding: 32px 120px;
   font-family: 'Poppins';
+}
+.errorMsg{
+  color: red;
+  font-size: 14px;
+  padding-top: 5px;
+  padding-left: 12px;
 }
 
 .left {
@@ -12,6 +18,7 @@
 .left h1 {
   font-size: 2rem;
   font-weight: bold;
+  margin-top: 0px;
 }
 
 .left p {
@@ -21,7 +28,7 @@
 
 .features {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0px;
 }
 .ul{
@@ -30,6 +37,12 @@
 .feature h4 {
   font-weight: bold;
   margin-bottom: 0.5rem;
+  font-size: 18px;
+}
+.tailored-feature{
+  margin: 0px ;
+  padding-top: 30px;
+  font-size: 28px;
 }
 
 .feature ul {
@@ -40,6 +53,7 @@
 
 .feature li {
   margin-bottom: 0.25rem;
+  font-size: 18px;
 }
 
 .right {
@@ -66,7 +80,7 @@
 }
 
 .row input {
-  flex: 1;
+  /* flex: 1; */
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -92,8 +106,8 @@
     color: #12121294;
 }
 .label2 input{
-   height: 30px;
-   width: 30px; 
+   height: 25px;
+   width: 25px; 
 }
 
 .checkboxGroup {
@@ -136,7 +150,12 @@
     margin: 0px;
     padding-bottom: 10px;
     font-weight: 500;
+    
 }
+.capitalize{
+ text-transform: none;
+}
+
 
 .form input,
 .form select,
@@ -169,6 +188,28 @@
     font-size: 18px;
 }
 
+
+@media (max-width: 1028px) {
+   .features {
+    grid-template-columns: repeat(3, 1fr); /* 2 columns instead of 3 */
+    gap: 1rem;
+  }
+  .submit-btn{
+    font-size: 14px;
+  }
+  .container{
+    padding: 32px;
+  }
+}
+@media (max-width: 880px) {
+   .features {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns instead of 3 */
+    gap: 1rem;
+  }
+  .submit-btn{
+    font-size: 14px;
+  }
+}
 
 
 /* Responsive styles for screens below 768px */
@@ -208,5 +249,32 @@
   .submit-btn {
     width: 100%; /* full width button */
     font-size: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .features{
+    grid-template-columns:repeat(3,1fr)
+  }
+  .feature h4{
+    margin: 0px;
+  }
+  .right h2{
+margin-top: 0px;
+  }
+  .tailored-feature{
+    padding-bottom: 20px;
+    font-size: 22px;
+  }
+  .card-button{
+    font-size: 12px;
+  }
+  .feature h4{
+    font-size: 16px;
+  }
+  .feature li{
+    font-size: 14px;
+  }
+  .submit-btn{
+    font-size: 14px;
   }
 }

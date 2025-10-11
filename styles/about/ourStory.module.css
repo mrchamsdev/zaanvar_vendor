@@ -149,6 +149,7 @@ text-align: justify;
     font-weight: 600;
     margin-bottom: 20px;
     margin-top: 0px;
+    padding: 0px 32px;
   }
 
 .textContent p {
@@ -157,6 +158,7 @@ font-size: 18px;
 line-height: 140%;
 letter-spacing: 0%;
 text-align: justify;
+padding: 0px 32px;
 
 }
 

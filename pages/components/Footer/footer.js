@@ -1,9 +1,20 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 // import Image from "next/image";
 import styles from "../../../styles/footer/footer.module.css";
 import Image from "next/image";
 
 const Footer = () => {
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 420);
+    handleResize(); 
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+
   return (
     <footer className={styles.footerWrapper}>
       <div className={styles.footerContainer}>
@@ -17,7 +28,9 @@ const Footer = () => {
             className={styles.footerLogo}
           />
           <div className={styles.subscribeContainer}>
-            <h5 className={styles["stay-update"]}>Stay updated with the Pet Industry</h5>
+            <h5 className={styles["stay-update"]}>
+              Stay updated with the Pet Industry
+            </h5>
             <div className={styles.inputContainer}>
               <input type="email" placeholder="Email" />
               <span>Subscribe Now</span>
@@ -27,10 +40,26 @@ const Footer = () => {
             <p>For your daily dose of happiness, follow us on</p>
             <div className={styles.links}>
               {/* <img src="/images/Blog_Icons/blogwhatsapp.svg" alt="WhatsApp" className={styles.socialIcon} /> */}
-              <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/ba7884bde25bf0dfd146a8050c79764f13b338aefa372c70618b7711094f0e8a?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="LinkedIn" className={styles.socialIcon} />
-              <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/995aa139b3143c5f3bf50c2fb4d2127534320761d0fdb0e24f2fee9bd742d450?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="Twitter" className={styles.socialIcon} />
-              <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/0f834d2a593e4f9bb766085ed949e9f5b939d223910580cb67714670e4ca4990?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="Instagram" className={styles.socialIcon} />
-              <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/d6020af5b08200c2bae4af08d24b75a0d7ea8e6902580faeebe07c879fdf7333?apiKey=3e99c58a56f84e4cb0d84873c390b13e&" alt="Facebook" className={styles.socialIcon} />
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets/TEMP/ba7884bde25bf0dfd146a8050c79764f13b338aefa372c70618b7711094f0e8a?apiKey=3e99c58a56f84e4cb0d84873c390b13e&"
+                alt="LinkedIn"
+                className={styles.socialIcon}
+              />
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets/TEMP/995aa139b3143c5f3bf50c2fb4d2127534320761d0fdb0e24f2fee9bd742d450?apiKey=3e99c58a56f84e4cb0d84873c390b13e&"
+                alt="Twitter"
+                className={styles.socialIcon}
+              />
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets/TEMP/0f834d2a593e4f9bb766085ed949e9f5b939d223910580cb67714670e4ca4990?apiKey=3e99c58a56f84e4cb0d84873c390b13e&"
+                alt="Instagram"
+                className={styles.socialIcon}
+              />
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets/TEMP/d6020af5b08200c2bae4af08d24b75a0d7ea8e6902580faeebe07c879fdf7333?apiKey=3e99c58a56f84e4cb0d84873c390b13e&"
+                alt="Facebook"
+                className={styles.socialIcon}
+              />
             </div>
           </div>
         </div>
@@ -43,7 +72,7 @@ const Footer = () => {
             <p>About Us</p>
             <p>Contact Us</p>
           </div>
-{/* <div className={styles.servicesGrid}>
+          {/* <div className={styles.servicesGrid}>
     <p>Grooming</p>
     <p>Day Care</p>
     <p>Tinder</p>
@@ -70,34 +99,60 @@ const Footer = () => {
           <div className={styles.companyContainer}>
             <h5>Services</h5>
             <div className={styles.border}></div>
+            <p>Grooming</p>
+            <p>Day Care</p>
             <p>Tinder</p>
-            <p>Pet Sales</p>
-            <p>Community</p>
-            <p>Pet Ecommerce</p>
+            <p>Matting</p>
+            <p>Pet Walker</p>
+            <p>Events</p>
+            {/* <p>Training</p>
+    <p>Insurance</p>
+    <p>Cremation</p>
+    <p>Nutrition Diet</p>
+    <p>E-Reports</p>
+    <p>Pet Diary</p>
+    <p>Location</p> */}
+            <p>Ride</p>
           </div>
 
-          <div className={styles.companyContainer}>
-            <h5>Features</h5>
+          <div
+            className={styles.companyContainer}
+            style={{ marginTop: isMobile ? "17.5px" : "22px" }}
+          >
+            <h5></h5>
             <div className={styles.border}></div>
-            <p>Pet Friendly Places</p>
-            <p>Tail Talk</p>
-            <p>Pet Breed</p>
-            <p>Pet Genie</p>
-            <p>Pet Shops</p>
+            <p>Training</p>
+            <p>Insurance</p>
+            <p>Cremation</p>
+            <p>Nutrition Diet</p>
+            <p>E-Reports</p>
+            <p>Pet Diary</p>
+            <p>Location</p>
           </div>
 
-          <div className={styles.companyContainer}>
-            <h5>Social</h5>
+          <div
+            className={styles.companyContainer}
+            style={{ marginTop: isMobile ? "17.5px" : "22px" }}
+          >
+            <h5></h5>
             <div className={styles.border}></div>
-            <p>Lost & Found</p>
-            <p>Pet NGO</p>
+            <p>Tailgram</p>
+            <p>Tail Talks</p>
+            <p>Blood Bank</p>
+            <p>Found & Missing</p>
+            <p>Adoption</p>
+            <p>Pet Breeds</p>
+            <p>Animal NGOs</p>
           </div>
         </div>
       </div>
 
       {/* Bottom Footer */}
       <div className={styles.footercontentWrapper}>
-        <p>Terms & Condition | Privacy Policy | @ 2024 Mrchams Pvt Ltd | All Rights Reserved</p>
+        <p>
+          Terms & Condition | Privacy Policy | @ 2024 Mrchams Pvt Ltd | All
+          Rights Reserved
+        </p>
       </div>
     </footer>
   );

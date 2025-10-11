@@ -57,7 +57,7 @@
 .carouselItem {
   flex: 0 0 auto;
   transition: transform 0.5s, opacity 0.5s;
-  cursor: pointer;
+  /* cursor: pointer; */
   transform: scale(0.7);
   z-index: 1;
 }
@@ -143,7 +143,7 @@
   padding: 0.5rem;
   border-radius: 9999px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  cursor: pointer;
+  /* cursor: pointer; */
 }
 
 .navButtonLeft {
@@ -197,6 +197,10 @@
   height: 0.35rem;
   border-radius: 0.25rem;
 }
+
+
+
+
 
 /* Responsive Styles */
 @media (max-width: 768px) {

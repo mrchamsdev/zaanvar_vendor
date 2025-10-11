@@ -36,6 +36,9 @@
   height: 50px;
 }
 
+
+
+
 .footerlink {
   text-decoration: none;
   font-size: 14px;
@@ -95,6 +98,12 @@
 .links a:hover .socialIcon {
   transform: scale(1.2); /* Zoom in effect */
 }
+
+
+
+
+
+
 
 /* Mobile styles */
 @media (max-width: 768px) {
@@ -249,6 +258,7 @@ margin-bottom: 0px;
   cursor:pointer;
   transition: transform 0.3s ease-in-out;
   font-size: 18px;
+  margin-top: 22px;
 
 }
 .stay-update{
@@ -337,6 +347,7 @@ margin-bottom: 60px;
   .rightContainer{
     width:100%;
     justify-content:space-between;
+    gap: 5px;
   }
   .links{
     justify-content: center;
