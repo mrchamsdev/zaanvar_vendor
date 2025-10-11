@@ -29,12 +29,18 @@ const SimplyAndGrow = () => {
 
   return (
     <>
+
+{/* REmove this div If you want to show Cards  
+remove display none at line no 8 & 12 in css */}
+    <div className={styles["wrapper"]}>
+
+ 
       <div className={styles["header-block"]}>
         <h3 className={styles["Below-text"]}>
           "Grow and Simplify Your Pet Business With <span>Zaanvar</span>"
         </h3>
       </div>
-
+{/* Remove Display None For Displying Cards  */}
       <div className={styles["contain-block"]}>
         {data.map((item, index) => (
           <div 
@@ -54,7 +60,10 @@ const SimplyAndGrow = () => {
           </div>
         ))}
       </div>
+      </div>
 
+
+{/* This Only is Displying  */}
       < div className={styles["para-container"]}>
         <p>Running a pet business comes with challenges — but managing operations shouldn’t be one of them. Whether you run a <b>grooming salon, clinic, boarding, breeder service, daycare, store, NGO, or training center,</b> <span><b>Zaanvar</b></span> helps you simplify and grow your business.
 
