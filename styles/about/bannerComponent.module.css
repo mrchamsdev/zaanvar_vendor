@@ -45,6 +45,8 @@ text-align: center;
 font-size: clamp(32px, 4vw + 1rem, 64px);
 font-style: normal;
 font-weight: 600;
+margin: 0px;
+margin-bottom: 40px;
 }
 .bannerImageContainer{
     display: block;

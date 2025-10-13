@@ -1,9 +1,16 @@
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import style from "../../../styles/header/header.module.css";
+import style from "../../styles/header/header.module.css";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 const Header = () => {
+
+    const Router = useRouter();
+  const handleOnclick = ()=>{
+    Router.push("/book-demo")
+  }
+
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -90,11 +97,11 @@ const Header = () => {
             <Link href="/">Home</Link>
             <Link href="/about-us">About Us</Link>
             {/* <Link href="/sources">Sources</Link> */}
-            <Link href="/contact">Contact Us</Link>
+            <Link href="/book-demo">Contact Us</Link>
           </nav>
           <div className={style["button-container"]}>
             <button className={style["btn-outline"]}>LOGIN</button>
-            <button
+            <button onClick={handleOnclick}
               className={style["btn-outline"]}
               style={{ background: "#F5790C", color:"#fff" }}
             >

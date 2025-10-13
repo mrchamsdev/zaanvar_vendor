@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../../../styles/register/petBusinessForm.module.css";
+import styles from "../../styles/register/petBusinessForm.module.css";
 import { Tik } from "@/public/SVG";
 
 const PetBusinessForm = () => {

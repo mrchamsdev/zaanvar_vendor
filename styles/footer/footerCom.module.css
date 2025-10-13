@@ -288,6 +288,7 @@ margin-bottom: 0px;
   cursor: pointer;
   transition: transform 0.3s ease-in-out;
   font-size: 18px;
+  margin: 10px 0px;
 }
 
 /* Add this new class for grid layout */
@@ -315,7 +316,7 @@ margin-bottom: 0px;
   }
 }
 @media(max-width:860px){
-  .footerContainer{
+  .footerContainer{ 
     padding-inline:60px;
   }
 }

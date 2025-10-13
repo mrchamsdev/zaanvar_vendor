@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 // import Image from "next/image";
-import styles from "../../../styles/footer/footer.module.css";
+// import styles from "../../styles/footer/footer.module.css";
 import Image from "next/image";
+// import styles from "../../styles/footer/footer.module.css"
+// import styles from "../../styles/footer/footer.module.css"
+import styles from "../../styles/footer/footerCom.module.css"
 
-const Footer = () => {
+const FooterCom = () => {
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -158,4 +161,4 @@ const Footer = () => {
   );
 };
 
-export default Footer;
+export default FooterCom;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 // import styles from '../../styles/about/FAQ.module.css'
-import styles from "../../../styles/about/faq.module.css"
+import styles from "../../styles/about/faq.module.css"
 import { Max, Min } from '@/public/SVG';
 // import { AboutMinus, AboutPluse } from '@/public/images/SVG';
 
