@@ -1,5 +1,6 @@
 import React from 'react'
-import styles from "../../../styles/vender/automationTools.module.css"
+
+import styles from "../../styles/vender/automationTools.module.css"
 import { PetIcon } from '@/public/SVG'
 
 const AutomationTools = () => {

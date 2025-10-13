@@ -1,5 +1,5 @@
 // import { useState, useEffect } from "react";
-// import styles from "../../../styles/vender/vender.module.css";
+// import styles from "../../styles/vender/vender.module.css";
 
 // const categories = [
 //   { title: "Breeders", img: "https://zaanvar-care.b-cdn.net/media/1759918986265-breederMan.png", tagline: " Where Responsible Breeding Meets the Right Buyers" },
@@ -97,7 +97,7 @@
 // }
 
 import { useState, useEffect, useRef } from "react";
-import styles from "../../../styles/vender/vender.module.css";
+import styles from "../../styles/vender/vender.module.css";
 
 const categories = [
   { title: "Breeders", img: "https://zaanvar-care.b-cdn.net/media/1759918986265-breederMan.png", tagline: "Where Responsible Breeding Meets the Right Buyers" },

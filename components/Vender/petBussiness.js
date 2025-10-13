@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import styles from "../../../styles/vender/petBussiness.module.css"
+import styles from "../../styles/vender/petBussiness.module.css"
 
 const PetBussiness = () => {
   return (

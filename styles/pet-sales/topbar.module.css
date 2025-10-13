@@ -1,0 +1,70 @@
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  .search {
+    width: 280px;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+  }
+  
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  
+  .btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-weight: 500;
+  }
+  
+  .purple { background: #8b5cf6; }
+  .red { background: #ef4444; }
+  .gray {
+    background: #DAE3F8;
+    color: black;
+     }
+  
+  .avatar img{
+    /* width: 36px;
+    height: 36px; */
+    border-radius: 50%;
+    /* background: #ddd; */
+  }
+  .searchContainer {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .search {
+    padding: 10px 35px 10px 12px; /* add right padding for icon */
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    width: 250px;
+  }
+  
+  .searchIcon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #888;
+    pointer-events: none; /* so clicking doesn’t block typing */
+  }
+  

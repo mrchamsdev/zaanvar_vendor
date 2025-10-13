@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 // import styles from '../../styles/about/OurFounder.module.css'
-import styles from "../../../styles/about/ourFounder.module.css"
+import styles from "../../styles/about/ourFounder.module.css"
 // import { AboutQuote } from '@/public/images/SVG';
 import Image from 'next/image';
 import { AboutQuote } from '@/public/SVG';

@@ -1,17 +1,17 @@
 import Head from "next/head";
-import style from "../../zaanvar_vendor/styles/home.module.css";
+import style from "../styles/Home.module.css"
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import Header from "./components/header/header"
-import SliderImage from "./components/Vender/SliderImage";
-import WeManageBussiness from "./components/Vender/WeManageBussiness";
-import AutomationTools from "./components/Vender/AutoMationTools";
-import ServicesWeOffer from "./components/Vender/servicesWeOffer";
-import PetBussiness from "./components/Vender/petBussiness";
-import FrequentlyQuastion from "./components/Vender/frequentlyQuastion";
-import ChooseUs from "./components/Vender/chooseUs";
-import Footer from "./components/Footer/footer";
 import { Router, useRouter } from "next/router";
+import SliderImage from "@/components/Vender/SliderImage";
+import WeManageBussiness from "@/components/Vender/WeManageBussiness";
+import ServicesWeOffer from "@/components/Vender/servicesWeOffer";
+import AutomationTools from "@/components/Vender/AutoMationTools";
+import PetBussiness from "@/components/Vender/petBussiness";
+import ChooseUs from "@/components/Vender/chooseUs";
+import FrequentlyQuastion from "@/components/Vender/frequentlyQuastion";
+import Header from "@/components/header/header";
+import FooterCom from "@/components/Footer/FooterCom";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
@@ -71,7 +71,7 @@ const handleOnclick = ()=>{
       <PetBussiness />
       <ChooseUs />
       <FrequentlyQuastion />
-      <Footer/>
+      <FooterCom/>
     </>
   );
 }

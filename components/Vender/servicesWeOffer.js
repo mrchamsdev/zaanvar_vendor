@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import React, { useState } from 'react'
-import styles from "../../../styles/vender/servicesWeOffer.module.css"
+import styles from "../../styles/vender/servicesWeOffer.module.css"
 import { useRouter } from 'next/router'
 
 

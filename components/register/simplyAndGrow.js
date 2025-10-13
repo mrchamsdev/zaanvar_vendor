@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from "../../../styles/register/simpleAndGrow.module.css";
+import styles from "../../styles/register/simpleAndGrow.module.css";
 
 const SimplyAndGrow = () => {
   const data = [

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../../../styles/vender/frequentlyQuastion.module.css"
+import styles from "../../styles/vender/frequentlyQuastion.module.css"
 import { Max, Min } from "@/public/SVG";
 
 

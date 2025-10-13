@@ -1,7 +1,7 @@
 
 import React from 'react';
 // import styles from "../../styles/about/OurMission.module.css"
-import styles from "../../../styles/about/ourMission.module.css"
+import styles from "../../styles/about/ourMission.module.css"
 
 const OurMission = () => {
   return (

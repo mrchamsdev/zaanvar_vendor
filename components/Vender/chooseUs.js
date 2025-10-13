@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from "../../../styles/vender/chooseUs.module.css"
+import styles from "../../styles/vender/chooseUs.module.css"
 import { Pet2Icon } from '@/public/SVG'
 
 const ChooseUs = () => {

@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import styles from "../../../styles/about/bannerPhoto.module.css";
+import styles from "../../styles/about/bannerPhoto.module.css";
 
 const BannerPhoto = () => {
   return (

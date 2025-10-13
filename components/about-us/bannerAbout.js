@@ -1,7 +1,7 @@
 import React from "react";
 import Head from "next/head";
 import Image from "next/image";
-import styles from "../../../styles/about/bannerAbout.module.css";
+import styles from "../../styles/about/bannerAbout.module.css";
 // import BannerComponent from "./BannerComponent";
 // import Ourstory from "./Ourstory";
 // import OurMission from "./OurMission";
