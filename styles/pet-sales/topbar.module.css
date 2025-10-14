@@ -1,70 +1,158 @@
 .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  
-  .search {
-    width: 280px;
-    padding: 0.6rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    outline: none;
-  }
-  
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-  }
-  
-  .btn {
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    color: #fff;
-    font-weight: 500;
-  }
-  
-  .purple { background: #8b5cf6; }
-  .red { background: #ef4444; }
-  .gray {
-    background: #DAE3F8;
-    color: black;
-     }
-  
-  .avatar img{
-    /* width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search {
+  width: 280px;
+  padding: 0.6rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 500;
+}
+
+.purple {
+  background: #6d29f6;
+  color: white;
+}
+
+.red {
+  background: #e53761;
+}
+
+.gray {
+  background: #dae3f8;
+  color: black;
+}
+
+.avatar img {
+  /* width: 36px;
     height: 36px; */
-    border-radius: 50%;
-    /* background: #ddd; */
+  border-radius: 50%;
+  /* background: #ddd; */
+}
+.searchContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.search {
+  padding: 10px 35px 10px 12px; /* add right padding for icon */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  width: 250px;
+}
+
+.searchIcon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #888;
+  pointer-events: none; /* so clicking doesn’t block typing */
+}
+
+/* ============================= */
+/* 📱 Responsive Design (below 768px) */
+/* ============================= */
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    display: none;
   }
+
   .searchContainer {
-    position: relative;
-    display: inline-block;
+    width: 100%;
   }
-  
+
   .search {
-    padding: 10px 35px 10px 12px; /* add right padding for icon */
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    width: 100%;
     font-size: 14px;
-    outline: none;
-    width: 250px;
   }
-  
-  .searchIcon {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 16px;
-    color: #888;
-    pointer-events: none; /* so clicking doesn’t block typing */
+
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.6rem;
   }
-  
+
+  .btn {
+    flex: 1 1 45%;
+    font-size: 14px;
+    padding: 0.5rem 0.8rem;
+    text-align: center;
+  }
+
+  .avatar {
+    order: -1; /* Moves avatar above buttons if needed */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .avatar img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .onlineDot {
+    width: 8px;
+    height: 8px;
+    top: 2px;
+    right: 2px;
+  }
+}
+
+/* ============================= */
+/* 📱 Extra Small Screens (below 480px) */
+/* ============================= */
+@media (max-width: 480px) {
+  .btn {
+    flex: 1 1 100%;
+    font-size: 13px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .avatar img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .search {
+    font-size: 13px;
+    margin: auto;
+    width: 88%;
+  }
+}
