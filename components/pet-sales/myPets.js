@@ -3,13 +3,22 @@ import styles from "../../styles/pet-sales/mypets.module.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { Delete, Edit, View2 } from "@/public/SVG";
+import { useRouter } from "next/router";
+
 
 const MyPets = () => {
+
+const Router = useRouter();
+
+  const handleOnClick = ()=>{
+    Router.push("/my-pets/view")
+  }
+
   const PetData = [
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
       id: "098765 52869",
-      breed:"Rottweiler",
+      breed:"Rottweiler", 
       age:"10/05/2025",
       time:"6 "
     },
@@ -103,7 +112,7 @@ const MyPets = () => {
           {/* <p>{pet.breed}</p> */}
           <p>{pet.age}</p>
           <p>{pet.time}</p>
-          <div className={styles["edit-container"]}>
+          <div  onClick={handleOnClick}  className={styles["edit-container"]}>
             {/* <Edit /> */}
             <View2 />
             {/* <Delete /> */}

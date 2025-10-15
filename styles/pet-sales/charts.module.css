@@ -1,0 +1,235 @@
+/* ============================= */
+/* 📊 CHARTS STYLES */
+/* ============================= */
+
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+  width: 70%;
+}
+
+/* Make the bar chart span full width */
+.analyticsGrid > .chartBox:last-child {
+  grid-column: span 2;
+}
+
+.chartBox {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.chartBox:hover {
+  transform: translateY(-3px);
+}
+
+.chartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chartHeader h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+}
+
+.selectdrop {
+  padding: 12px;
+  border: 1px solid #dae3f8;
+  border-radius: 10px;
+  background-color: #fff;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+}
+
+.chartContainer {
+  margin-top: 1rem;
+  height: 240px;
+  position: relative;
+}
+
+.text-below {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+  font-size: 14px;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.expense,
+.revenue {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.color-box {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  border-radius: 2px;
+}
+
+/* Chart specific widths */
+.lineChart {
+  width: 100%;
+  height: 260px;
+}
+
+.pieChart {
+  width: 100%;
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.barChart {
+  width: 100%;
+  height: 300px;
+}
+
+/* Smooth animation */
+.recharts-wrapper {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* ============================= */
+/* 📱 Responsive Design (below 768px) */
+/* ============================= */
+@media (max-width: 768px) {
+  .analyticsGrid {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-top: 1.5rem;
+  }
+
+  .chartBox {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  .chartHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .chartHeader h4 {
+    font-size: 14px;
+  }
+
+  .selectdrop {
+    width: 100%;
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .chartContainer {
+    height: 200px;
+  }
+
+  .lineChart,
+  .pieChart,
+  .barChart {
+    height: 200px;
+  }
+
+  .text-below {
+    flex-direction: row;
+    gap: 8px;
+    justify-content: space-between;
+  }
+}
+
+/* ============================= */
+/* 📱 Extra Small Screens (below 480px) */
+/* ============================= */
+@media (max-width: 480px) {
+  .chartBox {
+    padding: 0.8rem;
+  }
+
+  .chartHeader h4 {
+    font-size: 13px;
+  }
+
+  .selectdrop {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .chartContainer {
+    height: 180px;
+  }
+
+  .lineChart,
+  .pieChart,
+  .barChart {
+    height: 180px;
+  }
+
+  .text-below {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .color-box {
+    width: 10px;
+    height: 10px;
+    padding-left: 10px;
+  }
+}
+.text-below {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+    font-size: 14px;
+    align-items: center;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* space between color box and text */
+  }
+  
+  .color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  
+  /* Define colors via classes */
+  .expenses {
+    background-color: #0095FF;
+  }
+  
+  .revenue {
+    background-color: #FFC838;
+  }
+  
+  .legend-text {
+    color: #333;
+    font-size: 14px;
+  }
+  .timeday{
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  

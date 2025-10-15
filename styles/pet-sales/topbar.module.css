@@ -5,7 +5,7 @@
   background: #fff;
   padding: 1rem 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .search {
@@ -14,6 +14,19 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   outline: none;
+}
+.select-bar{
+  background: none;
+  border: none;
+}
+.select-bar select{
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+.search-wrapper{
+  display: flex;
+  gap: 20px;
 }
 
 .actions {
