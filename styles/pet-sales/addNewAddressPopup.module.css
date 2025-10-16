@@ -1,0 +1,208 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex
+;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999999999
+  }
+  
+  .modal {
+    background: #fff;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 83vh;
+    overflow: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin-top: 82px;
+  }
+  
+  .header {
+    background-color: #f5790c;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  
+  .backButton {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: white;
+    margin-right: 12px;
+    cursor: pointer;
+  }
+  
+  .headerTitle {
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  .content {
+    flex: 1;
+    padding: 16px 0;
+  }
+  
+  .formGroup {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 30px;
+    position: relative;
+  }
+  
+  .formGroup label {
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .formGroup input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 30px;
+  }
+  
+  .formContainer {
+    display: flex;
+    flex-direction: column;
+    width: 48%;
+    position: relative;
+  }
+  
+  .formContainer label {
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .formContainer input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    height: 40px;
+    color: #727271;
+  }
+  
+  .formContainer select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    color: #727271;
+  }
+  
+  .formGroupCheckbox {
+    display: flex;
+    align-items: center;
+    padding: 10px 30px;
+  }
+  
+  .formGroupCheckbox input {
+    margin-right: 8px;
+    height: 15px;
+    width: 15px;
+  }
+  
+  .button-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 30px 0;
+  }
+  
+  .saveButton {
+    width: 160px;
+    height: 40px;
+    border: 2px solid #f5790c;
+    border-radius: 50px;
+    color: #f5790c;
+    background-color: white;
+    cursor: pointer;
+  }
+  
+  .saveButton:hover {
+    background-color: rgba(245, 121, 12, 0.1);
+  }
+  
+  .error {
+    color: red;
+    font-size: 12px;
+  }
+  
+  .errorText {
+    color: red;
+    font-size: 12px;
+  }
+  
+  @media (max-width: 768px) {
+    .modal {
+      margin: 0 !important;
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+    }
+  
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      border-radius: 0;
+      z-index: 2;
+      height: 70px;
+    }
+  
+    .content {
+      /* padding: 44px 0 80px 0;  */
+      overflow-y: auto;
+      height: calc(100vh - 124px); /* 100vh - header height (44px) - button height (60px) */
+    }
+  
+    .button-container {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      padding: 10px 0;
+      background: #fff;
+      z-index: 2;
+      border-radius: 0;
+    }
+  
+    .saveButton {
+      background-color: #f5790c;
+      color: #fff;
+      width: 100%;
+      border-radius: 0;
+      border: none;
+    }
+  
+    .row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+  
+    .formContainer {
+      width: 100%;
+    }
+  }

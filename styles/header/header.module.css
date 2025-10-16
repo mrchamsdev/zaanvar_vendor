@@ -44,6 +44,22 @@
 }
 
 
+.nav-links a {
+  color: #000;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #f5790c;
+}
+
+.activeLink {
+  color: #f5790c !important; /* active tab color */
+  font-weight: 600;
+}
+
 
 @media (max-width: 870px) {
   .nav-links{

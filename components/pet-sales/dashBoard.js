@@ -61,8 +61,8 @@ const Dashboard = () => {
             >
               <div className={styles["wrapper-div"]}>
                 <div className={styles["number-pet"]}>
-                  <h4>Total Pets</h4>
-                  <h2>2,50,769</h2>
+                  <h4>Total Earning</h4>
+                  <h2>12,50,769</h2>
                 </div>
                 <Price />
               </div>
@@ -107,11 +107,11 @@ const Dashboard = () => {
                       <div>
                         <p className={styles["name"]}>Shubham Pawar</p>
                         <p className={styles["date"]}>
-                          12-09-2025 to 13-09-2025
+                          12-09-2025 to 13-10-2025
                         </p>
                       </div>
                     </div>
-                    <p className={styles["amount"]}>₹500.00</p>
+                    <p className={styles["amount"]}>₹5000.00</p>
                   </div>
                 ))}
               </div>

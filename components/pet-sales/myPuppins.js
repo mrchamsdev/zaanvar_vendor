@@ -49,16 +49,16 @@ const MyPuppies = () => {
       ? PetData
       : PetData.filter((pet) => pet.stutus === filterStatus);
 
-  useEffect(() => {
-    if (showForm) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showForm]);
+  // useEffect(() => {
+  //   if (showForm) {
+  //     document.body.style.overflow = "hidden";
+  //   } else {
+  //     document.body.style.overflow = "auto";
+  //   }
+  //   return () => {
+  //     document.body.style.overflow = "auto";
+  //   };
+  // }, [showForm]);
 
   return (
     <>

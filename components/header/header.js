@@ -11,6 +11,9 @@ const Header = () => {
     Router.push("/book-demo")
   }
 
+
+  const isActive = (path) => Router.pathname === path;
+
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -93,12 +96,30 @@ const Header = () => {
       {/* Desktop nav (visible only on desktop via CSS) */}
       {!isMobile && (
         <>
-          <nav className={style["nav-links"]} aria-label="Main navigation">
-            <Link href="/">Home</Link>
-            <Link href="/about-us">About Us</Link>
-            {/* <Link href="/sources">Sources</Link> */}
-            <Link href="/book-demo">Contact Us</Link>
-          </nav>
+         <nav className={style["nav-links"]} aria-label="Main navigation">
+  <Link
+    href="/"
+    onClick={closeMenu}
+    className={isActive("/") ? style.activeLink : ""}
+  >
+    Home
+  </Link>
+  <Link
+    href="/about-us"
+    onClick={closeMenu}
+    className={isActive("/about-us") ? style.activeLink : ""}
+  >
+    About Us
+  </Link>
+  <Link
+    href="/book-demo"
+    onClick={closeMenu}
+    className={isActive("/book-demo") ? style.activeLink : ""}
+  >
+    Contact Us
+  </Link>
+</nav>
+
           <div className={style["button-container"]}>
             <button className={style["btn-outline"]}>LOGIN</button>
             <button onClick={handleOnclick}
