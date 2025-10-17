@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/addNewAddressPopup.module.css";
 
-const AddNewAddressPopup = ({ postFormData }) => {
-  const [showModal, setShowModal] = useState(true); // manage modal visibility
+const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
   const [formData, setFormData] = useState({
     fullName: postFormData?.fullName || "",
     mobileNumber: postFormData?.phone || "",
@@ -24,6 +23,7 @@ const AddNewAddressPopup = ({ postFormData }) => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
   const handleSave = () => {
@@ -44,24 +44,33 @@ const AddNewAddressPopup = ({ postFormData }) => {
       return;
     }
 
-    console.log("Saved Data:", formData); // Replace with your local handling logic
-    setShowModal(false); // Close modal after save
+    // Compose full address string
+    const fullAddress = `${formData.flat}, ${formData.street}, ${formData.landmark}, ${formData.city}, ${formData.state}, ${formData.country} - ${formData.pinCode}`;
+
+    // Call callback from parent to save
+    if (onSaveAddress) onSaveAddress(fullAddress, formData.isDefault);
+
+
+    // Close popup
+    if (onClose) onClose();
   };
 
   // Close modal if clicked outside modal content
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      setShowModal(false);
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
     }
   };
 
-  if (!showModal) return null; // hide modal
+  useEffect(() => {
+    console.log("Address Form Data:", formData);
+  }, [formData]);
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <button className={styles.backButton} onClick={() => setShowModal(false)}>←</button>
+          <button className={styles.backButton} onClick={onClose}>←</button>
           <span className={styles.headerTitle}>Add New Address</span>
         </div>
 

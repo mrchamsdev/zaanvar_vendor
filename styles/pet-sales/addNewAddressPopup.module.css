@@ -16,8 +16,8 @@
     background: #fff;
     border-radius: 10px;
     width: 90%;
-    max-width: 500px;
-    max-height: 83vh;
+    max-width: 600px;
+    max-height: 90vh;
     overflow: auto;
     padding: 0;
     display: flex;
@@ -27,7 +27,7 @@
   }
   
   .header {
-    background-color: #f5790c;
+    background-color: black;
     color: white;
     display: flex;
     align-items: center;
@@ -79,7 +79,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    width: 100%;
+    /* width: 100%; */
     padding: 10px 30px;
   }
   
@@ -99,7 +99,7 @@
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
-    height: 40px;
+    height: 20px;
     color: #727271;
   }
   
@@ -132,9 +132,9 @@
   .saveButton {
     width: 160px;
     height: 40px;
-    border: 2px solid #f5790c;
+    border: 2px solid black;
     border-radius: 50px;
-    color: #f5790c;
+    color: black;
     background-color: white;
     cursor: pointer;
   }
@@ -145,12 +145,12 @@
   
   .error {
     color: red;
-    font-size: 12px;
+    font-size: 14px;
   }
   
   .errorText {
     color: red;
-    font-size: 12px;
+    font-size: 14px;
   }
   
   @media (max-width: 768px) {
