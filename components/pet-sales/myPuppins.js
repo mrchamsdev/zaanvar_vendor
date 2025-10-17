@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/myPuppies.module.css";
 import Topbar from "./Topbar";
-import { Delete, Edit, View2 } from "@/public/SVG";
+import { Delete, Edit, Filter, View2 } from "@/public/SVG";
 import { useRouter } from "next/router";
 import PetForm from "./petForm";
+// import ChangeStatusModal from "./ChangeStatusModal";
+import ChangeStatus from "./changeStutus";
 
 const MyPuppies = () => {
   const [showForm, setShowForm] = useState(false);
@@ -11,7 +13,26 @@ const MyPuppies = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   const Router = useRouter();
+  // const [showChangeStatus, setShowChangeStatus] = useState(false);
+  const [selectedPet, setSelectedPet] = useState(null);
 
+
+  // 
+  const [showChangeStatus, setShowChangeStatus] = useState(false);
+// const [selectedPet, setSelectedPet] = useState(null);
+
+const handleDelete = (pet) => {
+  setSelectedPet(pet);
+  setShowChangeStatus(true); // opens ChangeStatus modal
+};
+
+const handleStatusChange = ({ status, details }) => {
+  // call API or update local state with new status + details
+  console.log("New status:", status, "details:", details, "for pet:", selectedPet);
+  setShowChangeStatus(false);
+};
+
+  
   const PetData = [
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
@@ -20,7 +41,7 @@ const MyPuppies = () => {
       age: "10/05/2025",
       gender: "32",
       price: "₹ 2632",
-      stutus: "Availbale",
+      stutus: "Available",
     },
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
@@ -29,36 +50,46 @@ const MyPuppies = () => {
       age: "10/05/2025",
       gender: "32",
       price: "₹ 232",
-      stutus: "Not Availbale",
+      stutus: "Not Available",
     },
-    // ... other pets
   ];
 
   const buttons = [
-    { label: "+ Add Puppies", color: "purple", action: "addRoom" }, // changed label
+    { label: "+ Add Puppies", color: "purple", action: "addRoom" },
     { label: "+ Add Bookings", color: "red", action: "addBooking" },
     { label: "+ Add More", color: "gray", action: "addMore" },
   ];
 
-  const handleOnClick = () => {
+  const handleView = () => {
     Router.push("/my-puppies/view");
   };
+
+  // const handleDelete = (pet) => {
+  //   setSelectedPet(pet);
+  //   setShowChangeStatus(true); // open Change Status modal instead of deleting
+  // };
+
+  // const handleStatusChange = (status) => {
+  //   console.log("Status changed to:", status);
+  //   // Update PetData or call API here
+  //   setShowChangeStatus(false);
+  // };
 
   const filteredPets =
     filterStatus === "All"
       ? PetData
       : PetData.filter((pet) => pet.stutus === filterStatus);
 
-  // useEffect(() => {
-  //   if (showForm) {
-  //     document.body.style.overflow = "hidden";
-  //   } else {
-  //     document.body.style.overflow = "auto";
-  //   }
-  //   return () => {
-  //     document.body.style.overflow = "auto";
-  //   };
-  // }, [showForm]);
+  useEffect(() => {
+    if (showForm || showChangeStatus) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [showForm, showChangeStatus]);
 
   return (
     <>
@@ -79,12 +110,14 @@ const MyPuppies = () => {
           <p>Gender</p>
           <p>Price</p>
           <div className={styles.statusHeader}>
-            <span>Status</span>
+            <span style={{ paddingRight: "10px" }}>Status</span>
             <button
               className={styles.filterBtn}
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
             >
-              &#x25BC;
+              <div className={styles["filter-icon"]}>
+                <Filter />
+              </div>
             </button>
             {showFilterDropdown && (
               <select
@@ -96,9 +129,11 @@ const MyPuppies = () => {
                 className={styles.statusDropdown}
               >
                 <option value="All">All</option>
-                <option value="Availbale">Available</option>
-                <option value="Not Availbale">Not Available</option>
-                <option value="Not For Sale">Not For Sale</option>
+                <option value="Available">Available</option>
+                <option value="Not Available">Not Available</option>
+                <option value="Reserved">Reserved</option>
+                <option value="Sold Out">Sold Out</option>
+                <option value="On Hold">On Hold</option>
               </select>
             )}
           </div>
@@ -114,18 +149,42 @@ const MyPuppies = () => {
             <p>{pet.gender}</p>
             <p>{pet.price}</p>
             <p>{pet.stutus}</p>
-            <div onClick={handleOnClick} className={styles["edit-container"]}>
+            <div className={styles["edit-container"]}>
               <div>
                 <Edit />
               </div>
-              <View2 />
-              <Delete />
+              <div onClick={handleView}>
+                <View2 />
+              </div>
+              <div
+                className={styles["delete"]}
+                onClick={() => handleDelete(pet)}
+              >
+                <Delete />
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modal Popup */}
+      {/* Change Status Modal */}
+      {showChangeStatus && selectedPet && (
+        <ChangeStatus
+          pet={selectedPet}
+          onClose={() => setShowChangeStatus(false)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+      {showChangeStatus && (
+  <ChangeStatus
+    pet={selectedPet}
+    onClose={() => setShowChangeStatus(false)}
+    onStatusChange={handleStatusChange}
+  />
+)}
+
+
+      {/* Add Puppies Modal */}
       {showForm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

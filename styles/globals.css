@@ -23,18 +23,32 @@ textarea {
   text-transform: capitalize;
 }
 
-
-/* html, body {
-  overflow: hidden; 
-} */
-
-
-
-body {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+button {
+  background: none;       /* remove background */
+  border: none;           /* remove border */
+  padding: 0;             /* remove default padding */
+  margin: 0;              /* remove default margin */
+  font: inherit;          /* inherit font styles from parent */
+  color: inherit;         /* inherit text color */
+  cursor: pointer;        /* keep pointer on hover */
+  outline: none;          /* remove default focus outline */
 }
 
-body::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+:root {
+  --primary-orange: #F5790C;
+  --secondary-orange: #FCDDC2;
+  --primary-blue: #1FBFC2;
+  --background-color:#fff; 
+  --primary-black:#131313;
+scrollbar-width: none;
+  /* Note: If you want to override the value, update it here only once */
+  --header-background-color: #F9FAFC; /* header background color */
+
+  --secondary-blue: rgba(31, 191, 194, 0.10);
+  --header-text-color:#131313;
+  --header-secondary-text-color:#727271;
+  --underline-color:#EFEFEF; 
+  --icon-background-color:#F5790C1A; 
+  
+  /* Add more as needed */
 }

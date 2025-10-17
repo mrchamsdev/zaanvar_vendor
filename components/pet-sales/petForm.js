@@ -552,61 +552,68 @@ const PetForm = () => {
 
               {/* Address */}
               {/* ADDRESS FIELD */}
-              <div className={styles.formField} style={{ width: "100%" }}>
-                <label className={styles.label}>Address</label>
+             <div className={styles.formField} style={{ width: "100%" }}>
+  <label className={styles.label}>Address</label>
 
-                <select
-                  name="address"
-                  value={formData.address || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === "new") {
-                      setFormData({
-                        ...formData,
-                        address: "",
-                        isAddingNew: true,
-                      });
-                    } else {
-                      setFormData({
-                        ...formData,
-                        address: value,
-                        isAddingNew: false,
-                      });
-                    }
-                    if (errors.address) setErrors({ ...errors, address: "" });
-                  }}
-                  onBlur={handleBlur}
-                  className={styles.select}
-                >
-                  <option value="">Select here</option>
-                  <option value="new">+ Add New Address</option>
-                  {formData.savedAddresses?.map((addr, i) => (
-                    <option key={i} value={addr}>
-                      {addr}
-                    </option>
-                  ))}
-                </select>
+  <select
+  name="address"
+  value={formData.address || ""}
+  onChange={(e) => {
+    const value = e.target.value;
+    if (value === "new") {
+      setFormData({
+        ...formData,
+        address: "",
+        isAddingNew: true,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        address: value,
+        isAddingNew: false,
+      });
+    }
+    if (errors.address) setErrors({ ...errors, address: "" });
+  }}
+  onBlur={handleBlur}
+  className={styles.select}
+>
+  <option value="">Select here</option>
+  <option value="new">+ Add New Address</option>
+  {formData.savedAddresses?.map((addr, i) => (
+    <option key={i} value={addr}>
+      {addr}
+    </option>
+  ))}
+</select>
 
-                {/* Show input when adding new address // We Can Keep Component also  */}
-                {formData.isAddingNew && (
-                  // <input
-                  //   type="text"
-                  //   placeholder="Enter new address"
-                  //   value={formData.address || ""}
-                  //   onChange={(e) =>
-                  //     setFormData({ ...formData, address: e.target.value })
-                  //   }
-                  //   onBlur={handleBlur}
-                  //   className={styles.select}
-                  //   style={{ marginTop: "10px" }}
-                  // />
-                  <AddNewAddressPopup/>
-                )}
 
-                {errors.address && (
-                  <span className={styles.error}>{errors.address}</span>
-                )}
-              </div>
+  {/* Show Popup When Adding New Address */}
+  {formData.isAddingNew && (
+  <AddNewAddressPopup
+    postFormData={formData}
+    onSaveAddress={(newAddress, isDefault) => {
+      setFormData((prev) => ({
+        ...prev,
+        address: newAddress, // select the new address immediately
+        savedAddresses: [...(prev.savedAddresses || []), newAddress],
+        isAddingNew: false,
+      }));
+    }}
+    onClose={() =>
+      setFormData((prev) => ({
+        ...prev,
+        isAddingNew: false,
+      }))
+    }
+  />
+)}
+
+
+  {errors.address && (
+    <span className={styles.error}>{errors.address}</span>
+  )}
+</div>
 
               {/*Mother  */}
               {formData.hasParents === "Had Mother" && (
