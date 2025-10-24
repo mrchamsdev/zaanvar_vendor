@@ -4,81 +4,67 @@ import Topbar from "./Topbar";
 import { Delete, Edit, Filter, View2 } from "@/public/SVG";
 import { useRouter } from "next/router";
 import PetForm from "./petForm";
-// import ChangeStatusModal from "./ChangeStatusModal";
 import ChangeStatus from "./changeStutus";
 
 const MyPuppies = () => {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
-  const Router = useRouter();
-  // const [showChangeStatus, setShowChangeStatus] = useState(false);
+  const [showChangeStatus, setShowChangeStatus] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
 
+  // 1️⃣ Track which pet is being edited
+  const [editingPet, setEditingPet] = useState(null);
 
-  // 
-  const [showChangeStatus, setShowChangeStatus] = useState(false);
-// const [selectedPet, setSelectedPet] = useState(null);
+  const Router = useRouter();
 
-const handleDelete = (pet) => {
-  setSelectedPet(pet);
-  setShowChangeStatus(true); // opens ChangeStatus modal
-};
-
-const handleStatusChange = ({ status, details }) => {
-  // call API or update local state with new status + details
-  console.log("New status:", status, "details:", details, "for pet:", selectedPet);
-  setShowChangeStatus(false);
-};
-
-  
-  const PetData = [
+  const [petList, setPetList] = useState([
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
       id: "0984235 52869",
-      breed: "weiler",
-      age: "10/05/2025",
-      gender: "32",
-      price: "₹ 2632",
-      stutus: "Available",
-    },
-    {
-      img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
-      id: "098765 532369",
       breed: "Rottweiler",
       age: "10/05/2025",
-      gender: "32",
-      price: "₹ 232",
-      stutus: "Not Available",
+      gender: "Male",
+      price: "₹ 2632",
+      stutus: "Available",
+      petType: "Dog",       
+      petBreed: "Pug", 
+      status: "Available", 
+      color: "Red",
+      vaccination: "1",
+      negotiable: "Yes",
+      size: "6.5",
+      hasParents: "yes",
+      petName: "Shubh",
+      petVariety: "KCI",
+      sireMother: "no",
+      address: "Old GAli",
+      fatherName: "shubh",
+      motherName: "Shubh",
+      videos: [],
+      
     },
-  ];
+  ]);
 
-  const buttons = [
-    { label: "+ Add Puppies", color: "purple", action: "addRoom" },
-    { label: "+ Add Bookings", color: "red", action: "addBooking" },
-    { label: "+ Add More", color: "gray", action: "addMore" },
-  ];
-
-  const handleView = () => {
-    Router.push("/my-puppies/view");
+  const handleAddPet = (newPet) => {
+    setPetList((prev) => [...prev, newPet]);
+    setShowForm(false);
   };
 
-  // const handleDelete = (pet) => {
-  //   setSelectedPet(pet);
-  //   setShowChangeStatus(true); // open Change Status modal instead of deleting
-  // };
+  const handleDelete = (pet) => {
+    setSelectedPet(pet);
+    setShowChangeStatus(true);
+  };
 
-  // const handleStatusChange = (status) => {
-  //   console.log("Status changed to:", status);
-  //   // Update PetData or call API here
-  //   setShowChangeStatus(false);
-  // };
+  const handleStatusChange = ({ status, details }) => {
+    console.log("New status:", status, "details:", details, "for pet:", selectedPet);
+    setShowChangeStatus(false);
+  };
 
   const filteredPets =
     filterStatus === "All"
-      ? PetData
-      : PetData.filter((pet) => pet.stutus === filterStatus);
+      ? petList
+      : petList.filter((pet) => pet.stutus === filterStatus);
 
   useEffect(() => {
     if (showForm || showChangeStatus) {
@@ -94,10 +80,16 @@ const handleStatusChange = ({ status, details }) => {
   return (
     <>
       <Topbar
-        buttons={buttons}
+        buttons={[
+          { label: "+ Add Puppies", color: "purple", action: "addRoom" },
+          { label: "+ Add Bookings", color: "red", action: "addBooking" },
+          { label: "+ Add More", color: "gray", action: "addMore" },
+        ]}
         onButtonClick={(action) => {
-          if (action === "addRoom") setShowForm(true);
-          else setShowForm(false);
+          if (action === "addRoom") {
+            setEditingPet(null);
+            setShowForm(true);
+          } else setShowForm(false);
         }}
       />
 
@@ -150,16 +142,19 @@ const handleStatusChange = ({ status, details }) => {
             <p>{pet.price}</p>
             <p>{pet.stutus}</p>
             <div className={styles["edit-container"]}>
-              <div>
+              {/* 3️⃣ Edit Button */}
+              <div
+                onClick={() => {
+                  setEditingPet(pet);
+                  setShowForm(true);
+                }}
+              >
                 <Edit />
               </div>
-              <div onClick={handleView}>
+              <div onClick={() => Router.push("/my-puppies/view")}>
                 <View2 />
               </div>
-              <div
-                className={styles["delete"]}
-                onClick={() => handleDelete(pet)}
-              >
+              <div className={styles["delete"]} onClick={() => handleDelete(pet)}>
                 <Delete />
               </div>
             </div>
@@ -175,29 +170,38 @@ const handleStatusChange = ({ status, details }) => {
           onStatusChange={handleStatusChange}
         />
       )}
-      {showChangeStatus && (
-  <ChangeStatus
-    pet={selectedPet}
-    onClose={() => setShowChangeStatus(false)}
-    onStatusChange={handleStatusChange}
-  />
-)}
 
-
-      {/* Add Puppies Modal */}
+      {/* Add/Edit Puppies Modal */}
       {showForm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h2>Add Puppies</h2>
+              <h2>{editingPet ? "Edit Puppy" : "Add Puppies"}</h2>
               <button
                 className={styles.closeBtn}
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingPet(null);
+                }}
               >
                 &#x2715;
               </button>
             </div>
-            <PetForm />
+
+            <PetForm
+              onSave={(petData) => {
+                if (editingPet) {
+                  setPetList((prev) =>
+                    prev.map((p) => (p.id === editingPet.id ? { ...p, ...petData } : p))
+                  );
+                  setEditingPet(null);
+                } else {
+                  setPetList((prev) => [...prev, petData]);
+                }
+                setShowForm(false);
+              }}
+              initialData={editingPet}
+            />
           </div>
         </div>
       )}

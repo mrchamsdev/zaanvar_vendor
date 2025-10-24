@@ -6,10 +6,13 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
   const [showInnerPopup, setShowInnerPopup] = useState(false);
   const [detailData, setDetailData] = useState({});
   const [errors, setErrors] = useState({});
+  const [petBreed, setPetBreed] = useState("");
+  const [petId, setPetId] = useState("");
+  const [petName, setPetName] = useState("");
 
-  const [zaanvarHelpSell, setZaanvarHelpSell] = useState(""); // Did Zaanvar help sell?
-  const [zaanvarRecommend, setZaanvarRecommend] = useState(""); // Recommend to friend?
-  const [changePrice, setChangePrice] = useState(""); // yes or no
+  const [zaanvarHelpSell, setZaanvarHelpSell] = useState("");
+  const [zaanvarRecommend, setZaanvarRecommend] = useState("");
+  const [changePrice, setChangePrice] = useState("");
   const [newPrice, setNewPrice] = useState("");
 
   useEffect(() => {
@@ -17,12 +20,26 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
     return () => (document.body.style.overflow = "auto");
   }, []);
 
-  const handleSave = () => {
-    if (!selectedStatus) return;
+ const handleSave = () => {
+  if (!selectedStatus) return;
+
+  if (selectedStatus === "Sold Out") {
     setDetailData(initDetailDataForStatus(selectedStatus));
     setErrors({});
-    setShowInnerPopup(true);
-  };
+    setShowInnerPopup(true); // Only popup for Sold Out
+  } else {
+    // Other statuses: just save directly
+    if (onStatusChange) {
+      onStatusChange({
+        status: selectedStatus,
+        details: detailData,
+      });
+    }
+    onClose();
+  }
+};
+
+  
 
   const handleSubmitInner = () => {
     const validation = validateForStatus(selectedStatus, detailData);
@@ -124,7 +141,6 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
     return (
       <div className={styles.overlay}>
         <div className={styles.modal}>
-          {/* Back button header */}
           <div className={styles.modalHeader}>
             <button
               className={styles.backBtn}
@@ -136,83 +152,100 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
           </div>
 
           <div className={styles.innerBody}>
-            {/* Available */}
-            {selectedStatus === "Available" && (
+            {/* ✅ All statuses except Sold Out will use this same layout */}
+            {selectedStatus !== "Sold Out" && (
               <>
-                <label>Available From</label>
-                <input
-                  type="date"
-                  value={detailData.availableDate}
-                  onChange={(e) =>
-                    setDetailData({
-                      ...detailData,
-                      availableDate: e.target.value,
-                    })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.availableDate && (
-                  <div className={styles.error}>{errors.availableDate}</div>
-                )}
+                <div className={styles.petInfoSection}>
+                  <div className={styles.inputGroup}>
+                    <label className={styles["lable-div"]}>Pet Breed</label>
+                    <input
+                      type="text"
+                      value={petBreed}
+                      onChange={(e) => setPetBreed(e.target.value)}
+                      className={styles.inputField}
+                      placeholder="Enter pet breed"
+                    />
+                  </div>
 
-                <label>Notes</label>
-                <textarea
-                  value={detailData.notes}
-                  onChange={(e) =>
-                    setDetailData({ ...detailData, notes: e.target.value })
-                  }
-                  className={styles.textareaField}
-                />
+                  <div className={styles.inputGroup}>
+                    <label className={styles["lable-div"]}>Pet ID</label>
+                    <input
+                      type="text"
+                      value={petId}
+                      onChange={(e) => setPetId(e.target.value)}
+                      className={styles.inputField}
+                      placeholder="Enter pet ID"
+                    />
+                  </div>
+
+                  <div className={styles.inputGroup}>
+                    <label className={styles["lable-div"]}>Pet Name</label>
+                    <input
+                      type="text"
+                      value={petName}
+                      onChange={(e) => setPetName(e.target.value)}
+                      className={styles.inputField}
+                      placeholder="Enter pet name"
+                    />
+                  </div>
+
+                  <p className={styles.description}>
+                    To change pet status, select the appropriate status from the
+                    dropdown below and click the “Change Status” button.
+                  </p>
+
+                  <div className={styles.changeStatusSection}>
+  <label className={styles["lable-div"]}>Pet Status </label>
+  <select
+    value={selectedStatus}
+    onChange={(e) => setSelectedStatus(e.target.value)}
+    className={styles.selectField}
+  >
+    <option value="">Select Status</option>
+    <option value="Available">Available</option>
+    <option value="Reserved">Reserved</option>
+    <option value="Sold Out">Sold Out</option>
+    <option value="Not Available">Not Available</option>
+    <option value="On Hold">On Hold</option>
+  </select>
+</div>
+
+
+{selectedStatus && selectedStatus !== "Sold Out" && (
+  <div className={styles.descriptionField}>
+    <label className={styles["lable-div"]}>Description</label>
+    <textarea
+      value={detailData.notes || ""}
+      onChange={(e) =>
+        setDetailData((prev) => ({ ...prev, notes: e.target.value }))
+      }
+      className={styles.inputField}
+      placeholder="Enter description..."
+      style={{ height: "80px" }}
+    />
+  </div>
+)}
+
+{/* 
+                  <div className={styles["below-para"]}>Description</div>
+                  <textarea
+                    className={styles.inputField}
+                    style={{ height: "80px", fontSize: "16px" }}
+                    placeholder="Enter description..."
+                  />  */}
+
+                  <div className={styles.warningBox}>
+                    <span className={styles.warningText}>
+                      <span>⚠️</span>
+                      Please update the status as soon as the situation changes
+                      to help others stay informed and avoid confusion.
+                    </span>
+                  </div>
+                </div>
               </>
             )}
 
-            {/* Reserved */}
-            {selectedStatus === "Reserved" && (
-              <>
-                <label>Reserved Until</label>
-                <input
-                  type="date"
-                  value={detailData.reservedUntil}
-                  onChange={(e) =>
-                    setDetailData({
-                      ...detailData,
-                      reservedUntil: e.target.value,
-                    })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.reservedUntil && (
-                  <div className={styles.error}>{errors.reservedUntil}</div>
-                )}
 
-                <label>Reserver Name / ID</label>
-                <input
-                  type="text"
-                  value={detailData.reserverName}
-                  onChange={(e) =>
-                    setDetailData({
-                      ...detailData,
-                      reserverName: e.target.value,
-                    })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.reserverName && (
-                  <div className={styles.error}>{errors.reserverName}</div>
-                )}
-
-                <label>Notes</label>
-                <textarea
-                  value={detailData.notes}
-                  onChange={(e) =>
-                    setDetailData({ ...detailData, notes: e.target.value })
-                  }
-                  className={styles.textareaField}
-                />
-              </>
-            )}
-
-            {/* Sold Out */}
             {selectedStatus === "Sold Out" && (
               <>
                 <div className={styles["wrapper-div"]}>
@@ -312,74 +345,11 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
                   vendors, and loving pet parents who help pets find happy,
                   healthy homes?
                 </div>
-                <input
-                  type="textarea"
-                  //   placeholder="Enter something..."
+                <textarea
                   className={styles.inputField}
                   style={{ height: "80px", fontSize: "16px" }}
+                  placeholder="Enter something..."
                 />
-              </>
-            )}
-
-            {/* Not Available */}
-            {selectedStatus === "Not Available" && (
-              <>
-                <label>Reason</label>
-                <input
-                  type="text"
-                  value={detailData.reason}
-                  onChange={(e) =>
-                    setDetailData({ ...detailData, reason: e.target.value })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.reason && (
-                  <div className={styles.error}>{errors.reason}</div>
-                )}
-
-                <label>Expected Return Date</label>
-                <input
-                  type="date"
-                  value={detailData.expectedReturnDate}
-                  onChange={(e) =>
-                    setDetailData({
-                      ...detailData,
-                      expectedReturnDate: e.target.value,
-                    })
-                  }
-                  className={styles.inputField}
-                />
-              </>
-            )}
-
-            {/* On Hold */}
-            {selectedStatus === "On Hold" && (
-              <>
-                <label>Hold Until</label>
-                <input
-                  type="date"
-                  value={detailData.holdUntil}
-                  onChange={(e) =>
-                    setDetailData({ ...detailData, holdUntil: e.target.value })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.holdUntil && (
-                  <div className={styles.error}>{errors.holdUntil}</div>
-                )}
-
-                <label>Hold Reason</label>
-                <input
-                  type="text"
-                  value={detailData.holdReason}
-                  onChange={(e) =>
-                    setDetailData({ ...detailData, holdReason: e.target.value })
-                  }
-                  className={styles.inputField}
-                />
-                {errors.holdReason && (
-                  <div className={styles.error}>{errors.holdReason}</div>
-                )}
               </>
             )}
           </div>
@@ -405,12 +375,50 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
               </button>
               <h3 className={styles.modalTitle}>Change Status</h3>
             </div>
+
+            {/* ✅ New input fields section */}
+            <div className={styles.petInfoSection}>
+              <div className={styles.inputGroup}>
+                <label className={styles["lable-div"]}>Pet Breed </label>
+                <input
+                  type="text"
+                  value={petBreed}
+                  onChange={(e) => setPetBreed(e.target.value)}
+                  className={styles.inputField}
+                  placeholder="Enter pet breed"
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles["lable-div"]}>Pet ID </label>
+                <input
+                  type="text"
+                  value={petId}
+                  onChange={(e) => setPetId(e.target.value)}
+                  className={styles.inputField}
+                  placeholder="Enter pet ID"
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles["lable-div"]}>Pet Name </label>
+                <input
+                  type="text"
+                  value={petName}
+                  onChange={(e) => setPetName(e.target.value)}
+                  className={styles.inputField}
+                  placeholder="Enter pet name"
+                />
+              </div>
+            </div>
+
             <p className={styles.description}>
               To change pet status, select the appropriate status from the
               dropdown below and click the “Change Status” button.
             </p>
+
             <div className={styles.changeStatusSection}>
-              <label>Pet Status *</label>
+              <label className={styles["lable-div"]}>Pet Status </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -424,19 +432,35 @@ const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
                 <option value="On Hold">On Hold</option>
               </select>
             </div>
+            {selectedStatus && selectedStatus !== "Sold Out" && (
+  <div className={styles.descriptionField} >
+    <label className={styles["lable-div"]}>Description</label>
+    <textarea
+      value={detailData.notes || ""}
+      onChange={(e) =>
+        setDetailData((prev) => ({ ...prev, notes: e.target.value }))
+      }
+      className={styles.inputField}
+      placeholder="Enter description..."
+      style={{ height: "80px" }}
+    />
+  </div>
+)}
             <div className={styles.warningBox}>
-              <span>⚠️</span>
               <span className={styles.warningText}>
+                <span>⚠️</span>
                 Please update the status as soon as the situation changes to
                 help others stay informed and avoid confusion.
               </span>
             </div>
+
             <button className={styles.confirmBtnFull} onClick={handleSave}>
               Change Status
             </button>
           </div>
         </div>
       )}
+
       {showInnerPopup && <StatusInnerPopup />}
     </>
   );

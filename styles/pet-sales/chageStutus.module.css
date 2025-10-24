@@ -14,7 +14,7 @@
 .modal {
   background: #fff;
   /* padding: 24px; */
-  border-radius: 8px;
+  /* border-radius: 8px; */
   max-width: 600px;
   width: 100%;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -49,14 +49,14 @@
 
 .changeStatusSection {
   margin-bottom: 16px;
-  padding: 0px 20px;
+  /* padding: 0px 20px; */
   font-size: 18px;
 }
 
 .selectField,
 .inputField,
 .textareaField {
-  width: 95%;
+  width: 92%;
   padding: 8px;
   margin-top: 4px;
   border: 1px solid #ccc;
@@ -79,12 +79,16 @@
   align-items: center;
   margin-bottom: 16px;
 
-  padding-bottom: 200px;
+  padding-bottom: 100px;
 }
 
 .warningText {
   font-size: 16px;
   margin-left: 8px;
+  background: #F900000D;
+  padding: 10px;
+  border: 1px solid #E000001A;
+  border-radius: 5px;
 }
 
 .buttonContainer {
@@ -123,7 +127,7 @@
   background-color: #f5790c;
   color: #fff;
   border: none;
-  /* border-radius: 4px; */
+  border-radius: 10px 10px 0px 0px ;
 
   cursor: pointer;
 }
@@ -170,7 +174,7 @@
   max-height: 90vh;
   overflow-y: auto;
   /* padding: 24px; */
-  border-radius: 8px;
+  /* border-radius: 8px; */
   background: #fff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
@@ -314,4 +318,28 @@
   border: none;
   margin-right: 12px;
   color: #333;
+}
+.petInfoSection {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  /* width: 95%; */
+  /* margin-left: 20px; */
+}
+
+.inputField {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 90%;
+}
+.lable-div{
+  padding-left: 20px;
 }

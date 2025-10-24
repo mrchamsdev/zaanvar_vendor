@@ -7,6 +7,7 @@ const index = () => {
    <>
    <Layout>
    <MyPuppies/>
+   
    </Layout>
    </>
   )

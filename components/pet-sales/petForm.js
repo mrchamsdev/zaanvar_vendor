@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/petForm.module.css";
 import { Max2 } from "@/public/SVG";
 import Slider from "react-slick";
@@ -6,10 +6,36 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import AddNewAddressPopup from "./addNewAddressPopup";
 
-const PetForm = () => {
-  const [formData, setFormData] = useState({ savedAddresses: [] });
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [videoPreviews, setVideoPreviews] = useState([]);
+const PetForm = ({ onSave, initialData }) => {
+  const [formData, setFormData] = useState(() => ({
+    savedAddresses: [],
+    petType: initialData?.petType || "",
+    petBreed: initialData?.breed || "",
+    age: initialData?.age || "",
+    color: initialData?.color || "",
+    vaccination: initialData?.vaccination || "",
+    negotiable: initialData?.negotiable || "",
+    size: initialData?.size || "",
+    hasParents: initialData?.hasParents || "",
+    petName: initialData?.petName || "",
+    gender: initialData?.gender || "",
+    petVariety: initialData?.petVariety || "",
+    price: initialData?.price?.replace("₹ ", "") || "",
+    status: initialData?.stutus || "",
+    sireMother: initialData?.sireMother || "",
+    address: initialData?.address || "",
+    fatherName: initialData?.fatherName || "",
+    motherName: initialData?.motherName || "",
+    isAddingNew: false,
+  }));
+
+  const [imagePreviews, setImagePreviews] = useState(
+    initialData?.img ? [initialData.img] : []
+  );
+
+  const [videoPreviews, setVideoPreviews] = useState(initialData?.videos || []);
+
+
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
@@ -116,15 +142,60 @@ const PetForm = () => {
 
     requiredFields.forEach((field) => {
       if (!formData[field]) {
-        newErrors[field] = "This field is required";
+        switch (field) {
+          case "petType":
+            newErrors[field] = "Please select pet type";
+            break;
+          case "petBreed":
+            newErrors[field] = "Please select pet breed";
+            break;
+          case "age":
+            newErrors[field] = "Please select age";
+            break;
+          case "color":
+            newErrors[field] = "Please select color";
+            break;
+          case "vaccination":
+            newErrors[field] = "Please select vaccination";
+            break;
+          case "negotiable":
+            newErrors[field] = "Please select negotiable option";
+            break;
+          case "size":
+            newErrors[field] = "Please select size";
+            break;
+          case "hasParents":
+            newErrors[field] = "Please select parent info";
+            break;
+          case "petName":
+            newErrors[field] = "Please enter pet name";
+            break;
+          case "gender":
+            newErrors[field] = "Please select gender";
+            break;
+          case "petVariety":
+            newErrors[field] = "Please select pet variety";
+            break;
+          case "price":
+            newErrors[field] = "Please enter price";
+            break;
+          case "status":
+            newErrors[field] = "Please select status";
+            break;
+          case "sireMother":
+            newErrors[field] = "Please select sire/mother info";
+            break;
+          case "address":
+            newErrors[field] = "Please enter address";
+            break;
+          default:
+            newErrors[field] = "This field is required";
+        }
       }
     });
 
     if (imagePreviews.length === 0)
       newErrors.images = "Please upload at least one image";
-
-    // if (videoPreviews.length === 0)
-    //   newErrors.videos = "Please upload at least one video";
 
     if (formData.price && Number(formData.price) > 10000000000) {
       newErrors.price = "Please enter a value less than 100 crore.";
@@ -134,22 +205,49 @@ const PetForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    console.log(errors, "errors");
+  });
   const handleSave = () => {
     if (validateForm()) {
-      console.log("Form Data", formData);
-      if (validateForm()) {
-        const saved = formData.savedAddresses || [];
-        if (formData.address && !saved.includes(formData.address)) {
-          setFormData({
-            ...formData,
-            savedAddresses: [...saved, formData.address],
-            isAddingNew: false,
-          });
-        }
-        // console.log("Form Data:", formData);
+      const newPet = {
+        id: initialData?.id || Math.random().toString(36).substr(2, 9),
+        petType: formData.petType,
+        petBreed: formData.petBreed,
+        age: formData.age,
+        color: formData.color,
+        vaccination: formData.vaccination,
+        negotiable: formData.negotiable,
+        size: formData.size,
+        hasParents: formData.hasParents,
+        petName: formData.petName,
+        gender: formData.gender,
+        petVariety: formData.petVariety,
+        price: `₹ ${formData.price}`,
+        stutus: formData.status,
+        sireMother: formData.sireMother,
+        address: formData.address,
+        fatherName: formData.fatherName,
+        motherName: formData.motherName,
+        img: imagePreviews[0] ,
+        videos: videoPreviews,
+      };
+      
+
+      onSave(newPet); 
+
+      const saved = formData.savedAddresses || [];
+      if (formData.address && !saved.includes(formData.address)) {
+        setFormData({
+          ...formData,
+          savedAddresses: [...saved, formData.address],
+          isAddingNew: false,
+        });
       }
     }
   };
+
+  
 
   const sliderSettings = {
     dots: true,
@@ -552,68 +650,69 @@ const PetForm = () => {
 
               {/* Address */}
               {/* ADDRESS FIELD */}
-             <div className={styles.formField} style={{ width: "100%" }}>
-  <label className={styles.label}>Address</label>
+              <div className={styles.formField} style={{ width: "100%" }}>
+                <label className={styles.label}>Address</label>
 
-  <select
-  name="address"
-  value={formData.address || ""}
-  onChange={(e) => {
-    const value = e.target.value;
-    if (value === "new") {
-      setFormData({
-        ...formData,
-        address: "",
-        isAddingNew: true,
-      });
-    } else {
-      setFormData({
-        ...formData,
-        address: value,
-        isAddingNew: false,
-      });
-    }
-    if (errors.address) setErrors({ ...errors, address: "" });
-  }}
-  onBlur={handleBlur}
-  className={styles.select}
->
-  <option value="">Select here</option>
-  <option value="new">+ Add New Address</option>
-  {formData.savedAddresses?.map((addr, i) => (
-    <option key={i} value={addr}>
-      {addr}
-    </option>
-  ))}
-</select>
+                <select
+                  name="address"
+                  value={formData.address || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "new") {
+                      setFormData({
+                        ...formData,
+                        address: "",
+                        isAddingNew: true,
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        address: value,
+                        isAddingNew: false,
+                      });
+                    }
+                    if (errors.address) setErrors({ ...errors, address: "" });
+                  }}
+                  onBlur={handleBlur}
+                  className={styles.select}
+                >
+                  <option value="">Select here</option>
+                  <option value="new">+ Add New Address</option>
+                  {formData.savedAddresses?.map((addr, i) => (
+                    <option key={i} value={addr}>
+                      {addr}
+                    </option>
+                  ))}
+                </select>
 
+                {/* Show Popup When Adding New Address */}
+                {formData.isAddingNew && (
+                  <AddNewAddressPopup
+                    postFormData={formData}
+                    onSaveAddress={(newAddress, isDefault) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: newAddress, // select the new address immediately
+                        savedAddresses: [
+                          ...(prev.savedAddresses || []),
+                          newAddress,
+                        ],
+                        isAddingNew: false,
+                      }));
+                    }}
+                    onClose={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        isAddingNew: false,
+                      }))
+                    }
+                  />
+                )}
 
-  {/* Show Popup When Adding New Address */}
-  {formData.isAddingNew && (
-  <AddNewAddressPopup
-    postFormData={formData}
-    onSaveAddress={(newAddress, isDefault) => {
-      setFormData((prev) => ({
-        ...prev,
-        address: newAddress, // select the new address immediately
-        savedAddresses: [...(prev.savedAddresses || []), newAddress],
-        isAddingNew: false,
-      }));
-    }}
-    onClose={() =>
-      setFormData((prev) => ({
-        ...prev,
-        isAddingNew: false,
-      }))
-    }
-  />
-)}
-
-
-  {errors.address && (
-    <span className={styles.error}>{errors.address}</span>
-  )}
-</div>
+                {errors.address && (
+                  <span className={styles.error}>{errors.address}</span>
+                )}
+              </div>
 
               {/*Mother  */}
               {formData.hasParents === "Had Mother" && (
@@ -676,7 +775,7 @@ const PetForm = () => {
 
         {/* BUTTONS */}
         <div className={styles.buttonContainer}>
-          <button className={styles.cancelBtn}>Cancel</button>
+          {/* <button className={styles.cancelBtn} >Cancel</button> */}
           <button className={styles.saveBtn} onClick={handleSave}>
             Save
           </button>
