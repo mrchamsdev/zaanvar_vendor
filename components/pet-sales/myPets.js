@@ -55,7 +55,7 @@ const Router = useRouter();
       id: "098765 532369",
       breed:"Rottweiler",
       age:"10/05/2025",
-      time:"5"
+      time:"1"
     },
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
@@ -69,14 +69,14 @@ const Router = useRouter();
       id: "098765 532369",
       breed:"Rottweiler",
       age:"10/05/2025",
-      time:"5"
+      time:"2"
     },
     {
       img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
       id: "098765 532369",
       breed:"Rottweiler",
       age:"10/05/2025",
-      time:"5"
+      time:"3"
     },
   ];
 
@@ -109,9 +109,9 @@ const Router = useRouter();
             className={styles.petImage} 
           />
           <p>{pet.id}</p>
-          {/* <p>{pet.breed}</p> */}
+          <p>{pet.breed}</p>
           <p>{pet.age}</p>
-          <p>{pet.time}</p>
+          {/* <p>{pet.time}</p> */}
           <div  onClick={handleOnClick}  className={styles["edit-container"]}>
             {/* <Edit /> */}
             <View2 />

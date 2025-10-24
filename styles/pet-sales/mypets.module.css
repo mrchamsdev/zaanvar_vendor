@@ -95,13 +95,11 @@
   
   /* Responsive */
   @media (max-width: 768px) {
-    .tableHeader, .tableRow {
-      grid-template-columns: repeat(2, 1fr);
-      grid-row-gap: 8px;
+    .tableRow p{
+      font-size: 12px;
     }
-  
-    .tableHeader {
-      display: none; /* hide header on mobile, you can make custom cards instead */
+    .petImage{
+      height: 40px;
+      width: 40px;
     }
   }
-  
