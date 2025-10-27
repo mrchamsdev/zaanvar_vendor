@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import styles from "../../styles/settings/settings.module.css";
 import Image from "next/image";
 import Topbar from "@/components/pet-sales/Topbar";
-import { FrontArror, MsgProflie, ShareProfile } from "@/public/SVG";
+import { BackButton, Calender3, FourDots, FrontArror, MsgProflie, ShareProfile } from "@/public/SVG";
 import {
   Bar,
   BarChart,
@@ -145,8 +145,17 @@ const PuppyCard = ({ item }) => (
 const Settings = () => {
   const [barData, setBarData] = useState(dailyBarData);
 
+  const menuItems = [
+    { name: "Dashboard", icon: <Calender3 />, path: "/pet-sales" },
+    { name: "My Pets", icon: <Calender3 />, path: "/my-pets" },
+    { name: "My Puppies", icon: <Calender3 />, path: "/my-puppies" },
+    { name: "Settings", icon: <FourDots />, path: "/settings" },
+  ];  
   return (
-    <Layout>
+    <Layout menuItems={menuItems}
+        // topbarButtons={topbarButtons}
+        logoText="Pet Management"
+        sidebarToggleButton={<BackButton />}>
       
       <Topbar
         buttons={[

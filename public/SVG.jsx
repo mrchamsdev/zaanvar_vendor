@@ -354,3 +354,34 @@ export const FrontArror = () =>{
 
   )
 }
+export const RoundIcon = () => {
+  return (
+    <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="45" stroke="#1FBFC2" stroke-width="10" />
+    </svg>
+  )
+}
+export const RoundIcon2 = () => {
+  return (
+    <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="45" stroke="#1FBFC2" stroke-width="10" />
+    </svg>
+  )
+}
+
+
+export const RoundsmallIcon = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="10" fill="white" />
+    </svg>
+  )
+}
+
+export const Roundsmall2Icon = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="10" fill="white" />
+    </svg>
+  )
+}

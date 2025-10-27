@@ -1,0 +1,877 @@
+
+.signInContainer {
+  display: flex;
+  min-height: 100vh;
+  background-color: #e8f0f0;
+  padding: 80px 240px;
+  position: relative;
+}
+.text {
+  text-align: left;
+}
+
+/* Left Section */
+.leftSection {
+  flex: 1;
+  background-color: #bde5e5;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  /* justify-content: center; */
+  position: relative;
+  /* overflow: hidden; */
+  border-radius: 50px 0px 0px 50px;
+  text-align: center;
+  position: relative;
+  /* background-image: url('/images/signin/image (1).png'); /* Replace with your actual image path 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat; */
+}
+.roundBigIcon {
+  position: absolute;
+  left: 150px;
+  bottom: 230px;
+}
+.roundsmallIcon {
+  position: absolute;
+  left: 110px;
+  bottom: 50px;
+}
+.DogImg {
+  position: absolute;
+  left: 150px;
+  bottom: 0px;
+}
+.roundsmall2Icon {
+  position: absolute;
+  right: 100px;
+  top: 250px;
+}
+
+.leftSection h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.leftSection p {
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.dogImageContainer {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  margin-top: 2rem;
+}
+
+/* Right Section */
+.rightSection {
+  flex: 1;
+  background-color: white;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0px 50px 50px 0px;
+}
+
+.logoContainer {
+  margin-bottom: 2rem;
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 400px;
+}
+
+.inputGroup {
+  margin-bottom: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.inputGroup label {
+  color: #131313;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 140%; /* 28px */
+}
+
+.inputGroup input {
+  width: 100%;
+  padding: 0.75rem;
+  color: #727271;
+  text-align: justify;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  border: 1px solid #d9d9d9;
+  line-height: 140%; /* 18.2px */
+}
+
+.inputGroup input:focus {
+  outline: none;
+}
+
+.formOptions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.rememberMe {
+  color: #000;
+  text-align: justify;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  display: flex;
+  gap: 5px;
+}
+
+.forgotPassword {
+  color: #f5790c;
+
+  text-align: justify;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.signInButton {
+  width: 100%;
+  padding: 12px;
+  background-color: #1fbfc2;
+  color: #fff;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.signInButton:hover {
+  background-color: #1fbfc2;
+}
+
+.signUpPrompt {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #727271;
+  text-align: justify;
+  display: flex;
+  justify-content: center;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 140%; /* 21px */
+}
+
+.signUpLink {
+  background: none;
+  border: none;
+  color: #f5790c;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  text-align: justify;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 140%; /* 21px */
+}
+.roundBigIcon2 {
+  position: absolute;
+  right: -20px;
+  bottom: 100px;
+  z-index: 1000;
+}
+.error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-bottom: 15px;
+  display: block;
+}
+.error1 {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-bottom: 0px;
+  display: block;
+}
+.passwordToggle {
+  position: absolute;
+  right: 1rem;
+  top: 70%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+}
+/* ======== RESPONSIVE DESIGN ======== */
+
+/* Tablet View */
+@media (max-width: 1025px) {
+  .signInContainer {
+    padding: 60px 130px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 125px;
+    bottom: 125px;
+  }
+  .dogImg {
+    width: 180px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+.mobilewelcome {
+  display: none;
+}
+.mobileZaanvar {
+  display: none;
+}
+
+/* Small Mobile Screens */
+@media (max-width: 480px) {
+  .signInContainer {
+    padding: 0px;
+  }
+  .roundBigIcon {
+  }
+  .roundsmallIcon {
+  }
+  .leftSection {
+    padding: 1.5rem;
+    min-height: 250px;
+  }
+
+  .roundsmall2Icon {
+  }
+  .DogImg {
+  }
+
+  .rightSection {
+    padding: 1.5rem;
+  }
+
+  .leftSection h1 {
+    font-size: 2rem;
+  }
+
+  .dogImageContainer {
+    max-height: 150px;
+  }
+
+  .formOptions {
+    /* flex-direction: column; */
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .signInButton {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 376px) {
+  .roundBigIcon {
+    position: absolute;
+    left: 76px;
+    bottom: 105px;
+  }
+  .DogImg {
+    position: absolute;
+    left: 95px;
+    bottom: 0px;
+  }
+}
+
+@media (max-width:1400px) {
+ .signInContainer {
+    padding: 60px 120px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 150px;
+    bottom: 245px;
+  }
+  .dogImg {
+    width: 280px;
+    height: 330px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 1045px) {
+   .signInContainer {
+    padding: 60px 120px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 150px;
+    bottom: 210px;
+  }
+  .dogImg {
+    width: 200px;
+    height: 290px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+@media (max-width : 950px) {
+   .signInContainer {
+    padding: 60px 120px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 130px;
+    bottom: 200px;
+  }
+  .dogImg {
+    width: 200px;
+    height: 290px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+
+@media (max-width : 770px) and (max-width : 925px) {
+   .signInContainer {
+    padding: 60px 120px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 145px;
+    bottom: 235px;
+  }
+  .dogImg {
+    width: 200px;
+    height: 280px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+@media (max-width : 900px) {
+   .signInContainer {
+    padding: 60px 120px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 50px;
+    bottom: 190px;
+  }
+  .roundsmall2Icon {
+  position: absolute;
+  right: 40px;
+  top: 200px;
+}
+.roundsmallIcon{
+  position: absolute;
+  left: 40px;
+}
+  .dogImg {
+    width: 200px;
+    height: 290px;
+    position: relative;
+    right: 90px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+
+@media (max-width : 770px) {
+   .signInContainer {
+    padding: 20px;
+  }
+  .inputGroup input {
+    font-size: 14px;
+  }
+  .leftSection,
+  .rightSection {
+    padding: 3rem;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 50px;
+    bottom: 155px;
+  }
+  .roundsmall2Icon {
+  position: absolute;
+  right: 40px;
+  top: 220px;
+}
+.roundsmallIcon{
+  position: absolute;
+  left: 20px;
+}
+  .dogImg {
+    width: 220px;
+    height: 270px;
+    position: relative;
+    right: 90px;
+  }
+  .inputGroup label {
+    font-size: 16px;
+  }
+}
+
+
+/* MOBILE VIEW FIX - Below 768px */
+/* @media (max-width: 768px) {
+  .signInContainer {
+    flex-direction: column;
+    padding: 0;
+    background-color: #bde5e5;
+    width: 100vw;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .leftSection {
+    width: 100%;
+    padding: 2rem 1.5rem;
+    border-radius: 0;
+    text-align: center;
+    position: relative;
+  }
+
+  .rightSection {
+    width: 100%;
+    padding: 2rem 1.5rem;
+    border-radius: 30px 30px 0 0;
+    background-color: white;
+    align-items: center;
+  }
+
+  .formContainer {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .inputGroup label {
+    font-size: 16px;
+  }
+
+  .inputGroup input {
+    font-size: 14px;
+  }
+
+  .signInButton {
+    font-size: 1rem;
+    padding: 0.9rem;
+  }
+
+  .formOptions {
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .mobileZaanvar {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    object-fit: contain;
+    margin: 1rem 0;
+  }
+
+  .mobilewelcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+  }
+
+  .mobilewelcome h1 {
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .mobilewelcome p {
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+    line-height: 1.4;
+  } */
+@media (max-width: 768px) {
+  .signInContainer {
+    flex-direction: column;
+    padding: 0px;
+    background-color: #bde5e5;
+  }
+  .roundBigIcon2 {
+    top: 30px;
+  }
+  .mobileZaanvar {
+    display: block;
+    height: 280px;
+  }
+  .mobilewelcome {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  .mobilewelcome h1 {
+    color: #121212;
+    text-align: center;
+      font-size: 24px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+  }
+  .mobilewelcome p {
+    color: #727271;
+    text-align: center;
+      font-size: 12px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 150%; /* 18px */
+  }
+  .leftSection .logoContainer {
+    /* display: none; */
+  padding-top: 0px;
+}
+
+  .leftSection {
+    padding: 2rem;
+    border-radius: 0px 0px 0 0;
+    text-align: center;
+    max-height: 900vh;
+  }
+  .roundBigIcon {
+    position: absolute;
+    left: 250px;
+    bottom: 110px;
+  
+  }
+  .rightSection .logoContainer{
+    display: none;
+  }
+
+  .rightSection {
+    padding: 2rem;
+    border-radius: 30px 30px 0px 0px;
+  }
+
+  .dogImageContainer {
+    max-height: 150px;
+  }
+
+  .formContainer {
+    max-width: 100%;
+  }
+  .roundsmall2Icon {
+    top: 20px;
+  }
+  .dogImageContainer{
+    /* position: absolute; */
+
+  }
+  .dogImg {
+    width: 250px;
+    height: 200px;
+    left: 100px;
+    /* position: relative; */
+    /* left: 40px; */
+
+    
+  }
+  
+  .roundsmallIcon {
+    left: 70px;
+  }
+  .leftSection h1,
+  .leftSection p {
+    display: none;
+  }
+}
+
+
+  /* Icons & Images on Mobile */
+  .roundBigIcon,
+  .roundsmallIcon,
+  .roundsmall2Icon,
+  .roundBigIcon2
+   {
+    /* display: none; */
+  }
+
+  .dogImageContainer {
+    max-height: 160px;
+    margin-top: 1rem;
+  }
+
+
+/* SMALLER MOBILE DEVICES - Below 480px */
+@media (max-width: 480px) {
+  .leftSection{
+    padding-top: 0px;
+    margin: 0px;
+
+  }
+.dogImg{
+  width: 130px;
+  height: 120px;
+   position: absolute;
+    left: 0px;
+    bottom: 0px;
+}
+.roundBigIcon{
+  /* width: 100px; */
+  /* height: 10px; */
+  position: absolute;
+  left: 130px;
+  bottom: 60px;
+
+}
+.roundsmallIcon{
+  position: absolute;
+  left: 50px;
+  bottom: 20px;
+}
+.roundsmall2Icon{
+  position: absolute;
+  right: 70px;
+  /* left: 50px; */
+  top: 20px;
+}
+  .signInButton {
+    font-size: 0.95rem;
+    padding: 0.75rem;
+  }
+
+  .inputGroup label {
+    font-size: 15px;
+  }
+
+  .inputGroup input {
+    font-size: 13px;
+  }
+
+  .mobilewelcome h1 {
+    font-size: 20px;
+  }
+
+  .mobilewelcome p {
+    font-size: 12px;
+  }
+}
+@media(max-width: 370px){
+  .leftSection{
+    padding-top: 0px;
+    margin: 0px;
+
+  }
+.dogImg{
+  width: 130px;
+  height: 120px;
+   position: absolute;
+    left: 0px;
+    bottom: 0px;
+}
+.roundBigIcon{
+  /* width: 100px; */
+  /* height: 10px; */
+  position: absolute;
+  left: 85px;
+  bottom: 50px;
+
+}
+.roundsmallIcon{
+  position: absolute;
+  left: 50px;
+  bottom: 20px;
+}
+.roundsmall2Icon{
+  position: absolute;
+  right: 70px;
+  /* left: 50px; */
+  top: 20px;
+}
+  .signInButton {
+    font-size: 0.95rem;
+    padding: 0.75rem;
+  }
+
+  .inputGroup label {
+    font-size: 15px;
+  }
+
+  .inputGroup input {
+    font-size: 13px;
+  }
+
+  .mobilewelcome h1 {
+    font-size: 20px;
+  }
+
+  .mobilewelcome p {
+    font-size: 12px;
+  }
+
+}
+
+@media (max-width: 330px) {
+  .leftSection{
+    padding-top: 0px;
+    margin: 0px;
+
+  }
+.dogImg{
+  width: 130px;
+  height: 120px;
+   position: absolute;
+    left: 0px;
+    bottom: 0px;
+}
+.roundBigIcon{
+  /* width: 100px; */
+  /* height: 10px; */
+  position: absolute;
+  left: 85px;
+  bottom: 50px;
+
+}
+.roundsmallIcon{
+  position: absolute;
+  left: 50px;
+  bottom: 20px;
+}
+.roundsmall2Icon{
+  position: absolute;
+  right: 70px;
+  /* left: 50px; */
+  top: 20px;
+}
+  .signInButton {
+    font-size: 0.95rem;
+    padding: 0.75rem;
+  }
+
+  .inputGroup label {
+    font-size: 15px;
+  }
+
+  .inputGroup input {
+    font-size: 13px;
+  }
+
+  .mobilewelcome h1 {
+    font-size: 20px;
+  }
+
+  .mobilewelcome p {
+    font-size: 12px;
+  }
+}
+
+/* google button css */
+
+.googleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #202124;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin-top: 10px;
+}
+
+.googleButton:hover {
+  background-color: #f7f7f7;
+  border-color: #c6c6c6;
+}
+
+.googleIcon {
+  font-size: 18px;
+}
+
+.googleText {
+  display: inline-block;
+}
+
+/* Responsive for mobile */
+@media screen and (max-width: 480px) {
+  .googleButton {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  .googleIcon {
+    font-size: 16px;
+  }
+}

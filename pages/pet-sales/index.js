@@ -5,10 +5,11 @@ import ViewDetails from '@/pages/my-puppies/view'
 import React from 'react'
 
 const index = () => {
+  
   return (
    <>
    {/* <BackHeader text="Simba"/> */}
-   <Dashboard/>
+   <Dashboard  />
    {/* <ViewDetails/> */}
    </>
   )

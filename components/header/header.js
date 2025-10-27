@@ -10,6 +10,9 @@ const Header = () => {
   const handleOnclick = ()=>{
     Router.push("/book-demo")
   }
+  const handleLogin = ()=>{
+    Router.push("/login")
+  }
 
 
   const isActive = (path) => Router.pathname === path;
@@ -121,7 +124,7 @@ const Header = () => {
 </nav>
 
           <div className={style["button-container"]}>
-            <button className={style["btn-outline"]}>LOGIN</button>
+            <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
             <button onClick={handleOnclick}
               className={style["btn-outline"]}
               style={{ background: "#F5790C", color:"#fff" }}

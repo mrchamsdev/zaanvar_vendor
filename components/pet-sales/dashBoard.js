@@ -4,9 +4,12 @@ import styles from "../../styles/pet-sales/dashBoard.module.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Image from "next/image";
-import { CrossIcon, Notification, Price } from "@/public/SVG";
+import { BackButton, Calender3, CrossIcon, FourDots, Notification, Price } from "@/public/SVG";
 import Charts from "./charts";
+import ChatOnline from "./chatOnline";
 // import Charts from "./Charts";
+
+
 
 const Dashboard = () => {
   const [activeCard, setActiveCard] = useState(null);
@@ -18,11 +21,21 @@ const Dashboard = () => {
     { label: "+ Add Bookings", color: "red" },
     { label: "+ Add More", color: "gray" },
   ];
+  const menuItems = [
+    { name: "Dashboard", icon: <FourDots />, path: "/pet-sales" },
+    { name: "My Pets", icon: <Calender3 />, path: "/my-pets" },
+    { name: "My Puppies", icon: <Calender3 />, path: "/my-puppies" },
+    { name: "Settings", icon: <Calender3 />, path: "/settings " },
+  ];
 
   return (
     <div className={styles["dashboardContainer"]}>
       {/* Sidebar */}
-      <Sidebar isMobileOpen={isMobileOpen} setMobileOpen={setIsMobileOpen} />
+      <Sidebar isMobileOpen={isMobileOpen} setMobileOpen={setIsMobileOpen} 
+     
+      toggleButton={<BackButton />} 
+      menuItems={menuItems} 
+      logoText="Pet Sales"/>
 
       {/* Mobile Header */}
       <div className={styles["sidebar-toggle"]}>
@@ -82,41 +95,7 @@ const Dashboard = () => {
           <Charts />
 
           {/* ===== Returns Today Section ===== */}
-          <div className={styles["chats-div"]}>
-            <div className={styles["chartBox"]}>
-              <div className={styles["chartHeader"]}>
-                <h4>Returns Today</h4>
-                <select className={styles["selectdrop"]}>
-                  <option>Today</option>
-                </select>
-              </div>
-
-              <div className={styles["returnsList"]}>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className={styles["returnItem"]}>
-                    <div className={styles["user"]}>
-                      <div className={styles["avatar"]}>
-                        <Image
-                          src="https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg"
-                          width={50}
-                          height={50}
-                          alt="user avatar"
-                        />
-                        <span className={styles["onlineDot"]}></span>
-                      </div>
-                      <div>
-                        <p className={styles["name"]}>Shubham Pawar</p>
-                        <p className={styles["date"]}>
-                          12-09-2025 to 13-10-2025
-                        </p>
-                      </div>
-                    </div>
-                    <p className={styles["amount"]}>₹5000.00</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ChatOnline/>
         </div>
       </div>
     </div>

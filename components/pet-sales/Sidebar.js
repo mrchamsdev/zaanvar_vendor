@@ -2,19 +2,17 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "../../styles/pet-sales/sidebar.module.css";
-import { BackButton, Calender3, FourDots } from "@/public/SVG";
 
-const Sidebar = ({ isMobileOpen, setMobileOpen }) => {
+const Sidebar = ({
+  isMobileOpen,
+  setMobileOpen,
+  toggleButton, // ✅ dynamic button/icon
+  menuItems = [], // ✅ dynamic menu items
+  logoText = "Zaanvar" // optional dynamic logo
+}) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
-
-  const menuItems = [
-    { name: "Dashboard", icon: <FourDots />, path: "/pet-sales" },
-    { name: "My Pets", icon: <Calender3 />, path: "/my-pets" },
-    { name: "My Puppies", icon: <Calender3 />, path: "/my-puppies" },
-    { name: "Settings", icon: <Calender3 />, path: "/settings" },
-  ];
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -44,9 +42,10 @@ const Sidebar = ({ isMobileOpen, setMobileOpen }) => {
           ${isMobileOpen ? styles.active : ""}`}
       >
         <h2 className={styles.logo}>
-          {!collapsed && <p>Zaanvar</p>}
+          {!collapsed && <p>{logoText}</p>}
           <div className={styles.backButton} onClick={toggleSidebar}>
-            <BackButton />
+            {/* Render dynamic button/icon if passed, else fallback */}
+            {toggleButton || <span>&larr;</span>}
           </div>
         </h2>
 
@@ -58,7 +57,7 @@ const Sidebar = ({ isMobileOpen, setMobileOpen }) => {
               onClick={() => isMobile && setMobileOpen(false)}
             >
               <Link href={item.path}>
-                {React.cloneElement(item.icon, { className: styles.icon })}
+                {item.icon && React.cloneElement(item.icon, { className: styles.icon })}
                 {!collapsed && <span className={styles.name}>{item.name}</span>}
               </Link>
             </li>
