@@ -160,6 +160,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin: 10px 0px ;
   }
 
   .backButton {
@@ -176,6 +177,11 @@
 
   .name {
     font-size: 16px;
+  }
+  .nav{
+    margin: 0px;
+    gap: 5px;
+    font-size: 14px;
   }
 }
 
@@ -217,5 +223,6 @@
 
   .sidebar.active {
     transform: translateX(0);
+    padding: 0px 10px;
   }
 }

@@ -1,0 +1,44 @@
+/* This wrapper takes up the main screen area instead of overlay */
+.contentWrapper {
+  /* width: 100%; */
+  padding: 30px 0px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Form box that appears instead of Charts/Chat */
+.formBox {
+  background: #fff;
+  width: 100%;
+  /* max-width: 700px; */
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Back button */
+.closeBtn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.closeBtn:hover {
+  background: #d60000;
+}
+.show{
+    display: flex;
+}
+
+
+@media (max-width:768px) {
+    .show{
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+    }
+}

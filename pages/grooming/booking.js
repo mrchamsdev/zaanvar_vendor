@@ -8,16 +8,23 @@ import PendingBookings from "@/components/grooming/pending";
 import CompletedBookings from "@/components/grooming/completedBookings";
 import CancelledBookings from "@/components/grooming/cancelled";
 
-const Index = () => {
+const Booking = () => {
   const [activeTab, setActiveTab] = useState("Upcoming"); 
   const tabs = ["Upcoming", "Pending", "Completed", "Cancelled"];
 
   const menuItems = [
-    { name: "Dashboard", icon: <Calender3 />, path: "/grooming" },
-    { name: "Bookings", icon: <FourDots />, path: "/bookings" },
-    { name: "My Puppies", icon: <Calender3 />, path: "/my-puppies" },
-    { name: "Settings", icon: <Calender3 />, path: "/settings" },
-  ];
+        { name: "Dashboard", icon: <FourDots />, path: "/grooming" },
+        { name: "Bookings", icon: <Calender3 />, path: "/grooming/booking" },
+        { name: "Invoice Generation", icon: <Calender3 />, path: "/grooming/invoice-generation" },
+
+        { name: "Parties & Purchases", icon: <Calender3 />, path: "/grooming/parties-purchases" },
+        { name: "Expenses", icon: <Calender3 />, path: "/grooming/expenses" },
+        { name: "Inventory", icon: <Calender3 />, path: "/grooming/inventory" },
+        { name: "Staff Management", icon: <Calender3 />, path: "/grooming/staff-management" },
+        { name: "Reports", icon: <Calender3 />, path: "/grooming/reports" },
+        { name: "Settings", icon: <Calender3 />, path: "/settings" },
+        { name: "Logout", icon: <Calender3 />, path: "/logout" },
+      ];
   const tabComponents = {
     Upcoming: <UpcomingBookings />,
     Pending: <PendingBookings />,
@@ -33,7 +40,7 @@ const Index = () => {
       <Layout menuItems={menuItems} sidebarToggleButton={<BackButton />}>
         <Topbar
           buttons={[
-            { label: "+ Add Puppies", color: "purple", action: "addRoom" },
+            { label: "+ Add Rooms", color: "purple", action: "addRoom" },
             { label: "+ Add Bookings", color: "red", action: "addBooking" },
             { label: "+ Add More", color: "gray", action: "addMore" },
           ]}
@@ -56,4 +63,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Booking;

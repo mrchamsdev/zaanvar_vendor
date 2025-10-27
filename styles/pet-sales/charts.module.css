@@ -105,6 +105,13 @@
   transition: transform 0.3s ease-in-out;
 }
 
+
+
+@media (max-width: 1200px) {
+.chartBox{
+  padding: 0px;
+}
+}
 /* ============================= */
 /* 📱 Responsive Design (below 768px) */
 /* ============================= */
@@ -119,13 +126,16 @@
 
   .chartBox {
     padding: 1rem;
-    width: 100%;
+    /* width: 100%;  */
+    align-items: center;
   }
 
   .chartHeader {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+    width: -webkit-fill-available;
+    padding-bottom: 20px;
   }
 
   .chartHeader h4 {

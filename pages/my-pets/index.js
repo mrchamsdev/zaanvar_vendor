@@ -17,7 +17,8 @@ export default function Index() {
     <Layout menuItems={menuItems}
     // topbarButtons={topbarButtons}
     logoText="Pet Management"
-    sidebarToggleButton={<BackButton />}>
+    sidebarToggleButton={<BackButton />}
+    >
       <MyPets/>
     </Layout>
   );

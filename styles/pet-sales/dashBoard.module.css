@@ -6,7 +6,7 @@
 
 .mainSection {
   flex: 1;
-  padding: 1rem 2rem;
+  /* padding: 1rem 2rem; */
   overflow-y: auto;
 }
 .wrapper-div{
@@ -20,6 +20,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
   margin-top: 1rem;
+  overflow-y: hidden;
 }
 
 .card {
@@ -229,6 +230,16 @@
 }
 .sidebar-toggle {
   display: none;
+}
+
+@media (max-width: 1200px) {
+  .chats-div{
+    width: 35%;
+
+  }
+  .chartBox{
+    padding: 1rem;
+  }
 }
 
 /* ============================= */

@@ -1,0 +1,194 @@
+.container {
+    padding: 20px;
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stats span {
+    background: #f5f5f5;
+    padding: 10px 12px;
+    border-radius: 5px;
+    margin-left: 10px;
+    font-size: 14px;
+  }
+  
+  .nav {
+    margin: 20px 0;
+  }
+  
+  .nav button {
+    padding: 10px 20px;
+    border: none;
+    background: #f5f5f5;
+    cursor: pointer;
+    margin-right: 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  
+  .active {
+    background: black !important;
+    color: white !important;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .table thead th {
+    text-align: left;
+    padding: 15px;
+    background: #fafafa;
+    font-size: 14px;
+    color: #555;
+    border-bottom: 1px solid #eee;
+    background: #F1F2F5;
+  }
+  
+  .table tbody td {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+  }
+  
+  .table tbody tr:hover {
+    background: #f9f9f9;
+  }
+  
+  .roleBadge {
+    background: #f1edff;
+    color: #5e4fd9;
+    padding: 10px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .stats{
+    display: flex;
+    padding: 10px;
+  }
+  .stats h2{
+    margin: 0px;
+  }
+  .checkbox{
+    height: 20px;
+    width: 20px;
+  }
+  
+  /* OVERLAY */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+}
+
+/* DRAWER */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 30%;
+  height: 100%;
+  background: #fff;
+  padding: 20px 30px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+/* HEADER */
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.closeBtn {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* STEPS */
+.steps {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  justify-content: space-between;
+}
+.step {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #F2F5FA;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+}
+.activeStep {
+  background: #000;
+  color: white;
+}
+
+/* FORMS */
+.formGroup {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+.formGroup label {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+.formGroup input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+.formGroup select{
+    padding: 10px 30px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.row {
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+}
+
+/* FOOTER BUTTONS */
+.footerButtons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.resetBtn {
+  border: 1px solid black;
+  background: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+}
+
+.applyBtn {
+  background: black;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+}

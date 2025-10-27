@@ -1,0 +1,128 @@
+.slot-wrapper{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+}
+.slot-wrapper p{
+    font-size: 24px;
+    font-weight: 600;
+}
+.slot-wrapper span{
+    background-color: #F2F5FA;
+    padding: 6px 6px 3px 6px;
+    border: 1px solid #DAE3F8;
+    border-radius: 5px;
+}
+.main-wrapper{
+    border: 1px solid #E8E8E880;
+    border-radius: 20px;
+    padding: 0px 10px;
+}
+/* Main container */
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 18px;
+}
+
+/* Two-column layout */
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Inputs and Dropdowns */
+.input,
+.select {
+  /* width: 100%; */
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  font-size: 14px;
+  outline: none;
+}
+
+.textarea {
+    width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border: 1px solid #e5e7eb;;
+}
+
+/* Focus effect (fixed for CSS Modules) */
+.formContainer input:focus,
+.formContainer select:focus,
+.formContainer textarea:focus {
+  border-color: #008cff;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 140, 255, 0.15);
+}
+
+/* Optional icon button for dropdown/date/time fields */
+.iconWrapper {
+  position: relative;
+}
+
+.iconRight {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 16px;
+  color: #9ca3af;
+}
+
+/* Notes Field */
+.notesField {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.button-container{
+    display: flex;
+    justify-content: end;
+    gap: 10px;
+}
+.button-container button{
+    padding: 10px 20px;
+    border-radius:10px ;
+    /* background-color: ; */
+}
+.shareBtn{
+    border: 1px solid black;
+}
+.saveBtn{
+    background: black;
+    color: white;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

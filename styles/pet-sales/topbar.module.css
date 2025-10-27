@@ -91,6 +91,37 @@
 /* ============================= */
 /* 📱 Responsive Design (below 768px) */
 /* ============================= */
+
+
+@media (max-width: 1200px) {
+.search{
+  width: 80px;
+}
+.btn{
+  padding: 0.8rem .6rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  /* color: #fff; */
+  font-weight: 500;
+  font-size: 14px;
+}
+.statsGrid{
+  overflow-y: hidden;
+}
+.select-bar{
+  width: 110px;
+}
+.select-bar select{
+  padding: 10px 0px;
+}
+.actions{
+  gap: 5px;
+}
+.search-wrapper{
+  gap: 10px;
+}
+}
 @media (max-width: 768px) {
   .topbar {
     flex-direction: column;
