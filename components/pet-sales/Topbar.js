@@ -22,9 +22,9 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
   const services = [
     { label: "Pet Sales", path: "/pet-sales" },
     { label: "Grooming", path: "/grooming" },
-    { label: "Training", path: "/training" },
-    { label: "Pet Care", path: "/pet-care" },
-    { label: "Meal", path: "/meal" },
+    // { label: "Training", path: "/training" },
+    // { label: "Pet Care", path: "/pet-care" },
+    // { label: "Meal", path: "/meal" },
   ];
 
   // Filter services to exclude the current page
@@ -74,6 +74,7 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
             <option value="">Select Service</option>
             {filteredServices.map(service => (
               <option key={service.path} value={service.label}>{service.label}</option>
+              
             ))}
           </select>
         </div>

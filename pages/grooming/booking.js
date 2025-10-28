@@ -13,17 +13,17 @@ const Booking = () => {
   const tabs = ["Upcoming", "Pending", "Completed", "Cancelled"];
 
   const menuItems = [
-        { name: "Dashboard", icon: <FourDots />, path: "/grooming" },
-        { name: "Bookings", icon: <Calender3 />, path: "/grooming/booking" },
+        { name: "Dashboard", icon: <Calender3 />, path: "/grooming" },
+        { name: "Bookings", icon: <FourDots />, path: "/grooming/booking" },
         { name: "Invoice Generation", icon: <Calender3 />, path: "/grooming/invoice-generation" },
 
         { name: "Parties & Purchases", icon: <Calender3 />, path: "/grooming/parties-purchases" },
-        { name: "Expenses", icon: <Calender3 />, path: "/grooming/expenses" },
-        { name: "Inventory", icon: <Calender3 />, path: "/grooming/inventory" },
+        // { name: "Expenses", icon: <Calender3 />, path: "/grooming/expenses" },
+        // { name: "Inventory", icon: <Calender3 />, path: "/grooming/inventory" },
         { name: "Staff Management", icon: <Calender3 />, path: "/grooming/staff-management" },
-        { name: "Reports", icon: <Calender3 />, path: "/grooming/reports" },
-        { name: "Settings", icon: <Calender3 />, path: "/settings" },
-        { name: "Logout", icon: <Calender3 />, path: "/logout" },
+        // { name: "Reports", icon: <Calender3 />, path: "/grooming/reports" },
+        // { name: "Settings", icon: <Calender3 />, path: "/settings" },
+        // { name: "Logout", icon: <Calender3 />, path: "/logout" },
       ];
   const tabComponents = {
     Upcoming: <UpcomingBookings />,

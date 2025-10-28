@@ -6,9 +6,9 @@ import styles from "../../styles/pet-sales/sidebar.module.css";
 const Sidebar = ({
   isMobileOpen,
   setMobileOpen,
-  toggleButton, // ✅ dynamic button/icon
-  menuItems = [], // ✅ dynamic menu items
-  logoText = "Zaanvar" // optional dynamic logo
+  toggleButton, 
+  menuItems = [], 
+  logoText = "Zaanvar" 
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -53,7 +53,8 @@ const Sidebar = ({
           {menuItems.map((item) => (
             <li
               key={item.name}
-              className={router.pathname.startsWith(item.path) ? styles.active : ""}
+              className={router.pathname === item.path ? styles.active : ""}
+
               onClick={() => isMobile && setMobileOpen(false)}
             >
               <Link href={item.path}>
