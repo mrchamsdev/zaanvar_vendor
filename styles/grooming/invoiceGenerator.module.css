@@ -1,0 +1,227 @@
+.container {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+  
+  .formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .inputGroup {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .inputGroup label {
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: #121212;
+  }
+  .wrapper-sale{
+    display: flex;
+    justify-content: space-between;
+    align-items: center
+  }
+  .inputGroup input,
+  .inputGroup select {
+    border: 1px solid #F1F2F5;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  
+  .toggleWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+  }
+  .svg-container{
+    display: flex;
+    gap: 5px;
+  }
+  .svg-container svg{
+    padding: 10px;
+    background: #F2F5FA;
+    border-radius: 5px;
+    border: 1px solid #DAE3F8;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: #ccc;
+    border-radius: 20px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transition: 0.4s;
+  }
+  
+  .switch input:checked + .slider {
+    background-color: #7e3af2;
+  }
+  
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.4s;
+  }
+  
+  .switch input:checked + .slider::before {
+    transform: translateX(20px);
+  }
+  
+  /* ✅ Scoped selectors for Next.js */
+  .tableContainer {
+    margin-top: 1rem;
+    overflow-x: auto;
+  }
+  
+  .tableContainer table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.5rem;
+  }
+  
+  .tableContainer th,
+  .tableContainer td {
+    border: 1px solid #eee;
+    padding: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  
+  .tableContainer th {
+    background-color: #F1F2F5;
+    font-weight: 600;
+    color: #727271;
+    padding: 12px;
+  }
+  .bottom-div{
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+  }
+  .bottomSection2{
+    display: flex;
+    padding-top: 40px;
+    justify-content: space-between;
+  }
+  .below-text{
+    display: flex;
+    /* align-items: center; */
+    justify-content: center;
+    gap: 20px;
+  }
+  .inputGroup2{
+    display: flex
+    ;
+        flex-direction: column;
+        padding-bottom: 40px;
+  }
+  
+  .tableContainer .totalRow td {
+    font-weight: 600;
+    background-color: #fafafa;
+    ;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .addRow {
+    margin-top: 0.5rem;
+    border: 1px solid #6E91C7;
+    /* background: #f5f5f5; */
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #6E91C7;
+  }
+  .input-container{
+    width: 80%;
+    height: 30px;
+    border: 1px solid #F1F2F5;
+  }
+  .inputGroup2 label{
+    padding-bottom: 10px;
+  }
+  .input-btn button{
+    padding: 20px;
+  }
+  .input-field{
+    padding: 10px;
+    border: 1px solid #F1F2F5;
+  }
+  
+  .bottomSection {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 2rem;
+    margin-top: 1rem;
+  }
+  
+  .checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .share {
+    background: #fff;
+    border: 1px solid #000;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .save {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  

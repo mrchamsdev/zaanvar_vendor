@@ -23,6 +23,8 @@
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .chartBox:hover {
@@ -33,6 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .chartHeader h4 {
