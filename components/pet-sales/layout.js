@@ -45,7 +45,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "../../styles/pet-sales/dashBoard.module.css"; // ✅ reuse styles
 import Image from "next/image";
-import { Notification } from "@/public/SVG";
+import { Notification } from "@/public/image/SVG";
 
 const Layout = ({
   children,

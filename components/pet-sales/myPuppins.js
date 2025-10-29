@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/myPuppies.module.css";
 import Topbar from "./Topbar";
-import { Delete, Edit, Filter, View2 } from "@/public/SVG";
+import { Delete, Edit, Filter, View2 } from "@/public/image/SVG";
 import { useRouter } from "next/router";
 import PetForm from "./petForm";
 import ChangeStatus from "./changeStutus";

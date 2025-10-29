@@ -6,7 +6,7 @@ import {
   Calender3,
   FourDots,
   Settings,
-} from "@/public/SVG";
+} from "@/public/image/SVG";
 import React, { useState } from "react";
 import styles from "../../styles/grooming/invoiceGenerator.module.css";
 

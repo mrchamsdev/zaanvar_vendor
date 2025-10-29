@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styles from "../../styles/register/petBusinessForm.module.css";
-import { Tik } from "@/public/SVG";
+import { Tik } from "@/public/image/SVG";
 
 const PetBusinessForm = () => {
   const [formData, setFormData] = useState({

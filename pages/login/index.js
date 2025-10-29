@@ -171,9 +171,9 @@ import useStore from "../../components/state/useStore";
 // import * as Icon from "react-bootstrap-icons";
 import { useRouter } from "next/router";
 import Image from "next/image";
-import { RoundIcon, RoundIcon2, Roundsmall2Icon, RoundsmallIcon } from "@/public/SVG";
+import { RoundIcon, RoundIcon2, Roundsmall2Icon, RoundsmallIcon } from "@/public/image/SVG";
 import { signIn , useSession} from "next-auth/react";
-import { ClosedEyeIcon, EyeIcon } from "@/public/SVG";
+import { ClosedEyeIcon, EyeIcon } from "@/public/image/SVG";
 
 const SignIn = ({ onSignUpClick }) => {
     // const { data: session } = useSession();

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import styles from "../../styles/settings/settings.module.css";
 import Image from "next/image";
 import Topbar from "@/components/pet-sales/Topbar";
-import { BackButton, Calender3, FourDots, FrontArror, MsgProflie, ShareProfile } from "@/public/SVG";
+import { BackButton, Calender3, FourDots, FrontArror, MsgProflie, ShareProfile } from "@/public/image/SVG";
 import {
   Bar,
   BarChart,

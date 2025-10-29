@@ -3,7 +3,7 @@ import React, { useState } from "react";
 // import styles from "./AddParty.module.css";
 import styles from "../../styles/grooming/partiesPurcheses.module.css"
 import Layout from "@/components/pet-sales/layout";
-import { BackButton, Calender3, FourDots, Settings } from "@/public/SVG";
+import { BackButton, Calender3, FourDots, Settings } from "@/public/image/SVG";
 import Topbar from "@/components/pet-sales/Topbar";
 import PartySettingsDrawer from "@/components/grooming/partysidebar";
 

@@ -1,0 +1,293 @@
+.no-scroll {
+    overflow: hidden;
+  }
+  
+  .Background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .popupContainer {
+    background-color: white;
+    /* border-radius: 15px; */
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    overflow: hidden;
+    height: auto;
+    /* max-height: 90%;
+    width: 1050px; */
+  }
+  
+  .header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    height: 60px;
+    /* background-color: #4d4d4d; */
+    background: #fff;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.07);
+    padding-left: 60px;
+    gap: 60px;
+    padding-top: 10px;
+  }
+  
+  .header p {
+    font-size: 18px;
+    color: black;
+    font-weight: 500;
+  }
+  
+  .mainContainer {
+    /* background-color: #f6f9fe; */
+    /* min-height: 100vh; */
+    padding: 50px 100px 100px 60px;
+    max-height: 95vh; /* Constrain height to make room for scroll */
+    overflow-y: auto; /* Enable scrolling when overflowed */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* width: 100%; */
+  }
+  
+  .mainContainer p {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .addButtonDiv {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed #a6acb8;
+    height: 155px;
+    width: 155px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-bottom: 25px;
+    background-color: #ffffff;
+  }
+  
+  .addButtonDiv p {
+    /* margin: 0px; */
+    font-size: 100px;
+    font-weight: 100;
+    color: #a6acb8;
+  }
+  
+  .formDiv2 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .submitButton {
+    width: 250px;
+    height: 50px;
+    background: #f5790c;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 50px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  /* Wrapper */
+  .mobSubmit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* --- Mobile View --- */
+  @media (max-width: 768px) {
+    .mobSubmit {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+    }
+  
+    .mainContainer {
+    height: calc(100vh - 110px);
+  }
+    .submitButton {
+      width: 100%;
+      margin-top: 0;
+      height: 55px;
+      font-size: 16px;
+      border-radius: 0;
+      border-top-left-radius: 15px;
+      border-top-right-radius: 15px;
+    }
+  }
+  
+  .previewImg {
+    height: 150px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .customInput {
+    padding: 0px !important;
+  }
+  .mobback{
+    display: none;
+  }
+  .fileContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    width: 48%;
+    /* justify-content: flex-start; */
+    margin-bottom: 40px;
+    /* gap: 5px; */
+  }
+  .fileDescription {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    margin-bottom: 18px;
+  }
+  .fileLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 20px;
+    width: 100%;
+    border: 1px solid #d9d9d9;
+    height: 35px;
+  }
+  
+  @media (max-width: 768px) {
+    .previewImg {
+      height: 160px;
+      width: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .header {
+      justify-content: center; /* Center the text */
+      padding-left: 0;
+      gap: 0;
+    }
+  .fileLabel {
+    width: 95vw;
+    height: auto;
+  }
+    /* Center the “Add New Pet” text */
+    .header p:nth-of-type(2) {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: 600;
+      margin: 0;
+    }
+  
+    /* Mobile back arrow */
+    .mobback {
+      display: block;
+      position: absolute;
+      left: 15px;
+      top: 4%;
+      transform: translateY(-50%);
+    }
+  
+    /* Hide desktop back icon on mobile */
+    .webback {
+      display: none;
+    }
+  .header {
+  
+    padding-left: 10px;
+    
+  }
+  .addnew{
+    margin-bottom: 10px;
+  }
+    .Background {
+      /* padding: 10px; */
+      
+    }
+    .fileContainer {
+      display: block;
+    }
+    .popupContainer {
+      border-radius: 0px;
+      max-height: 100%;
+      height: 100%;
+      width: 100%;
+    }
+  
+    /* .mainContainer p {
+                  font-size: 14px;
+                  font-weight: 600;
+              } */
+    .imgP {
+      font-size: 50px;
+      font-weight: 100px;
+    }
+    .fileDescription {
+      /* padding-bottom: 16px; */
+      width: 100%;
+    }
+    .fileLabel {
+      margin-left: 0px;
+    }
+    .fileContainer {
+    margin-bottom: 20px;
+  }
+  
+  .mobSubmit{
+    width: 100%;
+  }
+    .formDiv2 {
+      flex-direction: column; /* Stack items vertically */
+    }
+    .mainContainer {
+      padding: 50px 50px;
+    }
+   
+  }
+  @media (max-width: 431px) {
+    .formDiv2 {
+      flex-direction: column; /* Stack items vertically */
+    }
+  
+    .previewImg {
+      height: 100px;
+      width: 100px;
+    }
+    .addButtonDiv {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 2px dashed #a6acb8;
+      height: 100px;
+      width: 100px;
+    }
+    .Background {
+      /* padding: 10px; */
+    }
+    .mainContainer {
+      padding: 50px 10px;
+    }
+    .addButtonDiv p {
+      margin: 0px;
+      font-size: 65px;
+    }
+    
+  }
+  

@@ -1,6 +1,6 @@
 import React from 'react'
 // import styles from "../../styles/vender/chooseUs.module.css"
-import { Pet2Icon } from '@/public/SVG'
+import { Pet2Icon } from '@/public/image/SVG'
 import styles from "../../styles/vender/ourValue.module.css"
 
 const OurValue = () => {

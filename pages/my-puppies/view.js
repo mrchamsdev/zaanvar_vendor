@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import styles from "../../styles/pet-sales/viewDetails.module.css";
-import { Age, Call, Color, Facebook, Gender, PetType, Share, Size, Whatsapp } from "@/public/SVG";
+import { Age, Call, Color, Facebook, Gender, PetType, Share, Size, Whatsapp } from "@/public/image/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 
 const ViewDetails = () => {

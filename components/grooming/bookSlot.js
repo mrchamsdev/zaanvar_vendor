@@ -1,4 +1,4 @@
-import { Settings } from "@/public/SVG";
+import { Settings } from "@/public/image/SVG";
 import React from "react";
 import styles from "../../styles/grooming/bookslot.module.css";
 

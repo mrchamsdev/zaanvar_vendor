@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/petForm.module.css";
-import { Max2 } from "@/public/SVG";
+import { Max2 } from "@/public/image/SVG";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";

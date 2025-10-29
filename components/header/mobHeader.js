@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "../../styles/pet-sales/mobHeader.module.css";
-import { CircleMobBackIcon, FourDots, Calender3 } from "@/public/SVG";
+import { CircleMobBackIcon, FourDots, Calender3 } from "@/public/image/SVG";
 
 const MobSidebar = ({ isOpen = false, handleClose }) => {
   const router = useRouter();

@@ -4,7 +4,7 @@ import Topbar from "@/components/pet-sales/Topbar";
 // import AddStaffDrawer from "@/components/grooming/AddStaffDrawer";
 import AddStaff from "@/components/pet-sales/addStaff";
 import styles from "../../styles/grooming/staffManagment.module.css";
-import { BackButton, Calender3, FourDots } from "@/public/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
 
 const StaffManagement = () => {
   const [showDrawer, setShowDrawer] = useState(false);

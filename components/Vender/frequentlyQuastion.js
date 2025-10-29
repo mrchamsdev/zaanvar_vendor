@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styles from "../../styles/vender/frequentlyQuastion.module.css"
-import { Max, Min } from "@/public/SVG";
+import { Max, Min } from "@/public/image/SVG";
 
 
 const faqData = [

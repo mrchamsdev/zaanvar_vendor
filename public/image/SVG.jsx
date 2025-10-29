@@ -44,7 +44,6 @@ export const Max2  = ()=>{
 
     )
 }
-
 export const Tik  = ()=>{
     return(
         <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -299,7 +298,6 @@ export const Share = () =>{
 
   )
 }
-
 export const LeftArrowIcon = ()=>{
   return(
     <svg width="21" height="15" viewBox="0 0 21 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -308,8 +306,6 @@ export const LeftArrowIcon = ()=>{
 
   )
 }
-
-
 export const Filter = () =>{
   return(
     <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -317,7 +313,6 @@ export const Filter = () =>{
 </svg>
   )
 }
-
 export const MsgProflie = () =>{
   return(
     <svg width="45" height="45" viewBox="0 0 45 45" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -331,7 +326,6 @@ export const MsgProflie = () =>{
 
   )
 }
-
 export const ShareProfile = () =>{
   return(
     <svg width="45" height="45" viewBox="0 0 45 45" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -371,7 +365,6 @@ export const RoundsmallIcon = () => {
     </svg>
   )
 }
-
 export const Roundsmall2Icon = () => {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 20 20" fill="none">
@@ -397,7 +390,6 @@ export const Quit = () =>{
 
   )
 }
-
 export const Calculator = ()=>{
   return(
     <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -430,7 +422,6 @@ export const ClosedEyeIcon = () => {
     </svg>
   );
 };
-
 export const EyeIcon = () => {
   return (
     <svg

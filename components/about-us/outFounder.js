@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import styles from "../../styles/about/ourFounder.module.css"
 // import { AboutQuote } from '@/public/images/SVG';
 import Image from 'next/image';
-import { AboutQuote } from '@/public/SVG';
+import { AboutQuote } from '@/public/image/SVG';
 
 const OurFounder = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
