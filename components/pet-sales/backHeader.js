@@ -2,7 +2,7 @@
 import React from "react";
 import styles from "../../styles/pet-sales/backHeader.module.css";
 import { useRouter } from "next/navigation";
-import { LeftArrowIcon } from "@/public/SVG";
+import { LeftArrowIcon } from "@/public/image/SVG";
 
 const BackHeader = ({ text }) => {
   const router = useRouter();

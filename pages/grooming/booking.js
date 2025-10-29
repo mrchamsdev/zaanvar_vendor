@@ -1,7 +1,7 @@
 import Layout from "@/components/pet-sales/layout";
 import Topbar from "@/components/pet-sales/Topbar";
 import styles from "../../styles/grooming/bookings.module.css";
-import { BackButton, Calender3, FourDots } from "@/public/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
 import React, { useState } from "react";
 import UpcomingBookings from "@/components/grooming/upcomingBookings";
 import PendingBookings from "@/components/grooming/pending";

@@ -2,7 +2,7 @@ import Charts from "@/components/pet-sales/charts";
 import ChatOnline from "@/components/pet-sales/chatOnline";
 import Layout from "@/components/pet-sales/layout";
 import Topbar from "@/components/pet-sales/Topbar";
-import { BackButton, Calender3, FourDots } from "@/public/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
 import React, { useState } from "react";
 import styles from "../../styles/grooming/grooming.module.css"
 import PetForm from "@/components/pet-sales/petForm";

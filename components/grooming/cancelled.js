@@ -5,7 +5,7 @@ import React from "react";
 import styles from "../../styles/grooming/upcoming.module.css";
 // import Sidebar from "./Sidebar";
 // import Topbar from "./Topbar";
-import { Delete, Edit, View2 } from "@/public/SVG";
+import { Delete, Edit, View2 } from "@/public/image/SVG";
 import { useRouter } from "next/router";
 
 const CancelledBookings = () => {

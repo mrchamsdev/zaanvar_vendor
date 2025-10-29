@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 // import styles from '../../styles/about/FAQ.module.css'
 import styles from "../../styles/about/faq.module.css"
-import { Max, Min } from '@/public/SVG';
+import { Max, Min } from '@/public/image/SVG';
 // import { AboutMinus, AboutPluse } from '@/public/images/SVG';
 
 const FAQ = ({filter}) => {

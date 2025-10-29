@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "../../styles/pet-sales/topbar.module.css";
 import Image from "next/image";
-import { Search } from "@/public/SVG";
+import { Search } from "@/public/image/SVG";
 import { useRouter } from "next/router"; 
 
 const Topbar = ({ buttons = [], onButtonClick }) => {

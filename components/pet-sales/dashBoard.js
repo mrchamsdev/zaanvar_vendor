@@ -4,7 +4,7 @@ import styles from "../../styles/pet-sales/dashBoard.module.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Image from "next/image";
-import { BackButton, Calender3, CrossIcon, FourDots, Notification, Price } from "@/public/SVG";
+import { BackButton, Calender3, CrossIcon, FourDots, Notification, Price } from "@/public/image/SVG";
 import Charts from "./charts";
 import ChatOnline from "./chatOnline";
 // import Charts from "./Charts";

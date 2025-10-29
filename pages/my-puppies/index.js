@@ -1,6 +1,6 @@
 import Layout from '@/components/pet-sales/layout'
 import MyPuppies from '@/components/pet-sales/myPuppins'
-import { BackButton, Calender3, FourDots } from '@/public/SVG';
+import { BackButton, Calender3, FourDots } from '@/public/image/SVG';
 import React from 'react'
 
 const index = () => {

@@ -2,7 +2,7 @@ import Layout from "@/components/pet-sales/layout";
 import MyPets from "@/components/pet-sales/myPets";
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
-import { BackButton, Calender3, FourDots } from "@/public/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
 import { useEffect, useState } from "react";
 // import MyPetsContent from "@/components/pet-sales/MyPetsContent";
 
@@ -12,7 +12,7 @@ export default function Index() {
   // const currentUser = getUserInfo();
   const webApi = new WebApimanager(jwttoken);
 
-  const [myPetData, setMyPetData] = useState([])
+  const [myPetData, setMyPetData] = useState([]);
 
   const menuItems = [
     { name: "Dashboard", icon: <Calender3 />, path: "/pet-sales" },
@@ -42,7 +42,7 @@ export default function Index() {
       logoText="Pet Management"
       sidebarToggleButton={<BackButton />}
     >
-      <MyPets  pets={myPetData}/>
+      <MyPets pets={myPetData} />
     </Layout>
   );
 }

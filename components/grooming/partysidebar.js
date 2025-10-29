@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import styles from "../../styles/grooming/partysidebar.module.css";
-import { Quit, Settings } from "@/public/SVG";
+import { Quit, Settings } from "@/public/image/SVG";
 const PartySettingsDrawer = ({ open, onClose }) => {
   useEffect(() => {
     if (open) {

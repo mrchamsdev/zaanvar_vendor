@@ -1,7 +1,7 @@
 import React from 'react'
 
 import styles from "../../styles/vender/automationTools.module.css"
-import { PetIcon } from '@/public/SVG'
+import { PetIcon } from '@/public/image/SVG'
 
 const AutomationTools = () => {
   const data = [
