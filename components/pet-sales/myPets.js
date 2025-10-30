@@ -14,6 +14,9 @@ const MyPets = ({ pets = [] }) => {
     router.push("/register");
   };
 
+
+  console.log(pets, "petsmy")
+
   // Buttons for Topbar
   const buttons = [
     { label: "+ Add Pet", color: "purple", action: "addRoom" }, //! Color Coming from Styles
@@ -69,8 +72,8 @@ const MyPets = ({ pets = [] }) => {
           /> */}
           <Image
             src={
-              pet.petImage
-                ? `${IMAGE_URL}${pets?.petImage}`
+              pet?.petImage
+                ? `${IMAGE_URL}${pet?.petImage}`
                 : `https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg`
             }
             alt={pet.petName}
@@ -88,7 +91,7 @@ const MyPets = ({ pets = [] }) => {
               onClick={() =>
                 router.push({
                   pathname: "/register",
-                  query: { data: JSON.stringify(pet) },
+                  query: { data: JSON.stringify(pets) },
                 })
               }
             >

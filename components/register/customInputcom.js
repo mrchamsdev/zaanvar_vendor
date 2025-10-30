@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 // import styles from "../../styles/ui.module.css";
-import styles from "../../styles/register/ui.module.css"
+import styles from "../../styles/register/ui.module.css";
 
 const CustomInputElement2 = ({
   question,
@@ -14,7 +13,7 @@ const CustomInputElement2 = ({
   CustomInputElement1,
   custommarrgin,
   ownMargin = false,
-  type="text"
+  type = "text",
 }) => {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
@@ -74,7 +73,7 @@ const CustomInputElement2 = ({
         value={value}
         onChange={(e) => onChange(e)}
         className="input"
-        max={type==="date"?new Date().toISOString().split("T")[0]:""}
+        max={type === "date" ? new Date().toISOString().split("T")[0] : ""}
         required // Add the required attribute
       />
       {error && (
