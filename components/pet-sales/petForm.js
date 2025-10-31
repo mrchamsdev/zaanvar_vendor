@@ -5,27 +5,37 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import AddNewAddressPopup from "./addNewAddressPopup";
+import { WebApimanager } from "../utilities/WebApiManager";
+import useStore from "../state/useStore";
+import AddressDropdown from "./addAddressDropDown";
 
-const PetForm = ({ onSave, initialData }) => {
+const PetForm = ({ pets = [], onSave, initialData, currentUser }) => {
+  const { getJwtToken, getUserInfo } = useStore();
+  const userInfo = getUserInfo();
+  const jwt = getJwtToken();
+  const webApi = new WebApimanager(jwt);
+  console.log(userInfo, "currentUsercurrentUser");
+  // setData Here
   const [formData, setFormData] = useState(() => ({
-    savedAddresses: [],
     petType: initialData?.petType || "",
     petBreed: initialData?.breed || "",
-    age: initialData?.age || "",
+    age: initialData?.petAge || "",
     color: initialData?.color || "",
-    vaccination: initialData?.vaccination || "",
+    vaccination: initialData?.vaccination || initialData?.vaccinated || "N/A",
     negotiable: initialData?.negotiable || "",
     size: initialData?.size || "",
     hasParents: initialData?.hasParents || "",
     petName: initialData?.petName || "",
-    gender: initialData?.gender || "",
-    petVariety: initialData?.petVariety || "",
+    gender: initialData?.petGender || "",
+    petsVariety: initialData?.petVariety || "",
     price: initialData?.price?.replace("₹ ", "") || "",
-    status: initialData?.stutus || "",
-    sireMother: initialData?.sireMother || "",
-    address: initialData?.address || "",
-    fatherName: initialData?.fatherName || "",
-    motherName: initialData?.motherName || "",
+    status: initialData?.petStatus || "",
+
+    haveParentsOfThisPet: initialData?.sireMother || "",
+    address: initialData?.petAddress || "",
+
+    father: initialData?.father || "",
+    mother: initialData?.mother || "",
     isAddingNew: false,
   }));
 
@@ -34,7 +44,6 @@ const PetForm = ({ onSave, initialData }) => {
   );
 
   const [videoPreviews, setVideoPreviews] = useState(initialData?.videos || []);
-
 
   const [errors, setErrors] = useState({});
 
@@ -46,6 +55,27 @@ const PetForm = ({ onSave, initialData }) => {
       setErrors({ ...errors, [name]: "" });
     }
   };
+
+  const selectedAddress =
+    userInfo?.addresses?.find(
+      (addr) => addr.id === pets?.addressId || addr.id === pets?.addressId
+    ) ||
+    userInfo?.addresses?.[0] ||
+    pets?.id;
+
+  const formattedAddress = selectedAddress
+    ? [
+        selectedAddress.flatOrHouseNoOrBuildingOrCompanyOrApartment,
+        selectedAddress.areaOrStreetOrSectorOrVillage,
+        selectedAddress.landmark,
+        selectedAddress.townOrCity,
+        selectedAddress.state,
+        selectedAddress.country,
+        selectedAddress.pinCode,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : pets?.address || "";
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
@@ -214,7 +244,7 @@ const PetForm = ({ onSave, initialData }) => {
         id: initialData?.id || Math.random().toString(36).substr(2, 9),
         petType: formData.petType,
         petBreed: formData.petBreed,
-        age: formData.age,
+        age: formData.petAge,
         color: formData.color,
         vaccination: formData.vaccination,
         negotiable: formData.negotiable,
@@ -226,15 +256,15 @@ const PetForm = ({ onSave, initialData }) => {
         price: `₹ ${formData.price}`,
         stutus: formData.status,
         sireMother: formData.sireMother,
-        address: formData.address,
+        // address: formData.address,
         fatherName: formData.fatherName,
         motherName: formData.motherName,
-        img: imagePreviews[0] ,
+        img: imagePreviews[0],
         videos: videoPreviews,
+        addressId: formData.addressId,
       };
-      
 
-      onSave(newPet); 
+      onSave(newPet);
 
       const saved = formData.savedAddresses || [];
       if (formData.address && !saved.includes(formData.address)) {
@@ -246,8 +276,6 @@ const PetForm = ({ onSave, initialData }) => {
       }
     }
   };
-
-  
 
   const sliderSettings = {
     dots: true,
@@ -650,27 +678,50 @@ const PetForm = ({ onSave, initialData }) => {
 
               {/* Address */}
               {/* ADDRESS FIELD */}
+              {/* Address */}
               <div className={styles.formField} style={{ width: "100%" }}>
                 <label className={styles.label}>Address</label>
 
-                <select
-                  name="address"
-                  value={formData.address || ""}
+                {/* <select
+                  name="addressId"
+                  value={formData?.addressId || ""}
                   onChange={(e) => {
                     const value = e.target.value;
+
                     if (value === "new") {
-                      setFormData({
-                        ...formData,
+                      setFormData((prev) => ({
+                        ...prev,
                         address: "",
+                        addressId: "",
                         isAddingNew: true,
-                      });
+                      }));
                     } else {
-                      setFormData({
-                        ...formData,
-                        address: value,
+                      const selectedAddr = userInfo?.addresses?.find(
+                        (addr) => addr.id === Number(value)
+                      );
+
+                      const formattedAddr = selectedAddr
+                        ? [
+                            selectedAddr.flatOrHouseNoOrBuildingOrCompanyOrApartment,
+                            selectedAddr.areaOrStreetOrSectorOrVillage,
+                            selectedAddr.landmark,
+                            selectedAddr.townOrCity,
+                            selectedAddr.state,
+                            selectedAddr.country,
+                            selectedAddr.pinCode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")
+                        : pets?.address || ""; 
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: formattedAddr,
+                        addressId: Number(value),
                         isAddingNew: false,
-                      });
+                      }));
                     }
+
                     if (errors.address) setErrors({ ...errors, address: "" });
                   }}
                   onBlur={handleBlur}
@@ -678,36 +729,65 @@ const PetForm = ({ onSave, initialData }) => {
                 >
                   <option value="">Select here</option>
                   <option value="new">+ Add New Address</option>
-                  {formData.savedAddresses?.map((addr, i) => (
-                    <option key={i} value={addr}>
-                      {addr}
+
+                
+                  {userInfo?.addresses?.map((addr) => {
+                    const formattedAddr = [
+                      addr.flatOrHouseNoOrBuildingOrCompanyOrApartment,
+                      addr.areaOrStreetOrSectorOrVillage,
+                      addr.landmark,
+                      addr.townOrCity,
+                      addr.state,
+                      addr.country,
+                      addr.pinCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ");
+                    return (
+                      <option key={addr.id} value={addr.id}>
+                        {formattedAddr}
+                      </option>
+                    );
+                  })}
+
+                  {formData.savedAddresses?.map((addr) => (
+                    <option key={addr.id} value={addr.id}>
+                      {addr.value}
                     </option>
                   ))}
-                </select>
+                </select> */}
 
-                {/* Show Popup When Adding New Address */}
+               
                 {formData.isAddingNew && (
-                  <AddNewAddressPopup
-                    postFormData={formData}
-                    onSaveAddress={(newAddress, isDefault) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        address: newAddress, // select the new address immediately
-                        savedAddresses: [
-                          ...(prev.savedAddresses || []),
-                          newAddress,
-                        ],
-                        isAddingNew: false,
-                      }));
-                    }}
-                    onClose={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        isAddingNew: false,
-                      }))
-                    }
-                  />
-                )}
+    <AddNewAddressPopup
+      postFormData={formData}
+      onSaveAddress={(newAddress, isDefault) => {
+        const newId = Math.floor(Math.random() * 1000000); 
+        setFormData((prev) => ({
+          ...prev,
+          address: newAddress,
+          address: newId,
+          savedAddresses: [
+            ...(prev.savedAddresses || []),
+            { id: newId, value: newAddress },
+          ],
+          isAddingNew: false,
+        }));
+      }}
+      onClose={() =>
+        setFormData((prev) => ({
+          ...prev,
+          isAddingNew: false,
+        }))
+      }
+    />
+  )}
+                <AddressDropdown
+                  formData={formData}
+                  setFormData={setFormData}
+                  errors={errors}
+                  userInfo={userInfo}
+                />
 
                 {errors.address && (
                   <span className={styles.error}>{errors.address}</span>

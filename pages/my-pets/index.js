@@ -26,7 +26,7 @@ export default function Index() {
       // console.log("response", response?.data);
       // console.log("response2", response?.data?.data);
       setMyPetData(response?.data?.data?.pets || []);
-      console.log("response", response?.data?.data?.pets);
+      // console.log("response", response?.data?.data?.pets);
     } catch {
       console.error("error");
     }
