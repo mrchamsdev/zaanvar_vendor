@@ -14,8 +14,9 @@ import {
   Whatsapp,
 } from "@/public/image/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
+import { IMAGE_URL } from "@/components/utilities/Constants";
 
-const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "";
+// const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "";
 
 const ViewDetails = () => {
   const [sharePopup, setSharePopup] = useState(false);
@@ -23,7 +24,7 @@ const ViewDetails = () => {
   const router = useRouter();
   const { data } = router.query;
 
-  console.log(pet,"pet")
+  console.log(pet, "pet");
   // Parse data received from previous page
   useEffect(() => {
     if (data) {
@@ -60,10 +61,10 @@ const ViewDetails = () => {
                       height: "400px",
                     }}
                   >
-                    <img
+                    <Image
                       src={
                         pet?.petImage
-                          ? `${IMAGE_URL}${pet.petImage}`
+                          ? `${IMAGE_URL}${pet?.petImage}`
                           : "https://zaanvar-care.b-cdn.net/media/1760510016605-how-ai-is-helping-us-understand-what-our-pets-are-saying.jpg"
                       }
                       alt={pet?.petName || "Pet Image"}
@@ -91,21 +92,21 @@ const ViewDetails = () => {
                     How many Vaccinations Done?
                   </div>
                   <div className={styles["value"]}>
-                    {pet?.vaccinations || "N/A"}
+                    {pet?.vaccinated || "N/A"}
                   </div>
                 </div>
                 <div className={styles["row2"]}>
                   <div className={styles["label2"]}>Negotiable</div>
                   <div className={styles["value"]}>
-                    {pet?.negotiable || "No"}
+                    {pet?.negotiable || "NA"}
                   </div>
                 </div>
                 <div className={styles["row2"]}>
-                  <div className={styles["label2"]}>Dan(Father)</div>
+                  <div className={styles["label2"]}>Father</div>
                   <div className={styles["value"]}>{pet?.father || "N/A"}</div>
                 </div>
                 <div className={styles["row2"]}>
-                  <div className={styles["label2"]}>Sire(Mother)</div>
+                  <div className={styles["label2"]}>Mother</div>
                   <div className={styles["value"]}>{pet?.mother || "N/A"}</div>
                 </div>
                 <div className={styles["row2"]}>
@@ -225,10 +226,10 @@ const ViewDetails = () => {
                 borderRadius: "10px",
               }}
             >
-              <img
+              <Image
                 src={
                   pet?.petImage
-                    ? `${IMAGE_URL}${pet.petImage}`
+                    ? `${IMAGE_URL}${pet?.petImage}`
                     : "https://zaanvar-care.b-cdn.net/media/1760510016605-how-ai-is-helping-us-understand-what-our-pets-are-saying.jpg"
                 }
                 alt={pet?.petName || "Pet Image"}
@@ -258,9 +259,7 @@ const ViewDetails = () => {
                 <div className={styles["row"]}>
                   <PetType />
                   <div className={styles["label"]}> Pet Type</div>
-                  <div className={styles["value"]}>
-                    {pet?.petType || "N/A"}
-                  </div>
+                  <div className={styles["value"]}>{pet?.petType || "N/A"}</div>
                 </div>
                 <div className={styles["row"]}>
                   <Age />
@@ -285,9 +284,7 @@ const ViewDetails = () => {
                 <div className={styles["row"]}>
                   <Call />
                   <div className={styles["label"]}>Pet Variety</div>
-                  <div className={styles["value"]}>
-                    {pet?.variety || "N/A"}
-                  </div>
+                  <div className={styles["value"]}>{pet?.variety || "N/A"}</div>
                 </div>
               </div>
             </div>
