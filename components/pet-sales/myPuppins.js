@@ -7,30 +7,32 @@ import PetForm from "./petForm";
 import ChangeStatus from "./changeStutus";
 import useStore from "../state/useStore";
 import { WebApimanager } from "../utilities/WebApiManager";
+import Image from "next/image";
+import { IMAGE_URL } from "../utilities/Constants";
 
-const MyPuppies = ({pets=[]}) => {
-
-
+const MyPuppies = ({ pets = [] }) => {
   const { getJwtToken, getUserInfo } = useStore();
-  console.log(getUserInfo(), "getUserInfo")
+  console.log(getUserInfo(), "getUserInfo");
   const jwttoken = getJwtToken();
   const currentUser = getUserInfo();
   const webApi = new WebApimanager(jwttoken);
-  console.log(currentUser, "currentUser")
-
+  console.log(currentUser, "currentUser");
 
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
-  const [showFilterDropdown, setShowFilterDropdown] = useState()
+  const [showFilterDropdown, setShowFilterDropdown] = useState();
   const [showChangeStatus, setShowChangeStatus] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
+  const [addresses, setAddresses] = useState([]); 
 
   // 1️⃣ Track which pet is being edited
   const [editingPet, setEditingPet] = useState(null);
 
   const Router = useRouter();
 
-  const [petList, setPetList] = useState(pets)
+
+  console.log(pets, "petsss")
+  const [petList, setPetList] = useState(pets);
   //   {
   //     img: "https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg",
   //     id: "0984235 52869",
@@ -39,9 +41,9 @@ const MyPuppies = ({pets=[]}) => {
   //     gender: "Male",
   //     price: "₹ 2632",
   //     stutus: "Available",
-  //     petType: "Dog",       
-  //     petBreed: "Pug", 
-  //     status: "Available", 
+  //     petType: "Dog",
+  //     petBreed: "Pug",
+  //     status: "Available",
   //     color: "Red",
   //     vaccination: "1",
   //     negotiable: "Yes",
@@ -54,7 +56,7 @@ const MyPuppies = ({pets=[]}) => {
   //     fatherName: "shubh",
   //     motherName: "Shubh",
   //     videos: [],
-      
+
   //   },
   // ]);
 
@@ -69,7 +71,14 @@ const MyPuppies = ({pets=[]}) => {
   };
 
   const handleStatusChange = ({ status, details }) => {
-    console.log("New status:", status, "details:", details, "for pet:", selectedPet);
+    console.log(
+      "New status:",
+      status,
+      "details:",
+      details,
+      "for pet:",
+      selectedPet
+    );
     setShowChangeStatus(false);
   };
 
@@ -144,9 +153,27 @@ const MyPuppies = ({pets=[]}) => {
           <p>Action</p>
         </div>
 
+
         {pets.map((pets, index) => (
           <div key={index} className={styles.tableRow}>
-            <img src={pets?.img} alt={pets?.breed} className={styles.petImage} />
+            {/* <img
+              src={pets?.img}
+              alt={pets?.breed}
+              className={styles.petImage}
+            /> */}
+
+<Image
+            src={
+              pets?.morePhotos
+                ? `${IMAGE_URL}${pets?.morePhotos}`
+                : `https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg`
+            }
+            alt={pets?.petName}
+            className={styles["petImage"]}
+            height={70}
+            width={70}
+          />
+
             <p>{pets?.petName}</p>
             <p>{pets?.breed}</p>
             <p>{pets?.petAge}</p>
@@ -163,10 +190,21 @@ const MyPuppies = ({pets=[]}) => {
               >
                 <Edit />
               </div>
-              <div onClick={() => Router.push("/my-puppies/view")}>
+              <div
+                onClick={() =>
+                  Router.push({
+                    pathname: "/my-puppies/view",
+                    query: { data: encodeURIComponent(JSON.stringify(pets)) },
+                  })
+                }
+              >
                 <View2 />
               </div>
-              <div className={styles["delete"]} onClick={() => handleDelete(pets)}>
+
+              <div
+                className={styles["delete"]}
+                onClick={() => handleDelete(pets)}
+              >
                 <Delete />
               </div>
             </div>
@@ -199,82 +237,47 @@ const MyPuppies = ({pets=[]}) => {
                 &#x2715;
               </button>
             </div>
-{/* 
+
             <PetForm
-  pets={pets}
-  initialData={editingPet}
-  onSave={async (petData) => {
-    try {
-      const payload = {
-        ...petData,
-        id: editingPet?.id || undefined, 
-      };
+              currentUser={currentUser}
+              pets={pets}
+              initialData={editingPet}
+              addresses={addresses}
+              onSave={async (petData) => {
+                try {
+                  const payload = {
+                    ...petData,
+                    address:
+                      typeof petData.address === "object"
+                        ? petData.address.id 
+                        : Number(petData.address), 
+                  };
 
+                  console.log("🚀 Payload Sent to API:", payload);
 
-      const response = await webApi.post("petSales/create", payload);
-      console.log("Raw response:", response);
+                  const response = await webApi.post(
+                    "petSales/create",
+                    payload
+                  );
+                  console.log("🟢 Raw response:", response);
 
-      if (editingPet) {
-        setPetList((prev) =>
-          prev.map((p) =>
-            p.id === editingPet.id ? { ...p, ...petData } : p
-          )
-        );
-        setEditingPet(null);
-      } else {
-        setPetList((prev) => [...prev, petData]);
-      }
+                  if (editingPet) {
+                    setPetList((prev) =>
+                      prev.map((p) =>
+                        p.id === editingPet.id ? { ...p, ...petData } : p
+                      )
+                    );
+                    setEditingPet(null);
+                  } else {
+                    setPetList((prev) => [...prev, petData]);
+                  }
 
-      setShowForm(false);
-    } catch (error) {
-      console.error("Error saving pet:", error);
-    }
-  }}
-/> */}
-
-
-
-<PetForm
-currentUser={currentUser}
-  pets={pets}
-  initialData={editingPet}
-  onSave={async (petData) => {
-    try {
-      // ✅ Ensure we only send the addressId (not the full object)
-      const payload = {
-        ...petData,
-        address:
-          typeof petData.address === "object"
-            ? petData.address.id // if address object, extract ID
-            : Number(petData.address), // if string/number, make sure it’s int
-      };
-
-      console.log("🚀 Payload Sent to API:", payload);
-
-      const response = await webApi.post("petSales/create", payload);
-      console.log("🟢 Raw response:", response);
-
-      if (editingPet) {
-        setPetList((prev) =>
-          prev.map((p) =>
-            p.id === editingPet.id ? { ...p, ...petData } : p
-          )
-        );
-        setEditingPet(null);
-      } else {
-        setPetList((prev) => [...prev, petData]);
-      }
-
-      setShowForm(false);
-    } catch (error) {
-      console.error("❌ Error saving pet:", error);
-    }
-  }}
-/>
-
-
-
-
+                  setShowForm(false);
+                } catch (error) {
+                  console.error("❌ Error saving pet:", error);
+                }
+              }}
+            />
           </div>
         </div>
       )}

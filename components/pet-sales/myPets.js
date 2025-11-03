@@ -6,16 +6,25 @@ import { Delete, Edit, View2 } from "@/public/image/SVG";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";
+import ChangeStatus from "./changeStutus"; // ✅ added
 
 const MyPets = ({ pets = [] }) => {
   const router = useRouter();
+  const [selectedPet, setSelectedPet] = useState(null);
+
+  // ✅ added for ChangeStatus modal
+  const [showChangeStatus, setShowChangeStatus] = useState(false);
 
   const handleOnClick = () => {
     router.push("/register");
   };
 
+  const handleDelete = (pet) => {
+    setSelectedPet(pet);
+    setShowChangeStatus(true);
+  };
 
-  console.log(pets, "petsmy")
+  console.log(pets, "petsmy");
 
   // Buttons for Topbar
   const buttons = [
@@ -34,8 +43,8 @@ const MyPets = ({ pets = [] }) => {
       // alert("Add More Clicked!");
     }
   };
-  const { data } = router.query;
 
+  const { data } = router.query;
   const [pet, setPet] = useState(null);
 
   useEffect(() => {
@@ -45,9 +54,6 @@ const MyPets = ({ pets = [] }) => {
   }, [data]);
 
   // if (!pet) return <p>Loading pet details...</p>;
-
-
-
 
   return (
     <>
@@ -91,7 +97,7 @@ const MyPets = ({ pets = [] }) => {
               onClick={() =>
                 router.push({
                   pathname: "/register",
-                  query: { data: JSON.stringify(pets) },
+                  query: { data: JSON.stringify(pet) }, // ✅ fixed (was pets)
                 })
               }
             >
@@ -109,7 +115,7 @@ const MyPets = ({ pets = [] }) => {
             >
               <View2 />
             </div> */}
-             <div
+            <div
               className={styles["view"]}
               onClick={() =>
                 router.push({
@@ -122,11 +128,23 @@ const MyPets = ({ pets = [] }) => {
             </div>
 
             <div className={styles["delete"]}>
-              <Delete />
+              <Delete onClick={() => handleDelete(pet)} /> {/* ✅ fixed (was pets) */}
             </div>
           </div>
         </div>
       ))}
+
+      {/* ✅ Change Status Modal */}
+      {showChangeStatus && selectedPet && (
+        <ChangeStatus
+          pet={selectedPet}
+          onClose={() => setShowChangeStatus(false)}
+          onStatusChange={({ status, details }) => {
+            console.log("New status:", status, "details:", details);
+            setShowChangeStatus(false);
+          }}
+        />
+      )}
     </>
   );
 };

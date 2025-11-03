@@ -9,7 +9,13 @@ import { WebApimanager } from "../utilities/WebApiManager";
 import useStore from "../state/useStore";
 import AddressDropdown from "./addAddressDropDown";
 
-const PetForm = ({ pets = [], onSave, initialData, currentUser }) => {
+const PetForm = ({
+  pets = [],
+  onSave,
+  initialData,
+  currentUser,
+  addresses = [],
+}) => {
   const { getJwtToken, getUserInfo } = useStore();
   const userInfo = getUserInfo();
   const jwt = getJwtToken();
@@ -56,12 +62,16 @@ const PetForm = ({ pets = [], onSave, initialData, currentUser }) => {
     }
   };
 
+  // const selectedAddress =
+  //   userInfo?.addresses?.find(
+  //     (addr) => addr.id === pets?.addressId || addr.id === pets?.addressId
+  //   ) ||
+  //   userInfo?.addresses?.[0] ||
+  //   pets?.id;
   const selectedAddress =
-    userInfo?.addresses?.find(
-      (addr) => addr.id === pets?.addressId || addr.id === pets?.addressId
-    ) ||
-    userInfo?.addresses?.[0] ||
-    pets?.id;
+    addresses?.find((addr) => addr.id === pets?.addressId) ||
+    addresses?.[0] ||
+    pets?.addressId;
 
   const formattedAddress = selectedAddress
     ? [
@@ -757,31 +767,30 @@ const PetForm = ({ pets = [], onSave, initialData, currentUser }) => {
                   ))}
                 </select> */}
 
-               
                 {formData.isAddingNew && (
-    <AddNewAddressPopup
-      postFormData={formData}
-      onSaveAddress={(newAddress, isDefault) => {
-        const newId = Math.floor(Math.random() * 1000000); 
-        setFormData((prev) => ({
-          ...prev,
-          address: newAddress,
-          address: newId,
-          savedAddresses: [
-            ...(prev.savedAddresses || []),
-            { id: newId, value: newAddress },
-          ],
-          isAddingNew: false,
-        }));
-      }}
-      onClose={() =>
-        setFormData((prev) => ({
-          ...prev,
-          isAddingNew: false,
-        }))
-      }
-    />
-  )}
+                  <AddNewAddressPopup
+                    postFormData={formData}
+                    onSaveAddress={(newAddress, isDefault) => {
+                      const newId = Math.floor(Math.random() * 1000000);
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: newAddress,
+                        address: newId,
+                        savedAddresses: [
+                          ...(prev.savedAddresses || []),
+                          { id: newId, value: newAddress },
+                        ],
+                        isAddingNew: false,
+                      }));
+                    }}
+                    onClose={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        isAddingNew: false,
+                      }))
+                    }
+                  />
+                )}
                 <AddressDropdown
                   formData={formData}
                   setFormData={setFormData}

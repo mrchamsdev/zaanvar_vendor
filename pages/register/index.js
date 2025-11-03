@@ -614,8 +614,6 @@ console.log(payload,"payload")
           console.log("KCI Certificate Upload Response:", kciUploadResponse); // Debug
         }
 
-        // Success: Reset form and close popup
-        // setIsAddPopupOpen(false);
         setCurrentStep(1);
         setFormData({
           petName: "",
@@ -642,7 +640,7 @@ console.log(payload,"payload")
           healthCondition: "",
           petWeightIn: "",
         });
-        // fetchPetData();
+        fetchPetData();
       } else {
         setErrorMessage(
           response.data?.message || "An unexpected error occurred."

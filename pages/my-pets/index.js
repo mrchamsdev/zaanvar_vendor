@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 export default function Index() {
   const { getJwtToken, getUserInfo } = useStore();
   const jwttoken = getJwtToken();
-  // const currentUser = getUserInfo();
+  const currentUser = getUserInfo();
   const webApi = new WebApimanager(jwttoken);
 
   const [myPetData, setMyPetData] = useState([]);
