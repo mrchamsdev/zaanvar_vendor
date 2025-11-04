@@ -28,7 +28,7 @@
 
 .features {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0px;
 }
 .ul{
@@ -191,7 +191,7 @@
 
 @media (max-width: 1028px) {
    .features {
-    grid-template-columns: repeat(3, 1fr); /* 2 columns instead of 3 */
+    grid-template-columns: repeat(2, 1fr); /* 2 columns instead of 3 */
     gap: 1rem;
   }
   .submit-btn{

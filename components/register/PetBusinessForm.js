@@ -135,16 +135,18 @@ const PetBusinessForm = () => {
         <h3 className={styles["tailored-feature"]}>Tailored Features</h3>
         <div className={styles.features}>
           {[
-            "Breeding", "Pet Sales", "Grooming", "Photographers",
-            "Blood Bank", "NGO’s", "Day Care", "Events",
-            "Training", "E-Commerce", "Location", "Clinics"
+            // "Breeding", 
+            "Pet Sales", 
+            // "Grooming", "Photographers",
+            // "Blood Bank", "NGO’s", "Day Care", "Events",
+            // "Training", "E-Commerce", "Location", "Clinics"
           ].map((feature) => (
             <div key={feature} className={styles.feature}>
               <h4>{feature}</h4>
               <ul className={styles["ul"]}>
-                <li><span><Tik /> </span>Breeding</li>
-                <li><span><Tik /> </span>Breeding</li>
-                <li><span><Tik /> </span>Breeding</li>
+                <li><span><Tik /> </span>Mobile App</li>
+                <li><span><Tik /> </span>Easy Communications</li>
+                <li><span><Tik /> </span>Advanced Analytics</li>
               </ul>
             </div>
           ))}

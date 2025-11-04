@@ -99,7 +99,7 @@ const FooterCom = () => {
     <p>Animal NGOs</p>
 
   </div> */}
-          <div className={styles.companyContainer}>
+         {/* <div className={styles.companyContainer}>
             <h5>Services</h5>
             <div className={styles.border}></div>
             <p>Grooming</p>
@@ -108,17 +108,17 @@ const FooterCom = () => {
             <p>Matting</p>
             <p>Pet Walker</p>
             <p>Events</p>
-            {/* <p>Training</p>
+            <p>Training</p>
     <p>Insurance</p>
     <p>Cremation</p>
     <p>Nutrition Diet</p>
     <p>E-Reports</p>
     <p>Pet Diary</p>
-    <p>Location</p> */}
+    <p>Location</p>
             <p>Ride</p>
-          </div>
+          </div>  */}
 
-          <div
+          {/* <div
             className={styles.companyContainer}
             style={{ marginTop: isMobile ? "17.5px" : "22px" }}
           >
@@ -146,7 +146,7 @@ const FooterCom = () => {
             <p>Adoption</p>
             <p>Pet Breeds</p>
             <p>Animal NGOs</p>
-          </div>
+          </div> */}
         </div>
       </div>
 

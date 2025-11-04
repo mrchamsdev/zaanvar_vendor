@@ -124,7 +124,7 @@ const Header = () => {
 </nav>
 
           <div className={style["button-container"]}>
-            <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
+            {/* <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button> */}
             <button onClick={handleOnclick}
               className={style["btn-outline"]}
               style={{ background: "#F5790C", color:"#fff" }}
@@ -175,9 +175,9 @@ const Header = () => {
             </nav>
 
             <div className={style["mobile-actions"]}>
-              <button className={style["btn-outline"]} onClick={closeMenu}>
+              {/*<button className={style["btn-outline"]} onClick={closeMenu}>
                 LOGIN
-              </button>
+              </button>*/}
               <button className={style["btn-primary"]} onClick={closeMenu}>
                 Start FREE Trial
               </button>
