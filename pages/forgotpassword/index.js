@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import styles from "../../styles/forgotpassword/Forgotpassword.module.css";
+import styles from "../../styles/forgotpassword/forgotpassword.module.css";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
