@@ -22,6 +22,7 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
   const services = [
     { label: "Pet Sales", path: "/pet-sales" },
     { label: "Grooming", path: "/grooming" },
+    { label: "Pet Store", path: "/pet-store" },
     // { label: "Training", path: "/training" },
     // { label: "Pet Care", path: "/pet-care" },
     // { label: "Meal", path: "/meal" },
