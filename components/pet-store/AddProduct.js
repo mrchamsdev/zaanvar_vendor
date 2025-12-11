@@ -8,11 +8,12 @@ import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 
-const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
+const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId = null, editProductData = null }) => {
   const router = useRouter();
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
   const webApi = new WebApimanager(jwt);
+  const isEditMode = !!editProductId;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isMaximized, setIsMaximized] = useState(true);
@@ -21,43 +22,127 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
   const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Form data
-  const [formData, setFormData] = useState({
-    // Step 1: Images
-    frontImage: null,
-    frontImageUrl: "",
-    backImage: null,
-    backImageUrl: "",
+  // Initialize form data - use editProductData if provided
+  const initializeFormData = () => {
+    if (editProductData) {
+      // Parse features from string to array
+      const featuresArray = editProductData.features 
+        ? (typeof editProductData.features === 'string' 
+          ? editProductData.features.split(',').map(f => f.trim()).filter(f => f)
+          : (Array.isArray(editProductData.features) ? editProductData.features : []))
+        : [];
+      
+      // Ensure at least one empty field if no features
+      if (featuresArray.length === 0) {
+        featuresArray.push("");
+      }
+      
+      // Parse petType - could be string or array
+      const petTypeArray = editProductData.petType
+        ? (Array.isArray(editProductData.petType) 
+          ? editProductData.petType 
+          : [editProductData.petType])
+        : [];
+
+      // Map variants
+      const mappedVariants = editProductData.variants && editProductData.variants.length > 0
+        ? editProductData.variants.map(variant => ({
+            variantType: variant.variantType || "",
+            pieces: variant.pieces || "",
+            sellingPrice: variant.sellingPrice || "",
+            mrp: variant.mrp || "",
+            discountPercentage: variant.discountPercentage || "",
+            skuCode: variant.skuCode || "",
+            description: variant.description || "",
+            imageUrl: variant.imageUrls || "",
+            imageUrls: variant.imageUrls ? [variant.imageUrls] : [],
+            images: variant.imageUrls ? [variant.imageUrls] : [], // Preview images (data URLs)
+            variantImageFiles: [], // Store actual File objects for upload (multiple images)
+          }))
+        : [{}];
+
+      return {
+        // Step 1: Images
+        frontImage: null,
+        frontImageUrl: editProductData.frontImageUrl || "",
+        frontImagePreview: editProductData.frontImageUrl || "", // For preview
+        backImage: null,
+        backImageUrl: editProductData.backImageUrl || "",
+        backImagePreview: editProductData.backImageUrl || "", // For preview
+        
+        // Step 2: Product Info
+        petType: petTypeArray,
+        productName: editProductData.productName || "",
+        brandName: editProductData.brandName || "",
+        categoryId: editProductData.categoryId?.toString() || "",
+        subCategoryId: editProductData.subCategoryId?.toString() || "",
+        features: featuresArray.length > 0 ? featuresArray : [""],
+        description: editProductData.description || "",
+        
+        // Category-specific fields
+        clothType: editProductData.clothType || "",
+        materialType: editProductData.materialType || "",
+        color: editProductData.color || "",
+        breedSize: editProductData.breedSize || "",
+        specialIngredients: editProductData.specialIngredients || "",
+        flavour: editProductData.flavour || "",
+        specificUses: editProductData.specificUses || "",
+        itemForm: editProductData.itemForm || "",
+        productBenefits: editProductData.productBenefits || "",
+        specialFeatures: editProductData.specialFeatures || "",
+        dimensions: editProductData.dimensions || "",
+        pattern: editProductData.pattern || "",
+        material: editProductData.material || "",
+        toyType: editProductData.toyType || "",
+        recommendedFor: editProductData.recommendedFor || "",
+        
+        // Step 3: Variants
+        variants: mappedVariants,
+      };
+    }
     
-    // Step 2: Product Info
-    petType: [],
-    productName: "",
-    brandName: "",
-    categoryId: "",
-    subCategoryId: "",
-    features: [],
-    description: "",
-    
-    // Category-specific fields
-    clothType: "",
-    materialType: "",
-    color: "",
-    breedSize: "",
-    specialIngredients: "",
-    flavour: "",
-    specificUses: "",
-    itemForm: "",
-    productBenefits: "",
-    specialFeatures: "",
-    dimensions: "",
-    pattern: "",
-    material: "",
-    toyType: "",
-    recommendedFor: "",
-    
-    // Step 3: Variants
-    variants: [{}], // Initialize with one empty variant
-  });
+    // Default empty form
+    return {
+      // Step 1: Images
+      frontImage: null,
+      frontImageUrl: "",
+      frontImagePreview: "",
+      backImage: null,
+      backImageUrl: "",
+      backImagePreview: "",
+      
+      // Step 2: Product Info
+      petType: [],
+      productName: "",
+      brandName: "",
+      categoryId: "",
+      subCategoryId: "",
+      features: [""],
+      description: "",
+      
+      // Category-specific fields
+      clothType: "",
+      materialType: "",
+      color: "",
+      breedSize: "",
+      specialIngredients: "",
+      flavour: "",
+      specificUses: "",
+      itemForm: "",
+      productBenefits: "",
+      specialFeatures: "",
+      dimensions: "",
+      pattern: "",
+      material: "",
+      toyType: "",
+      recommendedFor: "",
+      
+      // Step 3: Variants
+      variants: [{}],
+    };
+  };
+
+  const [formData, setFormData] = useState(() => initializeFormData());
 
   const frontImageInputRef = useRef(null);
   const backImageInputRef = useRef(null);
@@ -67,6 +152,28 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // When editProductData changes, update formData
+  useEffect(() => {
+    if (editProductData) {
+      const newFormData = initializeFormData();
+      setFormData(newFormData);
+      // Set selected category if available
+      if (editProductData.categoryId) {
+        // Category will be set after categories are fetched
+      }
+    }
+  }, [editProductData]);
+
+  // Set selected category when categories are loaded and we have editProductData
+  useEffect(() => {
+    if (categories.length > 0 && editProductData?.categoryId) {
+      const category = categories.find(c => c.id === parseInt(editProductData.categoryId));
+      if (category) {
+        setSelectedCategory(category);
+      }
+    }
+  }, [categories, editProductData]);
 
   // Fetch subcategories when category changes
   useEffect(() => {
@@ -104,55 +211,27 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
 
   const handleImageUpload = async (type, file) => {
     if (file) {
-      // For preview, use data URL
+      // For preview, use data URL (stored separately)
       const reader = new FileReader();
       reader.onloadend = () => {
         if (type === "front") {
           setFormData(prev => ({
             ...prev,
             frontImage: file,
-            frontImageUrl: reader.result,
+            frontImagePreview: reader.result, // Store data URL for preview only
           }));
         } else {
           setFormData(prev => ({
             ...prev,
             backImage: file,
-            backImageUrl: reader.result,
+            backImagePreview: reader.result, // Store data URL for preview only
           }));
         }
       };
       reader.readAsDataURL(file);
 
-      // Upload image and get URL
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-        
-        // Upload to your image upload endpoint
-        // This is a placeholder - you'll need to implement your actual image upload API
-        // const uploadResponse = await webApi.post('upload/image', formData);
-        // const imageUrl = uploadResponse.data.url;
-        
-        // For now, we'll use the IMAGE_URL prefix with a generated filename
-        // In production, you should upload the file and get the actual URL
-        const timestamp = Date.now();
-        const fileName = `${type}_${timestamp}_${file.name}`;
-        const imageUrl = `${IMAGE_URL}${fileName}`;
-        
-        if (type === "front") {
-          setFormData(prev => ({
-            ...prev,
-            frontImageUrl: imageUrl,
-          }));
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            backImageUrl: imageUrl,
-          }));
-        }
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      }
+      // Don't upload image here - backend will handle upload via multer
+      // Just store the file, it will be sent in FormData on submit
     }
   };
 
@@ -162,6 +241,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
         ...prev,
         frontImage: null,
         frontImageUrl: "",
+        frontImagePreview: "",
       }));
       if (frontImageInputRef.current) {
         frontImageInputRef.current.value = "";
@@ -171,6 +251,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
         ...prev,
         backImage: null,
         backImageUrl: "",
+        backImagePreview: "",
       }));
       if (backImageInputRef.current) {
         backImageInputRef.current.value = "";
@@ -202,20 +283,39 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
     });
   };
 
-  const handleFeaturesChange = (feature) => {
+  const handleFeaturesChange = (index, value) => {
+    setFormData(prev => {
+      const currentFeatures = [...(prev.features || [])];
+      // Ensure array is long enough
+      while (currentFeatures.length <= index) {
+        currentFeatures.push("");
+      }
+      currentFeatures[index] = value;
+      return {
+        ...prev,
+        features: currentFeatures,
+      };
+    });
+  };
+
+  const handleAddFeatureField = () => {
     setFormData(prev => {
       const currentFeatures = prev.features || [];
-      if (currentFeatures.includes(feature)) {
-        return {
-          ...prev,
-          features: currentFeatures.filter(f => f !== feature),
-        };
-      } else {
-        return {
-          ...prev,
-          features: [...currentFeatures, feature],
-        };
-      }
+      return {
+        ...prev,
+        features: [...currentFeatures, ""],
+      };
+    });
+  };
+
+  const handleRemoveFeatureField = (index) => {
+    setFormData(prev => {
+      const currentFeatures = [...(prev.features || [])];
+      currentFeatures.splice(index, 1);
+      return {
+        ...prev,
+        features: currentFeatures.length > 0 ? currentFeatures : [""],
+      };
     });
   };
 
@@ -293,92 +393,190 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
 
   const handleSubmit = async () => {
     try {
-      // Prepare payload based on category
-      const payload = {
-        petType: formData.petType,
-        productName: formData.productName,
-        brandName: formData.brandName,
-        categoryId: parseInt(formData.categoryId),
-        subCategoryId: parseInt(formData.subCategoryId),
-        features: formData.features,
-        description: formData.description,
-        frontImageUrl: formData.frontImageUrl?.startsWith('http') 
+      // Create FormData object
+      const formDataToSend = new FormData();
+
+      // Basic fields
+      const petType = Array.isArray(formData.petType) && formData.petType.length > 0 
+        ? formData.petType[0] 
+        : (typeof formData.petType === 'string' ? formData.petType : "");
+      formDataToSend.append("petType", petType);
+      formDataToSend.append("productName", formData.productName || "");
+      formDataToSend.append("brandName", formData.brandName || "");
+      formDataToSend.append("categoryId", formData.categoryId ? parseInt(formData.categoryId) : "");
+      formDataToSend.append("subCategoryId", formData.subCategoryId ? parseInt(formData.subCategoryId) : "");
+      formDataToSend.append("description", formData.description || "");
+
+      // Features as array - send as JSON string
+      const featuresArray = Array.isArray(formData.features) 
+        ? formData.features.filter(f => f && f.trim() !== "") 
+        : (typeof formData.features === 'string' && formData.features.trim() !== "" 
+          ? [formData.features] 
+          : []);
+      formDataToSend.append("features", JSON.stringify(featuresArray));
+
+      // Images - send File objects directly, backend will upload to S3
+      if (formData.frontImage) {
+        formDataToSend.append("frontImageUrl", formData.frontImage);
+      } else if (formData.frontImageUrl && !formData.frontImageUrl.startsWith('data:')) {
+        // If editing and image already exists, send URL
+        const frontImageUrl = formData.frontImageUrl.startsWith('http') 
           ? formData.frontImageUrl 
-          : `${IMAGE_URL}${formData.frontImageUrl}`,
-        backImageUrl: formData.backImageUrl?.startsWith('http') 
+          : (formData.frontImageUrl.startsWith(IMAGE_URL) 
+            ? formData.frontImageUrl 
+            : `${IMAGE_URL}${formData.frontImageUrl}`);
+        formDataToSend.append("frontImageUrl", frontImageUrl);
+      }
+
+      if (formData.backImage) {
+        formDataToSend.append("backImageUrl", formData.backImage);
+      } else if (formData.backImageUrl && !formData.backImageUrl.startsWith('data:')) {
+        // If editing and image already exists, send URL
+        const backImageUrl = formData.backImageUrl.startsWith('http') 
           ? formData.backImageUrl 
-          : `${IMAGE_URL}${formData.backImageUrl}`,
-        variants: formData.variants.map(variant => ({
-          variantType: variant.variantType,
-          sellingPrice: variant.sellingPrice,
-          mrp: variant.mrp,
-          discountPercentage: variant.discountPercentage,
-          skuCode: variant.skuCode,
-          description: variant.description,
-          imageUrl: variant.imageUrls && variant.imageUrls.length > 0 
-            ? variant.imageUrls[0] 
-            : (variant.images && variant.images.length > 0 
-              ? `${IMAGE_URL}${variant.images[0]}` 
-              : variant.imageUrl || ""),
-        })),
-      };
+          : (formData.backImageUrl.startsWith(IMAGE_URL) 
+            ? formData.backImageUrl 
+            : `${IMAGE_URL}${formData.backImageUrl}`);
+        formDataToSend.append("backImageUrl", backImageUrl);
+      }
+
+      // Variants - send as JSON string and upload image files separately
+      const variantsData = formData.variants.map((variant, index) => {
+        const variantObj = {
+          variantType: variant.variantType || "",
+          pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
+          sellingPrice: variant.sellingPrice || "",
+          mrp: variant.mrp || "",
+          discountPercentage: variant.discountPercentage || "",
+          skuCode: variant.skuCode || "",
+          description: variant.description || "",
+        };
+
+        // Add imageUrl only if it's an existing URL (not a data URL and not a new file)
+        // If it's a new file, backend will return the URL in response
+        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
+          // New files being uploaded, don't include imageUrl - backend will set it
+        } else if (variant.imageUrl && typeof variant.imageUrl === 'string' && !variant.imageUrl.startsWith('data:')) {
+          // Existing image URL from edit mode (single imageUrl)
+          const imageUrl = variant.imageUrl.startsWith('http') 
+            ? variant.imageUrl 
+            : (variant.imageUrl.startsWith(IMAGE_URL)
+              ? variant.imageUrl
+              : `${IMAGE_URL}${variant.imageUrl}`);
+          variantObj.imageUrl = imageUrl;
+        } else if (variant.imageUrls && Array.isArray(variant.imageUrls) && variant.imageUrls.length > 0) {
+          // Existing image URLs from edit mode (array of imageUrls)
+          const firstImageUrl = variant.imageUrls[0];
+          if (typeof firstImageUrl === 'string' && !firstImageUrl.startsWith('data:')) {
+            const imageUrl = firstImageUrl.startsWith('http') 
+              ? firstImageUrl 
+              : (firstImageUrl.startsWith(IMAGE_URL)
+                ? firstImageUrl
+                : `${IMAGE_URL}${firstImageUrl}`);
+            variantObj.imageUrl = imageUrl;
+          }
+        }
+
+        return variantObj;
+      });
+      formDataToSend.append("variants", JSON.stringify(variantsData));
+
+      // Upload variant images as files - backend will upload to S3 and return URLs
+      formData.variants.forEach((variant, index) => {
+        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
+          variant.variantImageFiles.forEach((file) => {
+            formDataToSend.append("variantImages", file);
+          });
+        }
+      });
 
       // Add category-specific fields
       const categoryName = selectedCategory?.name?.toLowerCase() || "";
       
       if (categoryName.includes("cloth")) {
-        payload.clothType = formData.clothType;
-        payload.materialType = formData.materialType;
-        payload.color = formData.color;
-        payload.breedSize = formData.breedSize;
+        formDataToSend.append("clothType", formData.clothType || "");
+        formDataToSend.append("materialType", formData.materialType || "");
+        formDataToSend.append("color", formData.color || "");
+        formDataToSend.append("breedSize", formData.breedSize || "");
       } else if (categoryName.includes("food")) {
-        payload.specialIngredients = formData.specialIngredients;
-        payload.flavour = formData.flavour;
-        payload.breedSize = formData.breedSize;
-        payload.specificUses = formData.specificUses;
-        payload.itemForm = formData.itemForm;
+        formDataToSend.append("specialIngredients", formData.specialIngredients || "");
+        formDataToSend.append("flavour", formData.flavour || "");
+        formDataToSend.append("breedSize", formData.breedSize || "");
+        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
+        formDataToSend.append("itemForm", formData.itemForm || "");
       } else if (categoryName.includes("grooming")) {
-        payload.material = formData.material;
-        payload.specificUses = formData.specificUses;
-        payload.itemForm = formData.itemForm;
-        payload.productBenefits = formData.productBenefits;
+        formDataToSend.append("material", formData.material || "");
+        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
+        formDataToSend.append("itemForm", formData.itemForm || "");
+        formDataToSend.append("productBenefits", formData.productBenefits || "");
       } else if (categoryName.includes("accessor")) {
-        payload.specialFeatures = formData.specialFeatures;
-        payload.dimensions = formData.dimensions;
-        payload.pattern = formData.pattern;
-        payload.breedSize = formData.breedSize;
-        payload.material = formData.material;
-        payload.color = formData.color;
-        payload.toyType = formData.toyType;
+        formDataToSend.append("specialFeatures", formData.specialFeatures || "");
+        formDataToSend.append("dimensions", formData.dimensions || "");
+        formDataToSend.append("pattern", formData.pattern || "");
+        formDataToSend.append("breedSize", formData.breedSize || "");
+        formDataToSend.append("material", formData.material || "");
+        formDataToSend.append("color", formData.color || "");
+        formDataToSend.append("toyType", formData.toyType || "");
       }
 
-      const response = await webApi.post("vendor/petstore/products", payload);
-      if (response?.data) {
+      let response;
+      if (isEditMode && editProductId) {
+        // Use imagePut for edit mode (FormData)
+        response = await webApi.imagePut(`vendor/petstore/products/${editProductId}`, formDataToSend);
+      } else {
+        // Use imagePost for new product (FormData)
+        response = await webApi.imagePost("vendor/petstore/products", formDataToSend);
+      }
+      
+      if (response?.data || response?.status === "success") {
         handleClose();
-        // Optionally refresh the products list
-        router.push(returnPath);
+        // Refresh the page to show updated data
+        if (isEditMode) {
+          // If editing, reload the current page to show updated data
+          window.location.reload();
+        } else {
+          // If adding new, set flag to trigger refetch and navigate to return path
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("productAdded", "true");
+          }
+          router.push(returnPath);
+        }
       }
     } catch (error) {
       console.error("Error submitting product:", error);
     }
   };
 
-  // Get category-specific fields based on selected category
-  const getCategoryFields = () => {
+  // Get category-specific fields for right column based on selected category
+  const getCategoryFieldsRight = () => {
     const categoryName = selectedCategory?.name?.toLowerCase() || "";
     
-    if (categoryName.includes("cloth")) {
+    if (categoryName.includes("food")) {
       return (
         <>
           <div className={styles.formGroup}>
-            <label>Type</label>
+            <label>Specific uses for product</label>
             <input
               type="text"
-              placeholder="Select cloth Type eg, hoodie"
-              value={formData.clothType}
-              onChange={(e) => handleInputChange("clothType", e.target.value)}
+              placeholder="Enter the uses"
+              value={formData.specificUses}
+              onChange={(e) => handleInputChange("specificUses", e.target.value)}
             />
           </div>
+          <div className={styles.formGroup}>
+            <label>Item Form</label>
+            <input
+              type="text"
+              placeholder="Enter form"
+              value={formData.itemForm}
+              onChange={(e) => handleInputChange("itemForm", e.target.value)}
+            />
+          </div>
+        </>
+      );
+    } else if (categoryName.includes("cloth")) {
+      return (
+        <>
           <div className={styles.formGroup}>
             <label>Material type</label>
             <input
@@ -403,110 +601,16 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
           </div>
         </>
       );
-    } else if (categoryName.includes("food")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Special Ingredients</label>
-            <input
-              type="text"
-              placeholder="Enter ingredients"
-              value={formData.specialIngredients}
-              onChange={(e) => handleInputChange("specialIngredients", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Flavour</label>
-            <input
-              type="text"
-              placeholder="Enter Flavour"
-              value={formData.flavour}
-              onChange={(e) => handleInputChange("flavour", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Breed Size</label>
-            <select
-              value={formData.breedSize}
-              onChange={(e) => handleInputChange("breedSize", e.target.value)}
-            >
-              <option value="">Select breed size</option>
-              <option value="Small">Small</option>
-              <option value="Medium">Medium</option>
-              <option value="Large">Large</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Specific uses for product</label>
-            <input
-              type="text"
-              placeholder="Enter the uses"
-              value={formData.specificUses}
-              onChange={(e) => handleInputChange("specificUses", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Item Form</label>
-            <input
-              type="text"
-              placeholder="Enter form"
-              value={formData.itemForm}
-              onChange={(e) => handleInputChange("itemForm", e.target.value)}
-            />
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("grooming")) {
+    } else if (categoryName.includes("accessor")) {
       return (
         <>
           <div className={styles.formGroup}>
             <label>Material</label>
             <input
               type="text"
-              placeholder="Enter Material type eg., spray, shampoo"
+              placeholder="Enter Material type eg, Plastic, metal"
               value={formData.material}
               onChange={(e) => handleInputChange("material", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Specific uses for product</label>
-            <input
-              type="text"
-              placeholder="Enter the uses"
-              value={formData.specificUses}
-              onChange={(e) => handleInputChange("specificUses", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Item Form</label>
-            <input
-              type="text"
-              placeholder="Enter Item form eg, spray"
-              value={formData.itemForm}
-              onChange={(e) => handleInputChange("itemForm", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Product benefits</label>
-            <input
-              type="text"
-              placeholder="Enter product beefits"
-              value={formData.productBenefits}
-              onChange={(e) => handleInputChange("productBenefits", e.target.value)}
-            />
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("accessor")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Special features</label>
-            <input
-              type="text"
-              placeholder="Enter special features"
-              value={formData.specialFeatures}
-              onChange={(e) => handleInputChange("specialFeatures", e.target.value)}
             />
           </div>
           <div className={styles.formGroup}>
@@ -516,36 +620,6 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
               placeholder="Enter dimensions"
               value={formData.dimensions}
               onChange={(e) => handleInputChange("dimensions", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Pattern</label>
-            <input
-              type="text"
-              placeholder="Enter pattern type"
-              value={formData.pattern}
-              onChange={(e) => handleInputChange("pattern", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Breed Size</label>
-            <select
-              value={formData.breedSize}
-              onChange={(e) => handleInputChange("breedSize", e.target.value)}
-            >
-              <option value="">Select breed size</option>
-              <option value="Small">Small</option>
-              <option value="Medium">Medium</option>
-              <option value="Large">Large</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Material</label>
-            <input
-              type="text"
-              placeholder="Enter Material type eg, Plastic, metal"
-              value={formData.material}
-              onChange={(e) => handleInputChange("material", e.target.value)}
             />
           </div>
           <div className={styles.formGroup}>
@@ -572,6 +646,256 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
           </div>
         </>
       );
+    } else if (categoryName.includes("grooming")) {
+      return (
+        <>
+          <div className={styles.formGroup}>
+            <label>Material</label>
+            <input
+              type="text"
+              placeholder="Enter Material type eg, spray, shampoo"
+              value={formData.material}
+              onChange={(e) => handleInputChange("material", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Product benefits</label>
+            <input
+              type="text"
+              placeholder="Enter product benefits"
+              value={formData.productBenefits}
+              onChange={(e) => handleInputChange("productBenefits", e.target.value)}
+            />
+          </div>
+        </>
+      );
+    }
+    return null;
+  };
+
+  // Get category-specific fields based on selected category
+  const getCategoryFields = () => {
+    const categoryName = selectedCategory?.name?.toLowerCase() || "";
+    
+    if (categoryName.includes("cloth")) {
+      return (
+        <>
+          <div className={styles.formGroup}>
+            <label>Type</label>
+            <input
+              type="text"
+              placeholder="Select cloth Type eg, hoodie"
+              value={formData.clothType}
+              onChange={(e) => handleInputChange("clothType", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Features</label>
+            <div className={styles.featureInputs}>
+              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
+                <div key={index} className={styles.featureInputRow}>
+                  <input
+                    type="text"
+                    placeholder="Enter feature"
+                    value={feature}
+                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
+                  />
+                  {index > 0 && (
+                    <button 
+                      type="button"
+                      className={styles.removeFeatureBtn}
+                      onClick={() => handleRemoveFeatureField(index)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button 
+                type="button"
+                className={styles.addFeatureBtn}
+                onClick={handleAddFeatureField}
+              >
+                + Add Feature
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    } else if (categoryName.includes("food")) {
+      return (
+        <>
+          <div className={styles.formGroup}>
+            <label>Special Ingredients</label>
+            <input
+              type="text"
+              placeholder="Enter ingredients"
+              value={formData.specialIngredients}
+              onChange={(e) => handleInputChange("specialIngredients", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Flavour</label>
+            <input
+              type="text"
+              placeholder="Enter Flavour"
+              value={formData.flavour}
+              onChange={(e) => handleInputChange("flavour", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Features</label>
+            <div className={styles.featureInputs}>
+              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
+                <div key={index} className={styles.featureInputRow}>
+                  <input
+                    type="text"
+                    placeholder="Enter feature"
+                    value={feature}
+                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
+                  />
+                  {index > 0 && (
+                    <button 
+                      type="button"
+                      className={styles.removeFeatureBtn}
+                      onClick={() => handleRemoveFeatureField(index)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button 
+                type="button"
+                className={styles.addFeatureBtn}
+                onClick={handleAddFeatureField}
+              >
+                + Add Feature
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    } else if (categoryName.includes("grooming")) {
+      return (
+        <>
+          <div className={styles.formGroup}>
+            <label>Special Ingredients</label>
+            <input
+              type="text"
+              placeholder="Enter ingredients"
+              value={formData.specialIngredients}
+              onChange={(e) => handleInputChange("specialIngredients", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Item Form</label>
+            <input
+              type="text"
+              placeholder="Enter Item form eg, spray"
+              value={formData.itemForm}
+              onChange={(e) => handleInputChange("itemForm", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Features</label>
+            <div className={styles.featureInputs}>
+              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
+                <div key={index} className={styles.featureInputRow}>
+                  <input
+                    type="text"
+                    placeholder="Enter feature"
+                    value={feature}
+                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
+                  />
+                  {index > 0 && (
+                    <button 
+                      type="button"
+                      className={styles.removeFeatureBtn}
+                      onClick={() => handleRemoveFeatureField(index)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button 
+                type="button"
+                className={styles.addFeatureBtn}
+                onClick={handleAddFeatureField}
+              >
+                + Add Feature
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    } else if (categoryName.includes("accessor")) {
+      return (
+        <>
+          <div className={styles.formGroup}>
+            <label>Special features</label>
+            <input
+              type="text"
+              placeholder="Enter special features"
+              value={formData.specialFeatures}
+              onChange={(e) => handleInputChange("specialFeatures", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Pattern</label>
+            <input
+              type="text"
+              placeholder="Enter pattern type"
+              value={formData.pattern}
+              onChange={(e) => handleInputChange("pattern", e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Breed Size</label>
+            <select
+              value={formData.breedSize}
+              onChange={(e) => handleInputChange("breedSize", e.target.value)}
+            >
+              <option value="">Select breed size</option>
+              <option value="Small">Small</option>
+              <option value="Medium">Medium</option>
+              <option value="Large">Large</option>
+            </select>
+          </div>
+          <div className={styles.formGroup}>
+            <label>Features</label>
+            <div className={styles.featureInputs}>
+              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
+                <div key={index} className={styles.featureInputRow}>
+                  <input
+                    type="text"
+                    placeholder="Enter feature"
+                    value={feature}
+                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
+                  />
+                  {index > 0 && (
+                    <button 
+                      type="button"
+                      className={styles.removeFeatureBtn}
+                      onClick={() => handleRemoveFeatureField(index)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button 
+                type="button"
+                className={styles.addFeatureBtn}
+                onClick={handleAddFeatureField}
+              >
+                + Add Feature
+              </button>
+            </div>
+          </div>
+        </>
+      );
     }
     return null;
   };
@@ -580,7 +904,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
     <>
       <div className={`${styles.addProductModal} ${!isMaximized ? styles.minimized : ""}`}>
         <div className={styles.header}>
-          <h2>Add Product</h2>
+          <h2>{isEditMode ? "Edit Product" : "Add Product"}</h2>
           <div className={styles.windowActions}>
             <button onClick={handleMinimize} className={styles.windowBtn} title="Minimize">–</button>
             <button onClick={() => setIsMaximized(!isMaximized)} className={styles.windowBtn} title="Maximize">☐</button>
@@ -632,10 +956,10 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                       style={{ display: "none" }}
                       onChange={(e) => handleImageUpload("front", e.target.files[0])}
                     />
-                    {formData.frontImageUrl && (
+                    {(formData.frontImagePreview || formData.frontImageUrl) && (
                       <div className={styles.imagePreview}>
                         <Image
-                          src={formData.frontImageUrl}
+                          src={formData.frontImagePreview || formData.frontImageUrl}
                           alt="Front preview"
                           width={100}
                           height={100}
@@ -666,10 +990,10 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                       style={{ display: "none" }}
                       onChange={(e) => handleImageUpload("back", e.target.files[0])}
                     />
-                    {formData.backImageUrl && (
+                    {(formData.backImagePreview || formData.backImageUrl) && (
                       <div className={styles.imagePreview}>
                         <Image
-                          src={formData.backImageUrl}
+                          src={formData.backImagePreview || formData.backImageUrl}
                           alt="Back preview"
                           width={100}
                           height={100}
@@ -757,19 +1081,6 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                     </div>
 
                     {getCategoryFields()}
-
-                    <div className={styles.formGroup}>
-                      <label>Breed Size</label>
-                      <select
-                        value={formData.breedSize}
-                        onChange={(e) => handleInputChange("breedSize", e.target.value)}
-                      >
-                        <option value="">Select breed size</option>
-                        <option value="Small">Small</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Large">Large</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div className={styles.formColumn}>
@@ -798,31 +1109,37 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                       </select>
                     </div>
 
-                    <div className={styles.formGroup}>
-                      <label>Features</label>
-                      <div className={styles.chipInput}>
-                        {formData.features.map((feature) => (
-                          <span key={feature} className={styles.chip}>
-                            {feature}
-                            <button onClick={() => handleFeaturesChange(feature)}>✕</button>
-                          </span>
-                        ))}
+                    {/* Breed Size for Food category - shown in right column after Category */}
+                    {selectedCategory?.name?.toLowerCase().includes("food") && (
+                      <div className={styles.formGroup}>
+                        <label>Breed Size</label>
                         <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleFeaturesChange(e.target.value);
-                              e.target.value = "";
-                            }
-                          }}
+                          value={formData.breedSize}
+                          onChange={(e) => handleInputChange("breedSize", e.target.value)}
                         >
-                          <option value="">Select Suitable pet</option>
-                          <option value="Warm">Warm</option>
-                          <option value="Waterproof">Waterproof</option>
-                          <option value="Durable">Durable</option>
+                          <option value="">Select breed size</option>
+                          <option value="Small">Small</option>
+                          <option value="Medium">Medium</option>
+                          <option value="Large">Large</option>
                         </select>
-                        <button className={styles.addBtn}>+</button>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Category-specific fields for right column */}
+                    {getCategoryFieldsRight()}
+
+                    {/* Recommended for - only for Grooming category, before Description */}
+                    {selectedCategory?.name?.toLowerCase().includes("grooming") && (
+                      <div className={styles.formGroup}>
+                        <label>Recommended for</label>
+                        <input
+                          type="text"
+                          placeholder="eg., high protein"
+                          value={formData.recommendedFor}
+                          onChange={(e) => handleInputChange("recommendedFor", e.target.value)}
+                        />
+                      </div>
+                    )}
 
                     <div className={styles.formGroup}>
                       <label>Description</label>
@@ -833,6 +1150,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                         rows={4}
                       />
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -857,15 +1175,44 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                 </div>
                 <div className={styles.variantsSection}>
                   {formData.variants.map((variant, index) => (
-                    <div key={index} className={styles.variantCard}>
+                    <div key={index} className={styles.variantCard} style={{ position: 'relative' }}>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newVariants = formData.variants.filter((_, i) => i !== index);
+                            setFormData(prev => ({ ...prev, variants: newVariants.length > 0 ? newVariants : [{}] }));
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            background: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            cursor: 'pointer',
+                            fontSize: '18px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10
+                          }}
+                          title="Remove variant"
+                        >
+                          ✕
+                        </button>
+                      )}
                       <div className={styles.variantFormGrid}>
                         {/* Two-column layout for top fields */}
                         <div className={styles.variantFormRow}>
                           <div className={styles.formGroup}>
-                            <label>Select Variant Type (food: kg's, Cloths: size, Grooming: ml)</label>
+                            <label>Select Variant Type </label>
                             <input
                               type="text"
-                              placeholder="Enter pet Name"
+                              placeholder="Enter variant type 250g, 2kg's,200ml, ltr,small, Large, XL etc."
                               value={variant.variantType || ""}
                               onChange={(e) => {
                                 const newVariants = [...formData.variants];
@@ -875,14 +1222,14 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                             />
                           </div>
                           <div className={styles.formGroup}>
-                            <label>Selling price</label>
+                            <label>Pieces</label>
                             <input
                               type="number"
-                              placeholder="Enter Selling price here"
-                              value={variant.sellingPrice || ""}
+                              placeholder="Enter pieces"
+                              value={variant.pieces || ""}
                               onChange={(e) => {
                                 const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, sellingPrice: parseInt(e.target.value) || 0 };
+                                newVariants[index] = { ...variant, pieces: e.target.value };
                                 setFormData(prev => ({ ...prev, variants: newVariants }));
                               }}
                             />
@@ -891,6 +1238,30 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
 
                         <div className={styles.variantFormRow}>
                           <div className={styles.formGroup}>
+                            <label>Selling price</label>
+                            <input
+                              type="number"
+                              placeholder="Enter Selling price here"
+                              value={variant.sellingPrice || ""}
+                              onChange={(e) => {
+                                const newVariants = [...formData.variants];
+                                const sellingPrice = parseFloat(e.target.value) || 0;
+                                const mrp = parseFloat(variant.mrp) || 0;
+                                // Calculate discount percentage
+                                let discountPercentage = 0;
+                                if (mrp > 0 && sellingPrice <= mrp) {
+                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
+                                }
+                                newVariants[index] = { 
+                                  ...variant, 
+                                  sellingPrice: sellingPrice,
+                                  discountPercentage: discountPercentage
+                                };
+                                setFormData(prev => ({ ...prev, variants: newVariants }));
+                              }}
+                            />
+                          </div>
+                          <div className={styles.formGroup}>
                             <label>MRP</label>
                             <input
                               type="number"
@@ -898,20 +1269,18 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                               value={variant.mrp || ""}
                               onChange={(e) => {
                                 const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, mrp: parseInt(e.target.value) || 0 };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label>Discount Percentage</label>
-                            <input
-                              type="number"
-                              placeholder="Enter discount percentage"
-                              value={variant.discountPercentage || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, discountPercentage: parseInt(e.target.value) || 0 };
+                                const mrp = parseFloat(e.target.value) || 0;
+                                const sellingPrice = parseFloat(variant.sellingPrice) || 0;
+                                // Calculate discount percentage
+                                let discountPercentage = 0;
+                                if (mrp > 0 && sellingPrice <= mrp) {
+                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
+                                }
+                                newVariants[index] = { 
+                                  ...variant, 
+                                  mrp: mrp,
+                                  discountPercentage: discountPercentage
+                                };
                                 setFormData(prev => ({ ...prev, variants: newVariants }));
                               }}
                             />
@@ -932,10 +1301,20 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                               }}
                             />
                           </div>
+                          <div className={styles.formGroup}>
+                            <label>Discount Percentage</label>
+                            <input
+                              type="number"
+                              placeholder="Auto-calculated"
+                              value={variant.discountPercentage || ""}
+                              readOnly
+                              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                            />
+                          </div>
                         </div>
 
                         {/* Full width Description */}
-                        <div className={styles.formGroup}>
+                        {/* <div className={styles.formGroup}>
                           <label>Description</label>
                           <textarea
                             placeholder="Type here"
@@ -947,11 +1326,11 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                             }}
                             rows={4}
                           />
-                        </div>
+                        </div> */}
 
                         {/* Image Upload Section */}
                         <div className={styles.formGroup}>
-                          <label>Upload Image</label>
+                          <label>Upload Images</label>
                           <div
                             className={styles.uploadArea}
                             onClick={() => {
@@ -960,7 +1339,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                             }}
                           >
                             <div className={styles.cameraIcon}>📷</div>
-                            <p>Upload the product front image here</p>
+                            <p>Upload multiple product images here</p>
                           </div>
                           <input
                             ref={(el) => {
@@ -968,37 +1347,50 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                             }}
                             type="file"
                             accept="image/*"
+                            multiple
                             style={{ display: "none" }}
                             onChange={async (e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                // For preview, use data URL
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  const newVariants = [...formData.variants];
-                                  if (!newVariants[index].images) {
-                                    newVariants[index].images = [];
-                                  }
-                                  newVariants[index].images = [...(newVariants[index].images || []), reader.result];
-                                  setFormData(prev => ({ ...prev, variants: newVariants }));
-                                };
-                                reader.readAsDataURL(file);
-
-                                // Upload image and get URL with IMAGE_URL prefix
-                                try {
-                                  const timestamp = Date.now();
-                                  const fileName = `variant_${index}_${timestamp}_${file.name}`;
-                                  const imageUrl = `${IMAGE_URL}${fileName}`;
-                                  
-                                  const newVariants = [...formData.variants];
-                                  if (!newVariants[index].imageUrls) {
-                                    newVariants[index].imageUrls = [];
-                                  }
-                                  newVariants[index].imageUrls = [...(newVariants[index].imageUrls || []), imageUrl];
-                                  setFormData(prev => ({ ...prev, variants: newVariants }));
-                                } catch (error) {
-                                  console.error("Error uploading variant image:", error);
+                              const files = Array.from(e.target.files);
+                              if (files.length > 0) {
+                                // Store the File objects for FormData upload
+                                const newVariants = [...formData.variants];
+                                if (!newVariants[index].variantImageFiles) {
+                                  newVariants[index].variantImageFiles = [];
                                 }
+                                if (!newVariants[index].images) {
+                                  newVariants[index].images = [];
+                                }
+                                
+                                // Add new files to existing array
+                                newVariants[index].variantImageFiles = [
+                                  ...(newVariants[index].variantImageFiles || []),
+                                  ...files
+                                ];
+                                
+                                // For preview, use data URLs
+                                const newImages = [];
+                                let loadedCount = 0;
+                                
+                                files.forEach((file) => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    newImages.push(reader.result);
+                                    loadedCount++;
+                                    
+                                    if (loadedCount === files.length) {
+                                      // All images loaded, update state
+                                      newVariants[index].images = [
+                                        ...(newVariants[index].images || []),
+                                        ...newImages
+                                      ];
+                                      setFormData(prev => ({ ...prev, variants: newVariants }));
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                });
+                                
+                                // Reset input to allow selecting same files again
+                                e.target.value = '';
                               }
                             }}
                           />
@@ -1016,7 +1408,12 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                                     className={styles.removeImage}
                                     onClick={() => {
                                       const newVariants = [...formData.variants];
+                                      // Remove from preview images
                                       newVariants[index].images = newVariants[index].images.filter((_, i) => i !== imgIndex);
+                                      // Also remove corresponding file if it exists
+                                      if (newVariants[index].variantImageFiles && newVariants[index].variantImageFiles.length > imgIndex) {
+                                        newVariants[index].variantImageFiles = newVariants[index].variantImageFiles.filter((_, i) => i !== imgIndex);
+                                      }
                                       setFormData(prev => ({ ...prev, variants: newVariants }));
                                     }}
                                   >
@@ -1047,7 +1444,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products" }) => {
                 </button>
               ) : (
                 <button className={styles.nextBtn} onClick={handleSubmit}>
-                  Submit
+                  {isEditMode ? "Update" : "Submit"}
                 </button>
               )}
             </div>

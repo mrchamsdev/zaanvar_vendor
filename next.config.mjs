@@ -64,6 +64,10 @@ const nextConfig = {
         hostname: "zaanvaerwebstories.b-cdn.net",
       },
       {
+        protocol: "https",
+        hostname: "zaanvar.s3.ap-south-1.amazonaws.com",
+      },
+      {
         protocol: 'https',
         hostname: 'encrypted-tbn0.gstatic.com',
       },
