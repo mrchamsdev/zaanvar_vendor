@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import {
   PieChart,
@@ -17,27 +17,148 @@ import {
   petStoreReviews,
 } from "./data";
 import Reviews from "./Reviews";
+import { WebApimanager } from "@/components/utilities/WebApiManager";
+import useStore from "@/components/state/useStore";
+import { IMAGE_URL } from "@/components/utilities/Constants";
 
 const chartColors = ["#FFB200", "#FF6B6B", "#3DD598", "#56CCF2", "#5A6ACF", "#FFC107"];
 
 const PetStoreDashboard = ({
   summaryCards = petStoreSummaryCards,
   categoryData = petStoreCategoryBreakdown,
-  recentProducts = petStoreRecentProducts,
+  recentProducts: propRecentProducts,
   reviews = petStoreReviews,
 }) => {
+  const { getJwtToken } = useStore();
+  const jwt = getJwtToken();
+  const webApi = new WebApimanager(jwt);
+  
   const [summaryRange, setSummaryRange] = useState("This Month");
-  const [recentRange, setRecentRange] = useState("This Month");
+  const [recentRange, setRecentRange] = useState("Today");
+  const [allProducts, setAllProducts] = useState([]);
+  const [loading, setLoading] = useState(!propRecentProducts);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (propRecentProducts) {
+        setAllProducts(propRecentProducts);
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const response = await webApi.get("vendor/petstore/products");
+        if (response?.data?.data) {
+          // Transform API response to component format (same as Products.js)
+          const transformedProducts = response.data.data.map((product) => {
+            const allSizes = [];
+            const priceBySize = {};
+            
+            product.variants?.forEach((variant) => {
+              if (variant.variantType) {
+                const size = String(variant.variantType).trim();
+                const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
+                
+                if (size && !allSizes.includes(size)) {
+                  allSizes.push(size);
+                }
+                if (size && !priceBySize[size]) {
+                  priceBySize[size] = price;
+                }
+              }
+            });
+            
+            const sizes = allSizes.length > 0 ? allSizes : ["Default"];
+
+            const typeParts = [];
+            if (product.petType) typeParts.push(product.petType);
+            if (product.category?.name) typeParts.push(product.category.name);
+            if (product.subCategory?.name) typeParts.push(product.subCategory.name);
+            const type = typeParts.length > 0 ? typeParts.join(" – ") : "Product";
+
+            let imageUrl = "";
+            if (product.frontImageUrl) {
+              imageUrl = product.frontImageUrl.startsWith('http') 
+                ? product.frontImageUrl 
+                : `${IMAGE_URL}${product.frontImageUrl}`;
+            }
+
+            return {
+              id: product.id,
+              name: product.productName,
+              type: type,
+              sizes: sizes.length > 0 ? sizes : ["Default"],
+              priceBySize: priceBySize,
+              image: imageUrl,
+              highlight: sizes[0] || null,
+              createdAt: product.createdAt, // Store createdAt for filtering
+              _fullData: product,
+            };
+          });
+          setAllProducts(transformedProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        setAllProducts(petStoreRecentProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [propRecentProducts, jwt]);
+
+  // Filter products based on selected timeline
+  const filteredRecentProducts = useMemo(() => {
+    if (!allProducts.length) return [];
+    
+    const now = new Date();
+    let startDate = new Date();
+    
+    switch (recentRange) {
+      case "Today":
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        startDate.setDate(now.getDate() - dayOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "This Month":
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      default:
+        startDate = new Date(0); // All time
+    }
+    
+    return allProducts.filter((product) => {
+      if (!product.createdAt) return false;
+      const productDate = new Date(product.createdAt);
+      return productDate >= startDate && productDate <= now;
+    });
+  }, [allProducts, recentRange]);
 
   const initialRecentSelection = useMemo(() => {
     const map = {};
-    recentProducts.forEach((p) => {
-      map[p.id] = p.highlightedSize || p.sizes?.[0];
+    filteredRecentProducts.forEach((p) => {
+      map[p.id] = p.highlight || p.sizes?.[0];
     });
     return map;
-  }, [recentProducts]);
+  }, [filteredRecentProducts]);
 
   const [recentSelection, setRecentSelection] = useState(initialRecentSelection);
+
+  // Update selection when filtered products change
+  useEffect(() => {
+    const map = {};
+    filteredRecentProducts.forEach((p) => {
+      map[p.id] = p.highlight || p.sizes?.[0];
+    });
+    setRecentSelection(map);
+  }, [filteredRecentProducts]);
 
   const handleRecentSize = (productId, size) => {
     setRecentSelection((prev) => ({ ...prev, [productId]: size }));
@@ -46,7 +167,20 @@ const PetStoreDashboard = ({
   const formatPrice = (product) => {
     const size = recentSelection[product.id];
     const price = product.priceBySize?.[size];
-    return price || product.priceBySize?.[product.sizes?.[0]] || product.price || "—";
+    return price || product.priceBySize?.[product.sizes?.[0]] || "—";
+  };
+
+  const getNoProductsMessage = () => {
+    switch (recentRange) {
+      case "Today":
+        return "No products found today";
+      case "This Week":
+        return "No products found this week";
+      case "This Month":
+        return "No products found this month";
+      default:
+        return "No products found";
+    }
   };
 
   const renderIcon = (key) => {
@@ -171,43 +305,61 @@ const PetStoreDashboard = ({
               value={recentRange}
               onChange={(e) => setRecentRange(e.target.value)}
             >
+              <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
-              <option>This Year</option>
             </select>
           </div>
-          <div className={styles.recentList}>
-            {recentProducts.map((product) => (
-              <div key={product.id} className={styles.recentItem}>
-                <div className={styles.recentThumb}>
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={80}
-                    height={80}
-                  />
+          {loading ? (
+            <div style={{ padding: "20px", textAlign: "center" }}>Loading products...</div>
+          ) : (
+            <>
+              {filteredRecentProducts.length === 0 ? (
+                <div style={{ padding: "20px", textAlign: "center" }}>{getNoProductsMessage()}</div>
+              ) : (
+                <div className={styles.recentList}>
+                  {filteredRecentProducts.map((product) => (
+                    <div key={product.id} className={styles.recentItem}>
+                      <div className={styles.recentThumb}>
+                        <Image
+                          src={
+                            product.image
+                              ? (product.image.startsWith('http') 
+                                  ? product.image 
+                                  : `${IMAGE_URL}${product.image}`)
+                              : `https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg`
+                          }
+                          alt={product.name || "Product"}
+                          width={80}
+                          height={80}
+                        />
+                      </div>
+                      <div className={styles.recentMeta}>
+                        <p className={styles.recentTitle}>{product.name || "Untitled Product"}</p>
+                        <p className={styles.recentType}>{product.type || "Product"}</p>
+                        {product.sizes && product.sizes.length > 0 && (
+                          <div className={styles.chipRow}>
+                            {product.sizes.map((size) => (
+                              <button
+                                key={size}
+                                className={`${styles.chip} ${
+                                  size === recentSelection[product.id] ? styles.chipActive : ""
+                                }`}
+                                onClick={() => handleRecentSize(product.id, size)}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <p className={styles.price}>{formatPrice(product)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className={styles.recentMeta}>
-                  <p className={styles.recentTitle}>{product.name}</p>
-                  <p className={styles.recentType}>{product.type}</p>
-                  <div className={styles.chipRow}>
-                    {product.sizes.map((size) => (
-                      <button
-                        key={size}
-                        className={`${styles.chip} ${
-                          size === recentSelection[product.id] ? styles.chipActive : ""
-                        }`}
-                        onClick={() => handleRecentSize(product.id, size)}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                  <p className={styles.price}>{formatPrice(product)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </>
+          )}
           <div className={styles.cardFooter}>
             <button className={styles.linkButton}>View all</button>
           </div>

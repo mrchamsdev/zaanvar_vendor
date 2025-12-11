@@ -30,19 +30,45 @@ const PetStoreProductsPage = () => {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const productId = sessionStorage.getItem("minimizedProductId");
-      if (productId) {
-        setMinimizedProductId(productId);
-        const product = petStoreProducts.find((p) => p.id === productId);
-        setMinimizedProduct(product);
-      }
+      const checkMinimizedStates = () => {
+        const productId = sessionStorage.getItem("minimizedProductId");
+        if (productId) {
+          setMinimizedProductId(productId);
+          // Try to get product name from sessionStorage first (most reliable)
+          const productName = sessionStorage.getItem("minimizedProductName");
+          if (productName) {
+            setMinimizedProduct({ id: productId, name: productName });
+          } else {
+            // Fallback: try to find in static data
+            const product = petStoreProducts.find((p) => String(p.id) === String(productId));
+            if (product) {
+              setMinimizedProduct(product);
+            } else {
+              // If not found, create a minimal product object with just the ID
+              // The name will be fetched or shown as "Product" if needed
+              setMinimizedProduct({ id: productId, name: "Product" });
+            }
+          }
+        } else {
+          setMinimizedProductId(null);
+          setMinimizedProduct(null);
+        }
 
-      // Check if Add Product is minimized
-      const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
-      if (isMinimized) {
-        setAddProductMinimized(true);
-        setShowAddProduct(false); // Don't show the modal when minimized
-      }
+        // Check if Add Product is minimized
+        const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
+        setAddProductMinimized(isMinimized);
+        if (isMinimized) {
+          setShowAddProduct(false); // Don't show the modal when minimized
+        }
+      };
+
+      // Check immediately
+      checkMinimizedStates();
+
+      // Periodically check for changes (useful when navigating between pages)
+      const interval = setInterval(checkMinimizedStates, 300);
+
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -89,6 +115,7 @@ const PetStoreProductsPage = () => {
   const handleClose = () => {
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("minimizedProductId");
+      sessionStorage.removeItem("minimizedProductName");
     }
     setMinimizedProductId(null);
     setMinimizedProduct(null);
@@ -113,49 +140,53 @@ const PetStoreProductsPage = () => {
         />
       )}
 
-      {minimizedProductId && minimizedProduct && (
-        <div className={styles.minibar} onClick={handleRestore}>
-          <span>{minimizedProduct.name}</span>
-          <div className={styles.windowActions}>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRestore();
-              }} 
-              className={styles.windowBtn}
-            >
-              ☐
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClose();
-              }} 
-              className={styles.windowBtn}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {addProductMinimized && (
-        <div className={addProductStyles.minimizedBar} onClick={handleMaximizeAddProduct}>
-          <span>Add new product</span>
-          <div className={addProductStyles.minimizedBarActions} onClick={(e) => e.stopPropagation()}>
-            <button 
-              onClick={handleMaximizeAddProduct}
-              className={addProductStyles.windowBtn}
-            >
-              ☐
-            </button>
-            <button 
-              onClick={handleCloseMinimizedAddProduct}
-              className={addProductStyles.windowBtn}
-            >
-              ✕
-            </button>
-          </div>
+      {/* Minimized Tabs Container - Gmail style */}
+      {(minimizedProductId || addProductMinimized) && (
+        <div className={styles.minimizedTabsContainer}>
+          {addProductMinimized && (
+            <div className={addProductStyles.minimizedBar} onClick={handleMaximizeAddProduct}>
+              <span>Add new product</span>
+              <div className={addProductStyles.minimizedBarActions} onClick={(e) => e.stopPropagation()}>
+                <button 
+                  onClick={handleMaximizeAddProduct}
+                  className={addProductStyles.windowBtn}
+                >
+                  ☐
+                </button>
+                <button 
+                  onClick={handleCloseMinimizedAddProduct}
+                  className={addProductStyles.windowBtn}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+          {minimizedProductId && minimizedProduct && (
+            <div className={styles.minibar} onClick={handleRestore}>
+              <span>{minimizedProduct.name}</span>
+              <div className={styles.windowActions}>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRestore();
+                  }} 
+                  className={styles.windowBtn}
+                >
+                  ☐
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClose();
+                  }} 
+                  className={styles.windowBtn}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
