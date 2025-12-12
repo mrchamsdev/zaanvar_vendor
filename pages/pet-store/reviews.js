@@ -1,10 +1,10 @@
 import Layout from "@/components/pet-sales/layout";
 import Reviews from "@/components/pet-store/Reviews";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
+import { BackButton, Calender3, FourDots, FourDotsActive } from "@/public/image/SVG";
 import React from "react";
 
 const menuItems = [
-  { name: "Dashboard", icon: <FourDots />, path: "/pet-store" },
+  { name: "Dashboard", icon: <FourDotsActive />, path: "/pet-store" },
   { name: "Products", icon: <Calender3 />, path: "/pet-store/products" },
   { name: "Reviews", icon: <Calender3 />, path: "/pet-store/reviews" },
 ];

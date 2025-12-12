@@ -21,20 +21,77 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
   const [subCategories, setSubCategories] = useState([]);
   const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [brandSuggestions, setBrandSuggestions] = useState([]);
+  const [showBrandSuggestions, setShowBrandSuggestions] = useState(false);
+  const [filteredBrandSuggestions, setFilteredBrandSuggestions] = useState([]);
+  const brandInputRef = useRef(null);
 
   // Initialize form data - use editProductData if provided
   const initializeFormData = () => {
     if (editProductData) {
       // Parse features from string to array
-      const featuresArray = editProductData.features 
-        ? (typeof editProductData.features === 'string' 
-          ? editProductData.features.split(',').map(f => f.trim()).filter(f => f)
-          : (Array.isArray(editProductData.features) ? editProductData.features : []))
-        : [];
+      // Handle JSON string like "[\"nutss chocos\", \"feature 2\"]" or array or comma-separated string
+      let featuresArray = [];
+      if (editProductData.features) {
+        if (Array.isArray(editProductData.features)) {
+          featuresArray = editProductData.features;
+        } else if (typeof editProductData.features === 'string') {
+          // Try to parse as JSON first
+          try {
+            const parsed = JSON.parse(editProductData.features);
+            if (Array.isArray(parsed)) {
+              featuresArray = parsed;
+            } else {
+              // If not an array, try splitting by comma
+              featuresArray = editProductData.features.split(',').map(f => f.trim()).filter(f => f);
+            }
+          } catch (e) {
+            // If JSON parse fails, treat as comma-separated string
+            featuresArray = editProductData.features.split(',').map(f => f.trim()).filter(f => f);
+          }
+        }
+      }
+      
+      // Clean up features - remove quotes and brackets if present
+      featuresArray = featuresArray.map(f => {
+        if (typeof f === 'string') {
+          // Remove surrounding quotes and brackets
+          return f.replace(/^["\[\]]+|["\[\]]+$/g, '').trim();
+        }
+        return f;
+      }).filter(f => f);
       
       // Ensure at least one empty field if no features
       if (featuresArray.length === 0) {
         featuresArray.push("");
+      }
+      
+      // Parse specialIngredients - handle JSON string like "[\"Speacial 1\"]"
+      let specialIngredientsValue = "";
+      if (editProductData.specialIngredients) {
+        if (typeof editProductData.specialIngredients === 'string') {
+          try {
+            const parsed = JSON.parse(editProductData.specialIngredients);
+            if (Array.isArray(parsed)) {
+              // Join array items with comma
+              specialIngredientsValue = parsed.map(item => {
+                if (typeof item === 'string') {
+                  return item.replace(/^["\[\]]+|["\[\]]+$/g, '').trim();
+                }
+                return item;
+              }).filter(item => item).join(', ');
+            } else {
+              specialIngredientsValue = editProductData.specialIngredients;
+            }
+          } catch (e) {
+            // If JSON parse fails, use as is
+            specialIngredientsValue = editProductData.specialIngredients;
+          }
+        } else if (Array.isArray(editProductData.specialIngredients)) {
+          specialIngredientsValue = editProductData.specialIngredients.join(', ');
+        } else {
+          specialIngredientsValue = editProductData.specialIngredients;
+        }
       }
       
       // Parse petType - could be string or array
@@ -46,19 +103,67 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
 
       // Map variants
       const mappedVariants = editProductData.variants && editProductData.variants.length > 0
-        ? editProductData.variants.map(variant => ({
-            variantType: variant.variantType || "",
-            pieces: variant.pieces || "",
-            sellingPrice: variant.sellingPrice || "",
-            mrp: variant.mrp || "",
-            discountPercentage: variant.discountPercentage || "",
-            skuCode: variant.skuCode || "",
-            description: variant.description || "",
-            imageUrl: variant.imageUrls || "",
-            imageUrls: variant.imageUrls ? [variant.imageUrls] : [],
-            images: variant.imageUrls ? [variant.imageUrls] : [], // Preview images (data URLs)
-            variantImageFiles: [], // Store actual File objects for upload (multiple images)
-          }))
+        ? editProductData.variants.map(variant => {
+            // Handle imageUrls - can be array or single string
+            let imageUrlsArray = [];
+            if (variant.imageUrls) {
+              if (Array.isArray(variant.imageUrls)) {
+                imageUrlsArray = variant.imageUrls;
+              } else if (typeof variant.imageUrls === 'string') {
+                imageUrlsArray = [variant.imageUrls];
+              }
+            }
+            
+            // Format image URLs for preview (ensure full URLs)
+            const formattedImages = imageUrlsArray.map(url => {
+              if (!url) return null;
+              if (url.startsWith('http')) return url;
+              if (url.startsWith(IMAGE_URL)) return url;
+              return `${IMAGE_URL}${url}`;
+            }).filter(url => url);
+            
+            // Parse variantType if it's in old format (e.g., "10Kg", "250g", "200ml")
+            let parsedVariantType = variant.variantType || "";
+            let parsedQuantityValue = variant.quantityValue || "";
+            
+            // Convert full names to abbreviations for consistency
+            if (parsedVariantType) {
+              if (parsedVariantType.includes("Grams (g)") || parsedVariantType === "Grams (g)") parsedVariantType = "g";
+              else if (parsedVariantType.includes("Kilograms (kg)") || parsedVariantType === "Kilograms (kg)") parsedVariantType = "kg";
+              else if (parsedVariantType.includes("Milliliters (ml)") || parsedVariantType === "Milliliters (ml)") parsedVariantType = "ml";
+              else if (parsedVariantType.includes("Liters (L)") || parsedVariantType === "Liters (L)") parsedVariantType = "L";
+            }
+            
+            // If quantityValue is not set but variantType contains a number, try to parse it
+            if (!parsedQuantityValue && parsedVariantType) {
+              const match = parsedVariantType.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|G|KG|ML|L)$/i);
+              if (match) {
+                parsedQuantityValue = match[1];
+                const unit = match[2].toLowerCase();
+                if (unit === 'g') parsedVariantType = "g";
+                else if (unit === 'kg') parsedVariantType = "kg";
+                else if (unit === 'ml') parsedVariantType = "ml";
+                else if (unit === 'l') parsedVariantType = "L";
+              }
+            }
+            
+            return {
+              id: variant.id || null, // Store variant ID for edit mode
+              variantType: parsedVariantType,
+              quantityValue: parsedQuantityValue,
+              pieces: variant.pieces || "",
+              sellingPrice: variant.sellingPrice || "",
+              mrp: variant.mrp || "",
+              discountPercentage: variant.discountPercentage || "",
+              skuCode: variant.skuCode || "",
+              description: variant.description || "",
+              imageUrl: imageUrlsArray.length > 0 ? imageUrlsArray[0] : "",
+              imageUrls: imageUrlsArray,
+              images: formattedImages, // Preview images (formatted URLs)
+              variantImageFiles: [], // Store actual File objects for upload (multiple images)
+              sellingPriceError: "", // Error message for selling price validation
+            };
+          })
         : [{}];
 
       return {
@@ -84,9 +189,9 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         materialType: editProductData.materialType || "",
         color: editProductData.color || "",
         breedSize: editProductData.breedSize || "",
-        specialIngredients: editProductData.specialIngredients || "",
+        specialIngredients: specialIngredientsValue,
         flavour: editProductData.flavour || "",
-        specificUses: editProductData.specificUses || "",
+        specieUsesForProduct: editProductData.specieUsesForProduct || "",
         itemForm: editProductData.itemForm || "",
         productBenefits: editProductData.productBenefits || "",
         specialFeatures: editProductData.specialFeatures || "",
@@ -95,6 +200,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         material: editProductData.material || "",
         toyType: editProductData.toyType || "",
         recommendedFor: editProductData.recommendedFor || "",
+        seasonalEssentials: editProductData.seasonalEssentials || "",
         
         // Step 3: Variants
         variants: mappedVariants,
@@ -127,18 +233,19 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       breedSize: "",
       specialIngredients: "",
       flavour: "",
-      specificUses: "",
+      specieUsesForProduct: "",
       itemForm: "",
       productBenefits: "",
       specialFeatures: "",
       dimensions: "",
       pattern: "",
       material: "",
-      toyType: "",
-      recommendedFor: "",
-      
-      // Step 3: Variants
-      variants: [{}],
+        toyType: "",
+        recommendedFor: "",
+        seasonalEssentials: "",
+        
+        // Step 3: Variants
+        variants: [{}],
     };
   };
 
@@ -151,7 +258,46 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
+    fetchBrandNames();
   }, []);
+
+  // Fetch all brand names from products
+  const fetchBrandNames = async () => {
+    try {
+      const response = await webApi.get("vendor/petstore/products");
+      if (response?.data?.data) {
+        // Extract unique brand names (case-insensitive)
+        const brandNamesSet = new Set();
+        response.data.data.forEach((product) => {
+          if (product.brandName && typeof product.brandName === 'string') {
+            const normalizedBrand = product.brandName.trim();
+            if (normalizedBrand) {
+              brandNamesSet.add(normalizedBrand);
+            }
+          }
+        });
+        const uniqueBrands = Array.from(brandNamesSet).sort();
+        setBrandSuggestions(uniqueBrands);
+      }
+    } catch (error) {
+      console.error("Error fetching brand names:", error);
+    }
+  };
+
+  // Filter brand suggestions based on input
+  useEffect(() => {
+    if (formData.brandName && formData.brandName.trim() !== "") {
+      const searchTerm = formData.brandName.toLowerCase().trim();
+      const filtered = brandSuggestions.filter(brand =>
+        brand.toLowerCase().includes(searchTerm)
+      );
+      setFilteredBrandSuggestions(filtered);
+      setShowBrandSuggestions(filtered.length > 0);
+    } else {
+      setFilteredBrandSuggestions([]);
+      setShowBrandSuggestions(false);
+    }
+  }, [formData.brandName, brandSuggestions]);
 
   // When editProductData changes, update formData
   useEffect(() => {
@@ -406,6 +552,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       formDataToSend.append("categoryId", formData.categoryId ? parseInt(formData.categoryId) : "");
       formDataToSend.append("subCategoryId", formData.subCategoryId ? parseInt(formData.subCategoryId) : "");
       formDataToSend.append("description", formData.description || "");
+      formDataToSend.append("seasonalEssentials", formData.seasonalEssentials || "");
 
       // Features as array - send as JSON string
       const featuresArray = Array.isArray(formData.features) 
@@ -440,55 +587,127 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         formDataToSend.append("backImageUrl", backImageUrl);
       }
 
-      // Variants - send as JSON string and upload image files separately
-      const variantsData = formData.variants.map((variant, index) => {
-        const variantObj = {
-          variantType: variant.variantType || "",
-          pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
-          sellingPrice: variant.sellingPrice || "",
-          mrp: variant.mrp || "",
-          discountPercentage: variant.discountPercentage || "",
-          skuCode: variant.skuCode || "",
-          description: variant.description || "",
-        };
+      // Check if only variant images are being changed (no variant data changes)
+      // Backend logic: If only variantImages are sent (without variants JSON), it appends to existing images
+      // If variants JSON is sent, backend deletes all variants and rebuilds them
+      const hasNewVariantImages = formData.variants.some(v => v.variantImageFiles && v.variantImageFiles.length > 0);
+      const originalVariants = isEditMode && editProductData?.variants ? editProductData.variants : [];
+      
+      // Check if any variant data has changed (not just images)
+      let hasVariantDataChanges = false;
+      if (isEditMode && originalVariants.length > 0) {
+        hasVariantDataChanges = formData.variants.some((variant, index) => {
+          const original = originalVariants[index];
+          if (!original) return true; // New variant
+          
+          // Check if any variant field changed
+          return (
+            variant.variantType !== original.variantType ||
+            String(variant.quantityValue || "") !== String(original.quantityValue || "") ||
+            String(variant.pieces || "") !== String(original.pieces || "") ||
+            variant.sellingPrice !== original.sellingPrice ||
+            variant.mrp !== original.mrp ||
+            variant.discountPercentage !== original.discountPercentage ||
+            variant.skuCode !== original.skuCode ||
+            variant.description !== (original.description || "")
+          );
+        });
+      } else if (!isEditMode) {
+        // New product - always send variants
+        hasVariantDataChanges = true;
+      }
 
-        // Add imageUrl only if it's an existing URL (not a data URL and not a new file)
-        // If it's a new file, backend will return the URL in response
-        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-          // New files being uploaded, don't include imageUrl - backend will set it
-        } else if (variant.imageUrl && typeof variant.imageUrl === 'string' && !variant.imageUrl.startsWith('data:')) {
-          // Existing image URL from edit mode (single imageUrl)
-          const imageUrl = variant.imageUrl.startsWith('http') 
-            ? variant.imageUrl 
-            : (variant.imageUrl.startsWith(IMAGE_URL)
-              ? variant.imageUrl
-              : `${IMAGE_URL}${variant.imageUrl}`);
-          variantObj.imageUrl = imageUrl;
-        } else if (variant.imageUrls && Array.isArray(variant.imageUrls) && variant.imageUrls.length > 0) {
-          // Existing image URLs from edit mode (array of imageUrls)
-          const firstImageUrl = variant.imageUrls[0];
-          if (typeof firstImageUrl === 'string' && !firstImageUrl.startsWith('data:')) {
-            const imageUrl = firstImageUrl.startsWith('http') 
-              ? firstImageUrl 
-              : (firstImageUrl.startsWith(IMAGE_URL)
-                ? firstImageUrl
-                : `${IMAGE_URL}${firstImageUrl}`);
-            variantObj.imageUrl = imageUrl;
+      // MODE 3: Only variant images changed - DON'T send variants JSON, only send variantImages files
+      if (isEditMode && hasNewVariantImages && !hasVariantDataChanges) {
+        // Only send variantImages files, backend will append to existing images
+        formData.variants.forEach((variant, index) => {
+          if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
+            variant.variantImageFiles.forEach((file) => {
+              formDataToSend.append("variantImages", file);
+            });
           }
-        }
+        });
+      } else {
+        // MODE 1: Full update - send complete variants JSON with all required fields
+        const variantsData = formData.variants.map((variant, index) => {
+          // Collect all existing image URLs (not data URLs which are previews for new files)
+          const existingImageUrls = [];
+          
+          // Check variant.imageUrls array first (array of existing images)
+          if (variant.imageUrls && Array.isArray(variant.imageUrls)) {
+            variant.imageUrls.forEach(url => {
+              if (url && typeof url === 'string' && !url.startsWith('data:')) {
+                const formattedUrl = url.startsWith('http') 
+                  ? url 
+                  : (url.startsWith(IMAGE_URL)
+                    ? url
+                    : `${IMAGE_URL}${url}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
+            });
+          }
+          
+          // Also check variant.imageUrl (single existing image)
+          if (variant.imageUrl && typeof variant.imageUrl === 'string' && !variant.imageUrl.startsWith('data:')) {
+            const formattedUrl = variant.imageUrl.startsWith('http') 
+              ? variant.imageUrl 
+              : (variant.imageUrl.startsWith(IMAGE_URL)
+                ? variant.imageUrl
+                : `${IMAGE_URL}${variant.imageUrl}`);
+            if (!existingImageUrls.includes(formattedUrl)) {
+              existingImageUrls.push(formattedUrl);
+            }
+          }
+          
+          // Also check variant.images array (preview images - filter out data URLs)
+          if (variant.images && Array.isArray(variant.images)) {
+            variant.images.forEach(img => {
+              if (img && typeof img === 'string' && !img.startsWith('data:')) {
+                const formattedUrl = img.startsWith('http') 
+                  ? img 
+                  : (img.startsWith(IMAGE_URL)
+                    ? img
+                    : `${IMAGE_URL}${img}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
+            });
+          }
 
-        return variantObj;
-      });
-      formDataToSend.append("variants", JSON.stringify(variantsData));
+          // Build complete variant object with ALL required fields
+          const variantObj = {
+            // Include variant ID if it exists (for edit mode)
+            ...(variant.id && { id: variant.id }),
+            variantType: variant.variantType || "",
+            quantityValue: variant.quantityValue ? parseInt(variant.quantityValue) || null : null,
+            pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
+            sellingPrice: variant.sellingPrice || "",
+            mrp: variant.mrp || "",
+            discountPercentage: variant.discountPercentage || "",
+            skuCode: variant.skuCode || "",
+            description: variant.description || "",
+            imageUrls: existingImageUrls, // Always include imageUrls array (even if empty)
+            ...(existingImageUrls.length > 0 && { imageUrl: existingImageUrls[0] }) // Backward compatibility
+          };
 
-      // Upload variant images as files - backend will upload to S3 and return URLs
-      formData.variants.forEach((variant, index) => {
-        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-          variant.variantImageFiles.forEach((file) => {
-            formDataToSend.append("variantImages", file);
-          });
-        }
-      });
+          return variantObj;
+        });
+        
+        // Send variants JSON (backend will rebuild all variants from this)
+        formDataToSend.append("variants", JSON.stringify(variantsData));
+
+        // Upload variant images as files - backend will upload to S3 and return URLs
+        formData.variants.forEach((variant, index) => {
+          if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
+            variant.variantImageFiles.forEach((file) => {
+              formDataToSend.append("variantImages", file);
+            });
+          }
+        });
+      }
 
       // Add category-specific fields
       const categoryName = selectedCategory?.name?.toLowerCase() || "";
@@ -502,11 +721,11 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         formDataToSend.append("specialIngredients", formData.specialIngredients || "");
         formDataToSend.append("flavour", formData.flavour || "");
         formDataToSend.append("breedSize", formData.breedSize || "");
-        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
+        formDataToSend.append("specieUsesForProduct", formData.specieUsesForProduct || "");
         formDataToSend.append("itemForm", formData.itemForm || "");
       } else if (categoryName.includes("grooming")) {
         formDataToSend.append("material", formData.material || "");
-        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
+        formDataToSend.append("specieUsesForProduct", formData.specieUsesForProduct || "");
         formDataToSend.append("itemForm", formData.itemForm || "");
         formDataToSend.append("productBenefits", formData.productBenefits || "");
       } else if (categoryName.includes("accessor")) {
@@ -530,12 +749,8 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       
       if (response?.data || response?.status === "success") {
         handleClose();
-        // Refresh the page to show updated data
-        if (isEditMode) {
-          // If editing, reload the current page to show updated data
-          window.location.reload();
-        } else {
-          // If adding new, set flag to trigger refetch and navigate to return path
+        // If adding new, set flag to trigger refetch and navigate to return path
+        if (!isEditMode) {
           if (typeof window !== "undefined") {
             sessionStorage.setItem("productAdded", "true");
           }
@@ -545,6 +760,53 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
     } catch (error) {
       console.error("Error submitting product:", error);
     }
+  };
+
+  // Get variant type options based on category
+  const getVariantTypeOptions = () => {
+    const categoryName = selectedCategory?.name?.toLowerCase() || "";
+    
+    if (categoryName.includes("food")) {
+      return [
+        { value: "g", label: "Grams (g)", needsQuantity: true },
+        { value: "kg", label: "Kilograms (kg)", needsQuantity: true },
+        { value: "ml", label: "Milliliters (ml)", needsQuantity: true },
+        { value: "L", label: "Liters (L)", needsQuantity: true }
+      ];
+    } else if (categoryName.includes("cloth")) {
+      return [
+        { value: "Small (S)", label: "Small (S)", needsQuantity: false },
+        { value: "Medium (M)", label: "Medium (M)", needsQuantity: false },
+        { value: "Large (L)", label: "Large (L)", needsQuantity: false },
+        { value: "XL", label: "XL", needsQuantity: false },
+        { value: "XXL", label: "XXL", needsQuantity: false },
+        { value: "XXXL", label: "XXXL", needsQuantity: false }
+      ];
+    } else if (categoryName.includes("accessor")) {
+      return [
+        { value: "One size", label: "One size", needsQuantity: false },
+        { value: "Small", label: "Small", needsQuantity: false },
+        { value: "Medium", label: "Medium", needsQuantity: false },
+        { value: "Large", label: "Large", needsQuantity: false }
+      ];
+    } else if (categoryName.includes("grooming")) {
+      return [
+        { value: "ml", label: "Milliliters (ml)", needsQuantity: true },
+        { value: "L", label: "Liters (L)", needsQuantity: true },
+        { value: "One size", label: "One size", needsQuantity: false },
+        { value: "Small", label: "Small", needsQuantity: false },
+        { value: "Medium", label: "Medium", needsQuantity: false },
+        { value: "Large", label: "Large", needsQuantity: false }
+      ];
+    }
+    return [];
+  };
+
+  // Check if quantity input should be shown for a variant type
+  const shouldShowQuantityInput = (variantType) => {
+    const options = getVariantTypeOptions();
+    const selectedOption = options.find(opt => opt.value === variantType);
+    return selectedOption ? selectedOption.needsQuantity : false;
   };
 
   // Get category-specific fields for right column based on selected category
@@ -559,8 +821,8 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
             <input
               type="text"
               placeholder="Enter the uses"
-              value={formData.specificUses}
-              onChange={(e) => handleInputChange("specificUses", e.target.value)}
+              value={formData.specieUsesForProduct}
+              onChange={(e) => handleInputChange("specieUsesForProduct", e.target.value)}
             />
           </div>
           <div className={styles.formGroup}>
@@ -945,9 +1207,62 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                     <div
                       className={styles.uploadArea}
                       onClick={() => frontImageInputRef.current?.click()}
+                      style={{
+                        position: 'relative',
+                        minHeight: (formData.frontImagePreview || formData.frontImageUrl) ? '300px' : '200px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}
                     >
-                      <div className={styles.cameraIcon}>📷</div>
-                      <p>Upload the product front image here</p>
+                      {(formData.frontImagePreview || formData.frontImageUrl) ? (
+                        <>
+                          <Image
+                            src={formData.frontImagePreview || formData.frontImageUrl}
+                            alt="Front preview"
+                            width={300}
+                            height={300}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              maxHeight: '300px'
+                            }}
+                          />
+                          <button
+                            className={styles.removeImage}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage("front");
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '10px',
+                              right: '10px',
+                              background: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '30px',
+                              height: '30px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                              fontSize: '18px',
+                              color: '#333'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className={styles.cameraIcon}>📷</div>
+                          <p>Upload the product front image here</p>
+                        </>
+                      )}
                     </div>
                     <input
                       ref={frontImageInputRef}
@@ -956,22 +1271,6 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                       style={{ display: "none" }}
                       onChange={(e) => handleImageUpload("front", e.target.files[0])}
                     />
-                    {(formData.frontImagePreview || formData.frontImageUrl) && (
-                      <div className={styles.imagePreview}>
-                        <Image
-                          src={formData.frontImagePreview || formData.frontImageUrl}
-                          alt="Front preview"
-                          width={100}
-                          height={100}
-                        />
-                        <button
-                          className={styles.removeImage}
-                          onClick={() => handleRemoveImage("front")}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <div className={styles.imageUploadBox}>
@@ -979,9 +1278,62 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                     <div
                       className={styles.uploadArea}
                       onClick={() => backImageInputRef.current?.click()}
+                      style={{
+                        position: 'relative',
+                        minHeight: (formData.backImagePreview || formData.backImageUrl) ? '300px' : '200px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}
                     >
-                      <div className={styles.cameraIcon}>📷</div>
-                      <p>Upload the product back image here</p>
+                      {(formData.backImagePreview || formData.backImageUrl) ? (
+                        <>
+                          <Image
+                            src={formData.backImagePreview || formData.backImageUrl}
+                            alt="Back preview"
+                            width={300}
+                            height={300}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              maxHeight: '300px'
+                            }}
+                          />
+                          <button
+                            className={styles.removeImage}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage("back");
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '10px',
+                              right: '10px',
+                              background: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '30px',
+                              height: '30px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                              fontSize: '18px',
+                              color: '#333'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className={styles.cameraIcon}>📷</div>
+                          <p>Upload the product back image here</p>
+                        </>
+                      )}
                     </div>
                     <input
                       ref={backImageInputRef}
@@ -990,22 +1342,6 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                       style={{ display: "none" }}
                       onChange={(e) => handleImageUpload("back", e.target.files[0])}
                     />
-                    {(formData.backImagePreview || formData.backImageUrl) && (
-                      <div className={styles.imagePreview}>
-                        <Image
-                          src={formData.backImagePreview || formData.backImageUrl}
-                          alt="Back preview"
-                          width={100}
-                          height={100}
-                        />
-                        <button
-                          className={styles.removeImage}
-                          onClick={() => handleRemoveImage("back")}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1018,7 +1354,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                 <div className={styles.formGrid}>
                   <div className={styles.formColumn}>
                     <div className={styles.formGroup}>
-                      <label>Enter Pet Type</label>
+                      <label>Select Pet Type</label>
                       <div className={styles.chipInput}>
                         {formData.petType.map((type) => (
                           <span key={type} className={styles.chip}>
@@ -1084,14 +1420,72 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                   </div>
 
                   <div className={styles.formColumn}>
-                    <div className={styles.formGroup}>
+                    <div className={styles.formGroup} style={{ position: 'relative' }}>
                       <label>Brand Name</label>
                       <input
+                        ref={brandInputRef}
                         type="text"
                         placeholder="Enter Brand name"
                         value={formData.brandName}
                         onChange={(e) => handleInputChange("brandName", e.target.value)}
+                        onFocus={() => {
+                          if (formData.brandName && filteredBrandSuggestions.length > 0) {
+                            setShowBrandSuggestions(true);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Delay hiding suggestions to allow click on suggestion
+                          setTimeout(() => {
+                            setShowBrandSuggestions(false);
+                          }, 200);
+                        }}
+                        autoComplete="off"
                       />
+                      {showBrandSuggestions && filteredBrandSuggestions.length > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: '#fff',
+                            border: '1px solid #ddd',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            zIndex: 1000,
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            marginTop: '4px'
+                          }}
+                        >
+                          {filteredBrandSuggestions.map((brand, index) => (
+                            <div
+                              key={index}
+                              onClick={() => {
+                                handleInputChange("brandName", brand);
+                                setShowBrandSuggestions(false);
+                                if (brandInputRef.current) {
+                                  brandInputRef.current.blur();
+                                }
+                              }}
+                              style={{
+                                padding: '10px 16px',
+                                cursor: 'pointer',
+                                borderBottom: index < filteredBrandSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = '#f5f5f5';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = '#fff';
+                              }}
+                            >
+                              {brand}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.formGroup}>
@@ -1140,6 +1534,23 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                         />
                       </div>
                     )}
+
+                    {/* Seasonal Essentials - for all categories, before Description */}
+                    <div className={styles.formGroup}>
+                      <label>Seasonal Essentials</label>
+                      <select
+                        value={formData.seasonalEssentials}
+                        onChange={(e) => handleInputChange("seasonalEssentials", e.target.value)}
+                      >
+                        <option value="">Select seasonal essentials</option>
+                        <option value="no">No</option>
+                        <option value="Summer">Summer</option>
+                        <option value="Rainy">Rainy</option>
+                        <option value="winter">Winter</option>
+                        <option value="Monsoon">Monsoon</option>
+                        <option value="festival">Festival</option>
+                      </select>
+                    </div>
 
                     <div className={styles.formGroup}>
                       <label>Description</label>
@@ -1208,18 +1619,56 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                       <div className={styles.variantFormGrid}>
                         {/* Two-column layout for top fields */}
                         <div className={styles.variantFormRow}>
-                          <div className={styles.formGroup}>
-                            <label>Select Variant Type </label>
-                            <input
-                              type="text"
-                              placeholder="Enter variant type 250g, 2kg's,200ml, ltr,small, Large, XL etc."
-                              value={variant.variantType || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, variantType: e.target.value };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
+                          <div className={styles.formGroup} style={{ 
+                            display: 'flex', 
+                            flexDirection: 'row',
+                            gap: '10px', 
+                            alignItems: 'flex-end',
+                            flex: 1
+                          }}>
+                            <div style={{ 
+                              flex: shouldShowQuantityInput(variant.variantType) ? 1 : 'none', 
+                              width: shouldShowQuantityInput(variant.variantType) ? '50%' : '100%',
+                              minWidth: shouldShowQuantityInput(variant.variantType) ? '200px' : 'auto'
+                            }}>
+                              <label >Select Variant Type</label>
+                              <select
+                                value={variant.variantType || ""}
+                                onChange={(e) => {
+                                  const newVariants = [...formData.variants];
+                                  newVariants[index] = { 
+                                    ...variant, 
+                                    variantType: e.target.value,
+                                    quantityValue: shouldShowQuantityInput(e.target.value) ? variant.quantityValue : ""
+                                  };
+                                  setFormData(prev => ({ ...prev, variants: newVariants }));
+                                }}
+                                style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px',marginTop: '8px' }}
+                              >
+                                <option value="">Select variant type</option>
+                                {getVariantTypeOptions().map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            {shouldShowQuantityInput(variant.variantType) && (
+                              <div style={{ flex: 1, width: '50%', minWidth: '200px' }}>
+                                <label>Value</label>
+                                <input
+                                  type="number"
+                                  placeholder="Enter value"
+                                  value={variant.quantityValue || ""}
+                                  onChange={(e) => {
+                                    const newVariants = [...formData.variants];
+                                    newVariants[index] = { ...variant, quantityValue: e.target.value };
+                                    setFormData(prev => ({ ...prev, variants: newVariants }));
+                                  }}
+                                  style={{ width: '95%', padding: '12px 8px', border: '1px solid #ddd', borderRadius: '8px',marginTop: '8px' }}
+                                />
+                              </div>
+                            )}
                           </div>
                           <div className={styles.formGroup}>
                             <label>Pieces</label>
@@ -1238,30 +1687,6 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
 
                         <div className={styles.variantFormRow}>
                           <div className={styles.formGroup}>
-                            <label>Selling price</label>
-                            <input
-                              type="number"
-                              placeholder="Enter Selling price here"
-                              value={variant.sellingPrice || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                const sellingPrice = parseFloat(e.target.value) || 0;
-                                const mrp = parseFloat(variant.mrp) || 0;
-                                // Calculate discount percentage
-                                let discountPercentage = 0;
-                                if (mrp > 0 && sellingPrice <= mrp) {
-                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
-                                }
-                                newVariants[index] = { 
-                                  ...variant, 
-                                  sellingPrice: sellingPrice,
-                                  discountPercentage: discountPercentage
-                                };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                          <div className={styles.formGroup}>
                             <label>MRP</label>
                             <input
                               type="number"
@@ -1271,19 +1696,67 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                                 const newVariants = [...formData.variants];
                                 const mrp = parseFloat(e.target.value) || 0;
                                 const sellingPrice = parseFloat(variant.sellingPrice) || 0;
+                                
+                                // Validate Selling Price <= MRP
+                                let sellingPriceError = "";
+                                if (mrp > 0 && sellingPrice > 0 && sellingPrice > mrp) {
+                                  sellingPriceError = "Selling price should not be higher than MRP";
+                                }
+                                
                                 // Calculate discount percentage
                                 let discountPercentage = 0;
-                                if (mrp > 0 && sellingPrice <= mrp) {
+                                if (mrp > 0 && sellingPrice > 0 && sellingPrice <= mrp && !sellingPriceError) {
                                   discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
                                 }
+                                
                                 newVariants[index] = { 
                                   ...variant, 
                                   mrp: mrp,
-                                  discountPercentage: discountPercentage
+                                  discountPercentage: discountPercentage,
+                                  sellingPriceError: sellingPriceError
                                 };
                                 setFormData(prev => ({ ...prev, variants: newVariants }));
                               }}
                             />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Selling price</label>
+                            <input
+                              type="number"
+                              placeholder="Enter Selling price here"
+                              value={variant.sellingPrice || ""}
+                              onChange={(e) => {
+                                const newVariants = [...formData.variants];
+                                const sellingPrice = parseFloat(e.target.value) || 0;
+                                const mrp = parseFloat(variant.mrp) || 0;
+                                
+                                // Validate Selling Price <= MRP
+                                let sellingPriceError = "";
+                                if (sellingPrice > 0 && mrp > 0 && sellingPrice > mrp) {
+                                  sellingPriceError = "Selling price should not be higher than MRP";
+                                }
+                                
+                                // Calculate discount percentage
+                                let discountPercentage = 0;
+                                if (mrp > 0 && sellingPrice > 0 && sellingPrice <= mrp && !sellingPriceError) {
+                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
+                                }
+                                
+                                newVariants[index] = { 
+                                  ...variant, 
+                                  sellingPrice: sellingPrice,
+                                  discountPercentage: discountPercentage,
+                                  sellingPriceError: sellingPriceError
+                                };
+                                setFormData(prev => ({ ...prev, variants: newVariants }));
+                              }}
+                              style={variant.sellingPriceError ? { borderColor: '#ff4444' } : {}}
+                            />
+                            {variant.sellingPriceError && (
+                              <div style={{ color: '#ff4444', fontSize: '12px', marginTop: '4px' }}>
+                                {variant.sellingPriceError}
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1305,7 +1778,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                             <label>Discount Percentage</label>
                             <input
                               type="number"
-                              placeholder="Auto-calculated"
+                              placeholder="Discount %"
                               value={variant.discountPercentage || ""}
                               readOnly
                               style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}

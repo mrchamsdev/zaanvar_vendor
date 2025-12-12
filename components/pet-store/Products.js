@@ -36,8 +36,16 @@ const PetStoreProducts = ({ products: propProducts }) => {
             
             product.variants?.forEach((variant) => {
               if (variant.variantType) {
-                // Use variantType as-is without splitting
-                const size = String(variant.variantType).trim();
+                // Combine quantityValue and variantType for display
+                let size = "";
+                if (variant.quantityValue) {
+                  // Show quantityValue first, then variantType
+                  size = `${variant.quantityValue} ${variant.variantType}`.trim();
+                } else {
+                  // If no quantityValue, just show variantType
+                  size = String(variant.variantType).trim();
+                }
+                
                 const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
                 
                 // Add size if not already present
