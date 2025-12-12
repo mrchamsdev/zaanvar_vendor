@@ -53,6 +53,7 @@ const Layout = ({
   topbarButtons = [],
   logoText = "Zaanvar",
   sidebarToggleButton = null,
+  topbarActionHandler,
 }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -89,7 +90,9 @@ const Layout = ({
 
       {/* ✅ Main Section */}
       <div className={styles["mainSection"]}>
-        {topbarButtons.length > 0 && <Topbar buttons={topbarButtons} />}
+        {topbarButtons.length > 0 && (
+          <Topbar buttons={topbarButtons} onButtonClick={topbarActionHandler} />
+        )}
         <main style={{ flex: 1 }}>{children}</main>
       </div>
     </div>
