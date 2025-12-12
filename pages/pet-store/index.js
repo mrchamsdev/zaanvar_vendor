@@ -3,7 +3,7 @@
 import Layout from "@/components/pet-sales/layout";
 import PetStoreDashboard from "@/components/pet-store/Dashboard";
 import AddProduct from "@/components/pet-store/AddProduct";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
+import { BackButton, Calender3, FourDots, FourDotsActive } from "@/public/image/SVG";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { petStoreProducts } from "@/components/pet-store/data";
@@ -11,7 +11,7 @@ import addProductStyles from "../../styles/pet-store/addProduct.module.css";
 import styles from "../../styles/pet-store/productDetail.module.css";
 
 const menuItems = [
-  { name: "Dashboard", icon: <FourDots />, path: "/pet-store" },
+  { name: "Dashboard", icon: <FourDotsActive />, path: "/pet-store" },
   { name: "Products", icon: <Calender3 />, path: "/pet-store/products" },
   { name: "Reviews", icon: <Calender3 />, path: "/pet-store/reviews" },
 ];

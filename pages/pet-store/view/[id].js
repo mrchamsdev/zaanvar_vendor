@@ -106,7 +106,17 @@ const ProductDetail = () => {
   // Add variant images
   if (product?.variants) {
     product.variants.forEach((variant) => {
-      if (variant.imageUrl) {
+      // Handle both imageUrl (single) and imageUrls (array)
+      if (variant.imageUrls && Array.isArray(variant.imageUrls) && variant.imageUrls.length > 0) {
+        variant.imageUrls.forEach((url) => {
+          if (url) {
+            const formattedUrl = formatImageUrl(url);
+            if (!productImages.includes(formattedUrl)) {
+              productImages.push(formattedUrl);
+            }
+          }
+        });
+      } else if (variant.imageUrl) {
         const formattedUrl = formatImageUrl(variant.imageUrl);
         if (!productImages.includes(formattedUrl)) {
           productImages.push(formattedUrl);

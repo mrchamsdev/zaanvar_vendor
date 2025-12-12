@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import {
   PieChart,
   Pie,
@@ -29,6 +30,7 @@ const PetStoreDashboard = ({
   recentProducts: propRecentProducts,
   reviews = petStoreReviews,
 }) => {
+  const router = useRouter();
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
   const webApi = new WebApimanager(jwt);
@@ -37,6 +39,186 @@ const PetStoreDashboard = ({
   const [recentRange, setRecentRange] = useState("Today");
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(!propRecentProducts);
+  const [allSubCategories, setAllSubCategories] = useState([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
+  
+  // Fetch all subcategories
+  useEffect(() => {
+    const fetchAllSubCategories = async () => {
+      try {
+        // First fetch all categories
+        const categoriesResponse = await webApi.get("vendor/petstore/categories");
+        if (categoriesResponse?.data?.data) {
+          const categories = categoriesResponse.data.data;
+          
+          // Fetch subcategories for each category
+          const subCategoryPromises = categories.map(async (category) => {
+            try {
+              const response = await webApi.get("vendor/petstore/subcategories", { categoryId: category.id });
+              return response?.data?.data || [];
+            } catch (error) {
+              console.error(`Error fetching subcategories for category ${category.id}:`, error);
+              return [];
+            }
+          });
+          
+          const allSubCatsArrays = await Promise.all(subCategoryPromises);
+          // Flatten and get unique subcategories by ID
+          const uniqueSubCats = [];
+          const seenIds = new Set();
+          
+          allSubCatsArrays.forEach(subCats => {
+            subCats.forEach(subCat => {
+              if (subCat.id && !seenIds.has(subCat.id)) {
+                seenIds.add(subCat.id);
+                uniqueSubCats.push(subCat);
+              }
+            });
+          });
+          
+          setAllSubCategories(uniqueSubCats);
+        }
+      } catch (error) {
+        console.error("Error fetching subcategories:", error);
+      }
+    };
+    
+    fetchAllSubCategories();
+  }, [jwt]);
+  
+  // Filter products by selected category
+  const filteredProductsByCategory = useMemo(() => {
+    if (!selectedCategoryFilter) return allProducts;
+    
+    return allProducts.filter((product) => {
+      const categoryName = product._fullData?.category?.name;
+      return categoryName && categoryName.toLowerCase() === selectedCategoryFilter.toLowerCase();
+    });
+  }, [allProducts, selectedCategoryFilter]);
+
+  // Calculate products added today - using filtered products
+  const todayProductsCount = useMemo(() => {
+    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
+    if (!productsToUse.length) return 0;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return productsToUse.filter((product) => {
+      if (!product.createdAt) return false;
+      const productDate = new Date(product.createdAt);
+      return productDate >= today && productDate < tomorrow;
+    }).length;
+  }, [allProducts, filteredProductsByCategory, selectedCategoryFilter]);
+
+  // Calculate unique brand names (case-insensitive, no duplicates) - using filtered products
+  const uniqueBrandsCount = useMemo(() => {
+    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
+    if (!productsToUse.length) return 0;
+    
+    const brandNames = new Set();
+    
+    productsToUse.forEach((product) => {
+      // Get brandName from _fullData if available, otherwise from product directly
+      const brandName = product._fullData?.brandName || product.brandName;
+      
+      if (brandName && typeof brandName === 'string') {
+        // Normalize: lowercase and trim to handle case-insensitive duplicates
+        const normalizedBrand = brandName.trim().toLowerCase();
+        if (normalizedBrand) {
+          brandNames.add(normalizedBrand);
+        }
+      }
+    });
+    
+    return brandNames.size;
+  }, [allProducts, filteredProductsByCategory, selectedCategoryFilter]);
+  
+  // Calculate category breakdown from real product data
+  const categoryDataFromProducts = useMemo(() => {
+    if (!allProducts.length) return categoryData;
+    
+    // Count products by category
+    const categoryCounts = {};
+    let totalProducts = 0;
+    
+    allProducts.forEach((product) => {
+      // Get category name from _fullData if available
+      const categoryName = product._fullData?.category?.name;
+      
+      if (categoryName) {
+        if (!categoryCounts[categoryName]) {
+          categoryCounts[categoryName] = 0;
+        }
+        categoryCounts[categoryName]++;
+        totalProducts++;
+      }
+    });
+    
+    // Convert to array and calculate percentages
+    const categoryArray = Object.entries(categoryCounts)
+      .map(([name, count]) => ({
+        name: name,
+        value: totalProducts > 0 ? Math.round((count / totalProducts) * 100) : 0
+      }))
+      .sort((a, b) => b.value - a.value); // Sort by percentage descending
+    
+    return categoryArray.length > 0 ? categoryArray : categoryData;
+  }, [allProducts, categoryData]);
+  
+  // Get filtered subcategories for selected category
+  const filteredSubCategories = useMemo(() => {
+    if (!selectedCategoryFilter) return allSubCategories;
+    
+    // Filter subcategories that belong to products in the selected category
+    const categoryProducts = filteredProductsByCategory;
+    const subCategoryIds = new Set();
+    
+    categoryProducts.forEach((product) => {
+      const subCategoryId = product._fullData?.subCategoryId;
+      if (subCategoryId) {
+        subCategoryIds.add(subCategoryId);
+      }
+    });
+    
+    return allSubCategories.filter(subCat => subCategoryIds.has(subCat.id));
+  }, [allSubCategories, filteredProductsByCategory, selectedCategoryFilter]);
+
+  // Update summary cards with dynamic counts - using filtered products
+  const updatedSummaryCards = useMemo(() => {
+    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
+    const subCategoriesToUse = selectedCategoryFilter ? filteredSubCategories : allSubCategories;
+    
+    return summaryCards.map((card) => {
+      if (card.title === "Items Added to day") {
+        return {
+          ...card,
+          value: `${todayProductsCount} New Products Added`,
+        };
+      }
+      if (card.title === "Products Listed") {
+        return {
+          ...card,
+          value: productsToUse.length,
+        };
+      }
+      if (card.title === "Overall sub Categories") {
+        return {
+          ...card,
+          value: subCategoriesToUse.length,
+        };
+      }
+      if (card.title === "Brands Available") {
+        return {
+          ...card,
+          value: uniqueBrandsCount,
+        };
+      }
+      return card;
+    });
+  }, [summaryCards, todayProductsCount, allProducts.length, allSubCategories.length, uniqueBrandsCount, filteredProductsByCategory, filteredSubCategories, selectedCategoryFilter]);
 
   // Fetch products from API
   useEffect(() => {
@@ -58,7 +240,16 @@ const PetStoreDashboard = ({
             
             product.variants?.forEach((variant) => {
               if (variant.variantType) {
-                const size = String(variant.variantType).trim();
+                // Combine quantityValue and variantType for display
+                let size = "";
+                if (variant.quantityValue) {
+                  // Show quantityValue first, then variantType
+                  size = `${variant.quantityValue} ${variant.variantType}`.trim();
+                } else {
+                  // If no quantityValue, just show variantType
+                  size = String(variant.variantType).trim();
+                }
+                
                 const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
                 
                 if (size && !allSizes.includes(size)) {
@@ -94,6 +285,7 @@ const PetStoreDashboard = ({
               image: imageUrl,
               highlight: sizes[0] || null,
               createdAt: product.createdAt, // Store createdAt for filtering
+              brandName: product.brandName, // Store brandName for counting
               _fullData: product,
             };
           });
@@ -110,7 +302,7 @@ const PetStoreDashboard = ({
     fetchProducts();
   }, [propRecentProducts, jwt]);
 
-  // Filter products based on selected timeline
+  // Filter products based on selected timeline and limit to 3
   const filteredRecentProducts = useMemo(() => {
     if (!allProducts.length) return [];
     
@@ -134,11 +326,14 @@ const PetStoreDashboard = ({
         startDate = new Date(0); // All time
     }
     
-    return allProducts.filter((product) => {
+    const filtered = allProducts.filter((product) => {
       if (!product.createdAt) return false;
       const productDate = new Date(product.createdAt);
       return productDate >= startDate && productDate <= now;
     });
+    
+    // Limit to only 3 products
+    return filtered.slice(0, 3);
   }, [allProducts, recentRange]);
 
   const initialRecentSelection = useMemo(() => {
@@ -230,7 +425,7 @@ const PetStoreDashboard = ({
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.summaryRow}>
-        {summaryCards.map((card) => (
+        {updatedSummaryCards.map((card) => (
           <div
             key={card.title}
             className={`${styles.summaryCard} ${card.wide ? styles.summaryCardWide : ""} ${
@@ -240,11 +435,12 @@ const PetStoreDashboard = ({
             <div className={styles.summaryLeft}>
               <span className={styles.iconBubble}>{renderIcon(card.icon)}</span>
               <div>
-                <p className={styles.summaryValue}>{card.value}</p>
                 <p className={styles.summaryLabel}>{card.subText}</p>
+                <p className={styles.summaryValue}>{card.value}</p>
+
               </div>
             </div>
-            {card.wide && <span className={styles.summaryMeta}>{card.title}</span>}
+            {/* {card.wide && <span className={styles.summaryMeta}>{card.title}</span>} */}
           </div>
         ))}
       </div>
@@ -259,7 +455,7 @@ const PetStoreDashboard = ({
               onChange={(e) => setSummaryRange(e.target.value)}
             >
               <option>This Week</option>
-              <option>This Month</option>
+              {/* <option>This Month</option> */}
               <option>This Year</option>
             </select>
           </div>
@@ -267,7 +463,7 @@ const PetStoreDashboard = ({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={categoryData}
+                  data={categoryDataFromProducts}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -275,25 +471,71 @@ const PetStoreDashboard = ({
                   innerRadius={80}
                   outerRadius={120}
                   paddingAngle={2}
+                  onClick={(data, index) => {
+                    if (data && data.name) {
+                      // Toggle: if same category clicked, reset filter; otherwise set new filter
+                      if (selectedCategoryFilter === data.name) {
+                        setSelectedCategoryFilter(null);
+                      } else {
+                        setSelectedCategoryFilter(data.name);
+                      }
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
+                  {categoryDataFromProducts.map((entry, index) => (
+                    <Cell 
+                      key={entry.name} 
+                      fill={chartColors[index % chartColors.length]}
+                      style={{ 
+                        opacity: selectedCategoryFilter && selectedCategoryFilter !== entry.name ? 0.5 : 1,
+                        cursor: 'pointer'
+                      }}
+                    />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => `${value}%`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className={styles.legendRow}>
-            {categoryData.map((entry, index) => (
-              <span key={entry.name} className={styles.legendItem}>
+            {categoryDataFromProducts.map((entry, index) => (
+              <span 
+                key={entry.name} 
+                className={styles.legendItem}
+                onClick={() => {
+                  // Toggle: if same category clicked, reset filter; otherwise set new filter
+                  if (selectedCategoryFilter === entry.name) {
+                    setSelectedCategoryFilter(null);
+                  } else {
+                    setSelectedCategoryFilter(entry.name);
+                  }
+                }}
+                style={{ 
+                  cursor: 'pointer',
+                  opacity: selectedCategoryFilter && selectedCategoryFilter !== entry.name ? 0.5 : 1
+                }}
+              >
                 <span
                   className={styles.legendColor}
                   style={{ backgroundColor: chartColors[index % chartColors.length] }}
                 />
-                {entry.name}
+                {entry.name} ({entry.value}%)
               </span>
             ))}
+            {selectedCategoryFilter && (
+              <span 
+                style={{ 
+                  cursor: 'pointer', 
+                  color: '#f18a19', 
+                  marginLeft: '10px',
+                  fontSize: '12px'
+                }}
+                onClick={() => setSelectedCategoryFilter(null)}
+              >
+                (Clear filter)
+              </span>
+            )}
           </div>
         </div>
 
@@ -307,7 +549,7 @@ const PetStoreDashboard = ({
             >
               <option>Today</option>
               <option>This Week</option>
-              <option>This Month</option>
+              {/* <option>This Month</option> */}
             </select>
           </div>
           {loading ? (
@@ -319,7 +561,12 @@ const PetStoreDashboard = ({
               ) : (
                 <div className={styles.recentList}>
                   {filteredRecentProducts.map((product) => (
-                    <div key={product.id} className={styles.recentItem}>
+                    <div 
+                      key={product.id} 
+                      className={styles.recentItem}
+                      onClick={() => router.push(`/pet-store/view/${product.id}`)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className={styles.recentThumb}>
                         <Image
                           src={
@@ -338,14 +585,17 @@ const PetStoreDashboard = ({
                         <p className={styles.recentTitle}>{product.name || "Untitled Product"}</p>
                         <p className={styles.recentType}>{product.type || "Product"}</p>
                         {product.sizes && product.sizes.length > 0 && (
-                          <div className={styles.chipRow}>
+                          <div className={styles.chipRow} onClick={(e) => e.stopPropagation()}>
                             {product.sizes.map((size) => (
                               <button
                                 key={size}
                                 className={`${styles.chip} ${
                                   size === recentSelection[product.id] ? styles.chipActive : ""
                                 }`}
-                                onClick={() => handleRecentSize(product.id, size)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRecentSize(product.id, size);
+                                }}
                               >
                                 {size}
                               </button>
@@ -360,8 +610,13 @@ const PetStoreDashboard = ({
               )}
             </>
           )}
-          <div className={styles.cardFooter}>
-            <button className={styles.linkButton}>View all</button>
+          <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: 'center' }}>
+            <button 
+              className={styles.linkButton}
+              onClick={() => router.push('/pet-store/products')}
+            >
+              View all
+            </button>
           </div>
         </div>
       </div>
