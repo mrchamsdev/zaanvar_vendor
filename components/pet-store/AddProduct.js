@@ -8,7 +8,7 @@ import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 
-const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId = null, editProductData = null }) => {
+const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId = null, editProductData = null, onUpdateSuccess = null }) => {
   const router = useRouter();
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
@@ -25,6 +25,8 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
   const [showBrandSuggestions, setShowBrandSuggestions] = useState(false);
   const [filteredBrandSuggestions, setFilteredBrandSuggestions] = useState([]);
   const brandInputRef = useRef(null);
+  const [showPetTypeDropdown, setShowPetTypeDropdown] = useState(false);
+  const petTypeDropdownRef = useRef(null);
 
   // Initialize form data - use editProductData if provided
   const initializeFormData = () => {
@@ -148,7 +150,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
             }
             
             return {
-              id: variant.id || null, // Store variant ID for edit mode
+              id: variant.id || null, // null for POST, number for PUT
               variantType: parsedVariantType,
               quantityValue: parsedQuantityValue,
               pieces: variant.pieces || "",
@@ -158,13 +160,25 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
               skuCode: variant.skuCode || "",
               description: variant.description || "",
               imageUrl: imageUrlsArray.length > 0 ? imageUrlsArray[0] : "",
-              imageUrls: imageUrlsArray,
-              images: formattedImages, // Preview images (formatted URLs)
-              variantImageFiles: [], // Store actual File objects for upload (multiple images)
+              imageUrls: imageUrlsArray, // existing images (PUT)
+              images: [], // NEW FILES selected
+              previewImages: formattedImages, // Preview images (formatted URLs for display)
               sellingPriceError: "", // Error message for selling price validation
             };
           })
-        : [{}];
+        : [{
+            id: null,
+            variantType: "",
+            sellingPrice: "",
+            mrp: "",
+            discountPercentage: "",
+            skuCode: "",
+            description: "",
+            pieces: 1,
+            quantityValue: "",
+            imageUrls: [],
+            images: []
+          }];
 
       return {
         // Step 1: Images
@@ -204,6 +218,8 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         
         // Step 3: Variants
         variants: mappedVariants,
+        // queued deletions for variant images (will be sent after submit)
+        deletedVariantImages: [],
       };
     }
     
@@ -245,7 +261,21 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         seasonalEssentials: "",
         
         // Step 3: Variants
-        variants: [{}],
+        variants: [{
+          id: null, // null for POST, number for PUT
+          variantType: "",
+          sellingPrice: "",
+          mrp: "",
+          discountPercentage: "",
+          skuCode: "",
+          description: "",
+          pieces: 1,
+          quantityValue: "",
+          imageUrls: [], // existing images (PUT)
+          images: [] // NEW FILES selected
+        }],
+      // queued deletions for variant images (will be sent after submit)
+      deletedVariantImages: [],
     };
   };
 
@@ -299,6 +329,27 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
     }
   }, [formData.brandName, brandSuggestions]);
 
+  // Close pet type dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        petTypeDropdownRef.current &&
+        !petTypeDropdownRef.current.contains(event.target) &&
+        !event.target.closest('[data-pet-type-input]')
+      ) {
+        setShowPetTypeDropdown(false);
+      }
+    };
+
+    if (showPetTypeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPetTypeDropdown]);
+
   // When editProductData changes, update formData
   useEffect(() => {
     if (editProductData) {
@@ -341,11 +392,40 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
     }
   };
 
+  // const fetchSubCategories = async (categoryId) => {
+  //   try {
+  //     const response = await webApi.get("vendor/petstore/subcategories", { categoryId });
+  //     if (response?.data?.data) {
+  //       setSubCategories(response.data.data);
+  //     } else {
+  //       setSubCategories([]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching subcategories:", error);
+  //     setSubCategories([]);
+  //   }
+  // };
+
   const fetchSubCategories = async (categoryId) => {
     try {
-      const response = await webApi.get("vendor/petstore/subcategories", { categoryId });
-      if (response?.data?.data) {
-        setSubCategories(response.data.data);
+      const response = await webApi.get(
+        "vendor/petstore/subcategories",
+        { categoryId }
+      );
+  
+      if (Array.isArray(response?.data?.data)) {
+        const uniqueSubCategories = Array.from(
+          new Map(
+            response.data.data
+              .filter(item => item?.name) // safety check
+              .map(item => [
+                item.name.trim().toLowerCase(), // remove duplicates (case-insensitive)
+                item
+              ])
+          ).values()
+        );
+  
+        setSubCategories(uniqueSubCategories);
       } else {
         setSubCategories([]);
       }
@@ -354,6 +434,7 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       setSubCategories([]);
     }
   };
+  
 
   const handleImageUpload = async (type, file) => {
     if (file) {
@@ -537,6 +618,42 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
     }
   };
 
+  const deleteImagesByVariant = async (productId, selectedImages) => {
+    // selectedImages example:
+    // [{ variantId: 190, imageUrl }, { variantId: 191, imageUrl }, { variantId: 191, imageUrl }]
+
+    // Filter out any deletions with null/undefined variantId (new variants without IDs)
+    const validDeletions = selectedImages.filter(img => img.variantId != null && img.variantId !== undefined && img.imageUrl);
+
+    if (validDeletions.length === 0) {
+      return; // No valid deletions to process
+    }
+
+    const grouped = validDeletions.reduce((acc, img) => {
+      const variantId = img.variantId;
+      if (!acc[variantId]) acc[variantId] = [];
+      acc[variantId].push(img.imageUrl);
+      return acc;
+    }, {});
+
+    await Promise.all(
+      Object.entries(grouped).map(async ([variantId, urls]) => {
+        try {
+          await webApi.delete(
+            `vendor/petstore/products/${productId}/variant-image`,
+            {
+              variantId: Number(variantId),
+              imageUrls: urls,
+            }
+          );
+        } catch (error) {
+          console.error(`Error deleting images for variant ${variantId}:`, error);
+          // Continue with other deletions even if one fails
+        }
+      })
+    );
+  };
+
   const handleSubmit = async () => {
     try {
       // Create FormData object
@@ -590,7 +707,11 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       // Check if only variant images are being changed (no variant data changes)
       // Backend logic: If only variantImages are sent (without variants JSON), it appends to existing images
       // If variants JSON is sent, backend deletes all variants and rebuilds them
-      const hasNewVariantImages = formData.variants.some(v => v.variantImageFiles && v.variantImageFiles.length > 0);
+      const hasNewVariantImages = formData.variants.some(v => {
+        if (!v.images || v.images.length === 0) return false;
+        // Check if any image is a File object
+        return v.images.some(img => img instanceof File);
+      });
       const originalVariants = isEditMode && editProductData?.variants ? editProductData.variants : [];
       
       // Check if any variant data has changed (not just images)
@@ -617,18 +738,177 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         hasVariantDataChanges = true;
       }
 
-      // MODE 3: Only variant images changed - DON'T send variants JSON, only send variantImages files
+      // MODE 3: Only variant images changed - Still need to send variants JSON (backend requires it)
+      // But we'll send the existing variant data without changes
       if (isEditMode && hasNewVariantImages && !hasVariantDataChanges) {
-        // Only send variantImages files, backend will append to existing images
-        formData.variants.forEach((variant, index) => {
-          if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-            variant.variantImageFiles.forEach((file) => {
-              formDataToSend.append("variantImages", file);
+        // Get deleted image URLs for each variant to exclude them from payload
+        const deletedUrlsByVariant = {};
+        (formData.deletedVariantImages || []).forEach(item => {
+          if (item.variantId && item.imageUrl) {
+            if (!deletedUrlsByVariant[item.variantId]) {
+              deletedUrlsByVariant[item.variantId] = [];
+            }
+            deletedUrlsByVariant[item.variantId].push(item.imageUrl);
+          }
+        });
+
+        // Build variants payload with existing data (no changes to variant fields)
+        const variantsData = formData.variants.map((variant, index) => {
+          // Collect all existing image URLs
+          const existingImageUrls = [];
+          
+          // Check variant.imageUrls array first
+          if (variant.imageUrls && Array.isArray(variant.imageUrls)) {
+            variant.imageUrls.forEach(url => {
+              if (url && typeof url === 'string' && !url.startsWith('data:')) {
+                const formattedUrl = url.startsWith('http') 
+                  ? url 
+                  : (url.startsWith(IMAGE_URL)
+                    ? url
+                    : `${IMAGE_URL}${url}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
             });
+          }
+          
+          // Also check variant.imageUrl (single existing image)
+          if (variant.imageUrl && typeof variant.imageUrl === 'string' && !variant.imageUrl.startsWith('data:')) {
+            const formattedUrl = variant.imageUrl.startsWith('http') 
+              ? variant.imageUrl 
+              : (variant.imageUrl.startsWith(IMAGE_URL)
+                ? variant.imageUrl
+                : `${IMAGE_URL}${variant.imageUrl}`);
+            if (!existingImageUrls.includes(formattedUrl)) {
+              existingImageUrls.push(formattedUrl);
+            }
+          }
+          
+          // Check variant.previewImages array
+          if (variant.previewImages && Array.isArray(variant.previewImages)) {
+            variant.previewImages.forEach(img => {
+              if (img && typeof img === 'string' && !img.startsWith('data:')) {
+                const formattedUrl = img.startsWith('http') 
+                  ? img 
+                  : (img.startsWith(IMAGE_URL)
+                    ? img
+                    : `${IMAGE_URL}${img}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
+            });
+          }
+          
+          // Also check variant.images for existing URLs (not File objects)
+          if (variant.images && Array.isArray(variant.images)) {
+            variant.images.forEach(img => {
+              if (img && typeof img === 'string' && !img.startsWith('data:')) {
+                const formattedUrl = img.startsWith('http') 
+                  ? img 
+                  : (img.startsWith(IMAGE_URL)
+                    ? img
+                    : `${IMAGE_URL}${img}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
+            });
+          }
+
+          // Filter out deleted image URLs for this variant
+          const deletedUrls = deletedUrlsByVariant[variant.id] || [];
+          const filteredImageUrls = existingImageUrls.filter(url => {
+            // Normalize the existing URL for comparison
+            const normalizedExisting = url.startsWith('http') 
+              ? url 
+              : (url.startsWith(IMAGE_URL) ? url : `${IMAGE_URL}${url}`);
+            
+            // Check against each deleted URL (try multiple formats)
+            return !deletedUrls.some(deletedUrl => {
+              // Normalize deleted URL in multiple ways
+              const normalizedDeleted1 = deletedUrl; // Original format
+              const normalizedDeleted2 = deletedUrl.startsWith('http') 
+                ? deletedUrl 
+                : (deletedUrl.startsWith(IMAGE_URL) ? deletedUrl : `${IMAGE_URL}${deletedUrl}`);
+              // Extract path from full URL for comparison
+              const pathFromDeleted = deletedUrl.includes('/uploads/') 
+                ? deletedUrl.substring(deletedUrl.indexOf('/uploads/'))
+                : deletedUrl;
+              const pathFromExisting = normalizedExisting.includes('/uploads/')
+                ? normalizedExisting.substring(normalizedExisting.indexOf('/uploads/'))
+                : normalizedExisting;
+              
+              // Match if any format matches
+              return normalizedDeleted1 === url || 
+                     normalizedDeleted1 === normalizedExisting ||
+                     normalizedDeleted2 === normalizedExisting ||
+                     pathFromDeleted === pathFromExisting;
+            });
+          });
+
+          // Build variant object with existing data
+          const variantObj = {
+            id: variant.id || null,
+            variantType: variant.variantType || "",
+            quantityValue: variant.quantityValue ? parseInt(variant.quantityValue) || null : null,
+            pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
+            sellingPrice: variant.sellingPrice || "",
+            mrp: variant.mrp || "",
+            discountPercentage: variant.discountPercentage || "",
+            skuCode: variant.skuCode || "",
+            description: variant.description || "",
+            imageUrls: filteredImageUrls,
+            ...(filteredImageUrls.length > 0 && { imageUrl: filteredImageUrls[0] })
+          };
+
+          return variantObj;
+        });
+        
+        // Send variants JSON (backend requires it even when only images change)
+        const variantsPayload = variantsData.map(v => ({
+          id: v.id,
+          variantType: v.variantType,
+          sellingPrice: v.sellingPrice,
+          mrp: v.mrp,
+          discountPercentage: v.discountPercentage,
+          skuCode: v.skuCode,
+          description: v.description || "",
+          pieces: v.pieces,
+          quantityValue: v.quantityValue,
+          imageUrls: v.imageUrls || []
+        }));
+        formDataToSend.append("variants", JSON.stringify(variantsPayload));
+        
+        // Send variantImages files - use variant ID for existing variants, index for new ones
+        formData.variants.forEach((variant, index) => {
+          if (variant.images && variant.images.length > 0) {
+            // Filter only File objects (not preview URLs)
+            const fileObjects = variant.images.filter(img => img instanceof File);
+            if (fileObjects.length > 0) {
+              // Use variant ID if it exists (existing variant), otherwise use index (new variant)
+              const fieldName = variant.id ? `variantImages_${variant.id}` : `variantImages_${index}`;
+              // Append each file with the same field name - backend will receive as array
+              fileObjects.forEach((file) => {
+                formDataToSend.append(fieldName, file);
+              });
+            }
           }
         });
       } else {
         // MODE 1: Full update - send complete variants JSON with all required fields
+        // Get deleted image URLs for each variant to exclude them from payload
+        const deletedUrlsByVariant = {};
+        (formData.deletedVariantImages || []).forEach(item => {
+          if (item.variantId && item.imageUrl) {
+            if (!deletedUrlsByVariant[item.variantId]) {
+              deletedUrlsByVariant[item.variantId] = [];
+            }
+            deletedUrlsByVariant[item.variantId].push(item.imageUrl);
+          }
+        });
+
         const variantsData = formData.variants.map((variant, index) => {
           // Collect all existing image URLs (not data URLs which are previews for new files)
           const existingImageUrls = [];
@@ -661,7 +941,22 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
             }
           }
           
-          // Also check variant.images array (preview images - filter out data URLs)
+          // Check variant.previewImages array (preview images - filter out data URLs)
+          if (variant.previewImages && Array.isArray(variant.previewImages)) {
+            variant.previewImages.forEach(img => {
+              if (img && typeof img === 'string' && !img.startsWith('data:')) {
+                const formattedUrl = img.startsWith('http') 
+                  ? img 
+                  : (img.startsWith(IMAGE_URL)
+                    ? img
+                    : `${IMAGE_URL}${img}`);
+                if (!existingImageUrls.includes(formattedUrl)) {
+                  existingImageUrls.push(formattedUrl);
+                }
+              }
+            });
+          }
+          // Also check variant.images for existing URLs (not File objects)
           if (variant.images && Array.isArray(variant.images)) {
             variant.images.forEach(img => {
               if (img && typeof img === 'string' && !img.startsWith('data:')) {
@@ -677,10 +972,40 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
             });
           }
 
+          // Filter out deleted image URLs for this variant
+          const deletedUrls = deletedUrlsByVariant[variant.id] || [];
+          const filteredImageUrls = existingImageUrls.filter(url => {
+            // Normalize the existing URL for comparison
+            const normalizedExisting = url.startsWith('http') 
+              ? url 
+              : (url.startsWith(IMAGE_URL) ? url : `${IMAGE_URL}${url}`);
+            
+            // Check against each deleted URL (try multiple formats)
+            return !deletedUrls.some(deletedUrl => {
+              // Normalize deleted URL in multiple ways
+              const normalizedDeleted1 = deletedUrl; // Original format
+              const normalizedDeleted2 = deletedUrl.startsWith('http') 
+                ? deletedUrl 
+                : (deletedUrl.startsWith(IMAGE_URL) ? deletedUrl : `${IMAGE_URL}${deletedUrl}`);
+              // Extract path from full URL for comparison
+              const pathFromDeleted = deletedUrl.includes('/uploads/') 
+                ? deletedUrl.substring(deletedUrl.indexOf('/uploads/'))
+                : deletedUrl;
+              const pathFromExisting = normalizedExisting.includes('/uploads/')
+                ? normalizedExisting.substring(normalizedExisting.indexOf('/uploads/'))
+                : normalizedExisting;
+              
+              // Match if any format matches
+              return normalizedDeleted1 === url || 
+                     normalizedDeleted1 === normalizedExisting ||
+                     normalizedDeleted2 === normalizedExisting ||
+                     pathFromDeleted === pathFromExisting;
+            });
+          });
+
           // Build complete variant object with ALL required fields
           const variantObj = {
-            // Include variant ID if it exists (for edit mode)
-            ...(variant.id && { id: variant.id }),
+            id: variant.id || null, // Include variant ID (null for new variants, number for existing)
             variantType: variant.variantType || "",
             quantityValue: variant.quantityValue ? parseInt(variant.quantityValue) || null : null,
             pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
@@ -689,22 +1014,46 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
             discountPercentage: variant.discountPercentage || "",
             skuCode: variant.skuCode || "",
             description: variant.description || "",
-            imageUrls: existingImageUrls, // Always include imageUrls array (even if empty)
-            ...(existingImageUrls.length > 0 && { imageUrl: existingImageUrls[0] }) // Backward compatibility
+            imageUrls: filteredImageUrls, // Always include imageUrls array (even if empty) - filtered to exclude deleted
+            ...(filteredImageUrls.length > 0 && { imageUrl: filteredImageUrls[0] }) // Backward compatibility
           };
 
           return variantObj;
         });
         
-        // Send variants JSON (backend will rebuild all variants from this)
-        formDataToSend.append("variants", JSON.stringify(variantsData));
+        // Send variants JSON WITH IDs and existing imageUrls
+        const variantsPayload = variantsData.map(v => ({
+          id: v.id, // Include ID (null for new variants, number for existing)
+          variantType: v.variantType,
+          sellingPrice: v.sellingPrice,
+          mrp: v.mrp,
+          discountPercentage: v.discountPercentage,
+          skuCode: v.skuCode,
+          description: v.description || "",
+          pieces: v.pieces,
+          quantityValue: v.quantityValue,
+          imageUrls: v.imageUrls || [] // existing images
+        }));
+        formDataToSend.append("variants", JSON.stringify(variantsPayload));
 
-        // Upload variant images as files - backend will upload to S3 and return URLs
+        // Upload variant images as files - send in order: all images for variant 0, then variant 1, etc.
+        // Use variant ID for existing variants (PUT), index for new variants (POST/PUT)
         formData.variants.forEach((variant, index) => {
-          if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-            variant.variantImageFiles.forEach((file) => {
-              formDataToSend.append("variantImages", file);
-            });
+          if (variant.images && variant.images.length > 0) {
+            // Filter only File objects (not preview URLs)
+            const fileObjects = variant.images.filter(img => img instanceof File);
+            if (fileObjects.length > 0) {
+              // For PUT: use variant ID if it exists (existing variant), otherwise use index (new variant)
+              // For POST: use index
+              const fieldName = isEditMode && variant.id 
+                ? `variantImages_${variant.id}` 
+                : `variantImages_${index}`;
+              // Append each file with the same field name - backend will receive as array
+              // All images for this variant are sent together with the same field name
+              fileObjects.forEach((file) => {
+                formDataToSend.append(fieldName, file);
+              });
+            }
           }
         });
       }
@@ -738,6 +1087,19 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
         formDataToSend.append("toyType", formData.toyType || "");
       }
 
+      // For edit mode: Delete images FIRST, then update product
+      if (isEditMode && editProductId) {
+        const deletions = formData.deletedVariantImages || [];
+        if (deletions.length > 0) {
+          try {
+            await deleteImagesByVariant(editProductId, deletions);
+          } catch (err) {
+            console.error('Error deleting variant images before update:', err);
+            // Continue with update even if deletes fail
+          }
+        }
+      }
+
       let response;
       if (isEditMode && editProductId) {
         // Use imagePut for edit mode (FormData)
@@ -748,13 +1110,42 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
       }
       
       if (response?.data || response?.status === "success") {
-        handleClose();
+        // For new products: Delete images after creation (we now have productId)
+        if (!isEditMode) {
+          try {
+            const deletions = formData.deletedVariantImages || [];
+            const productIdToUse = response?.data?.data?.id || response?.data?.id || response?.data?.productId || null;
+            if (productIdToUse && deletions.length > 0) {
+              await deleteImagesByVariant(productIdToUse, deletions);
+            }
+          } catch (err) {
+            console.error('Error deleting queued variant images:', err);
+            // Continue even if deletes fail
+          }
+        }
+
         // If adding new, set flag to trigger refetch and navigate to return path
         if (!isEditMode) {
+          handleClose();
           if (typeof window !== "undefined") {
             sessionStorage.setItem("productAdded", "true");
           }
           router.push(returnPath);
+        } else {
+          // For edit mode: fetch updated product data and pass to parent, then close without navigation
+          try {
+            const updatedResponse = await webApi.get(`vendor/petstore/products/${editProductId}`);
+            if (updatedResponse?.data?.data) {
+              // Call callback with updated data if provided
+              if (onUpdateSuccess) {
+                onUpdateSuccess(updatedResponse.data.data);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching updated product:", error);
+          }
+          // Close the modal without navigating
+          handleClose();
         }
       }
     } catch (error) {
@@ -1120,9 +1511,10 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
               onChange={(e) => handleInputChange("breedSize", e.target.value)}
             >
               <option value="">Select breed size</option>
+              <option value="New Born">New Born</option>
               <option value="Small">Small</option>
-              <option value="Medium">Medium</option>
-              <option value="Large">Large</option>
+              <option value="Adult">Adult</option>
+              <option value="All Life Stages">All Life Stages</option>
             </select>
           </div>
           <div className={styles.formGroup}>
@@ -1354,27 +1746,127 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                 <div className={styles.formGrid}>
                   <div className={styles.formColumn}>
                     <div className={styles.formGroup}>
-                      <label>Select Pet Type</label>
-                      <div className={styles.chipInput}>
-                        {formData.petType.map((type) => (
-                          <span key={type} className={styles.chip}>
-                            {type}
-                            <button onClick={() => handlePetTypeChange(type)}>✕</button>
-                          </span>
-                        ))}
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handlePetTypeChange(e.target.value);
-                              e.target.value = "";
-                            }
+                      <label>Enter Pet Type</label>
+                      <div style={{ position: 'relative' }}>
+                        {/* Input field with selected pet types as chips */}
+                        <div
+                          data-pet-type-input
+                          onClick={() => setShowPetTypeDropdown(!showPetTypeDropdown)}
+                          style={{
+                            // minHeight: '40px',
+                            padding: '9px 12px',
+                            border: '1px solid #ddd',
+                            borderRadius: '8px',
+                            backgroundColor: '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                            alignItems: 'center'
                           }}
                         >
-                          <option value="">Select Pet Type</option>
-                          <option value="Dog">Dog</option>
-                          <option value="Cat">Cat</option>
-                          <option value="Bird">Bird</option>
-                        </select>
+                          {formData.petType && formData.petType.length > 0 ? (
+                            formData.petType.map((petType) => (
+                              <span
+                                key={petType}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '4px 8px',
+                                  backgroundColor: '#f18a19',
+                                  color: '#fff',
+                                  borderRadius: '16px',
+                                  fontSize: '13px',
+                                  gap: '6px'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePetTypeChange(petType);
+                                }}
+                              >
+                                {petType}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePetTypeChange(petType);
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    padding: 0,
+                                    marginLeft: '4px',
+                                    lineHeight: 1
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#999', fontSize: '14px' }}>Select pet types</span>
+                          )}
+                        </div>
+
+                        {/* Dropdown with checkboxes */}
+                        {showPetTypeDropdown && (
+                          <div
+                            ref={petTypeDropdownRef}
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              marginTop: '4px',
+                              backgroundColor: '#fff',
+                              border: '1px solid #ddd',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              zIndex: 1000,
+                              maxHeight: '200px',
+                              overflowY: 'auto',
+                              padding: '8px'
+                            }}
+                          >
+                            {['Dog', 'Cat', 'Bird', 'Fish', 'Small Pets'].map((petType) => (
+                              <label
+                                key={petType}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  padding: '8px',
+                                  borderRadius: '4px',
+                                  transition: 'background-color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <input
+                                  type="checkbox"
+                                  name="petType"
+                                  value={petType}
+                                  checked={formData.petType.includes(petType)}
+                                  onChange={() => {
+                                    handlePetTypeChange(petType);
+                                  }}
+                                  style={{
+                                    marginRight: '12px',
+                                    width: '18px',
+                                    height: '18px',
+                                    cursor: 'pointer',
+                                    accentColor: '#f18a19'
+                                  }}
+                                />
+                                {petType}
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1512,9 +2004,10 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                           onChange={(e) => handleInputChange("breedSize", e.target.value)}
                         >
                           <option value="">Select breed size</option>
+                          <option value="New Born">New Born</option>
                           <option value="Small">Small</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Large">Large</option>
+                          <option value="Adult">Adult</option>
+                          <option value="All Life Stages">All Life Stages</option>
                         </select>
                       </div>
                     )}
@@ -1577,7 +2070,19 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        variants: [...prev.variants, {}],
+                        variants: [...prev.variants, {
+                          id: null,
+                          variantType: "",
+                          sellingPrice: "",
+                          mrp: "",
+                          discountPercentage: "",
+                          skuCode: "",
+                          description: "",
+                          pieces: 1,
+                          quantityValue: "",
+                          imageUrls: [],
+                          images: []
+                        }],
                       }));
                     }}
                   >
@@ -1592,7 +2097,22 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                           type="button"
                           onClick={() => {
                             const newVariants = formData.variants.filter((_, i) => i !== index);
-                            setFormData(prev => ({ ...prev, variants: newVariants.length > 0 ? newVariants : [{}] }));
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              variants: newVariants.length > 0 ? newVariants : [{
+                                id: null,
+                                variantType: "",
+                                sellingPrice: "",
+                                mrp: "",
+                                discountPercentage: "",
+                                skuCode: "",
+                                description: "",
+                                pieces: 1,
+                                quantityValue: "",
+                                imageUrls: [],
+                                images: []
+                              }] 
+                            }));
                           }}
                           style={{
                             position: 'absolute',
@@ -1825,36 +2345,35 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                             onChange={async (e) => {
                               const files = Array.from(e.target.files);
                               if (files.length > 0) {
-                                // Store the File objects for FormData upload
                                 const newVariants = [...formData.variants];
-                                if (!newVariants[index].variantImageFiles) {
-                                  newVariants[index].variantImageFiles = [];
-                                }
                                 if (!newVariants[index].images) {
                                   newVariants[index].images = [];
                                 }
+                                if (!newVariants[index].previewImages) {
+                                  newVariants[index].previewImages = [];
+                                }
                                 
-                                // Add new files to existing array
-                                newVariants[index].variantImageFiles = [
-                                  ...(newVariants[index].variantImageFiles || []),
+                                // Store File objects in images array
+                                newVariants[index].images = [
+                                  ...(newVariants[index].images || []),
                                   ...files
                                 ];
                                 
-                                // For preview, use data URLs
-                                const newImages = [];
+                                // For preview, create data URLs and store separately
+                                const newPreviewImages = [];
                                 let loadedCount = 0;
                                 
                                 files.forEach((file) => {
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
-                                    newImages.push(reader.result);
+                                    newPreviewImages.push(reader.result);
                                     loadedCount++;
                                     
                                     if (loadedCount === files.length) {
-                                      // All images loaded, update state
-                                      newVariants[index].images = [
-                                        ...(newVariants[index].images || []),
-                                        ...newImages
+                                      // All images loaded, update preview images
+                                      newVariants[index].previewImages = [
+                                        ...(newVariants[index].previewImages || []),
+                                        ...newPreviewImages
                                       ];
                                       setFormData(prev => ({ ...prev, variants: newVariants }));
                                     }
@@ -1867,33 +2386,93 @@ const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId
                               }
                             }}
                           />
-                          {variant.images && variant.images.length > 0 && (
+                          {((variant.previewImages && variant.previewImages.length > 0) || (variant.images && variant.images.some(img => typeof img === 'string'))) && (
                             <div className={styles.variantImagePreviews}>
-                              {variant.images.map((img, imgIndex) => (
-                                <div key={imgIndex} className={styles.variantImagePreview}>
-                                  <Image
-                                    src={img}
-                                    alt={`Variant ${index + 1} image ${imgIndex + 1}`}
-                                    width={100}
-                                    height={100}
-                                  />
-                                  <button
-                                    className={styles.removeImage}
-                                    onClick={() => {
-                                      const newVariants = [...formData.variants];
-                                      // Remove from preview images
-                                      newVariants[index].images = newVariants[index].images.filter((_, i) => i !== imgIndex);
-                                      // Also remove corresponding file if it exists
-                                      if (newVariants[index].variantImageFiles && newVariants[index].variantImageFiles.length > imgIndex) {
-                                        newVariants[index].variantImageFiles = newVariants[index].variantImageFiles.filter((_, i) => i !== imgIndex);
-                                      }
-                                      setFormData(prev => ({ ...prev, variants: newVariants }));
-                                    }}
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ))}
+                              {(variant.previewImages || variant.images || []).map((img, imgIndex) => {
+                                // Use preview image if available, otherwise use image (could be URL string)
+                                const imageSrc = variant.previewImages && variant.previewImages[imgIndex] 
+                                  ? variant.previewImages[imgIndex] 
+                                  : (typeof img === 'string' ? img : null);
+                                
+                                if (!imageSrc) return null;
+                                
+                                return (
+                                  <div key={imgIndex} className={styles.variantImagePreview}>
+                                    <Image
+                                      src={imageSrc}
+                                      alt={`Variant ${index + 1} image ${imgIndex + 1}`}
+                                      width={100}
+                                      height={100}
+                                    />
+                                    <button
+                                      className={styles.removeImage}
+                                      onClick={() => {
+                                        const newVariants = [...formData.variants];
+
+                                        // Determine source type
+                                        const previewExists = newVariants[index].previewImages && newVariants[index].previewImages.length > 0;
+                                        const imagesExists = newVariants[index].images && newVariants[index].images.length > 0;
+
+                                        const previewImg = previewExists ? newVariants[index].previewImages[imgIndex] : null;
+                                        const imagesImg = imagesExists ? newVariants[index].images[imgIndex] : null;
+
+                                        const isDataUrlPreview = typeof previewImg === 'string' && previewImg.startsWith('data:');
+                                        const isFileObject = imagesImg && !(typeof imagesImg === 'string');
+
+                                        // If it's a local upload preview or File object, just remove locally
+                                        if (isDataUrlPreview || isFileObject) {
+                                          if (newVariants[index].images) {
+                                            newVariants[index].images = newVariants[index].images.filter((_, i) => i !== imgIndex);
+                                          }
+                                          if (newVariants[index].previewImages) {
+                                            newVariants[index].previewImages = newVariants[index].previewImages.filter((_, i) => i !== imgIndex);
+                                          }
+                                          setFormData(prev => ({ ...prev, variants: newVariants }));
+                                          return;
+                                        }
+
+                                        // Otherwise treat as existing server image: queue deletion and remove from UI
+                                        // Determine image URL to delete - use original format from imageUrls array (not formatted preview)
+                                        let imageUrlToDelete = null;
+                                        // Prefer original URL from imageUrls array (matches database format)
+                                        if (newVariants[index].imageUrls && newVariants[index].imageUrls[imgIndex]) {
+                                          const raw = newVariants[index].imageUrls[imgIndex];
+                                          // Use the original URL format as stored in database (backend does exact match)
+                                          imageUrlToDelete = raw;
+                                        } else if (previewImg && typeof previewImg === 'string' && !previewImg.startsWith('data:')) {
+                                          // Fallback to preview URL if imageUrls not available (but not data URLs)
+                                          imageUrlToDelete = previewImg;
+                                        } else if (typeof imagesImg === 'string' && !imagesImg.startsWith('data:')) {
+                                          // Fallback to images URL if available (but not data URLs)
+                                          imageUrlToDelete = imagesImg;
+                                        }
+
+                                        // Remove from arrays in UI
+                                        if (newVariants[index].images) {
+                                          newVariants[index].images = newVariants[index].images.filter((_, i) => i !== imgIndex);
+                                        }
+                                        if (newVariants[index].previewImages) {
+                                          newVariants[index].previewImages = newVariants[index].previewImages.filter((_, i) => i !== imgIndex);
+                                        }
+                                        if (newVariants[index].imageUrls) {
+                                          newVariants[index].imageUrls = newVariants[index].imageUrls.filter((_, i) => i !== imgIndex);
+                                        }
+
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          variants: newVariants,
+                                          deletedVariantImages: [
+                                            ...(prev.deletedVariantImages || []),
+                                            ...(imageUrlToDelete && newVariants[index]?.id ? [{ variantId: newVariants[index].id, imageUrl: imageUrlToDelete }] : [])
+                                          ]
+                                        }));
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
