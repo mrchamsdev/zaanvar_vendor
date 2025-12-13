@@ -5,7 +5,7 @@ import Image from "next/image";
 import styles from "../../styles/pet-store/petStore.module.css";
 import { petStoreReviews } from "./data";
 
-const Reviews = ({ reviews = petStoreReviews, hideHeader = false }) => {
+const Reviews = ({ reviews = petStoreReviews, hideHeader = false ,dashboard}) => {
   return (
     <div className={styles.reviewList}>
       {!hideHeader && (
@@ -28,9 +28,12 @@ const Reviews = ({ reviews = petStoreReviews, hideHeader = false }) => {
                   <span className={styles.reviewDate}>{review.date}</span>
                 </div>
               </div>
-              <button className={styles.iconButton} aria-label="More options">
+              {!dashboard && (
+                <button className={styles.iconButton} aria-label="More options">
                 ⋮
               </button>
+              )}
+              
             </div>
             <p className={styles.reviewText}>{review.text}</p>
             <div className={styles.reviewGallery}>
