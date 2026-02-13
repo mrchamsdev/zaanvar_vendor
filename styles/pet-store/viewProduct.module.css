@@ -1,0 +1,261 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.minimizedOverlay {
+  background: transparent;
+  pointer-events: none;
+}
+
+.viewProductModal {
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-color, #fff);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.dragging {
+  transition: none !important;
+}
+
+.fullscreen {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0;
+}
+
+.standard {
+  top: var(--modal-top, 50%);
+  left: var(--modal-left, 50%);
+  transform: var(--modal-transform, translate(-50%, -50%));
+  width: 1000px;
+  height: 90vh;
+  max-width: 95vw;
+  border-radius: 5px;
+  cursor: grab;
+}
+
+.standard:active {
+  cursor: grabbing;
+}
+
+.minimized {
+  bottom: 0;
+  right: 520px; /* Offset from AddProduct tray if both open */
+  top: auto;
+  left: auto;
+  width: 400px;
+  height: 50px;
+  border-radius: 15px 15px 0 0;
+  cursor: pointer;
+}
+
+.minimized .modalBody {
+  display: none;
+}
+
+.minimized .modalHeader {
+  height: 50px;
+  padding: 0 20px;
+  border-bottom: none;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--underline-color, #f1f3f5);
+  background: #f8f9fa;
+  user-select: none;
+}
+
+.standard .modalHeader {
+  cursor: inherit;
+}
+
+.modalHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 15px;
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 16px;
+}
+
+.modalBody {
+  padding: 40px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  scrollbar-width: none;
+}
+
+.topSection {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr;
+  gap: 40px;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  background: #fcfcfc;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #f1f3f5;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-size: 11px;
+  color: #999;
+  font-weight: 500;
+}
+
+.metaValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.metaValue.required::after {
+  content: " *";
+  color: #ff4d6d;
+}
+
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.imagesSection label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.imageGrid {
+  display: flex;
+  gap: 15px;
+}
+
+.imageBox {
+  width: 60px;
+  height: 60px;
+  background: var(--underline-color, #f1f3f5);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e0e0;
+}
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  width: 250px;
+  font-size: 14px;
+}
+
+.statLabel {
+  font-weight: 500;
+  color: #333;
+}
+
+.statValue {
+  font-weight: 600;
+  color: #999;
+}
+
+.historySection {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.historySection h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subSection {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.subSection h4 {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.historyTable th {
+  background: var(--underline-color, #f1f3f5);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.historyTable td {
+  padding: 12px;
+  border: 1px solid var(--underline-color, #f1f3f5);
+  color: #333;
+}
+
+.historyTable td.bold {
+  font-weight: 700;
+}
