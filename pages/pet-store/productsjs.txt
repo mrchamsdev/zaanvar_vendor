@@ -1,14 +1,14 @@
 "use client";
 
 import Layout from "@/components/pet-sales/layout";
-import PetStoreDashboard from "@/components/pet-store/Dashboard";
+import PetStoreProducts from "@/components/pet-store/Products";
 import AddProduct from "@/components/pet-store/AddProduct";
 import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { petStoreProducts } from "@/components/pet-store/data";
-import addProductStyles from "../../styles/pet-store/addProduct.module.css";
 import styles from "../../styles/pet-store/productDetail.module.css";
+import addProductStyles from "../../styles/pet-store/addProduct.module.css";
 
 const menuItems = [
   { name: "Dashboard", icon: <FourDots />, path: "/pet-store" },
@@ -21,70 +21,52 @@ const topbarButtons = [
   { label: "+ Add More", color: "light", action: "addMore" },
 ];
 
-const PetStoreHome = () => {
+const PetStoreProductsPage = () => {
   const router = useRouter();
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [addProductMinimized, setAddProductMinimized] = useState(false);
   const [minimizedProductId, setMinimizedProductId] = useState(null);
   const [minimizedProduct, setMinimizedProduct] = useState(null);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [addProductMinimized, setAddProductMinimized] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Check if Add Product is minimized
-      const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
-      if (isMinimized) {
-        setAddProductMinimized(true);
-        setShowAddProduct(false); // Don't show the modal when minimized
-      }
-
-      // Check if product view is minimized
-      const productId = sessionStorage.getItem("minimizedProductId");
-      if (productId) {
-        setMinimizedProductId(productId);
-        // Try to get product name from sessionStorage first (most reliable)
-        const productName = sessionStorage.getItem("minimizedProductName");
-        if (productName) {
-          setMinimizedProduct({ id: productId, name: productName });
-        } else {
-          // Fallback: try to find in static data
-          const product = petStoreProducts.find((p) => String(p.id) === String(productId));
-          if (product) {
-            setMinimizedProduct(product);
-          } else {
-            setMinimizedProduct({ id: productId, name: "Product" });
-          }
-        }
-      }
-
-      // Periodically check for minimized state changes
-      const interval = setInterval(() => {
-        const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
-        setAddProductMinimized(isMinimized);
-        if (isMinimized) {
-          setShowAddProduct(false);
-        }
-
-        const prodId = sessionStorage.getItem("minimizedProductId");
-        if (prodId) {
-          setMinimizedProductId(prodId);
-          // Try to get product name from sessionStorage first
+      const checkMinimizedStates = () => {
+        const productId = sessionStorage.getItem("minimizedProductId");
+        if (productId) {
+          setMinimizedProductId(productId);
+          // Try to get product name from sessionStorage first (most reliable)
           const productName = sessionStorage.getItem("minimizedProductName");
           if (productName) {
-            setMinimizedProduct({ id: prodId, name: productName });
+            setMinimizedProduct({ id: productId, name: productName });
           } else {
             // Fallback: try to find in static data
-            const product = petStoreProducts.find((p) => String(p.id) === String(prodId));
+            const product = petStoreProducts.find((p) => String(p.id) === String(productId));
             if (product) {
               setMinimizedProduct(product);
             } else {
-              setMinimizedProduct({ id: prodId, name: "Product" });
+              // If not found, create a minimal product object with just the ID
+              // The name will be fetched or shown as "Product" if needed
+              setMinimizedProduct({ id: productId, name: "Product" });
             }
           }
         } else {
           setMinimizedProductId(null);
           setMinimizedProduct(null);
         }
-      }, 300);
+
+        // Check if Add Product is minimized
+        const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
+        setAddProductMinimized(isMinimized);
+        if (isMinimized) {
+          setShowAddProduct(false); // Don't show the modal when minimized
+        }
+      };
+
+      // Check immediately
+      checkMinimizedStates();
+
+      // Periodically check for changes (useful when navigating between pages)
+      const interval = setInterval(checkMinimizedStates, 300);
 
       return () => clearInterval(interval);
     }
@@ -124,6 +106,21 @@ const PetStoreHome = () => {
     }
   };
 
+  const handleRestore = () => {
+    if (minimizedProductId) {
+      router.push(`/pet-store/view/${minimizedProductId}`);
+    }
+  };
+
+  const handleClose = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("minimizedProductId");
+      sessionStorage.removeItem("minimizedProductName");
+    }
+    setMinimizedProductId(null);
+    setMinimizedProduct(null);
+  };
+
   return (
     <>
       <Layout
@@ -133,13 +130,13 @@ const PetStoreHome = () => {
         sidebarToggleButton={<BackButton />}
         topbarActionHandler={handleTopbarAction}
       >
-        <PetStoreDashboard />
+        <PetStoreProducts />
       </Layout>
 
       {showAddProduct && (
         <AddProduct
           onClose={handleAddProductClose}
-          returnPath="/pet-store"
+          returnPath="/pet-store/products"
         />
       )}
 
@@ -166,13 +163,13 @@ const PetStoreHome = () => {
             </div>
           )}
           {minimizedProductId && minimizedProduct && (
-            <div className={styles.minibar} onClick={() => router.push(`/pet-store/view/${minimizedProductId}`)}>
+            <div className={styles.minibar} onClick={handleRestore}>
               <span>{minimizedProduct.name}</span>
               <div className={styles.windowActions}>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.push(`/pet-store/view/${minimizedProductId}`);
+                    handleRestore();
                   }} 
                   className={styles.windowBtn}
                 >
@@ -181,12 +178,7 @@ const PetStoreHome = () => {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (typeof window !== "undefined") {
-                      sessionStorage.removeItem("minimizedProductId");
-                      sessionStorage.removeItem("minimizedProductName");
-                    }
-                    setMinimizedProductId(null);
-                    setMinimizedProduct(null);
+                    handleClose();
                   }} 
                   className={styles.windowBtn}
                 >
@@ -201,5 +193,5 @@ const PetStoreHome = () => {
   );
 };
 
-export default PetStoreHome;
+export default PetStoreProductsPage;
 

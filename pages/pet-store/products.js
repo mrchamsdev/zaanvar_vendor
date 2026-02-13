@@ -1,19 +1,21 @@
+
 "use client";
 
-import Layout from "@/components/pet-sales/layout";
-import PetStoreProducts from "@/components/pet-store/Products";
-import AddProduct from "@/components/pet-store/AddProduct";
-import { BackButton, Calender3, FourDots, FourDotsActive } from "@/public/image/SVG";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { petStoreProducts } from "@/components/pet-store/data";
-import styles from "../../styles/pet-store/productDetail.module.css";
-import addProductStyles from "../../styles/pet-store/addProduct.module.css";
+import Layout from "@/components/pet-sales/layout";
+import ProductTable from "@/components/pet-store/ProductTable";
+import AddProduct from "@/components/pet-store/AddProduct";
+import ViewProduct from "@/components/pet-store/ViewProduct";
+import { BackButton, FourDots, SearchIcon } from "@/public/image/SVG";
+import { productService } from "../../services/productService";
+import { FiGrid, FiSearch } from "react-icons/fi";
+import useStore from "@/components/state/useStore";
+import styles from "../../styles/pet-store/products.module.css";
 
 const menuItems = [
-  { name: "Dashboard", icon: <FourDotsActive />, path: "/pet-store" },
-  { name: "Products", icon: <Calender3 />, path: "/pet-store/products" },
-  { name: "Reviews", icon: <Calender3 />, path: "/pet-store/reviews" },
+  { name: "Dashboard", icon: <FiGrid />, path: "/pet-store" },
+  { name: "Products", icon: <FiSearch />, path: "/pet-store/products" },
+  { name: "Reviews", icon: <FiGrid />, path: "/pet-store/reviews" },
 ];
 
 const topbarButtons = [
@@ -21,177 +23,134 @@ const topbarButtons = [
   { label: "+ Add More", color: "light", action: "addMore" },
 ];
 
-const PetStoreProductsPage = () => {
-  const router = useRouter();
-  const [minimizedProductId, setMinimizedProductId] = useState(null);
-  const [minimizedProduct, setMinimizedProduct] = useState(null);
+const ProductsPage = () => {
+  const { getJwtToken } = useStore();
+  const jwt = getJwtToken();
+
+  const [products, setProducts] = useState([]);
+  const [productType, setProductType] = useState("retail"); // retail or medical
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [addProductMinimized, setAddProductMinimized] = useState(false);
+  const [showViewProduct, setShowViewProduct] = useState(false);
+  const [viewedProduct, setViewedProduct] = useState(null);
+  const [editProductId, setEditProductId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    const data = await productService.getProducts(jwt, productType);
+    setProducts(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const checkMinimizedStates = () => {
-        const productId = sessionStorage.getItem("minimizedProductId");
-        if (productId) {
-          setMinimizedProductId(productId);
-          // Try to get product name from sessionStorage first (most reliable)
-          const productName = sessionStorage.getItem("minimizedProductName");
-          if (productName) {
-            setMinimizedProduct({ id: productId, name: productName });
-          } else {
-            // Fallback: try to find in static data
-            const product = petStoreProducts.find((p) => String(p.id) === String(productId));
-            if (product) {
-              setMinimizedProduct(product);
-            } else {
-              // If not found, create a minimal product object with just the ID
-              // The name will be fetched or shown as "Product" if needed
-              setMinimizedProduct({ id: productId, name: "Product" });
-            }
-          }
-        } else {
-          setMinimizedProductId(null);
-          setMinimizedProduct(null);
-        }
-
-        // Check if Add Product is minimized
-        const isMinimized = sessionStorage.getItem("addProductMinimized") === "true";
-        setAddProductMinimized(isMinimized);
-        if (isMinimized) {
-          setShowAddProduct(false); // Don't show the modal when minimized
-        }
-      };
-
-      // Check immediately
-      checkMinimizedStates();
-
-      // Periodically check for changes (useful when navigating between pages)
-      const interval = setInterval(checkMinimizedStates, 300);
-
-      return () => clearInterval(interval);
-    }
-  }, []);
+    fetchProducts();
+  }, [productType, jwt]);
 
   const handleTopbarAction = (action) => {
     if (action === "addProduct") {
+      setEditProductId(null);
       setShowAddProduct(true);
-      setAddProductMinimized(false);
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("addProductMinimized");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} item(s)?`)) {
+      try {
+        for (const id of selectedIds) {
+          await productService.deleteProduct(jwt, id);
+        }
+        setSelectedIds([]);
+        fetchProducts();
+      } catch (error) {
+        console.error("Error deleting products:", error);
+        alert("Failed to delete some products");
       }
     }
   };
 
-  const handleAddProductClose = () => {
-    setShowAddProduct(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("addProductMinimized");
+  const handleEdit = () => {
+    if (selectedIds.length === 1) {
+      setEditProductId(selectedIds[0]);
+      setShowAddProduct(true);
     }
   };
 
-  const handleMaximizeAddProduct = () => {
-    setAddProductMinimized(false);
-    setShowAddProduct(true);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("addProductMinimized");
-    }
-  };
-
-  const handleCloseMinimizedAddProduct = () => {
-    setAddProductMinimized(false);
-    setShowAddProduct(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("addProductMinimized");
-      sessionStorage.removeItem("addProductReturnPath");
-    }
-  };
-
-  const handleRestore = () => {
-    if (minimizedProductId) {
-      router.push(`/pet-store/view/${minimizedProductId}`);
-    }
-  };
-
-  const handleClose = () => {
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("minimizedProductId");
-      sessionStorage.removeItem("minimizedProductName");
-    }
-    setMinimizedProductId(null);
-    setMinimizedProduct(null);
+  const handleView = (product) => {
+    setViewedProduct(product);
+    setShowViewProduct(true);
   };
 
   return (
-    <>
-      <Layout
-        menuItems={menuItems}
-        topbarButtons={topbarButtons}
-        logoText="Pet Store"
-        sidebarToggleButton={<BackButton />}
-        topbarActionHandler={handleTopbarAction}
-      >
-        <PetStoreProducts />
-      </Layout>
-
-      {showAddProduct && (
-        <AddProduct
-          onClose={handleAddProductClose}
-          returnPath="/pet-store/products"
-        />
-      )}
-
-      {/* Minimized Tabs Container - Gmail style */}
-      {(minimizedProductId || addProductMinimized) && (
-        <div className={styles.minimizedTabsContainer}>
-          {addProductMinimized && (
-            <div className={addProductStyles.minimizedBar} onClick={handleMaximizeAddProduct}>
-              <span>Add new product</span>
-              <div className={addProductStyles.minimizedBarActions} onClick={(e) => e.stopPropagation()}>
-                <button 
-                  onClick={handleMaximizeAddProduct}
-                  className={addProductStyles.windowBtn}
-                >
-                  ☐
-                </button>
-                <button 
-                  onClick={handleCloseMinimizedAddProduct}
-                  className={addProductStyles.windowBtn}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
-          {minimizedProductId && minimizedProduct && (
-            <div className={styles.minibar} onClick={handleRestore}>
-              <span>{minimizedProduct.name}</span>
-              <div className={styles.windowActions}>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRestore();
-                  }} 
-                  className={styles.windowBtn}
-                >
-                  ☐
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClose();
-                  }} 
-                  className={styles.windowBtn}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
+    <Layout
+      menuItems={menuItems}
+      topbarButtons={topbarButtons}
+      logoText="Products"
+      sidebarToggleButton={<BackButton />}
+      topbarActionHandler={handleTopbarAction}
+    >
+      <div className={styles.pageWrapper}>
+        <div className={styles.header}>
+          <div className={styles.searchBar}>
+            <SearchIcon />
+            <input type="text" placeholder="Search here" />
+          </div>
+          <div className={styles.tabs}>
+            <button 
+              className={`${styles.tab} ${productType === "retail" ? styles.activeTab : ""}`}
+              onClick={() => setProductType("retail")}
+            >
+              Retail Product
+            </button>
+            <button 
+              className={`${styles.tab} ${productType === "medical" ? styles.activeTab : ""}`}
+              onClick={() => setProductType("medical")}
+            >
+              Medical Products
+            </button>
+          </div>
         </div>
-      )}
-    </>
+
+        <div className={styles.statusCards}>
+          <span className={styles.statusLabel}>Overall Status :</span>
+          <div className={styles.statusCard}>TOTAL Products: {products.length.toString().padStart(2, '0')}</div>
+          <div className={styles.statusCard}>Expired Products : 10</div>
+          <div className={styles.statusCard}>Damaged Products : 10</div>
+        </div>
+
+        <ProductTable 
+          products={products} 
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          onView={handleView}
+          onDelete={handleDelete}
+          onEdit={(id) => {
+            setEditProductId(id);
+            setShowAddProduct(true);
+          }}
+          loading={loading}
+        />
+
+        {showAddProduct && (
+          <AddProduct 
+            onClose={() => {
+              setShowAddProduct(false);
+              fetchProducts();
+            }}
+            editProductId={editProductId}
+            productType={productType}
+          />
+        )}
+
+        {showViewProduct && (
+          <ViewProduct 
+            product={viewedProduct}
+            onClose={() => setShowViewProduct(false)}
+          />
+        )}
+      </div>
+    </Layout>
   );
 };
 
-export default PetStoreProductsPage;
-
+export default ProductsPage;

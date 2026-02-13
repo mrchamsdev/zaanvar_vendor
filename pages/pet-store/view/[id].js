@@ -106,17 +106,7 @@ const ProductDetail = () => {
   // Add variant images
   if (product?.variants) {
     product.variants.forEach((variant) => {
-      // Handle both imageUrl (single) and imageUrls (array)
-      if (variant.imageUrls && Array.isArray(variant.imageUrls) && variant.imageUrls.length > 0) {
-        variant.imageUrls.forEach((url) => {
-          if (url) {
-            const formattedUrl = formatImageUrl(url);
-            if (!productImages.includes(formattedUrl)) {
-              productImages.push(formattedUrl);
-            }
-          }
-        });
-      } else if (variant.imageUrl) {
+      if (variant.imageUrl) {
         const formattedUrl = formatImageUrl(variant.imageUrl);
         if (!productImages.includes(formattedUrl)) {
           productImages.push(formattedUrl);
@@ -166,22 +156,8 @@ const ProductDetail = () => {
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("minimizedProductId");
       sessionStorage.removeItem("minimizedProductName");
-      
-      // Get referrer to navigate back to the correct page
-      const referrer = sessionStorage.getItem("productViewReferrer");
-      sessionStorage.removeItem("productViewReferrer");
-      
-      // Navigate back based on where user came from
-      if (referrer === "products") {
-        router.push("/pet-store/products");
-      } else {
-        // Default to dashboard (or if referrer is "dashboard" or null)
-        router.push("/pet-store");
-      }
-    } else {
-      // Fallback if window is not available
-      router.push("/pet-store");
     }
+    router.push("/pet-store/products");
   };
 
   const handleMaximizeAddProduct = () => {
@@ -209,20 +185,6 @@ const ProductDetail = () => {
     }
   };
 
-  const handleProductUpdateSuccess = (updatedProductData) => {
-    // Update product state with the new data
-    setProduct(updatedProductData);
-    // Update selected size if needed
-    if (updatedProductData.variants && updatedProductData.variants.length > 0) {
-      const currentSelectedSize = selectedSize || updatedProductData.variants[0].variantType;
-      // Check if current selected size still exists
-      const sizeExists = updatedProductData.variants.some(v => v.variantType === currentSelectedSize);
-      if (!sizeExists) {
-        setSelectedSize(updatedProductData.variants[0].variantType);
-      }
-    }
-  };
-
   const handleDelete = async () => {
     if (!id) return;
     
@@ -246,7 +208,6 @@ const ProductDetail = () => {
           returnPath={`/pet-store/view/${id}`}
           editProductId={editProductData ? id : null}
           editProductData={editProductData}
-          onUpdateSuccess={handleProductUpdateSuccess}
         />
       )}
 

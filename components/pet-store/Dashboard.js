@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/router";
 import {
   PieChart,
   Pie,
@@ -30,202 +29,14 @@ const PetStoreDashboard = ({
   recentProducts: propRecentProducts,
   reviews = petStoreReviews,
 }) => {
-  const router = useRouter();
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
   const webApi = new WebApimanager(jwt);
   
-  // const [summaryRange, setSummaryRange] = useState("This Month");
-  // const [recentRange, setRecentRange] = useState("Today");
+  const [summaryRange, setSummaryRange] = useState("This Month");
+  const [recentRange, setRecentRange] = useState("Today");
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(!propRecentProducts);
-  const [allSubCategories, setAllSubCategories] = useState([]);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
-  
-  // Fetch all subcategories
-  useEffect(() => {
-    const fetchAllSubCategories = async () => {
-      try {
-        // First fetch all categories
-        const categoriesResponse = await webApi.get("vendor/petstore/categories");
-        if (categoriesResponse?.data?.data) {
-          const categories = categoriesResponse.data.data;
-          
-          // Fetch subcategories for each category
-          const subCategoryPromises = categories.map(async (category) => {
-            try {
-              const response = await webApi.get("vendor/petstore/subcategories", { categoryId: category.id });
-              return response?.data?.data || [];
-            } catch (error) {
-              console.error(`Error fetching subcategories for category ${category.id}:`, error);
-              return [];
-            }
-          });
-          
-          const allSubCatsArrays = await Promise.all(subCategoryPromises);
-          // Flatten and get unique subcategories by ID
-          const uniqueSubCats = [];
-          const seenIds = new Set();
-          
-          allSubCatsArrays.forEach(subCats => {
-            subCats.forEach(subCat => {
-              if (subCat.id && !seenIds.has(subCat.id)) {
-                seenIds.add(subCat.id);
-                uniqueSubCats.push(subCat);
-              }
-            });
-          });
-          
-          setAllSubCategories(uniqueSubCats);
-        }
-      } catch (error) {
-        console.error("Error fetching subcategories:", error);
-      }
-    };
-    
-    fetchAllSubCategories();
-  }, [jwt]);
-  
-  // Filter products by selected category
-  const filteredProductsByCategory = useMemo(() => {
-    if (!selectedCategoryFilter) return allProducts;
-    
-    return allProducts.filter((product) => {
-      const categoryName = product._fullData?.category?.name;
-      return categoryName && categoryName.toLowerCase() === selectedCategoryFilter.toLowerCase();
-    });
-  }, [allProducts, selectedCategoryFilter]);
-
-  // Calculate products added today - using filtered products
-  // COMMENTED OUT: Time-based filtering logic
-  // const todayProductsCount = useMemo(() => {
-  //   const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
-  //   if (!productsToUse.length) return 0;
-  //   
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0);
-  //   const tomorrow = new Date(today);
-  //   tomorrow.setDate(tomorrow.getDate() + 1);
-  //   
-  //   return productsToUse.filter((product) => {
-  //     if (!product.createdAt) return false;
-  //     const productDate = new Date(product.createdAt);
-  //     return productDate >= today && productDate < tomorrow;
-  //   }).length;
-  // }, [allProducts, filteredProductsByCategory, selectedCategoryFilter]);
-  
-  // Show total products instead of today's count
-  const todayProductsCount = useMemo(() => {
-    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
-    return productsToUse.length;
-  }, [allProducts, filteredProductsByCategory, selectedCategoryFilter]);
-
-  // Calculate unique brand names (case-insensitive, no duplicates) - using filtered products
-  const uniqueBrandsCount = useMemo(() => {
-    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
-    if (!productsToUse.length) return 0;
-    
-    const brandNames = new Set();
-    
-    productsToUse.forEach((product) => {
-      // Get brandName from _fullData if available, otherwise from product directly
-      const brandName = product._fullData?.brandName || product.brandName;
-      
-      if (brandName && typeof brandName === 'string') {
-        // Normalize: lowercase and trim to handle case-insensitive duplicates
-        const normalizedBrand = brandName.trim().toLowerCase();
-        if (normalizedBrand) {
-          brandNames.add(normalizedBrand);
-        }
-      }
-    });
-    
-    return brandNames.size;
-  }, [allProducts, filteredProductsByCategory, selectedCategoryFilter]);
-  
-  // Calculate category breakdown from real product data
-  const categoryDataFromProducts = useMemo(() => {
-    if (!allProducts.length) return categoryData;
-    
-    // Count products by category
-    const categoryCounts = {};
-    let totalProducts = 0;
-    
-    allProducts.forEach((product) => {
-      // Get category name from _fullData if available
-      const categoryName = product._fullData?.category?.name;
-      
-      if (categoryName) {
-        if (!categoryCounts[categoryName]) {
-          categoryCounts[categoryName] = 0;
-        }
-        categoryCounts[categoryName]++;
-        totalProducts++;
-      }
-    });
-    
-    // Convert to array and calculate percentages
-    const categoryArray = Object.entries(categoryCounts)
-      .map(([name, count]) => ({
-        name: name,
-        value: totalProducts > 0 ? Math.round((count / totalProducts) * 100) : 0
-      }))
-      .sort((a, b) => b.value - a.value); // Sort by percentage descending
-    
-    return categoryArray.length > 0 ? categoryArray : categoryData;
-  }, [allProducts, categoryData]);
-  
-  // Get filtered subcategories for selected category
-  const filteredSubCategories = useMemo(() => {
-    if (!selectedCategoryFilter) return allSubCategories;
-    
-    // Filter subcategories that belong to products in the selected category
-    const categoryProducts = filteredProductsByCategory;
-    const subCategoryIds = new Set();
-    
-    categoryProducts.forEach((product) => {
-      const subCategoryId = product._fullData?.subCategoryId;
-      if (subCategoryId) {
-        subCategoryIds.add(subCategoryId);
-      }
-    });
-    
-    return allSubCategories.filter(subCat => subCategoryIds.has(subCat.id));
-  }, [allSubCategories, filteredProductsByCategory, selectedCategoryFilter]);
-
-  // Update summary cards with dynamic counts - using filtered products
-  const updatedSummaryCards = useMemo(() => {
-    const productsToUse = selectedCategoryFilter ? filteredProductsByCategory : allProducts;
-    const subCategoriesToUse = selectedCategoryFilter ? filteredSubCategories : allSubCategories;
-    
-    return summaryCards.map((card) => {
-      if (card.title === "Items Added to day") {
-        return {
-          ...card,
-          value: `${todayProductsCount} Products`, // Changed from "New Products Added" to just "Products"
-        };
-      }
-      if (card.title === "Products Listed") {
-        return {
-          ...card,
-          value: productsToUse.length,
-        };
-      }
-      if (card.title === "Overall sub Categories") {
-        return {
-          ...card,
-          value: subCategoriesToUse.length,
-        };
-      }
-      if (card.title === "Brands Available") {
-        return {
-          ...card,
-          value: uniqueBrandsCount,
-        };
-      }
-      return card;
-    });
-  }, [summaryCards, todayProductsCount, allProducts.length, allSubCategories.length, uniqueBrandsCount, filteredProductsByCategory, filteredSubCategories, selectedCategoryFilter]);
 
   // Fetch products from API
   useEffect(() => {
@@ -244,27 +55,11 @@ const PetStoreDashboard = ({
           const transformedProducts = response.data.data.map((product) => {
             const allSizes = [];
             const priceBySize = {};
-            const allSellingPrices = []; // Store all selling prices for range calculation
             
             product.variants?.forEach((variant) => {
               if (variant.variantType) {
-                // Combine quantityValue and variantType for display
-                let size = "";
-                if (variant.quantityValue) {
-                  // Show quantityValue first, then variantType
-                  size = `${variant.quantityValue} ${variant.variantType}`.trim();
-                } else {
-                  // If no quantityValue, just show variantType
-                  size = String(variant.variantType).trim();
-                }
-                
-                const sellingPrice = parseFloat(variant.sellingPrice || 0);
-                const price = `₹ ${sellingPrice.toFixed(2)}`;
-                
-                // Store selling price for range calculation
-                if (!isNaN(sellingPrice) && sellingPrice > 0) {
-                  allSellingPrices.push(sellingPrice);
-                }
+                const size = String(variant.variantType).trim();
+                const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
                 
                 if (size && !allSizes.includes(size)) {
                   allSizes.push(size);
@@ -276,16 +71,6 @@ const PetStoreDashboard = ({
             });
             
             const sizes = allSizes.length > 0 ? allSizes : ["Default"];
-
-            // Calculate price range (lowest to highest) for products with multiple variants
-            let priceRange = null;
-            if (allSellingPrices.length > 1) {
-              const sortedPrices = [...allSellingPrices].sort((a, b) => a - b);
-              const lowest = sortedPrices[0];
-              const highest = sortedPrices[sortedPrices.length - 1];
-              // Always show range if there are multiple variants (even if prices are same)
-              priceRange = `₹ ${lowest.toFixed(2)} - ₹ ${highest.toFixed(2)}`;
-            }
 
             const typeParts = [];
             if (product.petType) typeParts.push(product.petType);
@@ -306,11 +91,9 @@ const PetStoreDashboard = ({
               type: type,
               sizes: sizes.length > 0 ? sizes : ["Default"],
               priceBySize: priceBySize,
-              priceRange: priceRange, // Store price range for products with multiple variants
               image: imageUrl,
               highlight: sizes[0] || null,
               createdAt: product.createdAt, // Store createdAt for filtering
-              brandName: product.brandName, // Store brandName for counting
               _fullData: product,
             };
           });
@@ -327,56 +110,41 @@ const PetStoreDashboard = ({
     fetchProducts();
   }, [propRecentProducts, jwt]);
 
-  // Filter products based on selected timeline and limit to 3
-  // COMMENTED OUT: Time-based filtering logic
-  // const filteredRecentProducts = useMemo(() => {
-  //   if (!allProducts.length) return [];
-  //   
-  //   const now = new Date();
-  //   let startDate = new Date();
-  //   
-  //   switch (recentRange) {
-  //     case "Today":
-  //       startDate.setHours(0, 0, 0, 0);
-  //       break;
-  //     case "This Week":
-  //       const dayOfWeek = now.getDay();
-  //       startDate.setDate(now.getDate() - dayOfWeek);
-  //       startDate.setHours(0, 0, 0, 0);
-  //       break;
-  //     case "This Month":
-  //       startDate.setDate(1);
-  //       startDate.setHours(0, 0, 0, 0);
-  //       break;
-  //     default:
-  //       startDate = new Date(0); // All time
-  //   }
-  //   
-  //   const filtered = allProducts.filter((product) => {
-  //     if (!product.createdAt) return false;
-  //     const productDate = new Date(product.createdAt);
-  //     return productDate >= startDate && productDate <= now;
-  //   });
-  //   
-  //   // Limit to only 3 products
-  //   return filtered.slice(0, 3);
-  // }, [allProducts, recentRange]);
-  
-  // Show all products (limited to 3) without time filtering
+  // Filter products based on selected timeline
   const filteredRecentProducts = useMemo(() => {
     if (!allProducts.length) return [];
-    // Limit to only 3 products
-    return allProducts.slice(0, 3);
-  }, [allProducts]);
+    
+    const now = new Date();
+    let startDate = new Date();
+    
+    switch (recentRange) {
+      case "Today":
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        startDate.setDate(now.getDate() - dayOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "This Month":
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      default:
+        startDate = new Date(0); // All time
+    }
+    
+    return allProducts.filter((product) => {
+      if (!product.createdAt) return false;
+      const productDate = new Date(product.createdAt);
+      return productDate >= startDate && productDate <= now;
+    });
+  }, [allProducts, recentRange]);
 
   const initialRecentSelection = useMemo(() => {
     const map = {};
     filteredRecentProducts.forEach((p) => {
-      // Only set initial selection if product has only one variant
-      // For multiple variants, leave it undefined to show price range
-      if (p.sizes && p.sizes.length === 1) {
-        map[p.id] = p.sizes[0];
-      }
+      map[p.id] = p.highlight || p.sizes?.[0];
     });
     return map;
   }, [filteredRecentProducts]);
@@ -387,59 +155,32 @@ const PetStoreDashboard = ({
   useEffect(() => {
     const map = {};
     filteredRecentProducts.forEach((p) => {
-      // Only set initial selection if product has only one variant
-      // For multiple variants, leave it undefined to show price range
-      if (p.sizes && p.sizes.length === 1) {
-        map[p.id] = p.sizes[0];
-      }
+      map[p.id] = p.highlight || p.sizes?.[0];
     });
     setRecentSelection(map);
   }, [filteredRecentProducts]);
 
   const handleRecentSize = (productId, size) => {
-    setRecentSelection((prev) => {
-      // If clicking the already selected size, deselect it
-      if (prev[productId] === size) {
-        return { ...prev, [productId]: undefined };
-      }
-      // Otherwise, select the new size
-      return { ...prev, [productId]: size };
-    });
+    setRecentSelection((prev) => ({ ...prev, [productId]: size }));
   };
 
   const formatPrice = (product) => {
     const size = recentSelection[product.id];
-    
-    // If a specific size is selected, show that price
-    if (size && product.priceBySize?.[size]) {
-      return product.priceBySize[size];
-    }
-    
-    // If no size is selected and product has multiple variants, show price range
-    if (!size && product.priceRange) {
-      return product.priceRange;
-    }
-    
-    // Fallback to first size price or default
-    return product.priceBySize?.[product.sizes?.[0]] || "—";
+    const price = product.priceBySize?.[size];
+    return price || product.priceBySize?.[product.sizes?.[0]] || "—";
   };
 
-  // COMMENTED OUT: Time-based message logic
-  // const getNoProductsMessage = () => {
-  //   switch (recentRange) {
-  //     case "Today":
-  //       return "No products found today";
-  //     case "This Week":
-  //       return "No products found this week";
-  //     case "This Month":
-  //       return "No products found this month";
-  //     default:
-  //       return "No products found";
-  //   }
-  // };
-  
   const getNoProductsMessage = () => {
-    return "No products found";
+    switch (recentRange) {
+      case "Today":
+        return "No products found today";
+      case "This Week":
+        return "No products found this week";
+      case "This Month":
+        return "No products found this month";
+      default:
+        return "No products found";
+    }
   };
 
   const renderIcon = (key) => {
@@ -489,7 +230,7 @@ const PetStoreDashboard = ({
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.summaryRow}>
-        {updatedSummaryCards.map((card) => (
+        {summaryCards.map((card) => (
           <div
             key={card.title}
             className={`${styles.summaryCard} ${card.wide ? styles.summaryCardWide : ""} ${
@@ -499,12 +240,11 @@ const PetStoreDashboard = ({
             <div className={styles.summaryLeft}>
               <span className={styles.iconBubble}>{renderIcon(card.icon)}</span>
               <div>
-                <p className={styles.summaryLabel}>{card.subText}</p>
                 <p className={styles.summaryValue}>{card.value}</p>
-
+                <p className={styles.summaryLabel}>{card.subText}</p>
               </div>
             </div>
-            {/* {card.wide && <span className={styles.summaryMeta}>{card.title}</span>} */}
+            {card.wide && <span className={styles.summaryMeta}>{card.title}</span>}
           </div>
         ))}
       </div>
@@ -513,8 +253,7 @@ const PetStoreDashboard = ({
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h3>Dashboard</h3>
-            {/* COMMENTED OUT: Time-based filter dropdown */}
-            {/* <select
+            <select
               className={styles.filterSelect}
               value={summaryRange}
               onChange={(e) => setSummaryRange(e.target.value)}
@@ -522,13 +261,13 @@ const PetStoreDashboard = ({
               <option>This Week</option>
               <option>This Month</option>
               <option>This Year</option>
-            </select> */}
+            </select>
           </div>
           <div className={styles.chartWrap}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={categoryDataFromProducts}
+                  data={categoryData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -536,79 +275,32 @@ const PetStoreDashboard = ({
                   innerRadius={80}
                   outerRadius={120}
                   paddingAngle={2}
-                  onClick={(data, index) => {
-                    if (data && data.name) {
-                      // Toggle: if same category clicked, reset filter; otherwise set new filter
-                      if (selectedCategoryFilter === data.name) {
-                        setSelectedCategoryFilter(null);
-                      } else {
-                        setSelectedCategoryFilter(data.name);
-                      }
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
                 >
-                  {categoryDataFromProducts.map((entry, index) => (
-                    <Cell 
-                      key={entry.name} 
-                      fill={chartColors[index % chartColors.length]}
-                      style={{ 
-                        opacity: selectedCategoryFilter && selectedCategoryFilter !== entry.name ? 0.5 : 1,
-                        cursor: 'pointer'
-                      }}
-                    />
+                  {categoryData.map((entry, index) => (
+                    <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${value}%`} />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className={styles.legendRow}>
-            {categoryDataFromProducts.map((entry, index) => (
-              <span 
-                key={entry.name} 
-                className={styles.legendItem}
-                onClick={() => {
-                  // Toggle: if same category clicked, reset filter; otherwise set new filter
-                  if (selectedCategoryFilter === entry.name) {
-                    setSelectedCategoryFilter(null);
-                  } else {
-                    setSelectedCategoryFilter(entry.name);
-                  }
-                }}
-                style={{ 
-                  cursor: 'pointer',
-                  opacity: selectedCategoryFilter && selectedCategoryFilter !== entry.name ? 0.5 : 1
-                }}
-              >
+            {categoryData.map((entry, index) => (
+              <span key={entry.name} className={styles.legendItem}>
                 <span
                   className={styles.legendColor}
                   style={{ backgroundColor: chartColors[index % chartColors.length] }}
                 />
-                {entry.name} ({entry.value}%)
+                {entry.name}
               </span>
             ))}
-            {selectedCategoryFilter && (
-              <span 
-                style={{ 
-                  cursor: 'pointer', 
-                  color: '#f18a19', 
-                  marginLeft: '10px',
-                  fontSize: '12px'
-                }}
-                onClick={() => setSelectedCategoryFilter(null)}
-              >
-                (Clear filter)
-              </span>
-            )}
           </div>
         </div>
 
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h3>Recently added products</h3>
-            {/* COMMENTED OUT: Time-based filter dropdown */}
-            {/* <select
+            <select
               className={styles.filterSelect}
               value={recentRange}
               onChange={(e) => setRecentRange(e.target.value)}
@@ -616,7 +308,7 @@ const PetStoreDashboard = ({
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
-            </select> */}
+            </select>
           </div>
           {loading ? (
             <div style={{ padding: "20px", textAlign: "center" }}>Loading products...</div>
@@ -627,17 +319,7 @@ const PetStoreDashboard = ({
               ) : (
                 <div className={styles.recentList}>
                   {filteredRecentProducts.map((product) => (
-                    <div 
-                      key={product.id} 
-                      className={styles.recentItem}
-                      onClick={() => {
-                        if (typeof window !== "undefined") {
-                          sessionStorage.setItem("productViewReferrer", "dashboard");
-                        }
-                        router.push(`/pet-store/view/${product.id}`);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
+                    <div key={product.id} className={styles.recentItem}>
                       <div className={styles.recentThumb}>
                         <Image
                           src={
@@ -656,17 +338,14 @@ const PetStoreDashboard = ({
                         <p className={styles.recentTitle}>{product.name || "Untitled Product"}</p>
                         <p className={styles.recentType}>{product.type || "Product"}</p>
                         {product.sizes && product.sizes.length > 0 && (
-                          <div className={styles.chipRow} onClick={(e) => e.stopPropagation()}>
+                          <div className={styles.chipRow}>
                             {product.sizes.map((size) => (
                               <button
                                 key={size}
                                 className={`${styles.chip} ${
                                   size === recentSelection[product.id] ? styles.chipActive : ""
                                 }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRecentSize(product.id, size);
-                                }}
+                                onClick={() => handleRecentSize(product.id, size)}
                               >
                                 {size}
                               </button>
@@ -681,13 +360,8 @@ const PetStoreDashboard = ({
               )}
             </>
           )}
-          <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: 'center' }}>
-            <button 
-              className={styles.linkButton}
-              onClick={() => router.push('/pet-store/products')}
-            >
-              View all
-            </button>
+          <div className={styles.cardFooter}>
+            <button className={styles.linkButton}>View all</button>
           </div>
         </div>
       </div>
@@ -696,11 +370,9 @@ const PetStoreDashboard = ({
         <div className={styles.cardHeader}>
           <h3>User Reviews</h3>
         </div>
-        <Reviews reviews={reviews} hideHeader dashboard={true} />
+        <Reviews reviews={reviews} hideHeader />
         <div className={styles.cardFooter}>
-          <button className={styles.linkButton}
-           onClick={() => router.push('/pet-store/reviews')}
-           >View all</button>
+          <button className={styles.linkButton}>View all</button>
         </div>
       </div>
     </div>

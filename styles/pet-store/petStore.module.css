@@ -21,7 +21,7 @@
 
 .cardFooter {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   margin-top: 12px;
 }
 
@@ -33,7 +33,6 @@
   padding: 9px 18px;
   cursor: pointer;
   font-weight: 600;
-  width: 110px;
 }
 
 .summaryRow {
@@ -68,8 +67,8 @@
 }
 
 .summaryValue {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 700;
   color: #111;
   margin: 0;
 }
@@ -309,7 +308,6 @@
   justify-self: end;
   padding-right: 6px;
   white-space: nowrap;
-  width: 180px;
 }
 
 
@@ -486,59 +484,5 @@
     justify-self: start;
     padding-right: 0;
   }
-}
-
-/* Radio Button Styles - Smaller orange fill inside */
-.radioButton {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 18px;
-  height: 18px;
-  border: 2px solid #606266;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
-  position: relative;
-  margin-right: 12px;
-  flex-shrink: 0;
-  padding: 0;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.radioButton:checked {
-  border-color: #606266;
-  background-color: #fff;
-}
-
-.radioButton:checked::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #f18a19;
-}
-
-.radioButton:hover {
-  border-color: #606266;
-}
-
-.radioButton:focus {
-  outline: none;
-  border-color: #606266;
-}
-
-.radioLabel {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 14px;
-  color: #606266;
-  user-select: none;
 }
 
