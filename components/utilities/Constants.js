@@ -15,6 +15,7 @@ if (typeof window !== "undefined") {
     BACKEND_URL = "https://prod.zaanvar.com/api/";
   } else {
     BACKEND_URL = "https://dev.zaanvar.com/api/";
+    // BACKEND_URL = "https://localhost:5000/api/";
     // BACKEND_URL = "https://prod.zaanvar.com/api/";
   }
 } else {
@@ -23,6 +24,7 @@ if (typeof window !== "undefined") {
     BACKEND_URL = "https://prod.zaanvar.com/api/";
   } else {
     BACKEND_URL = "https://dev.zaanvar.com/api/";
+    
     // BACKEND_URL = "https://prod.zaanvar.com/api/";
 
   }
