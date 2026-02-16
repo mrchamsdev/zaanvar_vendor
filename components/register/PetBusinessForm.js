@@ -4,6 +4,9 @@ import { Tik } from "@/public/image/SVG";
 
 const PetBusinessForm = () => {
   const [formData, setFormData] = useState({
+    professionaldomain: "",
+    professionalroletype: "",
+    workidentity: "",
     bussinessname: "",
     ownerName: "",
     email: "",
@@ -159,6 +162,32 @@ const PetBusinessForm = () => {
       <div className={styles.right}>
         <h2>Register Your Pet Business Free</h2>
         <form className={styles.form} onSubmit={handleSubmit}>
+
+           {/* <div className={styles.row}>
+            <div className={styles["row-title"]}>
+              <h4 className={styles["title-tag"]}>Business Name</h4>
+              <input
+                type="text"
+                name="bussinessname"
+                placeholder="Enter Business Name"
+                value={formData.bussinessname}
+                onChange={handleInputChange}
+              />
+              {errors.bussinessname && <span className={styles.errorMsg}>{errors.bussinessname}</span>}
+            </div>
+           
+            <div className={styles["row-title"]}>
+              <h4 className={styles["title-tag"]}>Owner's Name</h4>
+              <input
+                type="text"
+                name="ownerName"
+                placeholder="Enter Owner's Name"
+                value={formData.ownerName}
+                onChange={handleInputChange}
+              />
+              {errors.ownerName && <span className={styles.errorMsg}>{errors.ownerName}</span>}
+            </div>
+          </div> */}
           {/* ---------------------------
               Row 1: Business & Owner Name
               --------------------------- */}

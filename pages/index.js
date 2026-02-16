@@ -120,7 +120,7 @@ export default function Home() {
             Exclusively for breeders, clinics, trainers, and all pet service providers.  
             Free to use. No hidden fees.
           </p>
-          <button className={style["register-button"]} onClick={() => router.push("/book-demo")}>
+          <button className={style["register-button"]} onClick={() => router.push("/register")}>
             Register Today
           </button>
         </div>

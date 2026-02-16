@@ -141,7 +141,7 @@ const ServicesWeOffer = () => {
 const Router= useRouter();
 
 const handleClick = ()=>{
-Router.push("/book-demo")
+Router.push("/register")
 }
 
   return (
