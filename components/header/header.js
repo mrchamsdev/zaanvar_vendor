@@ -8,7 +8,7 @@ const Header = () => {
 
     const Router = useRouter();
   const handleOnclick = ()=>{
-    Router.push("/book-demo")
+    Router.push("/register")
   }
   const handleLogin = ()=>{
     Router.push("/login")
@@ -115,9 +115,9 @@ const Header = () => {
     About Us
   </Link>
   <Link
-    href="/book-demo"
+    href="/register"
     onClick={closeMenu}
-    className={isActive("/book-demo") ? style.activeLink : ""}
+    className={isActive("/register") ? style.activeLink : ""}
   >
     Contact Us
   </Link>

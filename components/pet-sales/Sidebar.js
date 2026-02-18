@@ -50,19 +50,24 @@ const Sidebar = ({
         </h2>
 
         <ul className={styles.nav}>
-          {menuItems.map((item) => (
-            <li
-              key={item.name}
-              className={router.pathname === item.path ? styles.active : ""}
-
-              onClick={() => isMobile && setMobileOpen(false)}
-            >
-              <Link href={item.path}>
-                {item.icon && React.cloneElement(item.icon, { className: styles.icon })}
-                {!collapsed && <span className={styles.name}>{item.name}</span>}
-              </Link>
-            </li>
-          ))}
+          {menuItems.map((item) => {
+            const isActive = router.pathname === item.path;
+            // Use the same icon for both active and non-active states
+            const iconToUse = item.activeIcon || item.icon;
+            
+            return (
+              <li
+                key={item.name}
+                className={isActive ? styles.active : ""}
+                onClick={() => isMobile && setMobileOpen(false)}
+              >
+                <Link href={item.path}>
+                  {iconToUse && React.cloneElement(iconToUse, { className: styles.icon })}
+                  {!collapsed && <span className={styles.name}>{item.name}</span>}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </aside>
     </>

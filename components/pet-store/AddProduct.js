@@ -1,1528 +1,726 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/router";
 import Image from "next/image";
 import styles from "../../styles/pet-store/addProduct.module.css";
-import { WebApimanager } from "@/components/utilities/WebApiManager";
+import { FiX, FiMinus, FiSquare } from "react-icons/fi";
+import { productService } from "../../services/productService";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 
-const AddProduct = ({ onClose, returnPath = "/pet-store/products", editProductId = null, editProductData = null }) => {
-  const router = useRouter();
-  const { getJwtToken } = useStore();
-  const jwt = getJwtToken();
-  const webApi = new WebApimanager(jwt);
-  const isEditMode = !!editProductId;
+const UNITS = [
+  "None", "BAGS (Bag)", "BOTTLES (Btl)", "BOX (Box)", "BUNDLES (Bdl)", 
+  "CANS (Can)", "CARTONS (Ctn)", "DOZENS (Dzn)", "GRAMMES (Gm)", 
+  "KILOGRAMS (Kg)", "LITRE (Ltr)", "METERS (Mtr)", "MILILITRE (Ml)", 
+  "NUMBERS (Nos)", "PACKS (Pac)", "PAIRS (Prs)", "PIECES (Pcs)", 
+  "QUINTAL (Qtl)", "ROLLS (Rol)", "SQUARE FEET (Sqf)"
+];
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isMaximized, setIsMaximized] = useState(true);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+const UnitPopup = ({ isOpen, onClose, primaryUnit, secondaryUnit, conversion, onSelect }) => {
+  const [selectedOption, setSelectedOption] = useState("custom");
+  const [customValue, setCustomValue] = useState("");
 
-  // Initialize form data - use editProductData if provided
-  const initializeFormData = () => {
-    if (editProductData) {
-      // Parse features from string to array
-      const featuresArray = editProductData.features 
-        ? (typeof editProductData.features === 'string' 
-          ? editProductData.features.split(',').map(f => f.trim()).filter(f => f)
-          : (Array.isArray(editProductData.features) ? editProductData.features : []))
-        : [];
-      
-      // Ensure at least one empty field if no features
-      if (featuresArray.length === 0) {
-        featuresArray.push("");
-      }
-      
-      // Parse petType - could be string or array
-      const petTypeArray = editProductData.petType
-        ? (Array.isArray(editProductData.petType) 
-          ? editProductData.petType 
-          : [editProductData.petType])
-        : [];
+  if (!isOpen) return null;
 
-      // Map variants
-      const mappedVariants = editProductData.variants && editProductData.variants.length > 0
-        ? editProductData.variants.map(variant => ({
-            variantType: variant.variantType || "",
-            pieces: variant.pieces || "",
-            sellingPrice: variant.sellingPrice || "",
-            mrp: variant.mrp || "",
-            discountPercentage: variant.discountPercentage || "",
-            skuCode: variant.skuCode || "",
-            description: variant.description || "",
-            imageUrl: variant.imageUrls || "",
-            imageUrls: variant.imageUrls ? [variant.imageUrls] : [],
-            images: variant.imageUrls ? [variant.imageUrls] : [], // Preview images (data URLs)
-            variantImageFiles: [], // Store actual File objects for upload (multiple images)
-          }))
-        : [{}];
+  const unitLabel = primaryUnit.split(' ')[0] || "Unit";
+  const secondaryLabel = secondaryUnit.split(' ')[0] || "pieces";
 
-      return {
-        // Step 1: Images
-        frontImage: null,
-        frontImageUrl: editProductData.frontImageUrl || "",
-        frontImagePreview: editProductData.frontImageUrl || "", // For preview
-        backImage: null,
-        backImageUrl: editProductData.backImageUrl || "",
-        backImagePreview: editProductData.backImageUrl || "", // For preview
-        
-        // Step 2: Product Info
-        petType: petTypeArray,
-        productName: editProductData.productName || "",
-        brandName: editProductData.brandName || "",
-        categoryId: editProductData.categoryId?.toString() || "",
-        subCategoryId: editProductData.subCategoryId?.toString() || "",
-        features: featuresArray.length > 0 ? featuresArray : [""],
-        description: editProductData.description || "",
-        
-        // Category-specific fields
-        clothType: editProductData.clothType || "",
-        materialType: editProductData.materialType || "",
-        color: editProductData.color || "",
-        breedSize: editProductData.breedSize || "",
-        specialIngredients: editProductData.specialIngredients || "",
-        flavour: editProductData.flavour || "",
-        specificUses: editProductData.specificUses || "",
-        itemForm: editProductData.itemForm || "",
-        productBenefits: editProductData.productBenefits || "",
-        specialFeatures: editProductData.specialFeatures || "",
-        dimensions: editProductData.dimensions || "",
-        pattern: editProductData.pattern || "",
-        material: editProductData.material || "",
-        toyType: editProductData.toyType || "",
-        recommendedFor: editProductData.recommendedFor || "",
-        
-        // Step 3: Variants
-        variants: mappedVariants,
-      };
-    }
+  const handleSub = () => {
+    let finalConversion = "1";
+    if (selectedOption === "12") finalConversion = "12";
+    else if (selectedOption === "10") finalConversion = "10";
+    else finalConversion = customValue;
     
-    // Default empty form
-    return {
-      // Step 1: Images
-      frontImage: null,
-      frontImageUrl: "",
-      frontImagePreview: "",
-      backImage: null,
-      backImageUrl: "",
-      backImagePreview: "",
-      
-      // Step 2: Product Info
-      petType: [],
-      productName: "",
-      brandName: "",
-      categoryId: "",
-      subCategoryId: "",
-      features: [""],
-      description: "",
-      
-      // Category-specific fields
-      clothType: "",
-      materialType: "",
-      color: "",
-      breedSize: "",
-      specialIngredients: "",
-      flavour: "",
-      specificUses: "",
-      itemForm: "",
-      productBenefits: "",
-      specialFeatures: "",
-      dimensions: "",
-      pattern: "",
-      material: "",
-      toyType: "",
-      recommendedFor: "",
-      
-      // Step 3: Variants
-      variants: [{}],
-    };
-  };
-
-  const [formData, setFormData] = useState(() => initializeFormData());
-
-  const frontImageInputRef = useRef(null);
-  const backImageInputRef = useRef(null);
-  const variantImageInputRefs = useRef({});
-
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // When editProductData changes, update formData
-  useEffect(() => {
-    if (editProductData) {
-      const newFormData = initializeFormData();
-      setFormData(newFormData);
-      // Set selected category if available
-      if (editProductData.categoryId) {
-        // Category will be set after categories are fetched
-      }
-    }
-  }, [editProductData]);
-
-  // Set selected category when categories are loaded and we have editProductData
-  useEffect(() => {
-    if (categories.length > 0 && editProductData?.categoryId) {
-      const category = categories.find(c => c.id === parseInt(editProductData.categoryId));
-      if (category) {
-        setSelectedCategory(category);
-      }
-    }
-  }, [categories, editProductData]);
-
-  // Fetch subcategories when category changes
-  useEffect(() => {
-    if (formData.categoryId) {
-      fetchSubCategories(formData.categoryId);
-      const category = categories.find(c => c.id === parseInt(formData.categoryId));
-      setSelectedCategory(category);
-    }
-  }, [formData.categoryId]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await webApi.get("vendor/petstore/categories");
-      if (response?.data?.data) {
-        setCategories(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  };
-
-  const fetchSubCategories = async (categoryId) => {
-    try {
-      const response = await webApi.get("vendor/petstore/subcategories", { categoryId });
-      if (response?.data?.data) {
-        setSubCategories(response.data.data);
-      } else {
-        setSubCategories([]);
-      }
-    } catch (error) {
-      console.error("Error fetching subcategories:", error);
-      setSubCategories([]);
-    }
-  };
-
-  const handleImageUpload = async (type, file) => {
-    if (file) {
-      // For preview, use data URL (stored separately)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "front") {
-          setFormData(prev => ({
-            ...prev,
-            frontImage: file,
-            frontImagePreview: reader.result, // Store data URL for preview only
-          }));
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            backImage: file,
-            backImagePreview: reader.result, // Store data URL for preview only
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-
-      // Don't upload image here - backend will handle upload via multer
-      // Just store the file, it will be sent in FormData on submit
-    }
-  };
-
-  const handleRemoveImage = (type) => {
-    if (type === "front") {
-      setFormData(prev => ({
-        ...prev,
-        frontImage: null,
-        frontImageUrl: "",
-        frontImagePreview: "",
-      }));
-      if (frontImageInputRef.current) {
-        frontImageInputRef.current.value = "";
-      }
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        backImage: null,
-        backImageUrl: "",
-        backImagePreview: "",
-      }));
-      if (backImageInputRef.current) {
-        backImageInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handlePetTypeChange = (petType) => {
-    setFormData(prev => {
-      const currentTypes = prev.petType || [];
-      if (currentTypes.includes(petType)) {
-        return {
-          ...prev,
-          petType: currentTypes.filter(t => t !== petType),
-        };
-      } else {
-        return {
-          ...prev,
-          petType: [...currentTypes, petType],
-        };
-      }
-    });
-  };
-
-  const handleFeaturesChange = (index, value) => {
-    setFormData(prev => {
-      const currentFeatures = [...(prev.features || [])];
-      // Ensure array is long enough
-      while (currentFeatures.length <= index) {
-        currentFeatures.push("");
-      }
-      currentFeatures[index] = value;
-      return {
-        ...prev,
-        features: currentFeatures,
-      };
-    });
-  };
-
-  const handleAddFeatureField = () => {
-    setFormData(prev => {
-      const currentFeatures = prev.features || [];
-      return {
-        ...prev,
-        features: [...currentFeatures, ""],
-      };
-    });
-  };
-
-  const handleRemoveFeatureField = (index) => {
-    setFormData(prev => {
-      const currentFeatures = [...(prev.features || [])];
-      currentFeatures.splice(index, 1);
-      return {
-        ...prev,
-        features: currentFeatures.length > 0 ? currentFeatures : [""],
-      };
-    });
-  };
-
-  const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleMinimize = () => {
-    setIsMaximized(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("addProductMinimized", "true");
-      sessionStorage.setItem("addProductReturnPath", returnPath);
-      // Store form data in sessionStorage to restore later
-      sessionStorage.setItem("addProductFormData", JSON.stringify(formData));
-      sessionStorage.setItem("addProductCurrentStep", currentStep.toString());
-    }
-    router.push(returnPath);
-  };
-
-  const handleMaximize = () => {
-    setIsMaximized(true);
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("addProductMinimized");
-      // Restore form data if available
-      const savedFormData = sessionStorage.getItem("addProductFormData");
-      const savedStep = sessionStorage.getItem("addProductCurrentStep");
-      if (savedFormData) {
-        setFormData(JSON.parse(savedFormData));
-      }
-      if (savedStep) {
-        setCurrentStep(parseInt(savedStep));
-      }
-    }
-  };
-
-  const handleClose = () => {
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("addProductMinimized");
-      sessionStorage.removeItem("addProductReturnPath");
-    }
-    if (onClose) {
-      onClose();
-    } else {
-      router.push(returnPath);
-    }
-  };
-
-  const handleSubmitSubCategory = async (categoryId, subCategoryName) => {
-    try {
-      const response = await webApi.post("vendor/petstore/subcategories", {
-        categoryId: parseInt(categoryId),
-        name: subCategoryName,
-      });
-      if (response?.data) {
-        // Refresh subcategories
-        if (formData.categoryId) {
-          await fetchSubCategories(formData.categoryId);
-        }
-        setShowSubCategoryModal(false);
-        // Reset select value
-        setFormData(prev => ({ ...prev, subCategoryId: "" }));
-      }
-    } catch (error) {
-      console.error("Error creating subcategory:", error);
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      // Create FormData object
-      const formDataToSend = new FormData();
-
-      // Basic fields
-      const petType = Array.isArray(formData.petType) && formData.petType.length > 0 
-        ? formData.petType[0] 
-        : (typeof formData.petType === 'string' ? formData.petType : "");
-      formDataToSend.append("petType", petType);
-      formDataToSend.append("productName", formData.productName || "");
-      formDataToSend.append("brandName", formData.brandName || "");
-      formDataToSend.append("categoryId", formData.categoryId ? parseInt(formData.categoryId) : "");
-      formDataToSend.append("subCategoryId", formData.subCategoryId ? parseInt(formData.subCategoryId) : "");
-      formDataToSend.append("description", formData.description || "");
-
-      // Features as array - send as JSON string
-      const featuresArray = Array.isArray(formData.features) 
-        ? formData.features.filter(f => f && f.trim() !== "") 
-        : (typeof formData.features === 'string' && formData.features.trim() !== "" 
-          ? [formData.features] 
-          : []);
-      formDataToSend.append("features", JSON.stringify(featuresArray));
-
-      // Images - send File objects directly, backend will upload to S3
-      if (formData.frontImage) {
-        formDataToSend.append("frontImageUrl", formData.frontImage);
-      } else if (formData.frontImageUrl && !formData.frontImageUrl.startsWith('data:')) {
-        // If editing and image already exists, send URL
-        const frontImageUrl = formData.frontImageUrl.startsWith('http') 
-          ? formData.frontImageUrl 
-          : (formData.frontImageUrl.startsWith(IMAGE_URL) 
-            ? formData.frontImageUrl 
-            : `${IMAGE_URL}${formData.frontImageUrl}`);
-        formDataToSend.append("frontImageUrl", frontImageUrl);
-      }
-
-      if (formData.backImage) {
-        formDataToSend.append("backImageUrl", formData.backImage);
-      } else if (formData.backImageUrl && !formData.backImageUrl.startsWith('data:')) {
-        // If editing and image already exists, send URL
-        const backImageUrl = formData.backImageUrl.startsWith('http') 
-          ? formData.backImageUrl 
-          : (formData.backImageUrl.startsWith(IMAGE_URL) 
-            ? formData.backImageUrl 
-            : `${IMAGE_URL}${formData.backImageUrl}`);
-        formDataToSend.append("backImageUrl", backImageUrl);
-      }
-
-      // Variants - send as JSON string and upload image files separately
-      const variantsData = formData.variants.map((variant, index) => {
-        const variantObj = {
-          variantType: variant.variantType || "",
-          pieces: variant.pieces ? parseInt(variant.pieces) || 0 : 0,
-          sellingPrice: variant.sellingPrice || "",
-          mrp: variant.mrp || "",
-          discountPercentage: variant.discountPercentage || "",
-          skuCode: variant.skuCode || "",
-          description: variant.description || "",
-        };
-
-        // Add imageUrl only if it's an existing URL (not a data URL and not a new file)
-        // If it's a new file, backend will return the URL in response
-        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-          // New files being uploaded, don't include imageUrl - backend will set it
-        } else if (variant.imageUrl && typeof variant.imageUrl === 'string' && !variant.imageUrl.startsWith('data:')) {
-          // Existing image URL from edit mode (single imageUrl)
-          const imageUrl = variant.imageUrl.startsWith('http') 
-            ? variant.imageUrl 
-            : (variant.imageUrl.startsWith(IMAGE_URL)
-              ? variant.imageUrl
-              : `${IMAGE_URL}${variant.imageUrl}`);
-          variantObj.imageUrl = imageUrl;
-        } else if (variant.imageUrls && Array.isArray(variant.imageUrls) && variant.imageUrls.length > 0) {
-          // Existing image URLs from edit mode (array of imageUrls)
-          const firstImageUrl = variant.imageUrls[0];
-          if (typeof firstImageUrl === 'string' && !firstImageUrl.startsWith('data:')) {
-            const imageUrl = firstImageUrl.startsWith('http') 
-              ? firstImageUrl 
-              : (firstImageUrl.startsWith(IMAGE_URL)
-                ? firstImageUrl
-                : `${IMAGE_URL}${firstImageUrl}`);
-            variantObj.imageUrl = imageUrl;
-          }
-        }
-
-        return variantObj;
-      });
-      formDataToSend.append("variants", JSON.stringify(variantsData));
-
-      // Upload variant images as files - backend will upload to S3 and return URLs
-      formData.variants.forEach((variant, index) => {
-        if (variant.variantImageFiles && variant.variantImageFiles.length > 0) {
-          variant.variantImageFiles.forEach((file) => {
-            formDataToSend.append("variantImages", file);
-          });
-        }
-      });
-
-      // Add category-specific fields
-      const categoryName = selectedCategory?.name?.toLowerCase() || "";
-      
-      if (categoryName.includes("cloth")) {
-        formDataToSend.append("clothType", formData.clothType || "");
-        formDataToSend.append("materialType", formData.materialType || "");
-        formDataToSend.append("color", formData.color || "");
-        formDataToSend.append("breedSize", formData.breedSize || "");
-      } else if (categoryName.includes("food")) {
-        formDataToSend.append("specialIngredients", formData.specialIngredients || "");
-        formDataToSend.append("flavour", formData.flavour || "");
-        formDataToSend.append("breedSize", formData.breedSize || "");
-        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
-        formDataToSend.append("itemForm", formData.itemForm || "");
-      } else if (categoryName.includes("grooming")) {
-        formDataToSend.append("material", formData.material || "");
-        formDataToSend.append("specieUsesForProduct", formData.specificUses || "");
-        formDataToSend.append("itemForm", formData.itemForm || "");
-        formDataToSend.append("productBenefits", formData.productBenefits || "");
-      } else if (categoryName.includes("accessor")) {
-        formDataToSend.append("specialFeatures", formData.specialFeatures || "");
-        formDataToSend.append("dimensions", formData.dimensions || "");
-        formDataToSend.append("pattern", formData.pattern || "");
-        formDataToSend.append("breedSize", formData.breedSize || "");
-        formDataToSend.append("material", formData.material || "");
-        formDataToSend.append("color", formData.color || "");
-        formDataToSend.append("toyType", formData.toyType || "");
-      }
-
-      let response;
-      if (isEditMode && editProductId) {
-        // Use imagePut for edit mode (FormData)
-        response = await webApi.imagePut(`vendor/petstore/products/${editProductId}`, formDataToSend);
-      } else {
-        // Use imagePost for new product (FormData)
-        response = await webApi.imagePost("vendor/petstore/products", formDataToSend);
-      }
-      
-      if (response?.data || response?.status === "success") {
-        handleClose();
-        // Refresh the page to show updated data
-        if (isEditMode) {
-          // If editing, reload the current page to show updated data
-          window.location.reload();
-        } else {
-          // If adding new, set flag to trigger refetch and navigate to return path
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("productAdded", "true");
-          }
-          router.push(returnPath);
-        }
-      }
-    } catch (error) {
-      console.error("Error submitting product:", error);
-    }
-  };
-
-  // Get category-specific fields for right column based on selected category
-  const getCategoryFieldsRight = () => {
-    const categoryName = selectedCategory?.name?.toLowerCase() || "";
-    
-    if (categoryName.includes("food")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Specific uses for product</label>
-            <input
-              type="text"
-              placeholder="Enter the uses"
-              value={formData.specificUses}
-              onChange={(e) => handleInputChange("specificUses", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Item Form</label>
-            <input
-              type="text"
-              placeholder="Enter form"
-              value={formData.itemForm}
-              onChange={(e) => handleInputChange("itemForm", e.target.value)}
-            />
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("cloth")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Material type</label>
-            <input
-              type="text"
-              placeholder="Enter Material type"
-              value={formData.materialType}
-              onChange={(e) => handleInputChange("materialType", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Color</label>
-            <select
-              value={formData.color}
-              onChange={(e) => handleInputChange("color", e.target.value)}
-            >
-              <option value="">Select color</option>
-              <option value="Red">Red</option>
-              <option value="Blue">Blue</option>
-              <option value="Black">Black</option>
-              <option value="White">White</option>
-            </select>
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("accessor")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Material</label>
-            <input
-              type="text"
-              placeholder="Enter Material type eg, Plastic, metal"
-              value={formData.material}
-              onChange={(e) => handleInputChange("material", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Dimensions</label>
-            <input
-              type="text"
-              placeholder="Enter dimensions"
-              value={formData.dimensions}
-              onChange={(e) => handleInputChange("dimensions", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Color</label>
-            <select
-              value={formData.color}
-              onChange={(e) => handleInputChange("color", e.target.value)}
-            >
-              <option value="">Select color</option>
-              <option value="Red">Red</option>
-              <option value="Blue">Blue</option>
-              <option value="Black">Black</option>
-              <option value="White">White</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Toy type</label>
-            <input
-              type="text"
-              placeholder="Enter toy type"
-              value={formData.toyType}
-              onChange={(e) => handleInputChange("toyType", e.target.value)}
-            />
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("grooming")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Material</label>
-            <input
-              type="text"
-              placeholder="Enter Material type eg, spray, shampoo"
-              value={formData.material}
-              onChange={(e) => handleInputChange("material", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Product benefits</label>
-            <input
-              type="text"
-              placeholder="Enter product benefits"
-              value={formData.productBenefits}
-              onChange={(e) => handleInputChange("productBenefits", e.target.value)}
-            />
-          </div>
-        </>
-      );
-    }
-    return null;
-  };
-
-  // Get category-specific fields based on selected category
-  const getCategoryFields = () => {
-    const categoryName = selectedCategory?.name?.toLowerCase() || "";
-    
-    if (categoryName.includes("cloth")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Type</label>
-            <input
-              type="text"
-              placeholder="Select cloth Type eg, hoodie"
-              value={formData.clothType}
-              onChange={(e) => handleInputChange("clothType", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Features</label>
-            <div className={styles.featureInputs}>
-              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
-                <div key={index} className={styles.featureInputRow}>
-                  <input
-                    type="text"
-                    placeholder="Enter feature"
-                    value={feature}
-                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
-                  />
-                  {index > 0 && (
-                    <button 
-                      type="button"
-                      className={styles.removeFeatureBtn}
-                      onClick={() => handleRemoveFeatureField(index)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button 
-                type="button"
-                className={styles.addFeatureBtn}
-                onClick={handleAddFeatureField}
-              >
-                + Add Feature
-              </button>
-            </div>
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("food")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Special Ingredients</label>
-            <input
-              type="text"
-              placeholder="Enter ingredients"
-              value={formData.specialIngredients}
-              onChange={(e) => handleInputChange("specialIngredients", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Flavour</label>
-            <input
-              type="text"
-              placeholder="Enter Flavour"
-              value={formData.flavour}
-              onChange={(e) => handleInputChange("flavour", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Features</label>
-            <div className={styles.featureInputs}>
-              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
-                <div key={index} className={styles.featureInputRow}>
-                  <input
-                    type="text"
-                    placeholder="Enter feature"
-                    value={feature}
-                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
-                  />
-                  {index > 0 && (
-                    <button 
-                      type="button"
-                      className={styles.removeFeatureBtn}
-                      onClick={() => handleRemoveFeatureField(index)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button 
-                type="button"
-                className={styles.addFeatureBtn}
-                onClick={handleAddFeatureField}
-              >
-                + Add Feature
-              </button>
-            </div>
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("grooming")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Special Ingredients</label>
-            <input
-              type="text"
-              placeholder="Enter ingredients"
-              value={formData.specialIngredients}
-              onChange={(e) => handleInputChange("specialIngredients", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Item Form</label>
-            <input
-              type="text"
-              placeholder="Enter Item form eg, spray"
-              value={formData.itemForm}
-              onChange={(e) => handleInputChange("itemForm", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Features</label>
-            <div className={styles.featureInputs}>
-              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
-                <div key={index} className={styles.featureInputRow}>
-                  <input
-                    type="text"
-                    placeholder="Enter feature"
-                    value={feature}
-                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
-                  />
-                  {index > 0 && (
-                    <button 
-                      type="button"
-                      className={styles.removeFeatureBtn}
-                      onClick={() => handleRemoveFeatureField(index)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button 
-                type="button"
-                className={styles.addFeatureBtn}
-                onClick={handleAddFeatureField}
-              >
-                + Add Feature
-              </button>
-            </div>
-          </div>
-        </>
-      );
-    } else if (categoryName.includes("accessor")) {
-      return (
-        <>
-          <div className={styles.formGroup}>
-            <label>Special features</label>
-            <input
-              type="text"
-              placeholder="Enter special features"
-              value={formData.specialFeatures}
-              onChange={(e) => handleInputChange("specialFeatures", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Pattern</label>
-            <input
-              type="text"
-              placeholder="Enter pattern type"
-              value={formData.pattern}
-              onChange={(e) => handleInputChange("pattern", e.target.value)}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Breed Size</label>
-            <select
-              value={formData.breedSize}
-              onChange={(e) => handleInputChange("breedSize", e.target.value)}
-            >
-              <option value="">Select breed size</option>
-              <option value="Small">Small</option>
-              <option value="Medium">Medium</option>
-              <option value="Large">Large</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Features</label>
-            <div className={styles.featureInputs}>
-              {(formData.features && formData.features.length > 0 ? formData.features : [""]).map((feature, index) => (
-                <div key={index} className={styles.featureInputRow}>
-                  <input
-                    type="text"
-                    placeholder="Enter feature"
-                    value={feature}
-                    onChange={(e) => handleFeaturesChange(index, e.target.value)}
-                  />
-                  {index > 0 && (
-                    <button 
-                      type="button"
-                      className={styles.removeFeatureBtn}
-                      onClick={() => handleRemoveFeatureField(index)}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button 
-                type="button"
-                className={styles.addFeatureBtn}
-                onClick={handleAddFeatureField}
-              >
-                + Add Feature
-              </button>
-            </div>
-          </div>
-        </>
-      );
-    }
-    return null;
+    onSelect('conversion', finalConversion);
+    onClose();
   };
 
   return (
-    <>
-      <div className={`${styles.addProductModal} ${!isMaximized ? styles.minimized : ""}`}>
-        <div className={styles.header}>
-          <h2>{isEditMode ? "Edit Product" : "Add Product"}</h2>
-          <div className={styles.windowActions}>
-            <button onClick={handleMinimize} className={styles.windowBtn} title="Minimize">–</button>
-            <button onClick={() => setIsMaximized(!isMaximized)} className={styles.windowBtn} title="Maximize">☐</button>
-            <button onClick={handleClose} className={styles.windowBtn} title="Close">✕</button>
+    <div className={styles.unitPopupOverlay} onClick={onClose}>
+      <div className={styles.unitPopup} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3>Select SECONDARY UNIT</h3>
+          <button className={styles.iconBtn} onClick={onClose}>✕</button>
+        </div>
+        <div className={styles.smallFormGrid}>
+          <div className={styles.formGroup}>
+            <label>Unit Type</label>
+            <select 
+              value={primaryUnit} 
+              onChange={(e) => onSelect('unitType', e.target.value)}
+            >
+              <option value="">Select Unit Type here</option>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          <div className={styles.formGroup}>
+            <label>SECONDARY UNIT</label>
+            <select 
+              value={secondaryUnit} 
+              onChange={(e) => onSelect('secondaryUnit', e.target.value)}
+            >
+              <option value="">Select Secondary unit here</option>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
           </div>
         </div>
 
-        {isMaximized && (
-          <div className={styles.content}>
-            {/* Progress Indicator */}
-            <div className={styles.progressIndicator}>
-              <div className={styles.progressLine}>
-                <div className={`${styles.progressSegment} ${currentStep >= 1 ? styles.active : ""}`}></div>
-                <div className={`${styles.progressSegment} ${currentStep >= 2 ? styles.active : ""}`}></div>
-                <div className={`${styles.progressSegment} ${currentStep >= 3 ? styles.active : ""}`}></div>
-              </div>
-              <div className={styles.steps}>
-                <div className={`${styles.step} ${currentStep === 1 ? styles.active : ""}`}>
-                  <div className={styles.stepNumber}>1</div>
-                </div>
-                <div className={`${styles.step} ${currentStep === 2 ? styles.active : ""}`}>
-                  <div className={styles.stepNumber}>2</div>
-                  {currentStep === 2 && <div className={styles.dogIcon}>🐕</div>}
-                </div>
-                <div className={`${styles.step} ${currentStep === 3 ? styles.active : ""}`}>
-                  <div className={styles.stepNumber}>3</div>
-                </div>
-              </div>
+        {primaryUnit && secondaryUnit && (
+          <div className={styles.unitList}>
+            <div className={styles.unitItem}>
+              <input 
+                type="radio" 
+                name="conversion" 
+                checked={selectedOption === "custom"}
+                onChange={() => setSelectedOption("custom")}
+              />
+              <label>1 {unitLabel} = </label>
+              <input 
+                type="text" 
+                placeholder="Enter here" 
+                value={customValue}
+                onChange={(e) => setCustomValue(e.target.value)}
+                onClick={() => setSelectedOption("custom")}
+              />
             </div>
-
-            {/* Step 1: Upload Images */}
-            {currentStep === 1 && (
-              <div className={styles.stepContent}>
-                <h3 className={styles.sectionTitle}>Upload Image</h3>
-                <div className={styles.imageUploadSection}>
-                  <div className={styles.imageUploadBox}>
-                    <label>Front image:</label>
-                    <div
-                      className={styles.uploadArea}
-                      onClick={() => frontImageInputRef.current?.click()}
-                    >
-                      <div className={styles.cameraIcon}>📷</div>
-                      <p>Upload the product front image here</p>
-                    </div>
-                    <input
-                      ref={frontImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={(e) => handleImageUpload("front", e.target.files[0])}
-                    />
-                    {(formData.frontImagePreview || formData.frontImageUrl) && (
-                      <div className={styles.imagePreview}>
-                        <Image
-                          src={formData.frontImagePreview || formData.frontImageUrl}
-                          alt="Front preview"
-                          width={100}
-                          height={100}
-                        />
-                        <button
-                          className={styles.removeImage}
-                          onClick={() => handleRemoveImage("front")}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.imageUploadBox}>
-                    <label>Back image:</label>
-                    <div
-                      className={styles.uploadArea}
-                      onClick={() => backImageInputRef.current?.click()}
-                    >
-                      <div className={styles.cameraIcon}>📷</div>
-                      <p>Upload the product back image here</p>
-                    </div>
-                    <input
-                      ref={backImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={(e) => handleImageUpload("back", e.target.files[0])}
-                    />
-                    {(formData.backImagePreview || formData.backImageUrl) && (
-                      <div className={styles.imagePreview}>
-                        <Image
-                          src={formData.backImagePreview || formData.backImageUrl}
-                          alt="Back preview"
-                          width={100}
-                          height={100}
-                        />
-                        <button
-                          className={styles.removeImage}
-                          onClick={() => handleRemoveImage("back")}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Product Information */}
-            {currentStep === 2 && (
-              <div className={styles.stepContent}>
-                <h3 className={styles.sectionTitle}>Enter product information</h3>
-                <div className={styles.formGrid}>
-                  <div className={styles.formColumn}>
-                    <div className={styles.formGroup}>
-                      <label>Enter Pet Type</label>
-                      <div className={styles.chipInput}>
-                        {formData.petType.map((type) => (
-                          <span key={type} className={styles.chip}>
-                            {type}
-                            <button onClick={() => handlePetTypeChange(type)}>✕</button>
-                          </span>
-                        ))}
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handlePetTypeChange(e.target.value);
-                              e.target.value = "";
-                            }
-                          }}
-                        >
-                          <option value="">Select Pet Type</option>
-                          <option value="Dog">Dog</option>
-                          <option value="Cat">Cat</option>
-                          <option value="Bird">Bird</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Product name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter Product Name"
-                        value={formData.productName}
-                        onChange={(e) => handleInputChange("productName", e.target.value)}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>sub Category</label>
-                      <select
-                        value={formData.subCategoryId}
-                        onChange={(e) => {
-                          if (e.target.value === "add_new") {
-                            setShowSubCategoryModal(true);
-                            // Reset to empty to prevent "add_new" from showing as selected
-                            setTimeout(() => {
-                              setFormData(prev => ({ ...prev, subCategoryId: "" }));
-                            }, 0);
-                          } else {
-                            handleInputChange("subCategoryId", e.target.value);
-                          }
-                        }}
-                      >
-                        <option value="">Select Sub Category</option>
-                        {subCategories.map((sub) => (
-                          <option key={sub.id} value={sub.id}>
-                            {sub.name}
-                          </option>
-                        ))}
-                        <option value="add_new" className={styles.addSubCategoryOption}>
-                          + Add Sub Category
-                        </option>
-                      </select>
-                    </div>
-
-                    {getCategoryFields()}
-                  </div>
-
-                  <div className={styles.formColumn}>
-                    <div className={styles.formGroup}>
-                      <label>Brand Name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter Brand name"
-                        value={formData.brandName}
-                        onChange={(e) => handleInputChange("brandName", e.target.value)}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label>Category</label>
-                      <select
-                        value={formData.categoryId}
-                        onChange={(e) => handleInputChange("categoryId", e.target.value)}
-                      >
-                        <option value="">Select Category here</option>
-                        {categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Breed Size for Food category - shown in right column after Category */}
-                    {selectedCategory?.name?.toLowerCase().includes("food") && (
-                      <div className={styles.formGroup}>
-                        <label>Breed Size</label>
-                        <select
-                          value={formData.breedSize}
-                          onChange={(e) => handleInputChange("breedSize", e.target.value)}
-                        >
-                          <option value="">Select breed size</option>
-                          <option value="Small">Small</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Large">Large</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Category-specific fields for right column */}
-                    {getCategoryFieldsRight()}
-
-                    {/* Recommended for - only for Grooming category, before Description */}
-                    {selectedCategory?.name?.toLowerCase().includes("grooming") && (
-                      <div className={styles.formGroup}>
-                        <label>Recommended for</label>
-                        <input
-                          type="text"
-                          placeholder="eg., high protein"
-                          value={formData.recommendedFor}
-                          onChange={(e) => handleInputChange("recommendedFor", e.target.value)}
-                        />
-                      </div>
-                    )}
-
-                    <div className={styles.formGroup}>
-                      <label>Description</label>
-                      <textarea
-                        placeholder="Type here..."
-                        value={formData.description}
-                        onChange={(e) => handleInputChange("description", e.target.value)}
-                        rows={4}
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Variants */}
-            {currentStep === 3 && (
-              <div className={styles.stepContent}>
-                <div className={styles.variantsHeader}>
-                  <h3 className={styles.sectionTitle}>Add Variants</h3>
-                  <button
-                    className={styles.addMoreBtn}
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        variants: [...prev.variants, {}],
-                      }));
-                    }}
-                  >
-                    + Add more
-                  </button>
-                </div>
-                <div className={styles.variantsSection}>
-                  {formData.variants.map((variant, index) => (
-                    <div key={index} className={styles.variantCard} style={{ position: 'relative' }}>
-                      {index > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newVariants = formData.variants.filter((_, i) => i !== index);
-                            setFormData(prev => ({ ...prev, variants: newVariants.length > 0 ? newVariants : [{}] }));
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: '10px',
-                            right: '10px',
-                            background: '#ff4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '30px',
-                            height: '30px',
-                            cursor: 'pointer',
-                            fontSize: '18px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10
-                          }}
-                          title="Remove variant"
-                        >
-                          ✕
-                        </button>
-                      )}
-                      <div className={styles.variantFormGrid}>
-                        {/* Two-column layout for top fields */}
-                        <div className={styles.variantFormRow}>
-                          <div className={styles.formGroup}>
-                            <label>Select Variant Type </label>
-                            <input
-                              type="text"
-                              placeholder="Enter variant type 250g, 2kg's,200ml, ltr,small, Large, XL etc."
-                              value={variant.variantType || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, variantType: e.target.value };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label>Pieces</label>
-                            <input
-                              type="number"
-                              placeholder="Enter pieces"
-                              value={variant.pieces || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, pieces: e.target.value };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className={styles.variantFormRow}>
-                          <div className={styles.formGroup}>
-                            <label>Selling price</label>
-                            <input
-                              type="number"
-                              placeholder="Enter Selling price here"
-                              value={variant.sellingPrice || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                const sellingPrice = parseFloat(e.target.value) || 0;
-                                const mrp = parseFloat(variant.mrp) || 0;
-                                // Calculate discount percentage
-                                let discountPercentage = 0;
-                                if (mrp > 0 && sellingPrice <= mrp) {
-                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
-                                }
-                                newVariants[index] = { 
-                                  ...variant, 
-                                  sellingPrice: sellingPrice,
-                                  discountPercentage: discountPercentage
-                                };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label>MRP</label>
-                            <input
-                              type="number"
-                              placeholder="Enter MRP here"
-                              value={variant.mrp || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                const mrp = parseFloat(e.target.value) || 0;
-                                const sellingPrice = parseFloat(variant.sellingPrice) || 0;
-                                // Calculate discount percentage
-                                let discountPercentage = 0;
-                                if (mrp > 0 && sellingPrice <= mrp) {
-                                  discountPercentage = Math.round(((mrp - sellingPrice) / mrp) * 100);
-                                }
-                                newVariants[index] = { 
-                                  ...variant, 
-                                  mrp: mrp,
-                                  discountPercentage: discountPercentage
-                                };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className={styles.variantFormRow}>
-                          <div className={styles.formGroup}>
-                            <label>SKU Code</label>
-                            <input
-                              type="text"
-                              placeholder="Enter SKU Code"
-                              value={variant.skuCode || ""}
-                              onChange={(e) => {
-                                const newVariants = [...formData.variants];
-                                newVariants[index] = { ...variant, skuCode: e.target.value };
-                                setFormData(prev => ({ ...prev, variants: newVariants }));
-                              }}
-                            />
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label>Discount Percentage</label>
-                            <input
-                              type="number"
-                              placeholder="Auto-calculated"
-                              value={variant.discountPercentage || ""}
-                              readOnly
-                              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Full width Description */}
-                        {/* <div className={styles.formGroup}>
-                          <label>Description</label>
-                          <textarea
-                            placeholder="Type here"
-                            value={variant.description || ""}
-                            onChange={(e) => {
-                              const newVariants = [...formData.variants];
-                              newVariants[index] = { ...variant, description: e.target.value };
-                              setFormData(prev => ({ ...prev, variants: newVariants }));
-                            }}
-                            rows={4}
-                          />
-                        </div> */}
-
-                        {/* Image Upload Section */}
-                        <div className={styles.formGroup}>
-                          <label>Upload Images</label>
-                          <div
-                            className={styles.uploadArea}
-                            onClick={() => {
-                              const input = variantImageInputRefs.current[`variant-${index}`];
-                              if (input) input.click();
-                            }}
-                          >
-                            <div className={styles.cameraIcon}>📷</div>
-                            <p>Upload multiple product images here</p>
-                          </div>
-                          <input
-                            ref={(el) => {
-                              variantImageInputRefs.current[`variant-${index}`] = el;
-                            }}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            style={{ display: "none" }}
-                            onChange={async (e) => {
-                              const files = Array.from(e.target.files);
-                              if (files.length > 0) {
-                                // Store the File objects for FormData upload
-                                const newVariants = [...formData.variants];
-                                if (!newVariants[index].variantImageFiles) {
-                                  newVariants[index].variantImageFiles = [];
-                                }
-                                if (!newVariants[index].images) {
-                                  newVariants[index].images = [];
-                                }
-                                
-                                // Add new files to existing array
-                                newVariants[index].variantImageFiles = [
-                                  ...(newVariants[index].variantImageFiles || []),
-                                  ...files
-                                ];
-                                
-                                // For preview, use data URLs
-                                const newImages = [];
-                                let loadedCount = 0;
-                                
-                                files.forEach((file) => {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    newImages.push(reader.result);
-                                    loadedCount++;
-                                    
-                                    if (loadedCount === files.length) {
-                                      // All images loaded, update state
-                                      newVariants[index].images = [
-                                        ...(newVariants[index].images || []),
-                                        ...newImages
-                                      ];
-                                      setFormData(prev => ({ ...prev, variants: newVariants }));
-                                    }
-                                  };
-                                  reader.readAsDataURL(file);
-                                });
-                                
-                                // Reset input to allow selecting same files again
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                          {variant.images && variant.images.length > 0 && (
-                            <div className={styles.variantImagePreviews}>
-                              {variant.images.map((img, imgIndex) => (
-                                <div key={imgIndex} className={styles.variantImagePreview}>
-                                  <Image
-                                    src={img}
-                                    alt={`Variant ${index + 1} image ${imgIndex + 1}`}
-                                    width={100}
-                                    height={100}
-                                  />
-                                  <button
-                                    className={styles.removeImage}
-                                    onClick={() => {
-                                      const newVariants = [...formData.variants];
-                                      // Remove from preview images
-                                      newVariants[index].images = newVariants[index].images.filter((_, i) => i !== imgIndex);
-                                      // Also remove corresponding file if it exists
-                                      if (newVariants[index].variantImageFiles && newVariants[index].variantImageFiles.length > imgIndex) {
-                                        newVariants[index].variantImageFiles = newVariants[index].variantImageFiles.filter((_, i) => i !== imgIndex);
-                                      }
-                                      setFormData(prev => ({ ...prev, variants: newVariants }));
-                                    }}
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className={styles.navigationButtons}>
-              {currentStep > 1 && (
-                <button className={styles.backBtn} onClick={handleBack}>
-                  Back
-                </button>
-              )}
-              {currentStep < 3 ? (
-                <button className={styles.nextBtn} onClick={handleNext}>
-                  Next
-                </button>
-              ) : (
-                <button className={styles.nextBtn} onClick={handleSubmit}>
-                  {isEditMode ? "Update" : "Submit"}
-                </button>
-              )}
+            <div className={styles.unitItem}>
+              <input 
+                type="radio" 
+                name="conversion" 
+                checked={selectedOption === "12"}
+                onChange={() => setSelectedOption("12")}
+              />
+              <label>1 {unitLabel} = 12 {secondaryLabel}</label>
+            </div>
+            <div className={styles.unitItem}>
+              <input 
+                type="radio" 
+                name="conversion" 
+                checked={selectedOption === "10"}
+                onChange={() => setSelectedOption("10")}
+              />
+              <label>1 {unitLabel} = 10 {secondaryLabel}</label>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Add Sub Category Modal */}
-      {showSubCategoryModal && (
-        <SubCategoryModal
-          categories={categories}
-          selectedCategoryId={formData.categoryId}
-          onSubmit={handleSubmitSubCategory}
-          onClose={() => setShowSubCategoryModal(false)}
-        />
-      )}
-    </>
-  );
-};
-
-// Sub Category Modal Component
-const SubCategoryModal = ({ categories, selectedCategoryId, onSubmit, onClose }) => {
-  const [categoryId, setCategoryId] = useState(selectedCategoryId || "");
-  const [subCategoryName, setSubCategoryName] = useState("");
-
-  // Update categoryId when selectedCategoryId prop changes
-  React.useEffect(() => {
-    if (selectedCategoryId) {
-      setCategoryId(selectedCategoryId);
-    }
-  }, [selectedCategoryId]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (categoryId && subCategoryName) {
-      onSubmit(categoryId, subCategoryName);
-      setSubCategoryName("");
-    }
-  };
-
-  return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <h3>Add Sub Category</h3>
-        <form onSubmit={handleSubmit}>
-          <div className={styles.formGroup}>
-            <label>Enter Category name</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Enter Sub-category name</label>
-            <input
-              type="text"
-              placeholder="e.g., Dry Food"
-              value={subCategoryName}
-              onChange={(e) => setSubCategoryName(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className={styles.submitBtn}>
-            Submit
-          </button>
-        </form>
+        <div className={styles.modalFooter}>
+          <button className={styles.saveBtn} onClick={handleSub}>Submit</button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default AddProduct;
+const AddProduct = ({ onClose, editProductId = null, productType: initialProductType = "retail" }) => {
+  const { getJwtToken } = useStore();
+  const jwt = getJwtToken();
+  const isEditMode = !!editProductId;
+  const modalRef = useRef(null);
 
+  const [windowState, setWindowState] = useState("fullscreen"); // 'standard', 'minimized', 'fullscreen'
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const [productType, setProductType] = useState(initialProductType);
+  const [formData, setFormData] = useState({
+    productName: "",
+    brandName: "",
+    categoryId: "",
+    subCategoryId: "",
+    petType: [],
+    productCode: "",
+    eanUpc: "",
+    sku: "",
+    unitType: "",
+    secondaryUnit: "",
+    conversion: "",
+    minStockAlert: "",
+    gst: "",
+    hsnCode: "",
+    mrp: "",
+    sellingPrice: "",
+    description: "",
+    dosageType: "",
+    drugType: "",
+    strength: "",
+    composition: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isUnitPopupOpen, setIsUnitPopupOpen] = useState(false);
+  const [showGstInfo, setShowGstInfo] = useState(false);
+  const [images, setImages] = useState([]);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchProductDetails();
+    }
+  }, [editProductId]);
+
+  const fetchProductDetails = async () => {
+    try {
+      const response = await productService.getProductById(jwt, editProductId);
+      if (response?.data?.data) {
+        const product = response.data.data;
+        setFormData({
+          ...product,
+          petType: Array.isArray(product.petType) ? product.petType : (product.petType ? JSON.parse(product.petType) : []),
+        });
+        if (product.images) {
+          setImages(product.images.map(img => ({ 
+            url: img.startsWith('http') ? img : `${IMAGE_URL}${img}`,
+            id: img 
+          })));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === "productCode") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 6);
+      setFormData(prev => ({ ...prev, [name]: numericValue }));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handlePetTypeToggle = (type) => {
+    setFormData(prev => {
+      const petType = prev.petType.includes(type)
+        ? prev.petType.filter(t => t !== type)
+        : [...prev.petType, type];
+      return { ...prev, petType };
+    });
+    if (errors.petType) setErrors(prev => ({ ...prev, petType: "" }));
+  };
+
+  const handleAssignCode = async () => {
+    try {
+      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setFormData(prev => ({ ...prev, productCode: randomCode }));
+      setErrors(prev => ({ ...prev, productCode: "" }));
+    } catch (error) {
+      console.error("Error assigned code:", error);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    const fieldLabels = {
+      productName: "Product Name",
+      categoryId: "Category",
+      productCode: "Product Code",
+      unitType: "Unit Type",
+      minStockAlert: "Min Stock Alert",
+      hsnCode: "HSN Code",
+      mrp: "MRP",
+      sellingPrice: "Selling Price",
+      petType: "Pet Type",
+      drugType: "Drug Type"
+    };
+
+    const requiredFields = [
+      "productName", "categoryId", "productCode", "unitType", 
+      "minStockAlert", "hsnCode", "mrp", "sellingPrice"
+    ];
+
+    if (productType === "retail" && formData.petType.length === 0) {
+      newErrors.petType = `${fieldLabels.petType} is required`;
+    }
+
+    if (productType === "medical" && !formData.drugType) {
+      newErrors.drugType = `${fieldLabels.drugType} is required`;
+    }
+
+    requiredFields.forEach(field => {
+      if (!formData[field]) {
+        newErrors[field] = `${fieldLabels[field]} is required`;
+      }
+    });
+
+    if (formData.productCode && formData.productCode.length !== 6) {
+      newErrors.productCode = "Product Code must be 6 digits";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      const data = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key === 'petType') {
+          data.append(key, JSON.stringify(formData[key]));
+        } else {
+          data.append(key, formData[key] || "");
+        }
+      });
+      data.append('productType', productType);
+
+      images.forEach(img => {
+        if (img.file) {
+          data.append('images', img.file);
+        }
+      });
+
+      let response;
+      if (isEditMode) {
+        response = await productService.updateProduct(jwt, editProductId, data);
+      } else {
+        response = await productService.createProduct(jwt, data);
+      }
+
+      if (response?.status === 200 || response?.status === 201) {
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error saving product:", error);
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (windowState === 'minimized') return;
+    
+    // Don't trigger drag on interactive elements
+    const interactiveTags = ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'A', 'LABEL'];
+    if (interactiveTags.includes(e.target.tagName) || e.target.closest('button')) return;
+
+    if (windowState === 'fullscreen') {
+      setWindowState('standard');
+      // No initial position adjustment needed, let standard mode take over
+    }
+
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging || windowState !== 'standard') return;
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragStart, windowState]);
+
+  useEffect(() => {
+    if (modalRef.current && windowState === 'standard') {
+      modalRef.current.style.setProperty('--modal-left', `calc(50% + ${position.x}px)`);
+      modalRef.current.style.setProperty('--modal-top', `calc(50% + ${position.y}px)`);
+      modalRef.current.style.setProperty('--modal-transform', `translate(-50%, -50%)`);
+    } else if (modalRef.current) {
+      modalRef.current.style.removeProperty('--modal-left');
+      modalRef.current.style.removeProperty('--modal-top');
+      modalRef.current.style.removeProperty('--modal-transform');
+    }
+  }, [position, windowState]);
+
+  return (
+    <div className={`${styles.modalOverlay} ${windowState === 'minimized' ? styles.minimizedOverlay : ''}`}>
+      <div 
+        ref={modalRef}
+        className={`${styles.addProductModal} ${styles[windowState]} ${isDragging ? styles.dragging : ''}`}
+        onClick={() => { if(windowState === 'minimized') setWindowState('standard'); }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className={styles.modalHeader}>
+          <h2>{isEditMode ? "Edit Product Details" : "Add Product Details"}</h2>
+          <div className={styles.headerActions}>
+            <button 
+              className={styles.iconBtn} 
+              onClick={(e) => { e.stopPropagation(); setWindowState('minimized'); }}
+              title="Minimize"
+            >
+              <FiMinus />
+            </button>
+            {windowState === 'fullscreen' ? (
+              <button 
+                className={styles.iconBtn} 
+                onClick={(e) => { e.stopPropagation(); setWindowState('standard'); }}
+                title="Restore"
+              >
+                <FiSquare />
+              </button>
+            ) : (
+              <button 
+                className={styles.iconBtn} 
+                onClick={(e) => { e.stopPropagation(); setWindowState('fullscreen'); }}
+                title="Maximize"
+              >
+                <FiSquare />
+              </button>
+            )}
+            <button 
+              className={styles.iconBtn} 
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              title="Close"
+            >
+              <FiX />
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.modalBody}>
+          <div className={styles.sectionTitle}>Enter product information</div>
+          
+          <div className={styles.tabs}>
+            <button 
+              className={`${styles.tab} ${productType === "retail" ? styles.activeTab : ""}`}
+              onClick={() => {
+                setProductType("retail");
+                setErrors({});
+              }}
+            >
+              Retail Product
+            </button>
+            <button 
+              className={`${styles.tab} ${productType === "medical" ? styles.activeTab : ""}`}
+              onClick={() => {
+                setProductType("medical");
+                setErrors({});
+              }}
+            >
+              Medical Products
+            </button>
+          </div>
+
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>Product Name <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                name="productName"
+                placeholder="Enter Product Name" 
+                value={formData.productName}
+                onChange={handleInputChange}
+              />
+              {errors.productName && <span className={styles.errorText}>{errors.productName}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label>Brand Name</label>
+              <input 
+                type="text" 
+                name="brandName"
+                placeholder="Enter Brand name" 
+                value={formData.brandName}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Category <span className={styles.required}>*</span></label>
+              <select name="categoryId" value={formData.categoryId} onChange={handleInputChange}>
+                <option value="">Select Category here</option>
+                <option value="1">Grooming</option>
+                <option value="2">Toys</option>
+                <option value="3">Medicines</option>
+              </select>
+              {errors.categoryId && <span className={styles.errorText}>{errors.categoryId}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label>Sub Category</label>
+              <select name="subCategoryId" value={formData.subCategoryId} onChange={handleInputChange}>
+                <option value="">Select Sub Category</option>
+              </select>
+            </div>
+
+            {productType === "retail" && (
+              <div className={styles.formGroup}>
+                <label>Pet Type <span className={styles.required}>*</span></label>
+                <div className={styles.tagSelector}>
+                  {['Dog', 'Cat'].map(type => (
+                    <button 
+                      key={type}
+                      className={`${styles.tag} ${formData.petType.includes(type) ? styles.tagActive : ""}`}
+                      onClick={() => handlePetTypeToggle(type)}
+                    >
+                      {type} {formData.petType.includes(type) ? '✕' : ''}
+                    </button>
+                  ))}
+                </div>
+                {errors.petType && <span className={styles.errorText}>{errors.petType}</span>}
+              </div>
+            )}
+
+            <div className={styles.formGroup}>
+              <label>Product Code <span className={styles.required}>*</span></label>
+              <div className={styles.inputWithBtn}>
+                <input 
+                  type="text" 
+                  name="productCode"
+                  placeholder="Enter product code" 
+                  value={formData.productCode}
+                  onChange={handleInputChange}
+                />
+                <button className={styles.assignedBtn} onClick={handleAssignCode}>Assigned Code</button>
+              </div>
+              {errors.productCode && <span className={styles.errorText}>{errors.productCode}</span>}
+            </div>
+
+            {productType === "medical" && (
+              <>
+                <div className={styles.formGroup}>
+                  <label>Drug Type <span className={styles.required}>*</span></label>
+                  <select name="drugType" value={formData.drugType} onChange={handleInputChange}>
+                    <option value="">Select Drug type here</option>
+                    <option value="generic">Generic</option>
+                    <option value="branded">Branded</option>
+                  </select>
+                  {errors.drugType && <span className={styles.errorText}>{errors.drugType}</span>}
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Strength</label>
+                  <div className={styles.inputWithSelect}>
+                    <input 
+                      type="text" 
+                      name="strength"
+                      placeholder="Enter strength" 
+                      value={formData.strength}
+                      onChange={handleInputChange}
+                    />
+                    <select className={styles.unitSelect}>
+                      <option>ml</option>
+                      <option>mg</option>
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Dosage Type</label>
+                  <select name="dosageType" value={formData.dosageType} onChange={handleInputChange}>
+                    <option value="">Eg: Tablets, Injections</option>
+                    <option value="tablet">Tablet</option>
+                    <option value="injection">Injection</option>
+                    <option value="syrup">Syrup</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div className={styles.formGroup}>
+              <label>EAN /UPC Number</label>
+              <input 
+                type="text" 
+                name="eanUpc"
+                placeholder="Enter EAN /UPC Number" 
+                value={formData.eanUpc}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>SKU Number</label>
+              <input 
+                type="text" 
+                name="sku"
+                placeholder="Enter SKU number" 
+                value={formData.sku}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Unit Type <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                readOnly
+                className={styles.pointerCursor}
+                placeholder="Ex : 1 Bottle, 1 strip etc..." 
+                value={formData.unitType ? `${formData.unitType}${formData.secondaryUnit ? ` / ${formData.secondaryUnit} (${formData.conversion})` : ''}` : ""}
+                onClick={() => setIsUnitPopupOpen(true)}
+              />
+              {errors.unitType && <span className={styles.errorText}>{errors.unitType}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Min Stock Alert <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                name="minStockAlert"
+                placeholder="Enter here" 
+                value={formData.minStockAlert}
+                onChange={handleInputChange}
+              />
+              {errors.minStockAlert && <span className={styles.errorText}>{errors.minStockAlert}</span>}
+            </div>
+
+            <div className={`${styles.formGroup} ${styles.relativeGroup}`}>
+              <label>
+                GST(%) <span 
+                  className={styles.infoIcon} 
+                  onMouseEnter={() => setShowGstInfo(true)}
+                  onMouseLeave={() => setShowGstInfo(false)}
+                >ⓘ</span>
+              </label>
+              {showGstInfo && (
+                <div className={styles.infoPopup}>
+                  same GST % will shown in sale
+                </div>
+              )}
+              <input 
+                type="text" 
+                name="gst"
+                placeholder="Enter GST(%) here" 
+                value={formData.gst}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>HSN Code <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                name="hsnCode"
+                placeholder="Enter HSN Code here" 
+                value={formData.hsnCode}
+                onChange={handleInputChange}
+              />
+              {errors.hsnCode && <span className={styles.errorText}>{errors.hsnCode}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>MRP <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                name="mrp"
+                placeholder="Enter MRP here" 
+                value={formData.mrp}
+                onChange={handleInputChange}
+              />
+              {errors.mrp && <span className={styles.errorText}>{errors.mrp}</span>}
+            </div>
+            <div className={styles.formGroup}>
+              <label>Selling Price <span className={styles.required}>*</span></label>
+              <input 
+                type="text" 
+                name="sellingPrice"
+                placeholder="Enter selling price here" 
+                value={formData.sellingPrice}
+                onChange={handleInputChange}
+              />
+              {errors.sellingPrice && <span className={styles.errorText}>{errors.sellingPrice}</span>}
+            </div>
+          </div>
+
+          <div className={styles.textAreaGrid}>
+            <div className={styles.formGroup}>
+              <label>Add Product Description</label>
+              <textarea 
+                name="description"
+                placeholder="Type here" 
+                value={formData.description}
+                onChange={handleInputChange}
+              ></textarea>
+            </div>
+            <div className={styles.formGroup}>
+              <label>
+                Product Composition <span 
+                  className={styles.infoIcon}
+                  title="Add the drug composition to easily find the product in inventorys"
+                >ⓘ</span>
+              </label>
+              <textarea 
+                name="composition"
+                placeholder="Type here" 
+                value={formData.composition}
+                onChange={handleInputChange}
+                disabled={productType !== "medical"}
+              ></textarea>
+            </div>
+          </div>
+
+          <div className={styles.imagesSection}>
+            <label>Add Product Images <span className={styles.required}>*</span></label>
+            <div className={styles.imageGrid}>
+              <div 
+                className={styles.uploadBox} 
+                onClick={() => fileInputRef.current.click()}
+              >
+                <div className={styles.plusIcon}>+</div>
+                <div>Tap to Select Photo</div>
+              </div>
+              <input 
+                type="file" 
+                multiple 
+                hidden 
+                ref={fileInputRef} 
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  if (images.length + files.length > 4) {
+                    alert("Maximum 4 images allowed");
+                    return;
+                  }
+                  const newImages = files.map(file => ({
+                    file, preview: URL.createObjectURL(file)
+                  }));
+                  setImages(prev => [...prev, ...newImages]);
+                }}
+                accept="image/*"
+              />
+              {images.map((img, index) => (
+                <div key={index} className={styles.imagePreview}>
+                  <img src={img.preview || img.url} alt="preview" />
+                  <button className={styles.removeImg} onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}>✕</button>
+                </div>
+              ))}
+              {[...Array(Math.max(0, 3 - images.length))].map((_, i) => (
+                <div key={`empty-${i}`} className={styles.emptyBox}>
+                  <Image src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png" width={40} height={40} alt="placeholder" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.modalFooter}>
+            <button className={styles.backBtn} onClick={onClose}>Back</button>
+            <button className={styles.saveBtn} onClick={handleSubmit}>Save</button>
+          </div>
+        </div>
+      </div>
+
+      <UnitPopup 
+        isOpen={isUnitPopupOpen} 
+        onClose={() => setIsUnitPopupOpen(false)}
+        primaryUnit={formData.unitType}
+        secondaryUnit={formData.secondaryUnit}
+        conversion={formData.conversion}
+        onSelect={(field, value) => {
+          setFormData(prev => ({ ...prev, [field]: value }));
+          if (field === 'unitType' && errors.unitType) setErrors(prev => ({ ...prev, unitType: "" }));
+        }}
+      />
+    </div>
+  );
+};
+
+export default AddProduct;
