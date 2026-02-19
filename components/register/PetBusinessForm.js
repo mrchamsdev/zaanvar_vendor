@@ -81,6 +81,9 @@ const ROLE_OPTIONS = [
     if(!formData.phone.trim()){
       newErrors.phone = "Phone number is required";
     }
+    if (!formData.professionaldomain) newErrors.professionaldomain = "Please select a Professional Domain";
+  if (!formData.professionalroletype) newErrors.professionalroletype = "Please select a Role Type";
+  if (!formData.workidentity) newErrors.workidentity = "Please select a Work Identity";
     if(!formData.location.trim()){
       newErrors.location = "Location is Required";
     }
@@ -162,7 +165,7 @@ const ROLE_OPTIONS = [
         professionalRoleType: formData.professionalroletype,
         workIdentity: formData.workidentity,
         professionalDomain: formData.professionaldomain,
-        
+        type: typeof window !== "undefined" ? window.location.href : "",
     businessLocation: formData.location,
     socialMediaLinks: formData.website ? [formData.website] : [],
         // salary: 25000.00,
