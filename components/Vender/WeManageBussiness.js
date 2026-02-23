@@ -4,8 +4,8 @@ import { PetIcon } from '@/public/image/SVG'
 
 const WeManageBussiness = () => {
   const data = [
-    { img:<PetIcon/>, title: "Built For Pet Space", para: "We’re not a generic tool trying" },
-    { img:<PetIcon/>, title: "Quick & Secure", para: "Easy to use, lightning-fast, and" },
+    { img:<PetIcon/>, title: "Built For Pet Space", para: "We’re not a generic tool trying to fit in." },
+    { img:<PetIcon/>, title: "Quick & Secure", para: "Easy to use, lightning-fast, and super safe" },
     { img:<PetIcon/>, title: "Mobile Friendly", para: "Don’t let a desktop hold you back." },
     { img:<PetIcon/>, title: "Most Affordable", para: "Great software shouldn’t break the bank" },
   ]

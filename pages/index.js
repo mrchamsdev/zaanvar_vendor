@@ -105,7 +105,7 @@ export default function Home() {
       <div className={style["image-wrapper"]}>
         {!isMobile && (
           <Image
-            src="https://zaanvar-care.b-cdn.net/media/1759815026083-Frame%201261154195.png"
+            src="https://zaanvarprods3.b-cdn.net/media/1771837038008-businessbanner.png"
             alt="Banner"
             fill
             style={{ objectFit: "cover" }}
@@ -114,11 +114,11 @@ export default function Home() {
 
         <div className={style["overlay-text"]}>
           <h1 className={style["main-header"]}>
-            <span>Zaanvar</span> is a Free Business Portal for Pet Vendors
+            <span>Zaanvar</span> is a Comprehensive Business Portal for Pet Vendors
           </h1>
           <p className={style["below-text"]}>
-            Exclusively for breeders, clinics, trainers, and all pet service providers.  
-            Free to use. No hidden fees.
+            Exclusively built for breeders, veterinary clinics, trainers, grooming studios, pet boarding & daycare centers,
+             pet retailers, ambulance services, NGOs, insurance providers, and every professional in the pet care ecosystem.
           </p>
           <button className={style["register-button"]} onClick={() => router.push("/register")}>
             Register Today
@@ -133,7 +133,7 @@ export default function Home() {
       <AutomationTools />
       <PetBussiness />
       <ChooseUs />
-      <FrequentlyQuastion />
+      {/* <FrequentlyQuastion /> */}
       <FooterCom />
     </div>
   );

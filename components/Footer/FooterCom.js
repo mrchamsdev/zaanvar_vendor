@@ -5,11 +5,38 @@ import Image from "next/image";
 // import styles from "../../styles/footer/footer.module.css"
 // import styles from "../../styles/footer/footer.module.css"
 import styles from "../../styles/footer/footerCom.module.css"
+import { useRouter } from "next/router";
 
 const FooterCom = () => {
-
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-
+  const router = useRouter();
+   const API_URL = typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com" ? "https://dev.zaanvar.com/api/" : "https://prod.zaanvar.com/api/";
+  const handleSubscribe = async () => {
+    const payload = {
+      email: email,
+    };
+    try {
+   const response = await fetch(`${API_URL}subscribe`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+      if (response.status === 200) {
+        setMessage(response?.message || "Subscription successful!");
+        setEmail("");
+      } else {
+        setMessage(response?.message || "Subscription failed.");
+        setEmail("");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("Invalid email address ");
+    }
+  };
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 420);
     handleResize(); 
@@ -35,9 +62,22 @@ const FooterCom = () => {
               Stay updated with the Pet Industry
             </h5>
             <div className={styles.inputContainer}>
-              <input type="email" placeholder="Email" />
-              <span>Subscribe Now</span>
+              <input type="email" 
+            placeholder="Enter Your Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}/>
+              <span onClick={handleSubscribe}>Subscribe Now</span>
             </div>
+             {message && (
+          <p
+            style={{
+              color: message === "Invalid email address " ? "red" : "green",
+              marginTop: "10px",
+            }}
+          >
+            {message}
+          </p>
+        )}
           </div>
           <div className={styles.footerNav}>
             <p>For your daily dose of happiness, follow us on</p>
@@ -72,8 +112,8 @@ const FooterCom = () => {
           <div className={styles.companyContainer}>
             <h5>Company</h5>
             <div className={styles.border}></div>
-            <p>About Us</p>
-            <p>Contact Us</p>
+            <p onClick={() => router.push("/about-us")}>About Us</p>
+            <p onClick={() => router.push("/register")}>Contact Us</p>
           </div>
           {/* <div className={styles.servicesGrid}>
     <p>Grooming</p>
