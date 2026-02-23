@@ -19,11 +19,21 @@ const PetBusinessForm = () => {
     operations: "",
     selectedTypes: [],
   });
-
+const [submitError, setSubmitError] = useState("");
+const [submitSuccess, setSubmitSuccess] = useState("");
+const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors , setErrors] = useState({});
 const inputRef = useRef(null);
   // Add useRef to your imports: import { useState, useRef, useEffect } from "react";
-
+useEffect(() => {
+  if (submitSuccess || submitError) {
+    const timer = setTimeout(() => {
+      setSubmitSuccess("");
+      setSubmitError("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }
+}, [submitSuccess, submitError]);
 useEffect(() => {
   // If the script is in index.html, window.google will be available
   if (window.google && inputRef.current) {
@@ -151,14 +161,18 @@ const ROLE_OPTIONS = [
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+ // Clear previous messages
+  setSubmitError("");
+  setSubmitSuccess("");
    
     if (Validate()) {
+        setIsSubmitting(true);
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phoneNumber: formData.phone,
+        businessName: formData.bussinessname,
         // gender: "Male",
        services: formData.selectedTypes,
        datastore: formData.operations,
@@ -168,6 +182,7 @@ const ROLE_OPTIONS = [
         type: typeof window !== "undefined" ? window.location.href : "",
     businessLocation: formData.location,
     socialMediaLinks: formData.website ? [formData.website] : [],
+    managePreviousWork: formData.operations,
         // salary: 25000.00,
         // experience: "0 years",
         // branchAssigned: [1],
@@ -183,19 +198,34 @@ const ROLE_OPTIONS = [
           body: JSON.stringify(payload),
         });
 
-        if (response.ok) {
+        if (response.status=== "success" || response.ok) {
           const result = await response.json();
           alert("Business Registered Successfully!");
-          console.log("Success:", result);
+           setSubmitSuccess("Business Registered Successfully!");
+        console.log("Success:", result);
+          setTimeout(() => {
+          window.location.reload();
+        }, 1500);
         } else {
           const errorData = await response.json();
           console.error("Submission Error:", errorData);
           alert(`Registration failed: ${errorData.message || "Please check your details."}`);
+          setSubmitError(errorData.message || "Registration failed. Please check your details.");
         }
       } catch (err) {
         console.error("Network Error:", err);
         alert("Server is unreachable. Please try again later.");
-      }
+      }finally {
+      setIsSubmitting(false);
+    }
+  } else {
+    setSubmitError("Please fill in all required fields correctly.");
+    
+    // Scroll to first error
+    const firstError = document.querySelector(`.${styles.errorMsg}`);
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     }
   };
 
@@ -274,6 +304,25 @@ const ROLE_OPTIONS = [
           --------------------------- */}
       <div className={styles.right}>
         <h2>Register Your Pet Business Free</h2>
+        {/* Success Message */}
+{submitSuccess && (
+  <div className={styles.successMessage}>
+    <svg className={styles.successIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+    <span>{submitSuccess}</span>
+  </div>
+)}
+
+{/* Error Message */}
+{submitError && (
+  <div className={styles.errorMessage}>
+    <svg className={styles.errorIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>{submitError}</span>
+  </div>
+)}
         <form className={styles.form} onSubmit={handleSubmit}>
 
            {/* <div className={styles.row}>
@@ -496,9 +545,13 @@ const ROLE_OPTIONS = [
             We're committed to your privacy and will only use the above information to contact you sparingly
           </p>
 
-          <button className={styles["submit-btn"]} type="submit">
-            Submit Details
-          </button>
+        <button 
+  className={`${styles["submit-btn"]} ${isSubmitting ? styles.submitting : ''}`} 
+  type="submit"
+  disabled={isSubmitting}
+>
+  {isSubmitting ? 'Submitting...' : 'Submit Details'}
+</button>
         </form>
       </div>
     </div>

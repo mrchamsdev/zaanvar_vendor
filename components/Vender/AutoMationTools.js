@@ -5,12 +5,12 @@ import { PetIcon } from '@/public/image/SVG'
 
 const AutomationTools = () => {
   const data = [
-    { img:<PetIcon/>, title: "Built For Pet Space", para: "We’re not a generic tool trying" },
-    { img:<PetIcon/>, title: "Quick & Secure", para: "Easy to use, lightning-fast, and" },
-    { img:<PetIcon/>, title: "Mobile Friendly", para: "Don’t let a desktop hold you back." },
-    { img:<PetIcon/>, title: "Most Affordable", para: "Great software shouldn’t break the bank" },
-    { img:<PetIcon/>, title: "Easy Setup", para: "Get started in minutes with no hassle" },
-    { img:<PetIcon/>, title: "Support 24/7", para: "We are always here to help you" },
+    { img:<PetIcon/>, title: "Calendar Management", para: "Stay on top of bookings, availability, & occupancy with smart scheduling tools." },
+    { img:<PetIcon/>, title: "Staff Management", para: "Assign roles, set permissions, & manage staff effortlessly." },
+    { img:<PetIcon/>, title: "Inventory Management", para: "Easily manage your inventory, from shampoos to treats across all branches." },
+    { img:<PetIcon/>, title: "Mobile App & Multi-Branch", para: "Run your business on the go and across multiple locations. " },
+    { img:<PetIcon/>, title: "Business Dashboard", para: "Monitor performance with real-time analytics and reports." },
+    { img:<PetIcon/>, title: "Billing & Invoicing", para: "Generate invoices, track payments, and automate your billing process." },
   ]
 
   return (

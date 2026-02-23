@@ -63,7 +63,7 @@ const AboutUs = () => {
       <OurMission />
       <OurValue />
       <OurFounder />
-      <FAQ />
+      {/* <FAQ /> */}
       <BannerPhoto />
       <FooterCom />
     </>
