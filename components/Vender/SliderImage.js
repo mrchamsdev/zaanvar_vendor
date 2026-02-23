@@ -104,7 +104,7 @@ const categories = [
   { title: "Photographer", img: "https://zaanvar-care.b-cdn.net/media/1759918994438-Photo.png", tagline: "Capturing Paws, Personalities, and Precious Moments" },
   { title: "Trainers", img: "https://zaanvar-care.b-cdn.net/media/1759919001755-tainer.png", tagline: "Short tagline under each category" },
   { title: "Mating", img: "https://zaanvar-care.b-cdn.net/media/1759918981023-matingdog.png", tagline: "Your Trusted Partner in Responsible Pet Matting" },
-  { title: "Extra 1", img: "https://zaanvar-care.b-cdn.net/media/1759918973864-doctorGirl.png", tagline: "Short tagline under each category" },
+  { title: "Clinic", img: "https://zaanvar-care.b-cdn.net/media/1759918973864-doctorGirl.png", tagline: "Where Pet Health Meets Professional Excellence" },
 ];
 
 export default function SliderImage() {

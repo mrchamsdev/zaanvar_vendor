@@ -148,7 +148,7 @@
 }
 .footerContainer{
   height:calc(100% - 75px);
-  background-color: #1FBFC20D;
+  background-color: #FEf2e7;
   display:flex;
   justify-content: space-between;
   /* align-items: center; */
@@ -184,11 +184,12 @@
 .inputContainer span{
   position:absolute;
   right:20px;
-  color:#1fbfc2;
+  color:#F5790C;
+  cursor: pointer;
 }
 .footercontentWrapper {
   height: 75px;
-  background-color: #1fbfc2;
+  background-color: #F5790C;
   display: flex;
   align-items: center;
   justify-content: center;
