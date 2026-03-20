@@ -1224,11 +1224,7 @@ const VendorRegistration = () => {
         await fetchAllVendors();
 
         // ── ADD MODE: Trigger L3 AFTER save ──
-<<<<<<< Updated upstream
         const l3TargetId = res?.data?.vendorDetails?.UserId || res?.data?.userId || newBranchId;
-=======
-        const l3TargetId = res?.data?.vendorDetails?.userId || res?.data?.userId || newBranchId;
->>>>>>> Stashed changes
         if (l3TargetId) {
           try {
             const l3Res = await sendL3Verification(l3TargetId);
@@ -1279,11 +1275,8 @@ const VendorRegistration = () => {
       const branchesNeedingL3 = updatedBranches.filter((b) => b.branchId);
 
       if (branchesNeedingL3.length > 0) {
-<<<<<<< Updated upstream
         const l3TargetId = res?.data?.vendorDetails?.UserId || res?.data?.userId || res?.data?.compId;
-=======
-        const l3TargetId = res?.data?.vendorDetails?.userId || res?.data?.userId || res?.data?.compId;
->>>>>>> Stashed changes
+
         if (l3TargetId) {
           try {
             const l3Res = await sendL3Verification(l3TargetId);
