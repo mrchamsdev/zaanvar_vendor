@@ -3,7 +3,7 @@
 import Layout from "@/components/pet-sales/layout";
 import PetStoreDashboard from "@/components/pet-store/Dashboard";
 import AddProduct from "@/components/pet-store/AddProduct";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { petStoreProducts } from "@/components/pet-store/data";
@@ -17,8 +17,8 @@ const menuItems = [
 ];
 
 const topbarButtons = [
-  { label: "+ Add Product", color: "red", action: "addProduct" },
-  { label: "+ Add More", color: "light", action: "addMore" },
+  // { label: "+ Add Product", color: "red", action: "addProduct" },
+  // { label: "+ Add More", color: "light", action: "addMore" },
 ];
 
 const PetStoreHome = () => {

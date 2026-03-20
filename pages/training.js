@@ -1,0 +1,23 @@
+import React from "react";
+import DashboardLayout from "../components/dashboard/DashboardLayout";
+
+export default function TrainingPage() {
+  const topbarButtons = [
+    { label: "+ Add Session",  color: "purple", action: "addSession"  },
+    { label: "+ Add Bookings", color: "red",    action: "addBookings" },
+    { label: "+ Add More",     color: "gray",   action: "addMore"     },
+  ];
+
+  return (
+    <DashboardLayout topbarButtons={topbarButtons}>
+      <div style={{ padding: "clamp(16px,2vw,32px)", textAlign: "center", marginTop: "10vh" }}>
+        <h2 style={{ fontSize: "clamp(20px,2.2vw,28px)", fontWeight: 700, color: "#111" }}>
+          Training
+        </h2>
+        <p style={{ fontSize: "clamp(13px,1.1vw,16px)", color: "#888", marginTop: 8 }}>
+          This section is under construction. Training content will appear here.
+        </p>
+      </div>
+    </DashboardLayout>
+  );
+}

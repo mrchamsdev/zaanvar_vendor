@@ -11,7 +11,7 @@ let BACKEND_URL;
 
 if (typeof window !== "undefined") {
   const hostname = window.location.hostname;
-  if (hostname === "zaanvar.com") {
+  if (hostname === "business.zaanvar.com") {
     BACKEND_URL = "https://prod.zaanvar.com/api/";
   } else {
     BACKEND_URL = "https://dev.zaanvar.com/api/";
@@ -35,7 +35,7 @@ let IMAGE_URL;
 
 if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
-    if (hostname === "zaanvar.com") {
+    if (hostname === "business.zaanvar.com") {
         IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
     } else {
         IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
@@ -70,8 +70,8 @@ let SOCKET_SERVER_URL;
 
 if (typeof window !== "undefined") {
   const hostname = window.location.hostname;
-  if (hostname === "zaanvar.com") {
-    SOCKET_SERVER_URL = "https://dev.zaanvar.com/";
+  if (hostname === "business.zaanvar.com") {
+    SOCKET_SERVER_URL = "https://prod.zaanvar.com/";
   } else {
     SOCKET_SERVER_URL = "https://dev.zaanvar.com/";
     // BACKEND_URL = "https://prod.zaanvar.com/api/";
@@ -79,7 +79,7 @@ if (typeof window !== "undefined") {
 } else {
   // Server-side environment
   if (process.env.NODE_ENV === 'production') {
-    SOCKET_SERVER_URL = "https://dev.zaanvar.com/";
+    SOCKET_SERVER_URL = "https://prod.zaanvar.com/";
   } else {
     SOCKET_SERVER_URL = "https://dev.zaanvar.com/";
     // BACKEND_URL = "https://prod.zaanvar.com/api/";
@@ -87,12 +87,29 @@ if (typeof window !== "undefined") {
   }
 }
 
+/* ── Vendor-portal API URL (business.zaanvar.com = production) ── */
+let VENDOR_API_URL;
+
+if (typeof window !== "undefined") {
+  VENDOR_API_URL =
+    window.location.hostname === "business.zaanvar.com"
+      ? "https://prod.zaanvar.com/api/"
+      : "https://dev.zaanvar.com/api/";
+} else {
+  // Server-side (Next.js SSR / ISR)
+  VENDOR_API_URL =
+    process.env.NODE_ENV === "production"
+      ? "https://prod.zaanvar.com/api/"
+      : "https://dev.zaanvar.com/api/";
+}
+
 export {
   BACKEND_URL,
   SOCKET_SERVER_URL,
-  WordpresBACKEND_URL, 
+  WordpresBACKEND_URL,
   WordpresSlug_URL,
-  IMAGE_URL
+  IMAGE_URL,
+  VENDOR_API_URL,   // ← use this in all vendor / business portal pages
 };
 export const formatDate = (dateString) => {
   if (!dateString) return "-";

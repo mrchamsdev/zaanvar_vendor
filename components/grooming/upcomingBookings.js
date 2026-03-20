@@ -3,7 +3,7 @@ import React from "react";
 import styles from "../../styles/grooming/upcoming.module.css";
 // import Sidebar from "./Sidebar";
 // import Topbar from "./Topbar";
-import { Delete, Edit, View2 } from "@/public/image/SVG";
+import { Delete, Edit, View2 } from "@/public/images/SVG";
 import { useRouter } from "next/router";
 
 const UpcomingBookings = () => {
@@ -78,9 +78,9 @@ const UpcomingBookings = () => {
 
   // Buttons for Topbar
   const buttons = [
-    { label: "+ Add Rooms", color: "purple" }, //! Color Coming from Styles
-    { label: "+ Add Bookings", color: "red" },
-    { label: "+ Add More", color: "gray" },
+    // { label: "+ Add Rooms", color: "purple" }, //! Color Coming from Styles
+    // { label: "+ Add Bookings", color: "red" },
+    // { label: "+ Add More", color: "gray" },
   ];
 
   return (

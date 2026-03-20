@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/mypets.module.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import { Delete, Edit, View2 } from "@/public/image/SVG";
+import { Delete, Edit, View2 } from "@/public/images/SVG";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";

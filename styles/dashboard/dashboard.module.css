@@ -1,0 +1,1423 @@
+/* ============================================================
+ * Vendor Dashboard — Shared Styles
+ * Fully responsive with clamp + calc
+ * ============================================================ */
+
+/* ── Layout ── */
+.dashWrap {
+  display: flex;
+  min-height: 100dvh;
+  background: #f5f6fa;
+  font-family: inherit;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: clamp(160px, 14vw, 190px);
+  min-height: 100dvh;
+  background: #fff;
+  border-right: 1px solid #ececec;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  z-index: 100;
+  transition: width 0.28s ease;
+}
+
+/* ── Collapsed sidebar (icons only) ── */
+.sidebarCollapsed {
+  width: 56px;
+}
+
+.sidebarCollapsed .sidebarLogoText,
+.sidebarCollapsed .navLabel {
+  display: none;
+}
+
+.sidebarCollapsed .sidebarLogo {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebarCollapsed .sidebarNav li a {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  margin: 0 4px;
+  padding-left: 0;
+}
+
+.sidebarCollapsed .sidebarNav li.active a {
+  margin: 0 4px;
+  padding-left: 0;
+}
+
+.sidebarCollapsed .navIcon {
+  margin: 0 auto;
+}
+
+.sidebarCollapsed .sidebarLogoutBtn {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+}
+
+.sidebarCollapsed .sidebarLogoutLabel {
+  display: none;
+}
+
+/* Tooltip on hover when collapsed */
+.sidebarCollapsed .sidebarNav li a:hover::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 60px;
+  background: #222;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.sidebarCollapsed .sidebarNav li a {
+  position: relative;
+}
+
+.sidebarLogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(14px, 1.8vh, 22px) clamp(12px, 1.4vw, 20px);
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.sidebarLogoText {
+  font-size: clamp(16px, 1.4vw, 20px);
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebarToggleBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sidebarToggleBtn:hover {
+  background: #f3f4f6;
+  color: #111;
+}
+
+.sidebarBack {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: #555;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.sidebarBack:hover {
+  background: #f0f0f0;
+}
+
+.sidebarNav {
+  list-style: none;
+  padding: clamp(8px, 1vh, 16px) 0;
+  margin: 0;
+  flex: 1;
+}
+
+.sidebarNav li {
+  margin: 2px 0;
+}
+
+.sidebarNav li a {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 0.8vw, 14px);
+  padding: clamp(10px, 1.2vh, 14px) clamp(12px, 1.4vw, 20px);
+  text-decoration: none;
+  color: #555;
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 500;
+  border-radius: 0;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.sidebarNav li a:hover {
+  background: #f5f6fa;
+  color: #222;
+}
+
+.sidebarNav li.active a {
+  background: #111;
+  color: #fff;
+  border-radius: 8px;
+  margin: 0 8px;
+  padding-left: calc(clamp(12px, 1.4vw, 20px) - 8px);
+}
+
+.sidebarNav li .navIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Sidebar footer (logout) ── */
+.sidebarFooter {
+  margin-top: auto;
+  border-top: 1px solid #f0f0f0;
+  padding: clamp(10px, 1.2vh, 16px) 0;
+}
+
+.sidebarLogoutBtn {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 0.8vw, 14px);
+  padding: clamp(10px, 1.2vh, 14px) clamp(12px, 1.4vw, 20px);
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ef4444;
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 500;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.sidebarLogoutBtn:hover {
+  background: #fff5f5;
+}
+
+.sidebarLogoutLabel {
+  white-space: nowrap;
+}
+
+/* Mobile overlay */
+.sidebarOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
+/* ── Main area ── */
+.mainArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ── Topbar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: clamp(10px, 1.4vh, 16px) clamp(16px, 2vw, 32px);
+  border-bottom: 1px solid #ececec;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  background: #f5f6fa;
+  border-radius: 999px;
+  padding: 8px 16px;
+  gap: 8px;
+  flex: 1;
+  max-width: clamp(200px, 28vw, 380px);
+}
+
+.searchBox input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: clamp(12px, 1vw, 14px);
+  color: #333;
+  width: 100%;
+}
+
+.searchBox input::placeholder {
+  color: #aaa;
+}
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 12px);
+  flex-shrink: 0;
+}
+
+.topBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: clamp(8px, 1vh, 10px) clamp(10px, 1.2vw, 18px);
+  border: none;
+  border-radius: 999px;
+  font-size: clamp(11px, 0.85vw, 13px);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.topBtn:hover { opacity: 0.85; }
+
+.topBtnPurple { background: #7c3aed; color: #fff; }
+.topBtnRed    { background: #e11d48; color: #fff; }
+.topBtnGray   { background: #f1f5f9; color: #333; border: 1px solid #e2e8f0; }
+
+.topAvatar {
+  width: clamp(32px, 3vw, 42px);
+  height: clamp(32px, 3vw, 42px);
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #eee;
+}
+
+.topAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Page content ── */
+.pageContent {
+  padding: clamp(16px, 2.5vw, 32px);
+  flex: 1;
+}
+
+/* ── Section heading ── */
+.sectionTitle {
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 clamp(14px, 2vh, 20px);
+}
+
+/* ── Dashboard: Company/Branch Cards row ── */
+.branchRow {
+  display: flex;
+  gap: clamp(10px, 1.5vw, 18px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: clamp(18px, 2.5vh, 28px);
+}
+
+.branchRow::-webkit-scrollbar { height: 4px; }
+.branchRow::-webkit-scrollbar-thumb { background: #ddd; border-radius: 999px; }
+
+.branchCard {
+  flex: 0 0 clamp(200px, 22vw, 280px);
+  background: #fff;
+  border-radius: clamp(12px, 1.2vw, 16px);
+  padding: clamp(16px, 2vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: clamp(120px, 14vh, 160px);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.branchCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+.branchCardMain {
+  background: #111 !important;
+  color: #fff;
+}
+
+.branchCardMain .branchLabel,
+.branchCardMain .branchName,
+.branchCardMain .branchLocation {
+  color: #fff !important;
+}
+
+.branchCardMain .branchBadge {
+  background: #333;
+  color: #fff;
+}
+
+.branchLabel {
+  font-size: clamp(10px, 0.85vw, 12px);
+  color: #888;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.branchName {
+  font-size: clamp(16px, 1.6vw, 22px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.branchLogo {
+  position: absolute;
+  top: clamp(12px, 1.5vh, 18px);
+  right: clamp(12px, 1.5vw, 18px);
+  width: clamp(36px, 4vw, 50px);
+  height: clamp(36px, 4vw, 50px);
+  background: #333;
+  border-radius: clamp(8px, 0.8vw, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: clamp(16px, 1.6vw, 22px);
+  font-weight: 700;
+}
+
+.branchCardMain .branchLogo {
+  background: rgba(255,255,255,0.15);
+}
+
+.branchBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f0f9f0;
+  color: #22c55e;
+  font-size: clamp(10px, 0.8vw, 12px);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.branchLocation {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #777;
+  margin: 0;
+}
+
+/* ── Dashboard 3-column grid ── */
+.dashGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.dashCard {
+  background: #fff;
+  border-radius: clamp(12px, 1.2vw, 16px);
+  padding: clamp(16px, 2vw, 24px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.dashCardTitle {
+  font-size: clamp(14px, 1.2vw, 17px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 clamp(14px, 1.8vh, 20px);
+}
+
+/* Timing slots in dashboard card */
+.timingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(6px, 0.8vh, 10px) 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: clamp(12px, 1vw, 14px);
+}
+
+.timingRow:last-child { border-bottom: none; }
+
+.timingDay {
+  color: #555;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.timingValue {
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: clamp(11px, 0.9vw, 13px);
+}
+
+.timingSep { color: #aaa; }
+
+/* Recent Reviews */
+.reviewItem {
+  display: flex;
+  gap: clamp(10px, 1vw, 14px);
+  padding: clamp(10px, 1.2vh, 14px) 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.reviewItem:last-child { border-bottom: none; }
+
+.reviewAvatar {
+  width: clamp(32px, 3vw, 40px);
+  height: clamp(32px, 3vw, 40px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: clamp(13px, 1.1vw, 16px);
+  color: #fff;
+}
+
+.reviewBody { flex: 1; min-width: 0; }
+
+.reviewName {
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 600;
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reviewTime {
+  font-size: clamp(10px, 0.85vw, 12px);
+  color: #aaa;
+  font-weight: 400;
+}
+
+.reviewStars {
+  display: flex;
+  gap: 2px;
+  margin: 3px 0;
+}
+
+.reviewText {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #666;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reviewViewAll {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.reviewViewAll a {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #333;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Distribution */
+.distSubTitle {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #888;
+  margin: 0 0 12px;
+}
+
+.ratingDistTitle {
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 10px;
+}
+
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 18px);
+  margin-bottom: 14px;
+}
+
+.donutCenter {
+  flex-shrink: 0;
+}
+
+.ratingBars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ratingBarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(10px, 0.8vw, 12px);
+  color: #555;
+}
+
+.ratingBarBg {
+  flex: 1;
+  height: 6px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ratingBarFill {
+  height: 100%;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.ratingPct {
+  min-width: 28px;
+  text-align: right;
+  font-size: clamp(10px, 0.8vw, 11px);
+  color: #888;
+}
+
+/* ── Profile Page ── */
+.profileWrap {
+  display: grid;
+  grid-template-columns: clamp(340px, 38vw, 460px) 1fr;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+.profileLeft {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vh, 20px);
+}
+
+.profileRight {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vh, 20px);
+}
+
+.profileImgSlider {
+  position: relative;
+  border-radius: clamp(10px, 1vw, 14px);
+  overflow: hidden;
+  background: #eee;
+  aspect-ratio: 16/10;
+}
+
+.profileImgSlider img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sliderHeart {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.sliderDots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+}
+
+.sliderDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: width 0.3s, border-radius 0.3s, background 0.3s;
+}
+
+.sliderDotActive {
+  width: 20px;
+  border-radius: 999px;
+  background: #f5790c;
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(10px, 1.2vh, 14px) 0;
+}
+
+.profileCompanyName {
+  font-size: clamp(14px, 1.3vw, 17px);
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+}
+
+.profileStartDate {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #777;
+}
+
+.profileAbout h4 {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 6px;
+}
+
+.profileAbout p {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.detailsCard {
+  background: #fff;
+  border-radius: clamp(10px, 1vw, 14px);
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.detailsCardTitle {
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 clamp(10px, 1.4vh, 16px);
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  padding: clamp(8px, 1vh, 12px) 0;
+  border-bottom: 1px solid #f5f5f5;
+  gap: 10px;
+}
+
+.detailRow:last-child { border-bottom: none; }
+
+.detailIcon {
+  width: 28px;
+  height: 28px;
+  background: #fff5eb;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detailLabel {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #444;
+  flex: 1;
+}
+
+.detailValue {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #777;
+  text-align: right;
+}
+
+.addressCard {
+  background: #fff;
+  border-radius: clamp(10px, 1vw, 14px);
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.addressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.addressTitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.directionsBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #f5790c;
+  font-size: clamp(10px, 0.8vw, 12px);
+  font-weight: 600;
+}
+
+.addressText {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.branchSelect {
+  background: #fff;
+  border-radius: clamp(10px, 1vw, 14px);
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.branchSelectHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.branchSelectTitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.branchSelectInner {
+  margin-top: 12px;
+}
+
+.branchSelectInner select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: clamp(12px, 1vw, 14px);
+  color: #333;
+  outline: none;
+  background: #fafafa;
+}
+
+.timingsCard {
+  background: #fff;
+  border-radius: clamp(10px, 1vw, 14px);
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.timingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: clamp(10px, 1.4vh, 16px);
+}
+
+.timingsTitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.timingsRange {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #555;
+}
+
+.timingProfileRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(6px, 0.8vh, 10px) 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: clamp(12px, 1vw, 14px);
+}
+
+.timingProfileRow:last-child { border-bottom: none; }
+
+.timingDayName { color: #555; }
+
+.timingStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timingOpen { color: #22c55e; font-weight: 600; }
+.timingUntil { color: #555; }
+.timingTime  { color: #333; font-weight: 500; }
+.timingClosed { color: #ef4444; font-weight: 600; }
+
+.featureGrid {
+  background: #fff;
+  border-radius: clamp(10px, 1vw, 14px);
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.featureCol h4 {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 clamp(10px, 1.2vh, 14px);
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: clamp(12px, 1vw, 14px);
+  color: #444;
+}
+
+.featureDot {
+  width: 28px;
+  height: 28px;
+  background: #fff5eb;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+/* ── Timing Slots Page ── */
+.tsPageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: clamp(20px, 2.8vh, 32px);
+}
+
+.tsPageTitle {
+  font-size: clamp(18px, 1.8vw, 24px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.tsEditingBadge {
+  background: #fff5eb;
+  color: #f5790c;
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid #fcd9a0;
+}
+
+.tsTable {
+  background: #fff;
+  border-radius: clamp(12px, 1.2vw, 16px);
+  padding: clamp(16px, 2vw, 28px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.tsRow {
+  display: grid;
+  grid-template-columns: clamp(90px, 10vw, 130px) 1fr;
+  align-items: center;
+  padding: clamp(12px, 1.6vh, 18px) 0;
+  border-bottom: 1px solid #f0f0f0;
+  gap: clamp(12px, 1.4vw, 20px);
+}
+
+.tsRow:last-child { border-bottom: none; }
+
+.tsDay {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 600;
+  color: #111;
+}
+
+.tsTimeInputs {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 12px);
+  flex-wrap: wrap;
+}
+
+.tsTimeGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tsTimeBox {
+  width: clamp(40px, 4.5vw, 56px);
+  height: clamp(36px, 4vh, 46px);
+  border: 1.5px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  text-align: center;
+  outline: none;
+  background: #f8f9fa;
+  color: #333;
+  font-weight: 500;
+  transition: border-color 0.2s;
+}
+
+.tsTimeBox:focus { border-color: #f5790c; background: #fff; }
+
+.tsColon {
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #777;
+  font-weight: 600;
+}
+
+.tsAmPmBox {
+  width: clamp(46px, 5vw, 64px);
+  height: clamp(36px, 4vh, 46px);
+  border: 1.5px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: clamp(12px, 1vw, 14px);
+  text-align: center;
+  outline: none;
+  background: #f8f9fa;
+  color: #555;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tsAmPmBox:focus { border-color: #f5790c; background: #fff; }
+
+.tsTo {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #999;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
+.tsFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: clamp(10px, 1.2vw, 16px);
+  padding: clamp(16px, 2vh, 24px) clamp(16px, 2vw, 28px);
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  margin: 0 calc(-1 * clamp(16px, 2.5vw, 32px));
+}
+
+.tsCancelBtn {
+  padding: clamp(10px, 1.2vh, 13px) clamp(20px, 2.5vw, 32px);
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tsCancelBtn:hover { background: #f5f6fa; }
+
+.tsSaveBtn {
+  padding: clamp(10px, 1.2vh, 13px) clamp(20px, 2.5vw, 32px);
+  background: #111;
+  border: none;
+  border-radius: 10px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tsSaveBtn:hover { background: #333; }
+
+/* ── Reviews Page ── */
+.reviewsWrap {
+  display: grid;
+  grid-template-columns: 1fr clamp(260px, 28vw, 340px);
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+.reviewsMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reviewsMainCard {
+  background: #fff;
+  border-radius: clamp(12px, 1.2vw, 16px);
+  padding: clamp(16px, 2vw, 24px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.reviewsTitle {
+  font-size: clamp(16px, 1.5vw, 20px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 clamp(14px, 2vh, 20px);
+}
+
+.reviewCard {
+  padding: clamp(14px, 1.8vh, 20px) 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reviewCard:last-child { border-bottom: none; }
+
+.reviewCardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(10px, 1.2vw, 16px);
+  margin-bottom: 10px;
+}
+
+.reviewCardAvatar {
+  width: clamp(38px, 4vw, 50px);
+  height: clamp(38px, 4vw, 50px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: clamp(14px, 1.3vw, 18px);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.reviewCardName {
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.reviewCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reviewCardStars { display: flex; gap: 2px; }
+
+.reviewCardDate {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #aaa;
+}
+
+.reviewCardText {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.reviewCardImages {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reviewCardImg {
+  width: clamp(60px, 7vw, 90px);
+  height: clamp(60px, 7vw, 90px);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eee;
+}
+
+.reviewCardImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reviewFrom {
+  font-size: clamp(11px, 0.9vw, 12px);
+  color: #aaa;
+  margin-top: 8px;
+}
+
+/* Distribution side card */
+.distCard {
+  background: #fff;
+  border-radius: clamp(12px, 1.2vw, 16px);
+  padding: clamp(16px, 2vw, 24px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  position: sticky;
+  top: calc(clamp(10px, 1.4vh, 16px) + 60px);
+}
+
+.distTitle {
+  font-size: clamp(15px, 1.3vw, 18px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
+}
+
+.distDesc {
+  font-size: clamp(11px, 0.9vw, 13px);
+  color: #888;
+  margin: 0 0 16px;
+}
+
+.distRatingTitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 10px;
+}
+
+.distDonut {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.distRatingNum {
+  text-align: center;
+}
+
+.distRatingNum strong {
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 800;
+  color: #111;
+  display: block;
+}
+
+.distRatingNum span {
+  font-size: clamp(10px, 0.85vw, 12px);
+  color: #888;
+}
+
+.distBars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.distBarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(10px, 0.8vw, 12px);
+  color: #555;
+}
+
+.distBarNum { min-width: 10px; }
+
+.distBarBg {
+  flex: 1;
+  height: 6px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.distBarFill { height: 100%; border-radius: 999px; }
+
+.distPct {
+  min-width: 28px;
+  text-align: right;
+  font-size: clamp(10px, 0.8vw, 11px);
+  color: #888;
+}
+
+.distSiteTitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  color: #111;
+  margin: 14px 0 8px;
+}
+
+.distSiteRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(12px, 1vw, 14px);
+  color: #555;
+}
+
+/* ── Mobile Topbar (hamburger) ── */
+.mobTopbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ececec;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: #333;
+  padding: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .dashGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashGrid > *:last-child {
+    grid-column: span 2;
+  }
+
+  .profileWrap {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewsWrap {
+    grid-template-columns: 1fr;
+  }
+
+  .distCard {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100dvh;
+    transition: left 0.3s ease;
+    z-index: 200;
+    width: clamp(200px, 70vw, 280px);
+  }
+
+  .sidebarOpen {
+    left: 0;
+  }
+
+  .sidebarOverlay {
+    display: block;
+  }
+
+  .mobTopbar {
+    display: flex;
+  }
+
+  .topbar {
+    display: none;
+  }
+
+  .dashGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashGrid > *:last-child {
+    grid-column: span 1;
+  }
+
+  .featureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .branchRow {
+    gap: 10px;
+  }
+
+  .branchCard {
+    flex: 0 0 clamp(180px, 70vw, 260px);
+  }
+
+  .tsRow {
+    grid-template-columns: clamp(80px, 22vw, 100px) 1fr;
+  }
+
+  .tsTimeInputs {
+    gap: 4px;
+  }
+
+  .reviewsWrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageContent {
+    padding: 12px;
+  }
+
+  .tsTimeBox {
+    width: 36px;
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .tsAmPmBox {
+    width: 42px;
+    height: 34px;
+    font-size: 11px;
+  }
+}

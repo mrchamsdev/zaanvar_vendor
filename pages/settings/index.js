@@ -13,7 +13,7 @@ import {
   LeftArrowIcon2,
   RightArrow,
   SearchIcon,
-} from "@/public/image/SVG";
+} from "@/public/images/SVG";
 import AddNewAddressPopup from "@/components/pet-sales/addNewAddressPopup";
 
 const Settingsaddress = ({ setIsSidebarOpen, setShowMobSettings }) => {

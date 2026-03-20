@@ -46,7 +46,7 @@ The project uses a flat, root-level structure.
 - **utils/** – Helper and utility functions
 - **constants/** – API endpoints & environment configs
 - **assets/svgs/** – SVG icons and vector assets
-- **public/images/** – Static images (avoid when possible)
+- **/public/images/** – Static images (avoid when possible)
 
 ❌ Do not add new folders  
 ❌ Do not introduce a `src/` directory  
