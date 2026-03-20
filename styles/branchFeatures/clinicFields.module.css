@@ -1,0 +1,218 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  /* margin-top: 12px; */
+  /* border: 1px solid #cfcaca; */
+  padding: 0px 12px;
+  border-radius: 20px;
+}
+
+/* HEADER */
+.headerRow {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* SERVICE BLOCK */
+.serviceBox {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  position: relative;
+  padding: 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+}
+
+/* FULL WIDTH */
+.fullWidth {
+  /* grid-column: 1 / -1; */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* LABEL */
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+/* INPUT */
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* TERMS */
+.termsBox {
+  grid-column: 1 / -1;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+
+.termsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.termRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.termRow input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* BUTTONS */
+.addBtn {
+  background: #ff6b35;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.removeBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.removeBtnInline {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.serviceBox {
+  position: relative;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.closeBtn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* z-index: 10; */
+}
+
+.closeBtn:hover {
+  background: #c0392b;
+}
+
+/* Optional: smaller remove button for terms */
+.removeBtn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.feeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.serviceName {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+  width: 100%;
+}
+/* Remove number input arrows ONLY in Clinic */
+.container input[type="number"]::-webkit-inner-spin-button,
+.container input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.feeGrid {
+display: grid;
+grid-template-columns: repeat(2, 1fr); /* 👈 3 in one row */
+gap: 30px;
+/* margin-top: 8px; */
+}
+.feeItem {
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+.serviceName {
+font-size: 13px;
+color: #374151;
+font-weight: 500;
+}
+/* .container input[type="number"] {
+  -moz-appearance: textfield; 
+} */
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .serviceBox {
+    grid-template-columns: 1fr;
+  }
+}
+.termRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.termRemoveBtn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+}

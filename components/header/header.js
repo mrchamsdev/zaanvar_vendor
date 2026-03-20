@@ -6,12 +6,15 @@ import { useRouter } from "next/router";
 
 const Header = () => {
 
-    const Router = useRouter();
-  const handleOnclick = ()=>{
-    Router.push("/register")
+  const Router = useRouter();
+  const handleOnclick = () => {
+    Router.push("/contact-us")
   }
-  const handleLogin = ()=>{
+  const handleLogin = () => {
     Router.push("/login")
+  }
+  const handleListYourBusiness = () => {
+    Router.push("/register")
   }
 
 
@@ -99,35 +102,36 @@ const Header = () => {
       {/* Desktop nav (visible only on desktop via CSS) */}
       {!isMobile && (
         <>
-         <nav className={style["nav-links"]} aria-label="Main navigation">
-  <Link
-    href="/"
-    onClick={closeMenu}
-    className={isActive("/") ? style.activeLink : ""}
-  >
-    Home
-  </Link>
-  <Link
-    href="/about-us"
-    onClick={closeMenu}
-    className={isActive("/about-us") ? style.activeLink : ""}
-  >
-    About Us
-  </Link>
-  <Link
-    href="/register"
-    onClick={closeMenu}
-    className={isActive("/register") ? style.activeLink : ""}
-  >
-    Contact Us
-  </Link>
-</nav>
+          <nav className={style["nav-links"]} aria-label="Main navigation">
+            <Link
+              href="/"
+              onClick={closeMenu}
+              className={isActive("/") ? style.activeLink : ""}
+            >
+              Home
+            </Link>
+            <Link
+              href="/about-us"
+              onClick={closeMenu}
+              className={isActive("/about-us") ? style.activeLink : ""}
+            >
+              About Us
+            </Link>
+            <Link
+              href="/contact-us"
+              onClick={closeMenu}
+              className={isActive("/contact-us") ? style.activeLink : ""}
+            >
+              Contact Us
+            </Link>
+          </nav>
 
           <div className={style["button-container"]}>
             <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
+            <button className={style["btn-outline"]} onClick={handleListYourBusiness}>List Your Business</button>
             <button onClick={handleOnclick}
               className={style["btn-outline"]}
-              style={{ background: "#F5790C", color:"#fff" }}
+              style={{ background: "#F5790C", color: "#fff" }}
             >
               Start FREE Trial
             </button>
@@ -139,9 +143,8 @@ const Header = () => {
       {isMobile && (
         <>
           <div
-            className={`${style["mobile-overlay"]} ${
-              open ? style["open"] : ""
-            }`}
+            className={`${style["mobile-overlay"]} ${open ? style["open"] : ""
+              }`}
             onClick={closeMenu}
             aria-hidden={!open}
           />
@@ -169,16 +172,21 @@ const Header = () => {
                 About Us
               </Link>
               {/* <Link href="/sources" onClick={closeMenu}>Sources</Link> */}
-              <Link href="/contact" onClick={closeMenu}>
+              <Link href="/contact-us" onClick={closeMenu}>
                 Contact Us
               </Link>
             </nav>
 
             <div className={style["mobile-actions"]}>
-              {/*<button className={style["btn-outline"]} onClick={closeMenu}>
+              <button className={style["btn-outline"]} onClick={() => { closeMenu(); handleLogin() }}>
                 LOGIN
-              </button>*/}
-              <button className={style["btn-primary"]} onClick={closeMenu}>
+              </button>
+              <button className={style["btn-outline"]} onClick={() => { closeMenu(); handleListYourBusiness() }}>List Your Business</button>
+              <button className={style["btn-primary"]}
+                onClick={() => {
+                  closeMenu();
+                  Router.push("/contact-us");
+                }}>
                 Start FREE Trial
               </button>
             </div>

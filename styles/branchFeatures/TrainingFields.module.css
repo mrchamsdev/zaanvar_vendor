@@ -1,0 +1,275 @@
+/* Main Container */
+.trainingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #ffffff;
+  padding: 10px 0;
+}
+
+.featureTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+/* Top Grid (Training Type & Pet Type) */
+.topGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.textInput {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== NUMBER + UNIT INLINE ===== */
+.numberWithUnit {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  width: 100%;
+}
+
+.numberInput {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  background: transparent;
+  min-width: 0;
+}
+
+.numberInput::placeholder {
+  color: #aaa;
+}
+
+/* Remove number spinners */
+.numberInput::-webkit-inner-spin-button,
+.numberInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.unitSelect {
+  padding: 10px 10px;
+  border: none;
+  border-left: 1px solid #ddd;
+  outline: none;
+  font-size: 0.88rem;
+  background: #f7f7f7;
+  color: #444;
+  cursor: pointer;
+  min-width: 80px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23555' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+/* Section Headers */
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.addBtn {
+  background: #fff5f2;
+  color: #ff6b35;
+  border: 1px dashed #ff6b35;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.addBtn:hover {
+  background: #ff6b35;
+  color: #fff;
+}
+
+/* Training Service Row (4 inputs + optional remove) */
+.trainingSideBySideRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+
+.flexService {
+  flex: 2 0 180px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.flexSmall {
+  flex: 0 0 80px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  text-align: center;
+}
+
+/* Package Row */
+.packageMultiColumnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  background: #fdfdfd;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+
+.flexPackageName {
+  flex: 1 0 160px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.flexServiceSelect {
+  flex: 1 0 160px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+
+.flexTiny {
+  flex: 0 0 70px;
+  padding: 10px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  text-align: center;
+}
+
+.flexDuration {
+  flex: 1 0 130px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.flexDurationHr {
+  flex: 1 0 130px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  min-width: 0;
+}
+
+/* Remove Button */
+.removeBtn {
+  background: #feeaea;
+  color: #e74c3c;
+  border: 1px solid #fabebb;
+  border-radius: 6px;
+  width: 36px;
+  height: 38px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.removeBtn:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+/* Remove number spinners globally in this component */
+.trainingSideBySideRow input[type="number"]::-webkit-inner-spin-button,
+.trainingSideBySideRow input[type="number"]::-webkit-outer-spin-button,
+.packageMultiColumnRow input[type="number"]::-webkit-inner-spin-button,
+.packageMultiColumnRow input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .trainingSideBySideRow,
+  .packageMultiColumnRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .flexService,
+  .flexPackageName,
+  .flexServiceSelect,
+  .flexSmall,
+  .flexTiny,
+  .flexDuration,
+  .flexDurationHr {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  .removeBtn {
+    width: 100%;
+    height: 36px;
+  }
+
+  .numberWithUnit {
+    width: 100%;
+  }
+}

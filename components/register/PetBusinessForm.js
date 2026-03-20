@@ -1,8 +1,131 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from "../../styles/register/petBusinessForm.module.css";
 import { Tik } from "@/public/images/SVG";
 import { Country, State, City } from "country-state-city";
 import { VENDOR_API_URL } from "../utilities/Constants";
+// ── Country / State / City helpers ───────────────────────────────────────
+const allCountries = Country.getAllCountries().map((c) => ({
+  id: c.isoCode, name: c.name, code: c.isoCode,
+}));
+const getStates = (code) =>
+  code
+    ? State.getStatesOfCountry(code).map((s) => ({ id: s.isoCode, name: s.name, code: s.isoCode }))
+    : [];
+const getCities = (countryCode, stateCode) =>
+  countryCode && stateCode
+    ? City.getCitiesOfState(countryCode, stateCode).map((c) => ({ id: c.name, name: c.name }))
+    : [];
+
+// ── Reusable field components ─────────────────────────────────────────────
+const Field = React.memo(({ label, required, children, error }) => (
+  <div className={styles["row-title"]}>
+    <h4 className={styles["title-tag"]}>
+      {label} {required && <span style={{ color: "#F5790C" }}>*</span>}
+    </h4>
+    <div className={styles.inputWrapper}>
+      {children}
+    </div>
+    {error && <span className={styles.errorMsg}>{error}</span>}
+  </div>
+));
+
+// Address block
+const AddressBlock = React.memo(({ prefix, title, formData, setFormData, errors, handleInputChange }) => {
+  const countryKey = `${prefix}Country`;
+  const stateKey = `${prefix}State`;
+  const cityKey = `${prefix}City`;
+  const pinKey = `${prefix}PinCode`;
+  const areaKey = `${prefix}Area`;
+  const flatKey = `${prefix}Flat`;
+  return (
+    <div className={styles.addressBlock}>
+      <h3 className={styles.sectionTitle}>{title}</h3>
+      <div className={styles.formCard}>
+        <div className={styles.row}>
+          <Field label="Country" required error={errors[countryKey]}>
+            <select
+              name={countryKey}
+              value={formData[countryKey]}
+              onChange={(e) => {
+                handleInputChange(e);
+                setFormData((prev) => ({ ...prev, [stateKey]: "", [cityKey]: "" }));
+              }}
+              className={styles.selectInput}
+            >
+              <option value="">Select Country</option>
+              {allCountries.map((c) => (
+                <option key={c.id} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="State" error={errors[stateKey]}>
+            <select
+              name={stateKey}
+              value={formData[stateKey]}
+              onChange={(e) => {
+                handleInputChange(e);
+                setFormData((prev) => ({ ...prev, [cityKey]: "" }));
+              }}
+              className={styles.selectInput}
+              disabled={!formData[countryKey]}
+            >
+              <option value="">Select State</option>
+              {getStates(formData[countryKey]).map((s) => (
+                <option key={s.id} value={s.code}>{s.name}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <div className={styles.row}>
+          <Field label="City" error={errors[cityKey]}>
+            <select
+              name={cityKey}
+              value={formData[cityKey]}
+              onChange={handleInputChange}
+              className={styles.selectInput}
+              disabled={!formData[stateKey]}
+            >
+              <option value="">Select City</option>
+              {getCities(formData[countryKey], formData[stateKey]).map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Pin Code" error={errors[pinKey]}>
+            <input
+              type="text"
+              name={pinKey}
+              placeholder="Enter Pin Code"
+              value={formData[pinKey]}
+              onChange={handleInputChange}
+              maxLength={6}
+            />
+          </Field>
+        </div>
+        <div className={styles.row}>
+          <Field label="Area/Street" error={errors[areaKey]}>
+            <input
+              type="text"
+              name={areaKey}
+              placeholder="Enter Area/Street"
+              value={formData[areaKey]}
+              onChange={handleInputChange}
+            />
+          </Field>
+          <Field label="Flat/House no." error={errors[flatKey]}>
+            <input
+              type="text"
+              name={flatKey}
+              placeholder="Enter Flat/House no."
+              value={formData[flatKey]}
+              onChange={handleInputChange}
+            />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const PetBusinessForm = () => {
   // API base URL – centralised in Constants.js (business.zaanvar.com = prod)
@@ -74,6 +197,61 @@ const PetBusinessForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const locationRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const [branchInput, setBranchInput] = useState("");
+  const [companyInput, setCompanyInput] = useState("");
+  const [branchOpeningInput, setBranchOpeningInput] = useState("");
+
+  const convertToDate = (value) => {
+    const now = new Date();
+
+    if (!value) return "";
+
+    // Case: 6.6 (years.months)
+    if (value.includes(".")) {
+      const [years, months] = value.split(".").map(Number);
+      const d = new Date();
+      d.setFullYear(now.getFullYear() - (years || 0));
+      d.setMonth(now.getMonth() - (months || 0));
+      return d.toISOString().split("T")[0];
+    }
+
+    const num = parseInt(value);
+
+    // If <=12 → months
+    if (num <= 12) {
+      const d = new Date();
+      d.setMonth(now.getMonth() - num);
+      return d.toISOString().split("T")[0];
+    }
+
+    // Else → years
+    const d = new Date();
+    d.setFullYear(now.getFullYear() - num);
+    return d.toISOString().split("T")[0];
+  };
+  const formatDurationText = (value) => {
+    if (!value) return "";
+    const cleanVal = String(value).trim();
+    if (cleanVal.includes(".")) {
+      const parts = cleanVal.split(".");
+      const y = parseInt(parts[0]) || 0;
+      const m = parseInt(parts[1]) || 0;
+      let text = [];
+      if (y > 0) text.push(`${y} year${y > 1 ? "s" : ""}`);
+      if (m > 0) text.push(`${m} month${m > 1 ? "s" : ""}`);
+      return text.length > 0 ? `(${text.join(" ")})` : "";
+    }
+    const num = parseInt(cleanVal);
+    if (!isNaN(num) && num > 0) {
+      if (num <= 12) {
+        return `(${num} month${num > 1 ? "s" : ""})`;
+      } else {
+        return `(${num} year${num > 1 ? "s" : ""})`;
+      }
+    }
+    return "";
+  };
 
   // ── Auto-clear messages ───────────────────────────────────────────────────
   useEffect(() => {
@@ -88,67 +266,81 @@ const PetBusinessForm = () => {
 
   // ── Google Places autocomplete ────────────────────────────────────────────
   useEffect(() => {
-    if (window.google && locationRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        locationRef.current,
-        { types: ["address"], componentRestrictions: { country: "in" } }
-      );
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
+    if (!window.google || !locationRef.current) return;
+
+    // Clear existing autocomplete instance
+    if (autocompleteRef.current) {
+      window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      autocompleteRef.current = null;
+    }
+
+    // Create new autocomplete instance
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(
+      locationRef.current,
+      { types: ["address"], componentRestrictions: { country: "in" } }
+    );
+
+    autocompleteRef.current.addListener("place_changed", () => {
+      const place = autocompleteRef.current.getPlace();
+      if (place && place.formatted_address) {
         setFormData((prev) => ({
           ...prev,
-          cbBranchLocation: place.formatted_address || "",
+          cbBranchLocation: place.formatted_address,
         }));
-      });
-    }
+      }
+    });
+
+    // Cleanup
+    return () => {
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
   }, []);
 
   // ── Dropdown options ──────────────────────────────────────────────────────
   const IDENTITY_OPTIONS = [
-    "Veterinarian","Vet Assistant","Pet Groomer","Dog Trainer",
-    "Pet Nutritionist","Pet Shop Owner","Boarding Manager",
-    "Licensed Breeder","Rescue Coordinator","Pet Walker / Sitter",
+    "Veterinarian", "Vet Assistant", "Pet Groomer", "Dog Trainer",
+    "Pet Nutritionist", "Pet Shop Owner", "Boarding Manager",
+    "Licensed Breeder", "Rescue Coordinator", "Pet Walker / Sitter",
     "Pet Product Manager",
   ];
   const ROLE_OPTIONS = [
-    "Medical Professional","Service Provider","Specialist / Expert",
-    "Business Owner","Operations Manager","Sales & Growth",
-    "Educator / Trainer","Content Creator","Consultant / Advisor","Volunteer",
+    "Medical Professional", "Service Provider", "Specialist / Expert",
+    "Business Owner", "Operations Manager", "Sales & Growth",
+    "Educator / Trainer", "Content Creator", "Consultant / Advisor", "Volunteer",
   ];
   const DOMAIN_OPTIONS = [
-    "Veterinary & Medical Care","Grooming & Hygiene","Training & Behavior",
-    "Nutrition & Food","Retail & Sales","Boarding & Daycare",
-    "Breeding & Kennels","Animal Welfare & Rescue","Media, Marketing & Content",
-    "Manufacturing & Supply","Technology & Platforms",
+    "Veterinary & Medical Care", "Grooming & Hygiene", "Training & Behavior",
+    "Nutrition & Food", "Retail & Sales", "Boarding & Daycare",
+    "Breeding & Kennels", "Animal Welfare & Rescue", "Media, Marketing & Content",
+    "Manufacturing & Supply", "Technology & Platforms",
   ];
   const SERVICE_OPTIONS = [
-    "Breeders","Pet Sales","Grooming","Training","Photographers",
-    "Blood Bank","NGO's","Day Care","Clinics","Events","Location","E-Commerce",
+    "Breeders", "Pet Sales", "Grooming", "Training", "Photographers",
+    "Blood Bank", "NGO's", "Day Care", "Clinics", "Events", "Location", "E-Commerce",
   ];
-  const SOCIAL_PLATFORMS = ["Instagram","Facebook","Twitter","YouTube","LinkedIn","WhatsApp","Website"];
-  const DATA_STORE_OPTIONS = ["Manual","Software","Both"];
-  const BRANCH_COUNT_OPTIONS = ["1","2","3","4","5","6-10","10+"];
+  const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "Twitter", "YouTube", "LinkedIn", "WhatsApp", "Website"];
+  const DATA_STORE_OPTIONS = ["Manual", "Software", "Both"];
+  const BRANCH_COUNT_OPTIONS = ["1", "2", "3", "4", "5", "6-10", "10+"];
 
-  // ── Country / State / City helpers ───────────────────────────────────────
-  const allCountries = Country.getAllCountries().map((c) => ({
-    id: c.isoCode, name: c.name, code: c.isoCode,
-  }));
-  const getStates = (code) =>
-    code
-      ? State.getStatesOfCountry(code).map((s) => ({ id: s.isoCode, name: s.name, code: s.isoCode }))
-      : [];
-  const getCities = (countryCode, stateCode) =>
-    countryCode && stateCode
-      ? City.getCitiesOfState(countryCode, stateCode).map((c) => ({ id: c.name, name: c.name }))
-      : [];
 
-  // ── Generic input handler ─────────────────────────────────────────────────
-  const handleInputChange = (e) => {
+
+  // ── Generic input handler - FIXED VERSION ─────────────────────────────────────────────────
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
 
-    if (name === "phone" || name === "branchPhone" || name === "companyPhone" || name === "cbBranchPhone") {
+    // Phone number fields
+    const phoneFields = ["phone", "branchPhone", "companyPhone", "cbBranchPhone"];
+
+    if (phoneFields.includes(name)) {
       const onlyNums = value.replace(/[^0-9]/g, "").slice(0, 10);
-      setFormData((prev) => ({ ...prev, [name]: onlyNums }));
+
+      setFormData((prev) => {
+        if (prev[name] === onlyNums) return prev;
+        return { ...prev, [name]: onlyNums };
+      });
+
       setErrors((prev) => ({
         ...prev,
         [name]: onlyNums.length > 0 && onlyNums.length < 10 ? "Must be 10 digits" : "",
@@ -156,12 +348,20 @@ const PetBusinessForm = () => {
       return;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: value.trim() ? "" : prev[name] }));
-  };
+    // Regular fields - only update if value actually changed
+    setFormData((prev) => {
+      if (prev[name] === value) return prev;
+      return { ...prev, [name]: value };
+    });
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  }, [errors]);
 
   // ── Checkbox handler ──────────────────────────────────────────────────────
-  const handleCheckboxChange = (e, field = "selectedTypes") => {
+  const handleCheckboxChange = useCallback((e, field = "selectedTypes") => {
     const { value, checked } = e.target;
     setFormData((prev) => {
       const updated = checked
@@ -170,10 +370,10 @@ const PetBusinessForm = () => {
       setErrors((prevE) => ({ ...prevE, [field]: updated.length === 0 ? "Select at least one" : "" }));
       return { ...prev, [field]: updated };
     });
-  };
+  }, []);
 
   // ── Social links ──────────────────────────────────────────────────────────
-  const handleAddSocial = (platformField, urlField, linksField) => {
+  const handleAddSocial = useCallback((platformField, urlField, linksField) => {
     const platform = formData[platformField];
     const url = formData[urlField];
     if (!platform || !url.trim()) return;
@@ -183,20 +383,20 @@ const PetBusinessForm = () => {
       [platformField]: "",
       [urlField]: "",
     }));
-  };
+  }, [formData]);
 
-  const removeSocialLink = (linksField, idx) => {
+  const removeSocialLink = useCallback((linksField, idx) => {
     setFormData((prev) => ({
       ...prev,
       [linksField]: prev[linksField].filter((_, i) => i !== idx),
     }));
-  };
+  }, []);
 
   // ── Validation ────────────────────────────────────────────────────────────
-  const validate = () => {
+  const validate = useCallback(() => {
     const e = {};
     if (!formData.firstName.trim()) e.firstName = "First Name is required";
-    if (!formData.lastName.trim()) e.lastName = "Last Name is required";
+    // if (!formData.lastName.trim()) e.lastName = "Last Name is required";
     if (!formData.email.trim()) e.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email)) e.email = "Email is invalid";
     if (!formData.phone.trim()) e.phone = "Phone is required";
@@ -229,8 +429,9 @@ const PetBusinessForm = () => {
     }
 
     setErrors(e);
+    console.log(e);
     return Object.keys(e).length === 0;
-  };
+  }, [formData, businessType]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
@@ -248,53 +449,53 @@ const PetBusinessForm = () => {
       const payload =
         businessType === "single"
           ? {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phoneNumber: formData.phone,
-              gender: formData.gender,
-              professionalRoleType: formData.professionalroletype,
-              workIdentity: formData.workidentity,
-              professionalDomain: formData.professionaldomain,
-              branchName: formData.branchName,
-              branchEmail: formData.branchEmail,
-              branchPhone: formData.branchPhone,
-              branchWebsite: formData.branchWebsite,
-              branchStartedDate: formData.branchStartedDate,
-              aboutBranch: formData.aboutBranch,
-              services: formData.selectedTypes,
-              socialMediaLinks: formData.socialLinks,
-              businessType: "single",
-            }
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phoneNumber: formData.phone,
+            gender: formData.gender,
+            professionalRoleType: formData.professionalroletype,
+            workIdentity: formData.workidentity,
+            professionalDomain: formData.professionaldomain,
+            branchName: formData.branchName,
+            branchEmail: formData.branchEmail,
+            branchPhone: formData.branchPhone,
+            branchWebsite: formData.branchWebsite,
+            branchStartedDate: formData.branchStartedDate,
+            aboutBranch: formData.aboutBranch,
+            services: formData.selectedTypes,
+            socialMediaLinks: formData.socialLinks,
+            businessType: "single",
+          }
           : {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phoneNumber: formData.phone,
-              gender: formData.gender,
-              professionalRoleType: formData.professionalroletype,
-              workIdentity: formData.workidentity,
-              professionalDomain: formData.professionaldomain,
-              companyName: formData.companyName,
-              companyEmail: formData.companyEmail,
-              companyPhone: formData.companyPhone,
-              companyWebsite: formData.companyWebsite,
-              companyStartedDate: formData.companyStartedDate,
-              aboutCompany: formData.aboutCompany,
-              services: formData.companySelectedTypes,
-              socialMediaLinks: formData.companySocialLinks,
-              businessType: "company",
-              branchDetails: {
-                branchName: formData.cbBranchName,
-                branchLocation: formData.cbBranchLocation,
-                branchOpeningDate: formData.cbBranchOpeningDate,
-                dataStoreModel: formData.cbDataStoreModel,
-                businessName: formData.cbBusinessName,
-                branchEmail: formData.cbBranchEmail,
-                branchPhone: formData.cbBranchPhone,
-                howManyBranches: formData.cbHowManyBranches,
-              },
-            };
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phoneNumber: formData.phone,
+            gender: formData.gender,
+            professionalRoleType: formData.professionalroletype,
+            workIdentity: formData.workidentity,
+            professionalDomain: formData.professionaldomain,
+            companyName: formData.companyName,
+            companyEmail: formData.companyEmail,
+            companyPhone: formData.companyPhone,
+            companyWebsite: formData.companyWebsite,
+            companyStartedDate: formData.companyStartedDate,
+            aboutCompany: formData.aboutCompany,
+            services: formData.companySelectedTypes,
+            socialMediaLinks: formData.companySocialLinks,
+            businessType: "company",
+            branchDetails: {
+              branchName: formData.cbBranchName,
+              branchLocation: formData.cbBranchLocation,
+              branchOpeningDate: formData.cbBranchOpeningDate,
+              dataStoreModel: formData.cbDataStoreModel,
+              businessName: formData.cbBusinessName,
+              branchEmail: formData.cbBranchEmail,
+              branchPhone: formData.cbBranchPhone,
+              howManyBranches: formData.cbHowManyBranches,
+            },
+          };
 
       const response = await fetch(`${API_URL}vendor-users`, {
         method: "POST",
@@ -317,167 +518,14 @@ const PetBusinessForm = () => {
     }
   };
 
-  // ── Reusable field components ─────────────────────────────────────────────
-  const Field = ({ label, required, children, error }) => (
-    <div className={styles["row-title"]}>
-      <h4 className={styles["title-tag"]}>
-        {label} {required && <span style={{ color: "#F5790C" }}>*</span>}
-      </h4>
-      {children}
-      {error && <span className={styles.errorMsg}>{error}</span>}
-    </div>
-  );
 
-  // Social link adder block
-  const SocialAdder = ({ platformField, urlField, linksField }) => (
-    <div className={styles["row-title"]} style={{ gridColumn: "1 / -1" }}>
-      <h4 className={styles["title-tag"]}>Social Medias</h4>
-      <div className={styles.socialRow}>
-        <select
-          name={platformField}
-          value={formData[platformField]}
-          onChange={handleInputChange}
-          className={styles.selectInput}
-          style={{ flex: "0 0 160px" }}
-        >
-          <option value="">Platform</option>
-          {SOCIAL_PLATFORMS.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <input
-          type="text"
-          name={urlField}
-          placeholder="User name (or) full Link"
-          value={formData[urlField]}
-          onChange={handleInputChange}
-          style={{ flex: 1 }}
-        />
-        <button
-          type="button"
-          className={styles.addSocialBtn}
-          onClick={() => handleAddSocial(platformField, urlField, linksField)}
-        >
-          Add
-        </button>
-      </div>
-      {(formData[linksField] || []).length > 0 && (
-        <div className={styles.socialList}>
-          {formData[linksField].map((link, i) => (
-            <span key={i} className={styles.socialChip}>
-              {link.platform}: {link.url}
-              <button type="button" onClick={() => removeSocialLink(linksField, i)}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  // Address block
-  const AddressBlock = ({ prefix, title }) => {
-    const countryKey = `${prefix}Country`;
-    const stateKey = `${prefix}State`;
-    const cityKey = `${prefix}City`;
-    const pinKey = `${prefix}PinCode`;
-    const areaKey = `${prefix}Area`;
-    const flatKey = `${prefix}Flat`;
-    return (
-      <div className={styles.addressBlock}>
-        <h3 className={styles.sectionTitle}>{title}</h3>
-        <div className={styles.formCard}>
-          <div className={styles.row}>
-            <Field label="Country" required error={errors[countryKey]}>
-              <select
-                name={countryKey}
-                value={formData[countryKey]}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  setFormData((prev) => ({ ...prev, [stateKey]: "", [cityKey]: "" }));
-                }}
-                className={styles.selectInput}
-              >
-                <option value="">Select Country</option>
-                {allCountries.map((c) => (
-                  <option key={c.id} value={c.code}>{c.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="State" error={errors[stateKey]}>
-              <select
-                name={stateKey}
-                value={formData[stateKey]}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  setFormData((prev) => ({ ...prev, [cityKey]: "" }));
-                }}
-                className={styles.selectInput}
-                disabled={!formData[countryKey]}
-              >
-                <option value="">Select State</option>
-                {getStates(formData[countryKey]).map((s) => (
-                  <option key={s.id} value={s.code}>{s.name}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <div className={styles.row}>
-            <Field label="City" error={errors[cityKey]}>
-              <select
-                name={cityKey}
-                value={formData[cityKey]}
-                onChange={handleInputChange}
-                className={styles.selectInput}
-                disabled={!formData[stateKey]}
-              >
-                <option value="">Select City</option>
-                {getCities(formData[countryKey], formData[stateKey]).map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Pin Code" error={errors[pinKey]}>
-              <input
-                type="text"
-                name={pinKey}
-                placeholder="Enter Pin Code"
-                value={formData[pinKey]}
-                onChange={handleInputChange}
-                maxLength={6}
-              />
-            </Field>
-          </div>
-          <div className={styles.row}>
-            <Field label="Area/Street" error={errors[areaKey]}>
-              <input
-                type="text"
-                name={areaKey}
-                placeholder="Enter Area/Street"
-                value={formData[areaKey]}
-                onChange={handleInputChange}
-              />
-            </Field>
-            <Field label="Flat/House no." error={errors[flatKey]}>
-              <input
-                type="text"
-                name={flatKey}
-                placeholder="Enter Flat/House no."
-                value={formData[flatKey]}
-                onChange={handleInputChange}
-              />
-            </Field>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className={styles.container}>
       {/* ── Left panel ── */}
       <div className={styles.left}>
         <h1>If You're Here, <br />You've Made The Right Choice.</h1>
-        <p>Just drop in your details & we'll have you onboarded quickly.</p>
+        <p>Just drop your details & we'll have you onboarded quickly.</p>
         <h3 className={styles["tailored-feature"]}>Tailored Features</h3>
         <div className={styles.features}>
           {["Pet Sales"].map((feature) => (
@@ -570,7 +618,7 @@ const PetBusinessForm = () => {
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Trans">Trans</option>
+                  <option value="Trans">Other</option>
                 </select>
               </Field>
             </div>
@@ -691,14 +739,51 @@ const PetBusinessForm = () => {
                   </Field>
                 </div>
                 <div className={styles.row}>
-                  <Field label="Branch Started Date" required error={errors.branchStartedDate}>
-                    <input
-                      type="date"
-                      name="branchStartedDate"
-                      value={formData.branchStartedDate}
-                      onChange={handleInputChange}
-                      max={new Date().toISOString().split("T")[0]}
-                    />
+                  <Field label="Branch Start Date" required error={errors.branchStartedDate}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          type="text"
+                          placeholder="Eg: 6 or 6.6"
+                          value={branchInput}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBranchInput(val);
+
+                            const convertedDate = convertToDate(val);
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              branchStartedDate: convertedDate,
+                            }));
+                          }}
+                        />
+                        {String(branchInput).trim() && (
+                          <span style={{ fontSize: "14px", color: "#666", fontWeight: "500", whiteSpace: "nowrap" }}>
+                            {formatDurationText(branchInput)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {/* <span style={{ fontSize: "12px", color: "#aaa", fontWeight: "600", textTransform: "uppercase" }}>OR</span> */}
+                        <input
+                          type="date"
+                          name="branchStartedDate"
+                          value={formData.branchStartedDate}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              branchStartedDate: e.target.value,
+                            }));
+
+                            setBranchInput(""); // reset manual input
+                          }}
+                          max={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                    </div>
                   </Field>
                   {/* Social adder inline */}
                   <div className={styles["row-title"]}>
@@ -777,13 +862,13 @@ const PetBusinessForm = () => {
                     onChange={handleInputChange}
                     maxLength={500}
                     rows={4}
-                    style={{resize: "vertical", padding: "0.6rem 0.8rem", borderRadius: "6px", border: "1px solid #ccc", fontFamily: "Poppins", fontSize: "14px" }}
+                    style={{ resize: "vertical", padding: "0.6rem 0.8rem", borderRadius: "6px", border: "1px solid #ccc", fontFamily: "Poppins", fontSize: "14px" }}
                   />
                 </div>
               </div>
 
               {/* Branch Address */}
-              <AddressBlock prefix="branch" title="Branch Address" />
+              <AddressBlock prefix="branch" title="Branch Address" formData={formData} setFormData={setFormData} errors={errors} handleInputChange={handleInputChange} />
             </>
           )}
 
@@ -837,13 +922,50 @@ const PetBusinessForm = () => {
                 </div>
                 <div className={styles.row}>
                   <Field label="Company Started Date" required error={errors.companyStartedDate}>
-                    <input
-                      type="date"
-                      name="companyStartedDate"
-                      value={formData.companyStartedDate}
-                      onChange={handleInputChange}
-                      max={new Date().toISOString().split("T")[0]}
-                    />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          type="text"
+                          placeholder="Eg: 6 or 6.6"
+                          value={companyInput}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCompanyInput(val);
+
+                            const convertedDate = convertToDate(val);
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              companyStartedDate: convertedDate,
+                            }));
+                          }}
+                        />
+                        {String(companyInput).trim() && (
+                          <span style={{ fontSize: "14px", color: "#666", fontWeight: "500", whiteSpace: "nowrap" }}>
+                            {formatDurationText(companyInput)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {/* <span style={{ fontSize: "12px", color: "#aaa", fontWeight: "600", textTransform: "uppercase" }}>OR</span> */}
+                        <input
+                          type="date"
+                          name="companyStartedDate"
+                          value={formData.companyStartedDate}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              companyStartedDate: e.target.value,
+                            }));
+
+                            setCompanyInput(""); // reset manual input
+                          }}
+                          max={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                    </div>
                   </Field>
                   {/* Company Social Medias */}
                   <div className={styles["row-title"]}>
@@ -932,7 +1054,7 @@ const PetBusinessForm = () => {
               </div>
 
               {/* Company Address */}
-              <AddressBlock prefix="company" title="Company Address" />
+              <AddressBlock prefix="company" title="Company Address" formData={formData} setFormData={setFormData} errors={errors} handleInputChange={handleInputChange} />
 
               {/* ── Branch Details ── */}
               <h3 className={styles.sectionTitle}>Enter Branch Details</h3>
@@ -960,13 +1082,50 @@ const PetBusinessForm = () => {
                 </div>
                 <div className={styles.row}>
                   <Field label="Branch Opening Date" required error={errors.cbBranchOpeningDate}>
-                    <input
-                      type="date"
-                      name="cbBranchOpeningDate"
-                      value={formData.cbBranchOpeningDate}
-                      onChange={handleInputChange}
-                      max={new Date().toISOString().split("T")[0]}
-                    />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          type="text"
+                          placeholder="Eg: 6 or 6.6"
+                          value={branchOpeningInput}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBranchOpeningInput(val);
+
+                            const convertedDate = convertToDate(val);
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              cbBranchOpeningDate: convertedDate,
+                            }));
+                          }}
+                        />
+                        {String(branchOpeningInput).trim() && (
+                          <span style={{ fontSize: "14px", color: "#666", fontWeight: "500", whiteSpace: "nowrap" }}>
+                            {formatDurationText(branchOpeningInput)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "12px", color: "#aaa", fontWeight: "600", textTransform: "uppercase" }}>OR</span>
+                        <input
+                          type="date"
+                          name="cbBranchOpeningDate"
+                          value={formData.cbBranchOpeningDate}
+                          style={{ flex: 1 }}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              cbBranchOpeningDate: e.target.value,
+                            }));
+
+                            setBranchOpeningInput(""); // reset manual input
+                          }}
+                          max={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                    </div>
                   </Field>
                   <Field label="Present Data store model" required error={errors.cbDataStoreModel}>
                     <select
@@ -1040,7 +1199,7 @@ const PetBusinessForm = () => {
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Submitting..." : "Sumbit"}
+            {isSubmitting ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>
