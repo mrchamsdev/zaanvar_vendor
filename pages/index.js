@@ -37,7 +37,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient && jwt) {
-      router.replace("/pet-sales"); 
+      router.replace("/pet-sales");
     }
   }, [isClient, jwt, router]);
 
@@ -50,54 +50,54 @@ export default function Home() {
 
   return (
     <div>
-     <Head>
-  {/* Basic SEO */}
-  <title>Zaanvar Business | Free Portal for Pet Vendors</title>
-  <meta
-    name="description"
-    content="Zaanvar Business is a free portal for pet vendors, breeders, clinics, trainers, and all pet service providers. Manage and grow your business easily — 100% free to use."
-  />
-  <meta
-    name="keywords"
-    content="pet vendors, pet business, pet breeders, pet clinics, pet trainers, zaanvar, zaanvar business, pet services, free vendor portal, pet marketplace"
-  />
-  <meta name="author" content="Zaanvar" />
+      <Head>
+        {/* Basic SEO */}
+        <title>Zaanvar Business | Free Portal for Pet Vendors</title>
+        <meta
+          name="description"
+          content="Zaanvar Business is a free portal for pet vendors, breeders, clinics, trainers, and all pet service providers. Manage and grow your business easily — 100% free to use."
+        />
+        <meta
+          name="keywords"
+          content="pet vendors, pet business, pet breeders, pet clinics, pet trainers, zaanvar, zaanvar business, pet services, free vendor portal, pet marketplace"
+        />
+        <meta name="author" content="Zaanvar" />
 
-  {/* Canonical URL */}
-  <link rel="canonical" href="https://business.zaanvar.com/" />
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://business.zaanvar.com/" />
 
-  {/* Open Graph / Facebook */}
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://business.zaanvar.com/" />
-  <meta
-    property="og:title"
-    content="Zaanvar Business | Free Portal for Pet Vendors"
-  />
-  <meta
-    property="og:description"
-    content="Join Zaanvar Business — a free platform designed for pet vendors, breeders, and service providers. Manage your pet business effortlessly and grow your reach."
-  />
-  <meta
-    property="og:image"
-    content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
-  />
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://business.zaanvar.com/" />
+        <meta
+          property="og:title"
+          content="Zaanvar Business | Free Portal for Pet Vendors"
+        />
+        <meta
+          property="og:description"
+          content="Join Zaanvar Business — a free platform designed for pet vendors, breeders, and service providers. Manage your pet business effortlessly and grow your reach."
+        />
+        <meta
+          property="og:image"
+          content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
+        />
 
-  {/* Twitter Card */}
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://business.zaanvar.com/" />
-  <meta
-    name="twitter:title"
-    content="Zaanvar Business | Free Portal for Pet Vendors"
-  />
-  <meta
-    name="twitter:description"
-    content="Zaanvar Business helps pet vendors, breeders, and service providers manage their businesses — completely free to use."
-  />
-  <meta
-    name="twitter:image"
-    content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
-  />
-</Head>
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://business.zaanvar.com/" />
+        <meta
+          name="twitter:title"
+          content="Zaanvar Business | Free Portal for Pet Vendors"
+        />
+        <meta
+          name="twitter:description"
+          content="Zaanvar Business helps pet vendors, breeders, and service providers manage their businesses — completely free to use."
+        />
+        <meta
+          name="twitter:image"
+          content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
+        />
+      </Head>
 
 
       <Header />
@@ -118,9 +118,9 @@ export default function Home() {
           </h1>
           <p className={style["below-text"]}>
             Exclusively built for breeders, veterinary clinics, trainers, grooming studios, pet boarding & daycare centers,
-             pet retailers, ambulance services, NGOs, insurance providers, and every professional in the pet care ecosystem.
+            pet retailers, ambulance services, NGOs, insurance providers, and every professional in the pet care ecosystem.
           </p>
-          <button className={style["register-button"]} onClick={() => router.push("/register")}>
+          <button className={style["register-button"]} onClick={() => router.push("/contact-us")}>
             Register Today
           </button>
         </div>

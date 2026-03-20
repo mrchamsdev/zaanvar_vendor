@@ -105,7 +105,15 @@ const SERVICE_MAP = {
   "Day Care":     { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
   "Pet Day Care": { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
   Daycare:        { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Sales":    { label: "Pet Sales", path: "/pet-sales",  icon: <IconDog />      },
+  "Pet Sales":    { 
+    label: "Pet Sale", 
+    path: "/pet-sales",  
+    icon: <IconDog />,
+    subItems: [
+      { label: "Pet", path: "/pet-sales?tab=Pets" },
+      { label: "Puppy", path: "/pet-sales?tab=Puppies" }
+    ]
+  },
   "Pet Training": { label: "Training",  path: "/training",   icon: <IconActivity /> },
 };
 
@@ -145,7 +153,7 @@ function buildMenuFromVendor(userInfo) {
     const cfg = SERVICE_MAP[s];
     if (cfg && !seen.has(cfg.path)) {
       seen.add(cfg.path);
-      svcItems.push({ label: cfg.label, path: cfg.path, icon: cfg.icon });
+      svcItems.push({ label: cfg.label, path: cfg.path, icon: cfg.icon, subItems: cfg.subItems });
     }
   });
 
@@ -191,6 +199,7 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
 
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({ "/pet-sales": true }); // Default expand pet sales if active
 
   /* ── auth guard ── */
   useEffect(() => {
@@ -262,15 +271,72 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
         {/* Nav items */}
         <ul className={styles.sidebarNav}>
           {menuItems.map((item) => {
-            const isActive = router.pathname === item.path;
+            const isActive = router.pathname === item.path || router.pathname.startsWith(item.path + '/');
+            const hasSub = !!item.subItems;
+            const isExpanded = expandedMenus[item.path];
+
             return (
-              <li key={item.path} className={isActive ? styles.active : ""}>
-                <Link href={item.path} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
-                  <span className={styles.navIcon}>{item.icon}</span>
-                  {!sidebarCollapsed && (
-                    <span className={styles.navLabel}>{item.label}</span>
-                  )}
-                </Link>
+              <li key={item.path} className={isActive && !hasSub ? styles.active : ""}>
+                {!hasSub ? (
+                  <Link href={item.path} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
+                    <span className={styles.navIcon}>{item.icon}</span>
+                    {!sidebarCollapsed && (
+                      <span className={styles.navLabel}>{item.label}</span>
+                    )}
+                  </Link>
+                ) : (
+                  <>
+                    <div 
+                      onClick={() => {
+                        setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
+                        if (!isExpanded && !isActive) router.push(item.subItems[0].path);
+                      }}
+                      className={isActive ? styles.active : ""}
+                      title={sidebarCollapsed ? item.label : undefined}
+                      style={{ 
+                        display: "flex", alignItems: "center", cursor: "pointer", 
+                        padding: "12px 16px", borderRadius: "8px", 
+                        background: isActive ? "#000" : "transparent",
+                        color: isActive ? "#fff" : "inherit"
+                      }}
+                    >
+                      <span className={styles.navIcon} style={{ display: 'flex', alignItems: 'center', opacity: 1 }}>{item.icon}</span>
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className={styles.navLabel} style={{ flex: 1, paddingLeft: "12px", opacity: 1 }}>{item.label}</span>
+                          <span style={{ fontSize: "10px", marginLeft: "10px", opacity: 0.6 }}>{isExpanded ? "▲" : "▼"}</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {isExpanded && !sidebarCollapsed && (
+                      <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
+                        {item.subItems.map((sub, i) => {
+                          // Clean up paths for comparison since router.asPath includes queries
+                          const isSubActive = router.asPath === sub.path || (router.asPath === "/pet-sales" && i === 0);
+                          return (
+                            <Link 
+                              key={sub.path} 
+                              href={sub.path}
+                              style={{
+                                padding: "8px 16px 8px 45px",
+                                borderRadius: "8px",
+                                color: isSubActive ? "#F5790C" : "#555",
+                                background: isSubActive ? "#F6FAFC" : "transparent",
+                                fontWeight: isSubActive ? 600 : 400,
+                                textDecoration: "none",
+                                fontSize: "14px",
+                                transition: "background 0.2s"
+                              }}
+                            >
+                              {sub.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
               </li>
             );
           })}

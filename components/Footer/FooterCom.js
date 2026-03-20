@@ -13,23 +13,23 @@ import GirlDog from "../../public/images/Homepage/image 292.png";
 import Cat from "../../public/images/Homepage/freepik__talk__11364 1.png";
 
 /* ── Inline SVG social icons (no CDN dependency) ───────────── */
-const WhatsAppIcon  = () => (
+const WhatsAppIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12a11.93 11.93 0 0 0 1.65 6.07L0 24l6.1-1.6A12 12 0 0 0 12 24c6.63 0 12-5.37 12-12a11.93 11.93 0 0 0-3.48-8.52ZM12 22a9.93 9.93 0 0 1-5.08-1.4l-.36-.22-3.73.98.99-3.63-.24-.37A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10Zm5.47-7.4c-.3-.15-1.76-.87-2.03-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.65.07a8.17 8.17 0 0 1-2.4-1.48 9.07 9.07 0 0 1-1.66-2.07c-.17-.3 0-.46.13-.6s.3-.35.44-.52.2-.3.3-.5.05-.37-.02-.52-.67-1.6-.91-2.2c-.24-.57-.49-.5-.67-.51H7.2c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.5 1.69.64.71.22 1.35.19 1.86.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.34Z" fill="#25D366"/>
+    <path d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12a11.93 11.93 0 0 0 1.65 6.07L0 24l6.1-1.6A12 12 0 0 0 12 24c6.63 0 12-5.37 12-12a11.93 11.93 0 0 0-3.48-8.52ZM12 22a9.93 9.93 0 0 1-5.08-1.4l-.36-.22-3.73.98.99-3.63-.24-.37A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10Zm5.47-7.4c-.3-.15-1.76-.87-2.03-.97s-.47-.15-.67.15-.77.97-.94 1.17-.35.22-.65.07a8.17 8.17 0 0 1-2.4-1.48 9.07 9.07 0 0 1-1.66-2.07c-.17-.3 0-.46.13-.6s.3-.35.44-.52.2-.3.3-.5.05-.37-.02-.52-.67-1.6-.91-2.2c-.24-.57-.49-.5-.67-.51H7.2c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.5 1.69.64.71.22 1.35.19 1.86.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.34Z" fill="#25D366" />
   </svg>
 );
 
 const LinkedInIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" rx="4" fill="#0A66C2"/>
-    <path d="M7 9h2.5v8H7V9zm1.25-1a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zM11 9h2.4v1.1h.03C13.77 9.5 14.7 9 16 9c2.5 0 3 1.65 3 3.8V17h-2.5v-3.7c0-.88-.02-2-1.22-2-1.23 0-1.42.96-1.42 1.95V17H11V9z" fill="#fff"/>
+    <rect width="24" height="24" rx="4" fill="#0A66C2" />
+    <path d="M7 9h2.5v8H7V9zm1.25-1a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zM11 9h2.4v1.1h.03C13.77 9.5 14.7 9 16 9c2.5 0 3 1.65 3 3.8V17h-2.5v-3.7c0-.88-.02-2-1.22-2-1.23 0-1.42.96-1.42 1.95V17H11V9z" fill="#fff" />
   </svg>
 );
 
 const TwitterIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" rx="4" fill="#000"/>
-    <path d="M17.5 4h2.4L14.8 9.6 21 20h-4.9l-3.7-4.9L8 20H5.6l5.5-6.3L4 4h5l3.4 4.4L17.5 4Zm-.8 14.4h1.3L7.4 5.4H6l10.7 13Z" fill="#fff"/>
+    <rect width="24" height="24" rx="4" fill="#000" />
+    <path d="M17.5 4h2.4L14.8 9.6 21 20h-4.9l-3.7-4.9L8 20H5.6l5.5-6.3L4 4h5l3.4 4.4L17.5 4Zm-.8 14.4h1.3L7.4 5.4H6l10.7 13Z" fill="#fff" />
   </svg>
 );
 
@@ -37,23 +37,23 @@ const InstagramIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="ig-grad" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#f09433"/>
-        <stop offset="25%" stopColor="#e6683c"/>
-        <stop offset="50%" stopColor="#dc2743"/>
-        <stop offset="75%" stopColor="#cc2366"/>
-        <stop offset="100%" stopColor="#bc1888"/>
+        <stop offset="0%" stopColor="#f09433" />
+        <stop offset="25%" stopColor="#e6683c" />
+        <stop offset="50%" stopColor="#dc2743" />
+        <stop offset="75%" stopColor="#cc2366" />
+        <stop offset="100%" stopColor="#bc1888" />
       </linearGradient>
     </defs>
-    <rect width="24" height="24" rx="6" fill="url(#ig-grad)"/>
-    <circle cx="12" cy="12" r="4.5" stroke="#fff" strokeWidth="1.8"/>
-    <circle cx="17.5" cy="6.5" r="1" fill="#fff"/>
+    <rect width="24" height="24" rx="6" fill="url(#ig-grad)" />
+    <circle cx="12" cy="12" r="4.5" stroke="#fff" strokeWidth="1.8" />
+    <circle cx="17.5" cy="6.5" r="1" fill="#fff" />
   </svg>
 );
 
 const FacebookIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="24" height="24" rx="4" fill="#1877F2"/>
-    <path d="M13 21v-7.5h2.5l.5-3H13V8.5c0-.83.4-1.5 1.5-1.5H16V4.1A18.1 18.1 0 0 0 13.6 4C11.1 4 9.5 5.5 9.5 8.2v2.3H7v3H9.5V21H13z" fill="#fff"/>
+    <rect width="24" height="24" rx="4" fill="#1877F2" />
+    <path d="M13 21v-7.5h2.5l.5-3H13V8.5c0-.83.4-1.5 1.5-1.5H16V4.1A18.1 18.1 0 0 0 13.6 4C11.1 4 9.5 5.5 9.5 8.2v2.3H7v3H9.5V21H13z" fill="#fff" />
   </svg>
 );
 
@@ -62,59 +62,59 @@ const allServices = [
   {
     title: "Company",
     items: ["About Us", "Contact Us"],
-    Links: ["/about", "/register"],
+    Links: ["/about", "/contact-us"],
   },
   {
     title: "Our Services",
     items: [
       "Mating",
-      "Clinic",   "Grooming",
-      "Day Care",  ,
+      "Clinic", "Grooming",
+      "Day Care", ,
     ],
     Links: [
-  
-      "/coming-soon/mating",     "/coming-soon/clinic",
+
+      "/coming-soon/mating", "/coming-soon/clinic",
       "/coming-soon/grooming",
-      "/coming-soon/day-care", 
+      "/coming-soon/day-care",
     ],
   },
   {
     title: "Features",
-    items: ["Location", "Events" , "Breeders"],
-    Links: [  "/coming-soon/location", "/coming-soon/events" ,    "/coming-soon/breeders",],
+    items: ["Location", "Events", "Breeders"],
+    Links: ["/coming-soon/location", "/coming-soon/events", "/coming-soon/breeders",],
   },
   {
     title: "Social",
     items: ["Blood Bank", "Training",],
-    Links: ["/coming-soon/blood-bank" , "/coming-soon/training"],
+    Links: ["/coming-soon/blood-bank", "/coming-soon/training"],
   },
 ];
 
 /* ── Social link config ──────────────────────────────────────── */
 const SOCIAL_LINKS = [
-  { href: "https://whatsapp.com/channel/0029Vavid5j0lwglQMeyO51u", label: "WhatsApp",  Icon: WhatsAppIcon,  track: "WhatsApp" },
-  { href: "https://www.linkedin.com/company/zaanvar/",             label: "LinkedIn",  Icon: LinkedInIcon,  track: "Linkedin" },
-  { href: "https://x.com/Zaanvar142085",                           label: "Twitter",   Icon: TwitterIcon,   track: "Twitter" },
-  { href: "#",                                                      label: "Instagram", Icon: InstagramIcon, track: "Instagram", isInstagram: true },
-  { href: "https://www.facebook.com/profile.php?id=61567070092046",label: "Facebook",  Icon: FacebookIcon,  track: "Facebook" },
+  { href: "https://whatsapp.com/channel/0029Vavid5j0lwglQMeyO51u", label: "WhatsApp", Icon: WhatsAppIcon, track: "WhatsApp" },
+  { href: "https://www.linkedin.com/company/zaanvar/", label: "LinkedIn", Icon: LinkedInIcon, track: "Linkedin" },
+  { href: "https://x.com/Zaanvar142085", label: "Twitter", Icon: TwitterIcon, track: "Twitter" },
+  { href: "#", label: "Instagram", Icon: InstagramIcon, track: "Instagram", isInstagram: true },
+  { href: "https://www.facebook.com/profile.php?id=61567070092046", label: "Facebook", Icon: FacebookIcon, track: "Facebook" },
 ];
 
 /* ═══════════════════════════════════════════════════════════════ */
 const Footer = ({ customStyle = {} }) => {
-  const router   = useRouter();
+  const router = useRouter();
   const { getJwtToken } = useStore();
-  const jwt      = getJwtToken();
+  const jwt = getJwtToken();
 
-  const [isMobile,      setIsMobile]      = useState(false);
-  const [email,         setEmail]         = useState("");
-  const [error,         setError]         = useState("");
-  const [isSubscribed,  setIsSubscribed]  = useState(false);
-  const [isSubmitting,  setIsSubmitting]  = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [footerContent, setFooterContent] = useState([]);
   const [activeFooterTab, setActiveFooterTab] = useState("Home");
-  const [loadedImages,  setLoadedImages]  = useState({});
+  const [loadedImages, setLoadedImages] = useState({});
 
-  const webApi   = new WebApimanager();
+  const webApi = new WebApimanager();
 
   const markLoaded = React.useCallback((key) => {
     setLoadedImages((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
@@ -153,7 +153,7 @@ const Footer = ({ customStyle = {} }) => {
   };
 
   /* ── Nav helpers ── */
-  const handleLogo  = () => router.push("/");
+  const handleLogo = () => router.push("/");
   const handleClick = (index, sIdx) => {
     const link = allServices[sIdx]?.Links?.[index];
     if (link) router.push(link);
@@ -161,7 +161,7 @@ const Footer = ({ customStyle = {} }) => {
 
   /* ── Subscribe ── */
   const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-  const handleSubmit  = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubscribed || isSubmitting) return;
     if (!email) { setError("Email is required!"); return; }

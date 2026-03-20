@@ -26,6 +26,7 @@ const AUTH_REDIRECT_ROUTES = [
   "/register",
   "/sign-up",
   "/book-demo",
+  "/contact-us"
 ];
 
 /* Routes that require a valid login (redirect → /login) */

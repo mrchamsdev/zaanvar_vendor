@@ -8,23 +8,23 @@ const LOGO_URL =
 
 /* ── Service metadata ── */
 const SERVICE_INFO = {
-  training:   { label: "Training",    sub: "Expert pet training sessions tailored to every breed and age — from basic obedience to advanced behavioural correction. Our certified trainers work closely with you and your pet to build confidence, communication, and a lasting bond." },
-  breeders:   { label: "Breeders",    sub: "Connect with trusted, ethical breeders who prioritise health, care, and transparency. Whether you are looking to adopt, partner, or grow your kennel, we bring responsible breeding to your fingertips." },
-  mating:     { label: "Mating",      sub: "Find the perfect genetic match for your pet through our safe, ethical, and transparent mating network. Every pairing is guided by health standards and breed excellence." },
-  clinic:     { label: "Clinic",      sub: "Access top-tier veterinary care — from routine check-ups and vaccinations to advanced diagnostics and surgery. Compassionate, professional vets ready to keep your pet healthy at every stage of life." },
-  grooming:   { label: "Grooming",    sub: "Professional grooming for every breed — bathing, trimming, nail clipping, and full hygiene care by certified groomers. Keeping your pet fresh, clean, and confident after every visit." },
-  "blood-bank": { label: "Blood Bank",  sub: "Life-saving blood resources for pets in critical need. Register your pet as a donor or locate certified blood banks near you. Together we build a community that saves lives, one drop at a time." },
-  "day-care": { label: "Day Care",    sub: "A safe, loving, and stimulating environment for your pet while you're away. Supervised play, rest, and socialisation by trained professionals — your pet will love every moment." },
-  location:   { label: "Location",    sub: "Discover the best pet services near you with our smart location-based search. Vets, groomers, trainers, and stores — all just a few taps away, wherever you are." },
-  events:     { label: "Events",      sub: "Stay connected with pet shows, adoption drives, workshops, and community events in your area. Meet fellow pet lovers, share knowledge, and celebrate the joy of pets together." },
+  training: { label: "Training", sub: "Expert pet training sessions tailored to every breed and age — from basic obedience to advanced behavioural correction. Our certified trainers work closely with you and your pet to build confidence, communication, and a lasting bond." },
+  breeders: { label: "Breeders", sub: "Connect with trusted, ethical breeders who prioritise health, care, and transparency. Whether you are looking to adopt, partner, or grow your kennel, we bring responsible breeding to your fingertips." },
+  mating: { label: "Mating", sub: "Find the perfect genetic match for your pet through our safe, ethical, and transparent mating network. Every pairing is guided by health standards and breed excellence." },
+  clinic: { label: "Clinic", sub: "Access top-tier veterinary care — from routine check-ups and vaccinations to advanced diagnostics and surgery. Compassionate, professional vets ready to keep your pet healthy at every stage of life." },
+  grooming: { label: "Grooming", sub: "Professional grooming for every breed — bathing, trimming, nail clipping, and full hygiene care by certified groomers. Keeping your pet fresh, clean, and confident after every visit." },
+  "blood-bank": { label: "Blood Bank", sub: "Life-saving blood resources for pets in critical need. Register your pet as a donor or locate certified blood banks near you. Together we build a community that saves lives, one drop at a time." },
+  "day-care": { label: "Day Care", sub: "A safe, loving, and stimulating environment for your pet while you're away. Supervised play, rest, and socialisation by trained professionals — your pet will love every moment." },
+  location: { label: "Location", sub: "Discover the best pet services near you with our smart location-based search. Vets, groomers, trainers, and stores — all just a few taps away, wherever you are." },
+  events: { label: "Events", sub: "Stay connected with pet shows, adoption drives, workshops, and community events in your area. Meet fellow pet lovers, share knowledge, and celebrate the joy of pets together." },
 };
 
 export default function ComingSoonPage() {
-  const router  = useRouter();
+  const router = useRouter();
   const service = (router.query?.service || "").toLowerCase();
-  const info    = SERVICE_INFO[service] || {
+  const info = SERVICE_INFO[service] || {
     label: service.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    sub:   "We are working hard to bring this feature to you. Stay tuned for updates!",
+    sub: "We are working hard to bring this feature to you. Stay tuned for updates!",
   };
 
   return (
@@ -65,7 +65,7 @@ export default function ComingSoonPage() {
         </p>
 
         <div style={{ display: "flex", gap: "clamp(10px,1.2vw,16px)", flexWrap: "wrap", justifyContent: "center" }}>
-          <button style={btnPrimary} onClick={() => router.push("/register")}>
+          <button style={btnPrimary} onClick={() => router.push("/contact-us")}>
             Register Now
           </button>
           <button style={btnOutline} onClick={() => router.back()}>

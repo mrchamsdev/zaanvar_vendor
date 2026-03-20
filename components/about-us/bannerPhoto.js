@@ -20,15 +20,15 @@ const BannerPhoto = () => {
           <div className={styles.overlayText}>
             <div className={styles["overLay-div"]}>
 
-        
-            <h1>Join Our Journey</h1>
-            <p>
-              Be a part of our mission to make the world a better place for
-              pets. Here's how you can contribute
-            </p>
-                </div>
+
+              <h1>Join Our Journey</h1>
+              <p>
+                Be a part of our mission to make the world a better place for
+                pets. Here's how you can contribute
+              </p>
+            </div>
             <div className={styles["Hello"]}>
-            <button onClick={() => Router.push("/register")} className={styles["join-us"]}>Join Us</button>
+              <button onClick={() => Router.push("/contact-us")} className={styles["join-us"]}>Join Us</button>
             </div>
           </div>
         </div>

@@ -23,6 +23,12 @@
   color: #111;
 }
 
+/* ─── Content Wrapper for ordering ─── */
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ─── Main image container ─── */
 .image-container {
   position: relative;
@@ -43,10 +49,10 @@
   top: clamp(8%, 15%, 22%);
   left: clamp(12px, 5%, 60px);
   width: clamp(200px, 48%, 560px);
-  padding: clamp(12px, 2vw, 24px) clamp(10px, 1.5vw, 22px);
+  padding: clamp(12px, 2.5vw, 24px) clamp(10px, 1.5vw, 22px);
   /* subtle dark-to-transparent gradient so text is always readable */
   border-radius: clamp(8px, 1.5vw, 14px);
-  backdrop-filter: blur(2px);
+  /* backdrop-filter: blur(2px); */
 }
 
 .header-title {
@@ -54,7 +60,8 @@
   font-size: clamp(18px, 2.5vw, 40px);
   line-height: 1.2;
   font-weight: 800;
-  color: #111;           /* explicit dark – prevents white on any background */
+  color: #111;
+  /* explicit dark – prevents white on any background */
 }
 
 /* .text-color – colour comes from inline style (activeColor), no rule needed */
@@ -63,7 +70,8 @@
   margin: clamp(8px, 1.2vw, 14px) 0 0;
   font-size: clamp(12px, 1.2vw, 17px);
   font-weight: 400;
-  color: #222;           /* explicit dark */
+  color: #222;
+  /* explicit dark */
   line-height: 1.55;
   text-align: left;
 }
@@ -137,9 +145,14 @@
 
 /* ─── Mobile ─── */
 @media (max-width: 768px) {
-  .image{
+  .contentWrapper {
+    flex-direction: column-reverse;
+  }
+
+  .image {
     display: none;
   }
+
   .image-container {
     height: clamp(220px, 7vw, 400px);
     margin: 0 clamp(8px, 3vw, 24px);
@@ -149,17 +162,16 @@
     top: 6%;
     width: calc(100% - 24px);
     left: 12px;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.7) 70%,
-      rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.7) 70%,
+        rgba(255, 255, 255, 0) 100%);
     padding: clamp(10px, 3vw, 18px);
   }
 
   .thumbnails {
     justify-content: flex-start;
+    padding-bottom: 16px; /* Decrease gap between thumbnails and main image */
   }
 }
 

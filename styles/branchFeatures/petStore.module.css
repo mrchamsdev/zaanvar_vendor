@@ -1,0 +1,72 @@
+.container {
+  display: grid;
+  /* gap: 14px; */
+  /* border: 1px solid #cfcaca; */
+  padding: 10px;
+  border-radius: 20px;
+
+}
+
+.input {
+  width: 97%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.termsBox {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.termsHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.addBtn {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.termRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.removeBtn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.headerRow {
+  display: flex;
+  justify-content: space-between; /* 🔥 THIS FIXES ALIGNMENT */
+  align-items: center;
+}
+.inputError {
+  border: 1px solid #ff4d4f !important;
+  background-color: #fff1f0;
+}
+
+.errorText {
+  color: #ff4d4f;
+  font-size: 0.82rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.required {
+  color: #ff4d4f;
+  margin-left: 4px;
+  font-size: 0.9rem;
+}

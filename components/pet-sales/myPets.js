@@ -1,47 +1,24 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/mypets.module.css";
 import Sidebar from "./Sidebar";
-import Topbar from "./Topbar";
 import { Delete, Edit, View2 } from "@/public/images/SVG";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";
 import ChangeStatus from "./changeStutus"; // ✅ added
+import AddNewPetPopup from "./AddNewPetPopup";
 
-const MyPets = ({ pets = [] }) => {
+const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen }) => {
   const router = useRouter();
   const [selectedPet, setSelectedPet] = useState(null);
 
   // ✅ added for ChangeStatus modal
   const [showChangeStatus, setShowChangeStatus] = useState(false);
-
-  const handleOnClick = () => {
-    router.push("/register");
-  };
+  const [editingPet, setEditingPet] = useState(null);
 
   const handleDelete = (pet) => {
     setSelectedPet(pet);
     setShowChangeStatus(true);
-  };
-
-  console.log(pets, "petsmy");
-
-  // Buttons for Topbar
-  const buttons = [
-    { label: "+ Add Pet", color: "purple", action: "addRoom" }, //! Color Coming from Styles
-    { label: "+ Add Bookings", color: "red", action: "addBooking" },
-    { label: "+ Add More", color: "gray", action: "addMore" },
-  ];
-
-  // ✅ Handler for topbar button clicks
-  const handleButtonClick = (action) => {
-    if (action === "addRoom") {
-      router.push("/register");
-    } else if (action === "addBooking") {
-      // alert("Add Booking Clicked!");
-    } else if (action === "addMore") {
-      // alert("Add More Clicked!");
-    }
   };
 
   const { data } = router.query;
@@ -53,86 +30,73 @@ const MyPets = ({ pets = [] }) => {
     }
   }, [data]);
 
-  // if (!pet) return <p>Loading pet details...</p>;
-
   return (
     <>
-      {/* Pass the array directly as prop */}
-      <Topbar buttons={buttons} onButtonClick={handleButtonClick} />
-
-      <div className={styles["tableRow2"]}>
-        <p>Pet Photo</p>
-        <p>Pet Id</p>
-        <p>Pet Breed</p>
-        <p>Age</p>
-        {/* <p>Breeding Time</p> */}
-        <p>Action</p>
-      </div>
-
-      {pets.map((pet, index) => (
-        <div key={index} className={styles.tableRow}>
-          {/* <img
-            src={pet.img}
-            alt={pet.breed}
-            className={styles.petImage}
-          /> */}
-          <Image
-            src={
-              pet?.petImage
-                ? `${IMAGE_URL}${pet?.petImage}`
-                : `https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg`
-            }
-            alt={pet.petName}
-            className={styles["petImage"]}
-            height={70}
-            width={70}
-          />
-          <p>{pet.id}</p>
-          <p>{pet.breed}</p>
-          <p>{pet.petAge}</p>
-          {/* <p>{pet.time}</p> */}
-          <div className={styles["edit-container"]}>
-            <div
-              className={styles["edit"]}
-              onClick={() =>
-                router.push({
-                  pathname: "/register",
-                  query: { data: JSON.stringify(pet) }, // ✅ fixed (was pets)
-                })
-              }
-            >
-              <Edit />
-            </div>
-
-            {/* <div
-              className={styles["view"]}
-              onClick={() => {
-                router.push({
-                  pathname: "my-pets/view",
-                  // query: { data: JSON.stringify(pet) },
-                });
-              }}
-            >
-              <View2 />
-            </div> */}
-            <div
-              className={styles["view"]}
-              onClick={() =>
-                router.push({
-                  pathname: "/my-pets/view",
-                  query: { data: JSON.stringify(pet) },
-                })
-              }
-            >
-              <View2 />
-            </div>
-
-            <div className={styles["delete"]}>
-              <Delete onClick={() => handleDelete(pet)} /> {/* ✅ fixed (was pets) */}
-            </div>
+      {isAddPopupOpen ? (
+        <AddNewPetPopup
+          isAddPopupOpen={isAddPopupOpen}
+          setIsAddPopupOpen={setIsAddPopupOpen}
+          petData={editingPet}
+          IMAGE_URL={IMAGE_URL}
+          fetchPetData={() => router.reload()} // basic fallback fetching trigger
+        />
+      ) : (
+        <div className={styles.tableContainer}>
+          <div className={styles["tableRow2"]} style={{ gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 0.5fr", display: "grid", gap: "10px", padding: "10px 20px" }}>
+            <p>S NO</p>
+            <p>Pet Name</p>
+            <p>Pet Type</p>
+            <p>Pet Breed</p>
+            <p>Status</p>
+            <p>Actions</p>
           </div>
+
+          {pets.map((pet, index) => (
+            <div key={index} className={styles.tableRow} style={{ gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 0.5fr", display: "grid", gap: "10px", padding: "10px 20px", alignItems: "center" }}>
+              <p>{(index + 1).toString().padStart(2, "0")}</p>
+              <p>{pet.petName || "—"}</p>
+              <p>{pet.petType || "—"}</p>
+              <p>{pet.breed || "—"}</p>
+              <p>
+                 <span className={styles.statusBadge} style={{ background: "#eee", padding: "4px 12px", borderRadius: "15px", fontSize: "14px" }}>
+                   {pet.petStatus || "—"}
+                 </span>
+              </p>
+              <div className={styles["edit-container"]}>
+                <div
+                  className={styles["edit"]}
+                  onClick={() => {
+                    setEditingPet(pet);
+                    setIsAddPopupOpen(true);
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <Edit />
+                </div>
+                <div
+                  className={styles["delete"]}
+                  onClick={() => handleDelete(pet)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <Delete />
+                </div>
+                <div
+                  className={styles["view"]}
+                  onClick={() =>
+                    router.push({
+                      pathname: "/my-pets/view",
+                      query: { data: JSON.stringify(pet) },
+                    })
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  <View2 />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       {/* ✅ Change Status Modal */}
       {showChangeStatus && selectedPet && (
@@ -142,6 +106,7 @@ const MyPets = ({ pets = [] }) => {
           onStatusChange={({ status, details }) => {
             console.log("New status:", status, "details:", details);
             setShowChangeStatus(false);
+            router.reload();
           }}
         />
       )}

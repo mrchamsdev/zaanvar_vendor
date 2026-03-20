@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/myPuppies.module.css";
-import Topbar from "./Topbar";
 import { Delete, Edit, Filter, View2 } from "@/public/images/SVG";
 import { useRouter } from "next/router";
 import PetForm from "./petForm";
@@ -10,15 +9,13 @@ import { WebApimanager } from "../utilities/WebApiManager";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";
 
-const MyPuppies = ({ pets = [] }) => {
+const MyPuppies = ({ pets = [], showForm, setShowForm }) => {
   const { getJwtToken, getUserInfo } = useStore();
   console.log(getUserInfo(), "getUserInfo");
   const jwttoken = getJwtToken();
   const currentUser = getUserInfo();
   const webApi = new WebApimanager(jwttoken);
   console.log(currentUser, "currentUser");
-
-  const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterDropdown, setShowFilterDropdown] = useState();
   const [showChangeStatus, setShowChangeStatus] = useState(false);
@@ -100,28 +97,12 @@ const MyPuppies = ({ pets = [] }) => {
 
   return (
     <>
-      <Topbar
-        buttons={[
-          { label: "+ Add Puppies", color: "purple", action: "addRoom" },
-          { label: "+ Add Bookings", color: "red", action: "addBooking" },
-          { label: "+ Add More", color: "gray", action: "addMore" },
-        ]}
-        onButtonClick={(action) => {
-          if (action === "addRoom") {
-            setEditingPet(null);
-            setShowForm(true);
-          } else setShowForm(false);
-        }}
-      />
-
       <div className={styles.tableContainer}>
-        <div className={styles["tableRow2"]}>
-          <p>Pet Photo</p>
-          <p>Pet Id</p>
-          <p>Pet Breed</p>
-          <p>Age</p>
-          <p>Gender</p>
-          <p>Price</p>
+        <div className={styles["tableRow2"]} style={{ gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr", display: "grid", gap: "10px", padding: "10px 20px" }}>
+          <p>S NO</p>
+          <p>Puppy Name</p>
+          <p>Puppy Type</p>
+          <p>Puppy Breed</p>
           <div className={styles.statusHeader}>
             <span style={{ paddingRight: "10px" }}>Status</span>
             <button
@@ -150,62 +131,50 @@ const MyPuppies = ({ pets = [] }) => {
               </select>
             )}
           </div>
-          <p>Action</p>
+          <p>Price</p>
+          <p>Actions</p>
         </div>
 
-
-        {pets.map((pets, index) => (
-          <div key={index} className={styles.tableRow}>
-            {/* <img
-              src={pets?.img}
-              alt={pets?.breed}
-              className={styles.petImage}
-            /> */}
-
-<Image
-            src={
-              pets?.morePhotos
-                ? `${IMAGE_URL}${pets?.morePhotos}`
-                : `https://zaanvar-care.b-cdn.net/media/1760346888104-img1.jpg`
-            }
-            alt={pets?.petName}
-            className={styles["petImage"]}
-            height={70}
-            width={70}
-          />
-
-            <p>{pets?.petName}</p>
-            <p>{pets?.breed}</p>
-            <p>{pets?.petAge}</p>
-            <p>{pets?.petGender}</p>
-            <p>{pets?.price}</p>
-            <p>{pets?.petStatus}</p>
+        {pets.map((pet, index) => (
+          <div key={index} className={styles.tableRow} style={{ gridTemplateColumns: "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr", display: "grid", gap: "10px", padding: "10px 20px", alignItems: "center" }}>
+            <p>{(index + 1).toString().padStart(2, "0")}</p>
+            <p>{pet?.petName || "—"}</p>
+            <p>{pet?.petType || "—"}</p>
+            <p>{pet?.breed || "—"}</p>
+            <p>
+              <span className={styles.statusBadge} style={{ background: "#eee", padding: "4px 12px", borderRadius: "15px", fontSize: "14px" }}>
+                {pet?.petStatus || "—"}
+              </span>
+            </p>
+            <p>{pet?.price || "—"}</p>
             <div className={styles["edit-container"]}>
-              {/* 3️⃣ Edit Button */}
+              {/* Edit Button */}
               <div
                 onClick={() => {
-                  setEditingPet(pets);
+                  setEditingPet(pet);
                   setShowForm(true);
                 }}
+                style={{ cursor: "pointer" }}
               >
                 <Edit />
+              </div>
+              <div
+                onClick={() => handleDelete(pet)}
+                style={{ cursor: "pointer" }}
+                className={styles["delete"]}
+              >
+                <Delete />
               </div>
               <div
                 onClick={() =>
                   Router.push({
                     pathname: "/my-puppies/view",
-                    query: { data: encodeURIComponent(JSON.stringify(pets)) },
+                    query: { data: encodeURIComponent(JSON.stringify(pet)) },
                   })
                 }
+                style={{ cursor: "pointer" }}
               >
                 <View2 />
-              </div>
-
-              <div
-                className={styles["delete"]}
-                onClick={() => handleDelete(pets)}
-              >
-                <Delete />
               </div>
             </div>
           </div>
