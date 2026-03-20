@@ -1,6 +1,6 @@
 import Layout from "@/components/pet-sales/layout";
 import Reviews from "@/components/pet-store/Reviews";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
 import React from "react";
 
 const menuItems = [
@@ -10,8 +10,8 @@ const menuItems = [
 ];
 
 const topbarButtons = [
-  { label: "+ Add Product", color: "red", action: "addProduct" },
-  { label: "+ Add More", color: "light", action: "addMore" },
+    // { label: "+ Add Product", color: "red", action: "addProduct" },
+    // { label: "+ Add More", color: "light", action: "addMore" },
 ];
 
 const PetStoreReviewsPage = () => {

@@ -2,7 +2,7 @@ import Layout from "@/components/pet-sales/layout";
 import MyPets from "@/components/pet-sales/myPets";
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
+import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
 import { useEffect, useState } from "react";
 // import MyPetsContent from "@/components/pet-sales/MyPetsContent";
 

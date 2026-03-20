@@ -4,7 +4,7 @@ import styles from "../../styles/pet-sales/dashBoard.module.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Image from "next/image";
-import { BackButton, Calender3, CrossIcon, FourDots, Notification, Price } from "@/public/image/SVG";
+import { BackButton, Calender3, CrossIcon, FourDots, Notification, Price } from "@/public/images/SVG";
 import Charts from "./charts";
 import ChatOnline from "./chatOnline";
 // import Charts from "./Charts";
@@ -17,9 +17,9 @@ const Dashboard = () => {
 
   // Topbar Buttons
   const buttons = [
-    { label: "+ Add Rooms", color: "purple" },
-    { label: "+ Add Bookings", color: "red" },
-    { label: "+ Add More", color: "gray" },
+    // { label: "+ Add Rooms", color: "purple" },
+    // { label: "+ Add Bookings", color: "red" },
+    // { label: "+ Add More", color: "gray" },
   ];
   const menuItems = [
     { name: "Dashboard", icon: <FourDots />, path: "/pet-sales" },
@@ -47,9 +47,9 @@ const Dashboard = () => {
         </button>
 
         <Image
-          src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png"
+          src="https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg"
           height={45}
-          width={70}
+          width={140}
           className={styles["image-blog"]}
           alt="Logo"
           priority

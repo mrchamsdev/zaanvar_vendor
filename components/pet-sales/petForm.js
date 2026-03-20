@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/petForm.module.css";
-import { Max2 } from "@/public/image/SVG";
+import { Max2 } from "@/public/images/SVG";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -253,16 +253,16 @@ const PetForm = ({
       const newPet = {
         id: initialData?.id || Math.random().toString(36).substr(2, 9),
         petType: formData.petType,
-        petBreed: formData.petBreed,
-        age: formData.petAge,
+        breed: formData.petBreed,
+        petAge: formData.petAge,
         color: formData.color,
         vaccination: formData.vaccination,
         negotiable: formData.negotiable,
         size: formData.size,
         hasParents: formData.hasParents,
         petName: formData.petName,
-        gender: formData.gender,
-        petVariety: formData.petVariety,
+        petGender: formData.gender,
+        petVariety: formData.petsVariety,
         price: `₹ ${formData.price}`,
         stutus: formData.status,
         sireMother: formData.sireMother,
@@ -616,7 +616,7 @@ const PetForm = ({
                 <label className={styles.label}>Pet Variety</label>
                 <select
                   name="petVariety"
-                  value={formData.petVariety || ""}
+                  value={formData.petsVariety || ""}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={styles.select}

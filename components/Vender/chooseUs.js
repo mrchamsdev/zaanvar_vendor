@@ -1,6 +1,6 @@
 import React from 'react'
 import styles from "../../styles/vender/chooseUs.module.css"
-import { Pet2Icon } from '@/public/image/SVG'
+import { Pet2Icon } from '@/public/images/SVG'
 
 const ChooseUs = () => {
   const data = [

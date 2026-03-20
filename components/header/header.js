@@ -87,11 +87,11 @@ const Header = () => {
       {/* Logo (centered on mobile via CSS) */}
       <Link href="/" className={style["logo-link"]} onClick={closeMenu}>
         <Image
-          src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png"
+          src="https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg"
           height={45}
-          width={70}
+          width={140}
           className={style["image-blog"]}
-          alt="Logo"
+          alt="Zaanvar Business Logo"
           priority
         />
       </Link>
@@ -124,7 +124,7 @@ const Header = () => {
 </nav>
 
           <div className={style["button-container"]}>
-            {/* <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button> */}
+            <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
             <button onClick={handleOnclick}
               className={style["btn-outline"]}
               style={{ background: "#F5790C", color:"#fff" }}
@@ -153,10 +153,10 @@ const Header = () => {
           >
             <div className={style["mobile-panel-logo"]}>
               <Image
-                src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png"
-                width={70}
+                src="https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg"
+                width={140}
                 height={45}
-                alt="Logo"
+                alt="Zaanvar Business Logo"
                 priority
               />
             </div>

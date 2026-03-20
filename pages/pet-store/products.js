@@ -6,7 +6,7 @@ import Layout from "@/components/pet-sales/layout";
 import ProductTable from "@/components/pet-store/ProductTable";
 import AddProduct from "@/components/pet-store/AddProduct";
 import ViewProduct from "@/components/pet-store/ViewProduct";
-import { BackButton, FourDots, SearchIcon } from "@/public/image/SVG";
+import { BackButton, FourDots, SearchIcon } from "@/public/images/SVG";
 import { productService } from "../../services/productService";
 import { FiGrid, FiSearch } from "react-icons/fi";
 import useStore from "@/components/state/useStore";
@@ -19,8 +19,8 @@ const menuItems = [
 ];
 
 const topbarButtons = [
-  { label: "+ Add Product", color: "red", action: "addProduct" },
-  { label: "+ Add More", color: "light", action: "addMore" },
+  // { label: "+ Add Product", color: "red", action: "addProduct" },
+  // { label: "+ Add More", color: "light", action: "addMore" },
 ];
 
 const ProductsPage = () => {

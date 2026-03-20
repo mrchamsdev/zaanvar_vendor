@@ -1,126 +1,80 @@
-/* Header block */
 .header-block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 50px;
+  padding-bottom: clamp(24px, 4vw, 56px);
+  padding-top: clamp(8px, 2vw, 20px);
 }
 
 .header-text {
   margin: 0;
-  font-size: 30px;
+  font-size: clamp(14px, 2vw, 30px);
   font-weight: 600;
-  color: #F5790C;
+  color: #f5790c;
+  letter-spacing: 0.04em;
 }
 
 .Below-text {
-  font-size: 48px;
+  font-size: clamp(22px, 3.5vw, 48px);
   font-weight: 600;
   margin: 0;
-  padding-top: 15px;
+  padding-top: clamp(10px, 1.5vw, 22px);
+  text-align: center;
 }
 
-/* Cards container */
 .contain-block {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
-  gap: 2rem;
-  margin-bottom: 50px;
-  padding: 0 32px;
-  align-items: center;
-  }
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2vw, 32px);
+  margin-bottom: clamp(30px, 4vw, 60px);
+  padding: 0 clamp(12px, 3vw, 48px);
+  align-items: start;
+}
 
-/* Individual card */
 .card {
   background: rgba(255, 248, 245, 1);
-  border-radius: 0.5rem;
-  padding: 1.5rem;
+  border-radius: 8px;
+  padding: clamp(14px, 2vw, 24px);
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  display: flex
-;
-    flex-direction: column;
-    align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .icon {
   display: flex;
   justify-content: center;
-  margin-bottom: 1rem;
-  width: 50px;
-  height: 50px;
+  align-items: center;
+  margin-bottom: clamp(8px, 1vw, 14px);
+  width: clamp(40px, 4vw, 54px);
+  height: clamp(40px, 4vw, 54px);
 }
 
 .title {
-  font-size: 20px;
+  font-size: clamp(15px, 1.4vw, 20px);
   margin: 0;
-  padding: 12px 0 6px 0;
+  padding: clamp(8px, 1vw, 14px) 0 clamp(4px, 0.5vw, 8px);
 }
 
 .para {
   margin: 0;
-  padding: 6px 0;
+  font-size: clamp(12px, 1.1vw, 15px);
+  padding: clamp(4px, 0.5vw, 10px);
+  text-align: justify;
+  line-height: 1.5;
 }
 
-/* Responsive */
+/* Tablet: 2 per row */
 @media (max-width: 1024px) {
   .contain-block {
-    grid-template-columns: repeat(2, 1fr); /* 2 per row on tablets */
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 768px) {
-  .contain-block {
-    grid-template-columns: 1fr; /* 1 per row on mobile */
-  }
-  .header-text {
-    font-size: 14px;
-  }
-
-  .Below-text {
-    font-size: 32px;
-    padding-top: 10px;
-    font-weight: 600px;
-  }
-}
-@media (max-width: 480px) {
+/* Mobile: 1 per row */
+@media (max-width: 600px) {
   .contain-block {
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 0 16px;
-    margin-bottom: 50px;
-  }
-
-  .header-text {
-    font-size: 14px;
-  }
-
-  .Below-text {
-    font-size: 24px;
-    padding-top: 10px;
-    font-weight: 600px;
-  }
-  .header-block{
-    padding: 30px;
-  }
-
-  .title {
-    font-size: 18px;
-    padding: 8px 0 4px 0;
-  }
-
-  .para {
-    font-size: 14px;
-    padding: 4px 0;
-  }
-  .card{
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-   box-shadow: 0 0 6px rgba(0, 0, 0, 0.09);
-
-
   }
 }

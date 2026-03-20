@@ -2,98 +2,113 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 50px;
+  padding-bottom: clamp(20px, 3.5vw, 56px);
+  padding-top: clamp(8px, 2vw, 20px);
 }
 
 .title-header {
   margin: 0;
-  font-size: 30px;
+  font-size: clamp(14px, 2vw, 30px);
   font-weight: 600;
-  color: #F5790C;
+  color: #f5790c;
+  letter-spacing: 0.05em;
 }
 
 .below-text {
-  font-size: 48px;
+  font-size: clamp(22px, 3.5vw, 48px);
   font-weight: 600;
   margin: 0;
-  padding-top: 20px;
+  padding-top: clamp(8px, 1.5vw, 22px);
+  text-align: center;
+  color: #111;
 }
-.para{
-    font-size: 20px;
-    font-weight: 400;
-}
+
+/* ─── Main image container ─── */
 .image-container {
   position: relative;
-    height: 500px;
-    margin: 0 80px 0px 80px;   
+  height: clamp(260px, 40vw, 560px);
+  margin: 0 clamp(12px, 5vw, 80px);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: clamp(8px, 1.5vw, 14px);
 }
 
 .image {
-  /* object-fit: contain;   */
-  border-radius: 12px;  
+  border-radius: clamp(8px, 1.5vw, 14px);
+  object-fit: cover;
 }
 
+/* ─── Text overlay ─── */
 .overlay-text {
- position: absolute;
-    top: 25%;
-    left: 10%;
-    color: black;
-    font-size: 40px;
-    width: 500px;
-    font-weight: 600;
-    
-    padding: 0 20px;   
-}
-.header-title{
-margin: 0px;
-font-size: 40px;
-}
-.button-div{
-padding: 10px 20px;
-border-radius: 50px;
-font-size: 18px;
-color: #fff;
-border: none;
-cursor: pointer;
+  position: absolute;
+  top: clamp(8%, 15%, 22%);
+  left: clamp(12px, 5%, 60px);
+  width: clamp(200px, 48%, 560px);
+  padding: clamp(12px, 2vw, 24px) clamp(10px, 1.5vw, 22px);
+  /* subtle dark-to-transparent gradient so text is always readable */
+  border-radius: clamp(8px, 1.5vw, 14px);
+  backdrop-filter: blur(2px);
 }
 
+.header-title {
+  margin: 0;
+  font-size: clamp(18px, 2.5vw, 40px);
+  line-height: 1.2;
+  font-weight: 800;
+  color: #111;           /* explicit dark – prevents white on any background */
+}
 
+/* .text-color – colour comes from inline style (activeColor), no rule needed */
 
+.para {
+  margin: clamp(8px, 1.2vw, 14px) 0 0;
+  font-size: clamp(12px, 1.2vw, 17px);
+  font-weight: 400;
+  color: #222;           /* explicit dark */
+  line-height: 1.55;
+  text-align: left;
+}
+
+.span-data {
+  font-size: clamp(11px, 1vw, 14px);
+  color: #444;
+}
+
+.button-div {
+  display: inline-block;
+  padding: clamp(8px, 1vw, 12px) clamp(16px, 2vw, 24px);
+  border-radius: 50px;
+  font-size: clamp(13px, 1.2vw, 17px);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Thumbnail strip ─── */
 .thumbnails {
   display: flex;
-  justify-content: space-between;  
-  /* gap: 1px;                */
-  padding: 20px 80px 100px 80px;
-  /* flex-wrap: wrap; */
-      overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    gap: 5px
-}
-.thumbnails {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto; /* enable horizontal scrolling */
+  justify-content: space-between;
+  padding: clamp(12px, 2vw, 22px) clamp(12px, 5vw, 80px) clamp(40px, 6vw, 100px);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   flex-wrap: nowrap;
-  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
-  
-  /* Hide scrollbar for WebKit browsers (Chrome, Safari) */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE 10+ */
+  gap: clamp(6px, 1vw, 14px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .thumbnails::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
 .thumbnail {
   cursor: pointer;
   display: flex;
-  flex-direction: column;   
+  flex-direction: column;
   align-items: center;
   transition: transform 0.3s ease;
+  min-width: clamp(55px, 8vw, 100px);
 }
 
 .thumbnail:hover {
@@ -102,147 +117,67 @@ cursor: pointer;
 
 .thumbnail img {
   border-radius: 8px;
+  width: clamp(55px, 8vw, 100px);
+  height: clamp(55px, 8vw, 100px);
+  object-fit: cover;
 }
 
 .dash {
-  margin-top: 5px;       
-  width: 20px;             
-  height: 5px;
+  margin-top: clamp(3px, 0.5vw, 6px);
+  width: clamp(14px, 2vw, 22px);
+  height: clamp(3px, 0.4vw, 5px);
   border-radius: 2px;
   background-color: transparent;
   transition: background-color 0.3s;
 }
 
 .thumbnail.active .dash {
-  background-color: #f5790c;  
+  background-color: #f5790c;
 }
 
-@media (max-width: 1200px) {
-  .overlay-text{
-    left: 5px;
-  }
-  .para{
-    width: 400px;
-  }
-}
-
-@media (max-width: 1000px) {
-  .overlay-text{
-    left: 5px;
-  }
-  .para{
-    width: 380px;
-  }
-  .header-title{
-    font-size: 32px;
-  }
-}
-
-
-/* Responsive below 768px */
+/* ─── Mobile ─── */
 @media (max-width: 768px) {
-  .image-container {
-    margin: 0 16px;
-    height: 400px;
-  }
-  .span-data{
+  .image{
     display: none;
   }
-  .thumbnail img {
-  border-radius: 8px;
-  padding-left: 10px;
-}
-
-.thumbnail.active .dash {
-  background-color: #f5790c;
-  margin-left: 10px; 
-  /* padding: 1px;  */
-}
+  .image-container {
+    height: clamp(220px, 7vw, 400px);
+    margin: 0 clamp(8px, 3vw, 24px);
+  }
 
   .overlay-text {
-    top: 15%;
-    left: 5%;
-    width: 90%;
-    font-size: 28px;
-    padding: 0 10px;
-  }
-
-  .header-title {
-    font-size: 28px;
-    width: 400px;
-  }
-
-  .para {
-    font-size: 16px;
-    width: 450px;
-  }
-
-  .button-div {
-    font-size: 16px;
-    padding: 8px 16px;
+    top: 6%;
+    width: calc(100% - 24px);
+    left: 12px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.7) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    padding: clamp(10px, 3vw, 18px);
   }
 
   .thumbnails {
-    padding: 20px 16px 50px 16px;
     justify-content: flex-start;
-    gap: 40px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    margin: 0px;
-  }
-
-  .thumbnail {
-    min-width: 80px;
-    margin-right: 10px;
-  }
-  .below-text{
-    font-size: 32px;
-    padding-top: 10px;
-  }
-  .title-header{
-    font-size: 14px;
   }
 }
 
-/* Optional: Further adjustment below 480px */
 @media (max-width: 480px) {
-  .image-container {
-    height: 300px;
-  }
-
-  .overlay-text {
-    font-size: 22px;
-  }
-
   .header-title {
-    font-size: 18px;
-        width: 220px;
-    
+    font-size: clamp(14px, 5vw, 22px);
   }
 
   .para {
-    font-size: 12px;
-    width: 170px;
+    font-size: clamp(10px, 3.5vw, 14px);
+  }
+
+  .span-data {
+    display: none;
   }
 
   .button-div {
-    font-size: 14px;
-    padding: 6px 12px;
+    font-size: clamp(11px, 3.5vw, 14px);
+    padding: 7px 14px;
   }
-
-  .thumbnail {
-    min-width: 60px;
-  }
-  .below-text{
-    font-size: 24px;
-    padding-top: 10px;
-  }
-  .title-header{
-    font-size: 14px;
-  }
-  .header-div{
-    padding-bottom: 30px;
-  }
-
 }

@@ -1,8 +1,10 @@
 import React from "react";
 import Image from "next/image";
 import styles from "../../styles/about/bannerPhoto.module.css";
+import { useRouter } from "next/router";
 
 const BannerPhoto = () => {
+  const Router = useRouter();
   return (
     <div className={styles.bannerWrapper}>
       <div className={styles.bannerInner}>
@@ -26,7 +28,7 @@ const BannerPhoto = () => {
             </p>
                 </div>
             <div className={styles["Hello"]}>
-            <button className={styles["join-us"]}>Join Us</button>
+            <button onClick={() => Router.push("/register")} className={styles["join-us"]}>Join Us</button>
             </div>
           </div>
         </div>

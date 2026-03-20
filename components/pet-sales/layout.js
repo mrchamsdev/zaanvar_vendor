@@ -45,7 +45,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import styles from "../../styles/pet-sales/dashBoard.module.css"; // ✅ reuse styles
 import Image from "next/image";
-import { Notification } from "@/public/image/SVG";
+import { Notification } from "@/public/images/SVG";
 
 const Layout = ({
   children,
@@ -78,9 +78,9 @@ const Layout = ({
         </button>
 
         <Image
-          src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png"
+          src="https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg"
           height={45}
-          width={70}
+          width={140}
           className={styles["image-blog"]}
           alt="Logo"
         />
