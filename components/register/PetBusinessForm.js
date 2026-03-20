@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from "../../styles/register/petBusinessForm.module.css";
 import { Tik } from "@/public/images/SVG";
 import { Country, State, City } from "country-state-city";
+import MultiSelectDropdown from "../MultiSelectDropdown";
 import { VENDOR_API_URL } from "../utilities/Constants";
 // ── Country / State / City helpers ───────────────────────────────────────
 const allCountries = Country.getAllCountries().map((c) => ({
@@ -29,7 +30,6 @@ const Field = React.memo(({ label, required, children, error }) => (
   </div>
 ));
 
-// Address block
 const AddressBlock = React.memo(({ prefix, title, formData, setFormData, errors, handleInputChange }) => {
   const countryKey = `${prefix}Country`;
   const stateKey = `${prefix}State`;
@@ -43,53 +43,59 @@ const AddressBlock = React.memo(({ prefix, title, formData, setFormData, errors,
       <div className={styles.formCard}>
         <div className={styles.row}>
           <Field label="Country" required error={errors[countryKey]}>
-            <select
-              name={countryKey}
-              value={formData[countryKey]}
-              onChange={(e) => {
-                handleInputChange(e);
+            <MultiSelectDropdown
+              listItems={allCountries}
+              selectedIds={formData[countryKey] ? [formData[countryKey]] : []}
+              setSelectedIds={(ids) => {
+                const newCode = ids.length ? ids[ids.length - 1] : "";
+                handleInputChange({ target: { name: countryKey, value: newCode } });
                 setFormData((prev) => ({ ...prev, [stateKey]: "", [cityKey]: "" }));
               }}
-              className={styles.selectInput}
-            >
-              <option value="">Select Country</option>
-              {allCountries.map((c) => (
-                <option key={c.id} value={c.code}>{c.name}</option>
-              ))}
-            </select>
+              isSingleSelect={true}
+              heading=""
+              customStyles={{ container: { marginBottom: 0 }, dropdown: { border: "none", padding: "0.6rem 0.8rem", minHeight: "20px" } }}
+            />
           </Field>
           <Field label="State" error={errors[stateKey]}>
-            <select
-              name={stateKey}
-              value={formData[stateKey]}
-              onChange={(e) => {
-                handleInputChange(e);
-                setFormData((prev) => ({ ...prev, [cityKey]: "" }));
-              }}
-              className={styles.selectInput}
-              disabled={!formData[countryKey]}
-            >
-              <option value="">Select State</option>
-              {getStates(formData[countryKey]).map((s) => (
-                <option key={s.id} value={s.code}>{s.name}</option>
-              ))}
-            </select>
+            {!formData[countryKey] ? (
+              <select disabled className={styles.selectInput}>
+                <option>Select State</option>
+              </select>
+            ) : (
+              <MultiSelectDropdown
+                listItems={getStates(formData[countryKey])}
+                selectedIds={formData[stateKey] ? [formData[stateKey]] : []}
+                setSelectedIds={(ids) => {
+                  const newCode = ids.length ? ids[ids.length - 1] : "";
+                  handleInputChange({ target: { name: stateKey, value: newCode } });
+                  setFormData((prev) => ({ ...prev, [cityKey]: "" }));
+                }}
+                isSingleSelect={true}
+                heading=""
+                customStyles={{ container: { marginBottom: 0 }, dropdown: { border: "none", padding: "0.6rem 0.8rem", minHeight: "20px" } }}
+              />
+            )}
           </Field>
         </div>
         <div className={styles.row}>
           <Field label="City" error={errors[cityKey]}>
-            <select
-              name={cityKey}
-              value={formData[cityKey]}
-              onChange={handleInputChange}
-              className={styles.selectInput}
-              disabled={!formData[stateKey]}
-            >
-              <option value="">Select City</option>
-              {getCities(formData[countryKey], formData[stateKey]).map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+            {!formData[stateKey] ? (
+              <select disabled className={styles.selectInput}>
+                <option>Select City</option>
+              </select>
+            ) : (
+              <MultiSelectDropdown
+                listItems={getCities(formData[countryKey], formData[stateKey])}
+                selectedIds={formData[cityKey] ? [formData[cityKey]] : []}
+                setSelectedIds={(ids) => {
+                  const newVal = ids.length ? ids[ids.length - 1] : "";
+                  handleInputChange({ target: { name: cityKey, value: newVal } });
+                }}
+                isSingleSelect={true}
+                heading=""
+                customStyles={{ container: { marginBottom: 0 }, dropdown: { border: "none", padding: "0.6rem 0.8rem", minHeight: "20px" } }}
+              />
+            )}
           </Field>
           <Field label="Pin Code" error={errors[pinKey]}>
             <input
@@ -318,7 +324,8 @@ const PetBusinessForm = () => {
   ];
   const SERVICE_OPTIONS = [
     "Breeders", "Pet Sales", "Grooming", "Training", "Photographers",
-    "Blood Bank", "NGO's", "Day Care", "Clinics", "Events", "Location", "E-Commerce",
+    "Blood Bank", "NGO's", "Day Care", "Clinic", "Event", "Location", "E-Commerce",
+    "Sitter/walker", "Rides", "Pet Shop"
   ];
   const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "Twitter", "YouTube", "LinkedIn", "WhatsApp", "Website"];
   const DATA_STORE_OPTIONS = ["Manual", "Software", "Both"];
@@ -1108,7 +1115,7 @@ const PetBusinessForm = () => {
                         )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "12px", color: "#aaa", fontWeight: "600", textTransform: "uppercase" }}>OR</span>
+                        {/* <span style={{ fontSize: "12px", color: "#aaa", fontWeight: "600", textTransform: "uppercase" }}>OR</span> */}
                         <input
                           type="date"
                           name="cbBranchOpeningDate"
