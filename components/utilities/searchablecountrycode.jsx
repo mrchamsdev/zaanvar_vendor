@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import styles from "../../styles/Utilities/SearchableCountryCode.module.css";
+import styles from "../../styles/utilities/SearchableCountryCode.module.css";
+
 
 const SearchableCountryCode = ({ countries, selectedCode, onSelect, className }) => {
     const [isOpen, setIsOpen] = useState(false);
