@@ -1276,6 +1276,7 @@ const VendorRegistration = () => {
 
       if (branchesNeedingL3.length > 0) {
         const l3TargetId = res?.data?.vendorDetails?.UserId || res?.data?.userId || res?.data?.compId;
+
         if (l3TargetId) {
           try {
             const l3Res = await sendL3Verification(l3TargetId);
