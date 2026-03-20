@@ -1,46 +1,49 @@
-.header-wrapper{
-    /* width: 100%; */
-    height: 100%;
-    padding: 0px 32px;  
-    display: flex; 
-    justify-content: space-between;
-    align-items: center;
-     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
-
-}
-.mobile-nav, .mobile-actions, .mobile-toggle, .mobile-panel-logo{
-    display: none;
-}
-.image-blog{
-    padding: 20px 0px;
+.header-wrapper {
+  height: 100%;
+  padding: 0 clamp(12px, 2.5vw, 40px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
-.nav-links{
- display: flex;
- gap: 30px; 
- padding-left: 250px; 
- }
- .nav-links a{
-     text-decoration: none; 
-    color: Black;          
-    font-size: 18px;
-    font-weight: 500;
- }
+.mobile-nav,
+.mobile-actions,
+.mobile-toggle,
+.mobile-panel-logo {
+  display: none;
+}
 
+.image-blog {
+  padding: clamp(10px, 1.5vw, 22px) 0;
+}
 
-  .button-container{
-        display: flex;
-        gap: 10px;
+.nav-links {
+  display: flex;
+  gap: clamp(14px, 2vw, 32px);
+  padding-left: clamp(60px, 15vw, 260px);
+}
 
-    }
+.nav-links a {
+  text-decoration: none;
+  color: #000;
+  font-size: clamp(14px, 1.2vw, 18px);
+  font-weight: 500;
+}
 
-.button-container button{
-    border: 1px solid #F5790C;
-    background: none;
-    padding: 10px 20px;
-    border-radius: 50px;
-    color: #F5790C;
-    
+.button-container {
+  display: flex;
+  gap: clamp(6px, 0.8vw, 14px);
+}
+
+.button-container button {
+  border: 1px solid #f5790c;
+  background: none;
+  padding: clamp(6px, 0.8vw, 12px) clamp(12px, 1.5vw, 22px);
+  border-radius: 50px;
+  color: #f5790c;
+  font-size: clamp(13px, 1.1vw, 16px);
+  cursor: pointer;
 }
 
 
@@ -56,14 +59,15 @@
 }
 
 .activeLink {
-  color: #f5790c !important; /* active tab color */
+  color: #f5790c !important;
+  /* active tab color */
   font-weight: 600;
 }
 
 
 @media (max-width: 870px) {
-  .nav-links{
-    padding-left: 150px;
+  .nav-links {
+    padding-left: clamp(30px, 8vw, 120px);
   }
 }
 
@@ -74,9 +78,13 @@
     align-items: center;
   }
 
-.mobile-nav , .mobile-actions, .mobile-toggle,.mobile-panel-logo{
+  .mobile-nav,
+  .mobile-actions,
+  .mobile-toggle,
+  .mobile-panel-logo {
     display: block;
-}
+  }
+
   .nav-links,
   .button-container {
     display: none !important;
@@ -109,7 +117,8 @@
   }
 
   .image-blog {
-    width: 64px; /* adjust size as needed */
+    width: 64px;
+    /* adjust size as needed */
     height: auto;
     padding: 6px 0;
     object-fit: contain;
@@ -124,9 +133,9 @@
     left: 0;
     right: 0;
     background: #fff;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     padding: 12px 14px;
-    border-top: 1px solid rgba(0,0,0,0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
     flex-direction: column;
     gap: 12px;
     z-index: 70;
@@ -141,6 +150,7 @@
     flex-direction: column;
     gap: 8px;
   }
+
   .mobile-nav a {
     text-decoration: none;
     color: #111;
@@ -148,9 +158,10 @@
     padding: 10px 8px;
     border-radius: 8px;
   }
+
   .mobile-nav a:hover,
   .mobile-nav a:focus {
-    background: rgba(245,121,12,0.06);
+    background: rgba(245, 121, 12, 0.06);
   }
 
   .mobile-actions {
@@ -159,6 +170,7 @@
     gap: 8px;
     width: 100%;
   }
+
   .mobile-actions .btn-outline {
     width: 100%;
     padding: 10px 12px;
@@ -172,10 +184,23 @@
 
   /* slightly smaller on very small phones */
   @media (max-width: 420px) {
-    .image-blog { width: 52px; }
-    .mobile-toggle { left: 8px; }
-    .mobile-nav a { font-size: 14px; padding: 8px 6px; }
-    .mobile-actions .btn-outline { padding: 9px 10px; font-size: 14px; }
+    .image-blog {
+      width: 52px;
+    }
+
+    .mobile-toggle {
+      left: 8px;
+    }
+
+    .mobile-nav a {
+      font-size: 14px;
+      padding: 8px 6px;
+    }
+
+    .mobile-actions .btn-outline {
+      padding: 9px 10px;
+      font-size: 14px;
+    }
   }
 }
 
@@ -220,6 +245,7 @@
     align-items: center;
     justify-content: center;
   }
+
   .image-blog {
     width: 64px;
     height: auto;
@@ -232,13 +258,14 @@
   .mobile-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.42);
+    background: rgba(0, 0, 0, 0.42);
     opacity: 0;
     pointer-events: none;
     transition: opacity 280ms ease;
     z-index: 92;
     will-change: opacity;
   }
+
   .mobile-overlay.open {
     opacity: 1;
     pointer-events: auto;
@@ -249,35 +276,41 @@
     position: fixed;
     left: 0;
     right: 0;
-    top: 0;               /* start at very top, slide in from above */
+    top: 0;
+    /* start at very top, slide in from above */
     height: 100vh;
     background: #fff;
-    transform: translateY(-100%);  /* hidden above viewport */
-    transition: transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 200ms;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+    transform: translateY(-100%);
+    /* hidden above viewport */
+    transition: transform 420ms cubic-bezier(.2, .9, .2, 1), box-shadow 200ms;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
     z-index: 93;
     display: flex;
     flex-direction: column;
-    padding: 84px 20px 20px; /* top padding leaves space for header area */
+    padding: 84px 20px 20px;
+    /* top padding leaves space for header area */
     gap: 12px;
     will-change: transform;
   }
+
   .mobile-panel.open {
-    transform: translateY(0); /* slide down into view */
+    transform: translateY(0);
+    /* slide down into view */
   }
 
   /* Centered nav inside panel */
   .mobile-nav {
     display: flex;
-        flex-direction: column;
-        gap: 18px;
-        /* align-items: center; */
-        justify-content: center;
-        /* flex: 1 1; */
-        padding-top: 10px;
-        /* padding-bottom: 200px; */
+    flex-direction: column;
+    gap: 18px;
+    /* align-items: center; */
+    justify-content: center;
+    /* flex: 1 1; */
+    padding-top: 10px;
+    /* padding-bottom: 200px; */
     padding-top: 6px;
   }
+
   .mobile-nav a {
     text-decoration: none;
     color: #111;
@@ -289,28 +322,34 @@
     max-width: 360px;
     /* text-align: center; */
   }
-  .mobile-nav a:focus, .mobile-nav a:hover {
-    background: rgba(245,121,12,0.06);
+
+  .mobile-nav a:focus,
+  .mobile-nav a:hover {
+    background: rgba(245, 121, 12, 0.06);
   }
 
 
-    .mobile-panel-logo {
+  .mobile-panel-logo {
     display: flex;
     justify-content: center;
     align-items: center;
-    position: absolute;    /* keep it fixed near top-center of the panel */
-    top: 20px;             /* adjust vertical position as preferred */
+    position: absolute;
+    /* keep it fixed near top-center of the panel */
+    top: 20px;
+    /* adjust vertical position as preferred */
     left: 50%;
     transform: translateX(-50%);
     z-index: 95;
     width: 100%;
-    pointer-events: none;  /* so taps fall through to panel/overlay if needed */
+    pointer-events: none;
+    /* so taps fall through to panel/overlay if needed */
   }
 
   /* size the image inside popup slightly larger or smaller as needed */
   .mobile-panel-logo :global(img) {
     display: block;
-    width: 72px;   /* tweak this to 64/72 depending on desired size */
+    width: 72px;
+    /* tweak this to 64/72 depending on desired size */
     height: auto;
     object-fit: contain;
   }
@@ -325,7 +364,7 @@
     flex-direction: column;
     gap: 10px;
     /* padding: 12px 16px; */
-    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,1));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
     justify-content: center;
     align-items: center;
   }
@@ -341,6 +380,7 @@
     cursor: pointer;
     border: 1px solid #F5790C;
   }
+
   .mobile-actions .btn-primary {
     background: #F5790C;
     color: #fff;
@@ -349,10 +389,23 @@
 
   /* Slightly smaller sizes on very small phones */
   @media (max-width: 420px) {
-    .image-blog { width: 52px; }
-    .mobile-nav a { font-size: 16px; padding: 8px 10px; }
+    .image-blog {
+      width: 52px;
+    }
+
+    .mobile-nav a {
+      font-size: 16px;
+      padding: 8px 10px;
+    }
+
     .mobile-actions .btn-outline,
-    .mobile-actions .btn-primary { padding: 10px 12px; font-size: 15px; }
-    .mobile-panel { padding: 72px 14px 14px; }
+    .mobile-actions .btn-primary {
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
+    .mobile-panel {
+      padding: 72px 14px 14px;
+    }
   }
 }

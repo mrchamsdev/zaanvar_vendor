@@ -1,0 +1,444 @@
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/router";
+import useStore from "../state/useStore";
+import styles from "../../styles/dashboard/dashboard.module.css";
+
+const LOGO_URL =
+  "https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg";
+
+/* ── Inline SVG icons ─────────────────────────────────────── */
+const IconGrid = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+const IconClock = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 3" />
+  </svg>
+);
+const IconStar = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+const IconUser = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconScissors = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
+  </svg>
+);
+const IconHeart = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+const IconShop = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </svg>
+);
+const IconActivity = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+const IconDog = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="9" cy="7" r="4" />
+    <path d="M3 21v-2a4 4 0 0 1 4-4h8" />
+    <path d="M16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2" />
+  </svg>
+);
+const IconChevronLeft = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+const IconChevronRight = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const IconSearch = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" />
+  </svg>
+);
+const IconMenu = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
+const IconLogout = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
+/* ── Service → Sidebar config (all flat routes) ─────────── */
+const SERVICE_MAP = {
+  Grooming:       { label: "Grooming",  path: "/grooming",   icon: <IconScissors /> },
+  Clinic:         { label: "Clinic",    path: "/clinic",     icon: <IconActivity /> },
+  "Pet Shop":     { label: "Pet Shop",  path: "/pet-shop",   icon: <IconShop />     },
+  Training:       { label: "Training",  path: "/training",   icon: <IconActivity /> },
+  "Day Care":     { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
+  "Pet Day Care": { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
+  Daycare:        { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
+  "Pet Sales":    { 
+    label: "Pet Sale", 
+    path: "/pet-sales",  
+    icon: <IconDog />,
+    subItems: [
+      { label: "Pet", path: "/pet-sales?tab=Pets" },
+      { label: "Puppy", path: "/pet-sales?tab=Puppies" }
+    ]
+  },
+  "Pet Training": { label: "Training",  path: "/training",   icon: <IconActivity /> },
+};
+
+const BRANCH_SERVICE_MAP = {
+  clinicDetails:    "Clinic",
+  groomingServices: "Grooming",
+  daycares:         "Day Care",
+  petShops:         "Pet Shop",
+  petSales:         "Pet Sales",
+};
+
+function buildMenuFromVendor(userInfo) {
+  const base = [
+    { label: "Dashboard",         path: "/dashboard",      icon: <IconGrid />  },
+    { label: "Timing Slots",      path: "/timing-slots",   icon: <IconClock /> },
+    { label: "Reviews & Ratings", path: "/reviews",        icon: <IconStar />  },
+    { label: "Profile",           path: "/profile",        icon: <IconUser />  },
+  ];
+
+  const serviceSet = new Set();
+
+  (userInfo?.vendorCompanies || []).forEach((co) => {
+    (co.servicesProvided || []).forEach((s) => serviceSet.add(s));
+    (co.branches || []).forEach((br) => {
+      Object.entries(BRANCH_SERVICE_MAP).forEach(([key, svc]) => {
+        const val = br[key];
+        if (val && (Array.isArray(val) ? val.length > 0 : true)) {
+          serviceSet.add(svc);
+        }
+      });
+    });
+  });
+
+  const seen     = new Set();
+  const svcItems = [];
+  serviceSet.forEach((s) => {
+    const cfg = SERVICE_MAP[s];
+    if (cfg && !seen.has(cfg.path)) {
+      seen.add(cfg.path);
+      svcItems.push({ label: cfg.label, path: cfg.path, icon: cfg.icon, subItems: cfg.subItems });
+    }
+  });
+
+  return [...base, ...svcItems];
+}
+
+/* ─── Loading skeleton ──────────────────────────────────── */
+function Skeleton() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100dvh",
+        background: "#f5f6fa",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          border: "3px solid #f5790c",
+          borderTopColor: "transparent",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <p style={{ color: "#888", fontSize: 14 }}>Loading…</p>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * DashboardLayout
+ * ═══════════════════════════════════════════════════════════ */
+const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
+  const router  = useRouter();
+  const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
+
+  const [sidebarOpen,      setSidebarOpen]      = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({ "/pet-sales": true }); // Default expand pet sales if active
+
+  /* ── auth guard ── */
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    if (!jwtToken || !userInfo) {
+      router.replace("/login");
+    }
+  }, [_hasHydrated, jwtToken, userInfo]);
+
+  /* ── close mobile sidebar on navigation ── */
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [router.pathname]);
+
+  /* ── show spinner while Zustand is rehydrating ── */
+  if (!_hasHydrated) return <Skeleton />;
+  if (!jwtToken || !userInfo) return <Skeleton />;
+
+  const menuItems = buildMenuFromVendor(userInfo);
+
+  /* ── avatar ── */
+  const firstName = userInfo?.firstName || "";
+  const lastName  = userInfo?.lastName  || "";
+  const avatarInitial =
+    `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase() || "V";
+  const avatarImg = userInfo?.profileImage || null;
+
+  /* ── logout ── */
+  const handleLogout = () => {
+    clearStore();
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+    router.replace("/login");
+  };
+
+  return (
+    <div className={styles.dashWrap}>
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className={styles.sidebarOverlay}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside
+        className={`${styles.sidebar} ${
+          sidebarOpen      ? styles.sidebarOpen      : ""
+        } ${
+          sidebarCollapsed ? styles.sidebarCollapsed : ""
+        }`}
+      >
+        {/* Logo + collapse toggle */}
+        <div className={styles.sidebarLogo}>
+          {!sidebarCollapsed && (
+            <span className={styles.sidebarLogoText}>Zaanvar</span>
+          )}
+          <button
+            className={styles.sidebarToggleBtn}
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <IconChevronRight /> : <IconChevronLeft />}
+          </button>
+        </div>
+
+        {/* Nav items */}
+        <ul className={styles.sidebarNav}>
+          {menuItems.map((item) => {
+            const isActive = router.pathname === item.path || router.pathname.startsWith(item.path + '/');
+            const hasSub = !!item.subItems;
+            const isExpanded = expandedMenus[item.path];
+
+            return (
+              <li key={item.path} className={isActive && !hasSub ? styles.active : ""}>
+                {!hasSub ? (
+                  <Link href={item.path} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
+                    <span className={styles.navIcon}>{item.icon}</span>
+                    {!sidebarCollapsed && (
+                      <span className={styles.navLabel}>{item.label}</span>
+                    )}
+                  </Link>
+                ) : (
+                  <>
+                    <div 
+                      onClick={() => {
+                        setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
+                        if (!isExpanded && !isActive) router.push(item.subItems[0].path);
+                      }}
+                      className={isActive ? styles.active : ""}
+                      title={sidebarCollapsed ? item.label : undefined}
+                      style={{ 
+                        display: "flex", alignItems: "center", cursor: "pointer", 
+                        padding: "12px 16px", borderRadius: "8px", 
+                        background: isActive ? "#000" : "transparent",
+                        color: isActive ? "#fff" : "inherit"
+                      }}
+                    >
+                      <span className={styles.navIcon} style={{ display: 'flex', alignItems: 'center', opacity: 1 }}>{item.icon}</span>
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className={styles.navLabel} style={{ flex: 1, paddingLeft: "12px", opacity: 1 }}>{item.label}</span>
+                          <span style={{ fontSize: "10px", marginLeft: "10px", opacity: 0.6 }}>{isExpanded ? "▲" : "▼"}</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {isExpanded && !sidebarCollapsed && (
+                      <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
+                        {item.subItems.map((sub, i) => {
+                          // Clean up paths for comparison since router.asPath includes queries
+                          const isSubActive = router.asPath === sub.path || (router.asPath === "/pet-sales" && i === 0);
+                          return (
+                            <Link 
+                              key={sub.path} 
+                              href={sub.path}
+                              style={{
+                                padding: "8px 16px 8px 45px",
+                                borderRadius: "8px",
+                                color: isSubActive ? "#F5790C" : "#555",
+                                background: isSubActive ? "#F6FAFC" : "transparent",
+                                fontWeight: isSubActive ? 600 : 400,
+                                textDecoration: "none",
+                                fontSize: "14px",
+                                transition: "background 0.2s"
+                              }}
+                            >
+                              {sub.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Logout button */}
+        <div className={styles.sidebarFooter}>
+          <button
+            className={styles.sidebarLogoutBtn}
+            onClick={handleLogout}
+            title={sidebarCollapsed ? "Logout" : undefined}
+          >
+            <IconLogout />
+            {!sidebarCollapsed && (
+              <span className={styles.sidebarLogoutLabel}>Logout</span>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main area ── */}
+      <div className={styles.mainArea}>
+        {/* Mobile topbar */}
+        <div className={styles.mobTopbar}>
+          <button
+            className={styles.hamburger}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
+            <IconMenu />
+          </button>
+          <Image
+            src={LOGO_URL}
+            alt="Zaanvar"
+            width={120}
+            height={40}
+            priority
+            style={{ objectFit: "contain" }}
+          />
+          <div style={{ width: 32 }} />
+        </div>
+
+        {/* Desktop topbar */}
+        <header className={styles.topbar}>
+          <div className={styles.searchBox}>
+            <IconSearch />
+            <input type="text" placeholder="Search here" />
+          </div>
+
+          <div className={styles.topbarActions}>
+            {topbarButtons.map((btn, i) => (
+              <button
+                key={i}
+                className={`${styles.topBtn} ${
+                  btn.color === "purple"
+                    ? styles.topBtnPurple
+                    : btn.color === "red"
+                    ? styles.topBtnRed
+                    : styles.topBtnGray
+                }`}
+                onClick={() => onTopbarAction && onTopbarAction(btn.action)}
+              >
+                {btn.label}
+              </button>
+            ))}
+
+            {/* Avatar */}
+            <div
+              className={styles.topAvatar}
+              title={`${firstName} ${lastName}`.trim()}
+            >
+              {avatarImg ? (
+                <img src={avatarImg} alt="avatar" />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    background: "#f5790c",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    borderRadius: "50%",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => router.push("/profile")}
+                >
+                  {avatarInitial}
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className={styles.pageContent}>{children}</main>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardLayout;

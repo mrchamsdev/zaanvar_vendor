@@ -4,7 +4,8 @@
   padding: 32px 120px;
   font-family: 'Poppins';
 }
-.errorMsg{
+
+.errorMsg {
   color: red;
   font-size: 14px;
   padding-top: 5px;
@@ -31,16 +32,19 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0px;
 }
-.ul{
-    color: #12121294;
+
+.ul {
+  color: #12121294;
 }
+
 .feature h4 {
   font-weight: bold;
   margin-bottom: 0.5rem;
   font-size: 18px;
 }
-.tailored-feature{
-  margin: 0px ;
+
+.tailored-feature {
+  margin: 0px;
   padding-top: 30px;
   font-size: 28px;
 }
@@ -79,47 +83,90 @@
   gap: 1rem;
 }
 
+/* Changed from input to .form input */
+.form input:not([type="checkbox"]):not([type="radio"]),
+.form select,
+.form textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* Changed from input:focus to .form input:focus */
+.form input:not([type="checkbox"]):not([type="radio"]):focus,
+.form select:focus,
+.form textarea:focus {
+  border-color: #F5790C;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 121, 12, 0.1);
+}
+
 .row input {
   /* flex: 1; */
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
-.label{
-   color: #12121294;
-   align-items: center;
-    display: flex;
-    gap: 5px;
-;
+
+.label {
+  color: #12121294;
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+  justify-content: flex-start;
+  cursor: pointer;
 }
-.label input{
-    border: none;
+
+.label input {
+  border: none;
 }
-.checkBox{
-    height: 20px;
-    width: 20px;
+
+.checkBox {
+  height: 18px;
+  width: 18px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
 }
-.label2{
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: #12121294;
+
+.label2 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #12121294;
+  cursor: pointer;
 }
-.label2 input{
-   height: 25px;
-   width: 25px; 
+
+.label2 input {
+  height: 18px;
+  width: 18px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .checkboxGroup {
   display: grid;
- grid-template-columns: repeat(4, 1fr);
-    grid-gap: 0.5rem;
-    gap: 0.5rem;
-    font-size: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-gap: 1rem;
+  gap: 1rem;
+  font-size: 14px;
+  padding: 10px 0;
 }
-.checkbox-tag{
+
+.checkbox-tag {
   margin-bottom: 0;
 }
+
 .radioGroup {
   display: flex;
   gap: 1rem;
@@ -143,76 +190,81 @@
   font-size: 0.8rem;
   color: #7f7f7f;
 }
-.row-title{
-    display: flex;
-    flex-direction: column;
-    width: 50%;
-}
-.title-tag{
-    margin: 0px;
-    padding-bottom: 10px;
-    font-weight: 500;
-    
-}
-.capitalize{
- text-transform: none;
+
+.row-title {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  gap: 5px;
+  padding-bottom: 10px;
 }
 
+.title-tag {
+  margin: 0px;
+  padding-bottom: 10px;
+  font-weight: 500;
+}
 
-.form input,
+.capitalize {
+  text-transform: none;
+}
+
+/* Updated to use .form instead of global */
+.form input:not([type="checkbox"]):not([type="radio"]),
 .form select,
 .form textarea {
   border: none;
   box-shadow: none;
-  outline: none; /* removes blue outline on focus */
+  outline: none;
   padding: 0.6rem 0.8rem;
   border-radius: 6px;
-  background: #fff; /* or transparent, depending on your design */
+  background: #fff;
 }
 
-.form input:focus,
+.form input:not([type="checkbox"]):not([type="radio"]):focus,
 .form select:focus,
 .form textarea:focus {
-  border: 1px solid #ff7a00; /* optional: apply custom focus border */
+  border: 1px solid #ff7a00;
   box-shadow: none;
   outline: none;
 }
 
-.submit-btn{
-    width: 36%;
-    background-color:#F5790C;
-
-    color: white;
-    border: none;
-    border-radius: 50px;
-    padding: 10px 20px;
-    height: 45px;
-    font-size: 18px;
+.submit-btn {
+  width: 36%;
+  background-color: #F5790C;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 20px;
+  height: 45px;
+  font-size: 18px;
 }
 
-
 @media (max-width: 1028px) {
-   .features {
-    grid-template-columns: repeat(2, 1fr); /* 2 columns instead of 3 */
+  .features {
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  .submit-btn{
+
+  .submit-btn {
     font-size: 14px;
   }
-  .container{
+
+  .container {
     padding: 32px;
   }
 }
+
 @media (max-width: 880px) {
-   .features {
-    grid-template-columns: repeat(2, 1fr); /* 2 columns instead of 3 */
+  .features {
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  .submit-btn{
+
+  .submit-btn {
     font-size: 14px;
   }
 }
-
 
 /* Responsive styles for screens below 768px */
 @media (max-width: 768px) {
@@ -222,9 +274,10 @@
   }
 
   .features {
-    grid-template-columns: repeat(3, 1fr); /* 2 columns instead of 3 */
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
   }
+
   .left h1 {
     font-size: 24px;
   }
@@ -235,11 +288,11 @@
   }
 
   .row-title {
-    width: 100%; /* inputs span full width */
+    width: 100%;
   }
 
   .checkboxGroup {
-    grid-template-columns: repeat(2, 1fr); /* reduce from 4 columns to 2 */
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .radioGroup {
@@ -249,34 +302,42 @@
   }
 
   .submit-btn {
-    width: 100%; /* full width button */
+    width: 100%;
     font-size: 16px;
   }
 }
+
 @media (max-width: 480px) {
-  .features{
-    grid-template-columns:repeat(3,1fr)
+  .features {
+    grid-template-columns: repeat(3, 1fr);
   }
-  .feature h4{
+
+  .feature h4 {
     margin: 0px;
   }
-  .right h2{
-margin-top: 0px;
+
+  .right h2 {
+    margin-top: 0px;
   }
-  .tailored-feature{
+
+  .tailored-feature {
     padding-bottom: 20px;
     font-size: 22px;
   }
-  .card-button{
+
+  .card-button {
     font-size: 12px;
   }
-  .feature h4{
+
+  .feature h4 {
     font-size: 16px;
   }
-  .feature li{
+
+  .feature li {
     font-size: 14px;
   }
-  .submit-btn{
+
+  .submit-btn {
     font-size: 14px;
   }
 }
@@ -291,7 +352,7 @@ margin-top: 0px;
   font-size: 14px;
   color: #121212;
   cursor: pointer;
-  appearance: none; /* Optional: removes default browser arrow */
+  appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
@@ -301,9 +362,11 @@ margin-top: 0px;
   border: 1px solid #f5790c;
   outline: none;
 }
+
 .pac-container {
   z-index: 10000 !important;
 }
+
 .successMessage {
   background-color: #d1fae5;
   border: 1px solid #10b981;
@@ -330,7 +393,8 @@ margin-top: 0px;
   animation: slideIn 0.3s ease-out;
 }
 
-.successIcon, .errorIcon {
+.successIcon,
+.errorIcon {
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
@@ -346,13 +410,95 @@ margin-top: 0px;
   cursor: wait;
 }
 
+.inputWrapper {
+  width: 100%;
+}
+
+/* Ensure the wrapper doesn't cause re-renders */
+.row-title {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 5px;
+  padding-bottom: 10px;
+}
+
+/* Make sure inputs don't lose focus on re-render */
+.form input,
+.form select,
+.form textarea {
+  pointer-events: auto;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.socialRow {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 5px;
+}
+
+.addSocialBtn {
+  background-color: #F5790C;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 16px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.addSocialBtn:hover {
+  background-color: #e56b00;
+}
+
+.socialList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.socialChip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #fce8d7;
+  color: #111;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.socialChip button {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: #d15600;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Make sure select in socialRow doesn't break layout */
+.socialRow select.selectInput {
+  background-position: right 0.5rem center;
+  /* tweak arrow position for narrow select */
 }

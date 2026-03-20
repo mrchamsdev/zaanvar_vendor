@@ -1,63 +1,24 @@
-import Charts from "@/components/pet-sales/charts";
-import ChatOnline from "@/components/pet-sales/chatOnline";
-import Layout from "@/components/pet-sales/layout";
-import Topbar from "@/components/pet-sales/Topbar";
-import { BackButton, Calender3, FourDots } from "@/public/image/SVG";
-import React, { useState } from "react";
-import styles from "../../styles/grooming/grooming.module.css"
-import PetForm from "@/components/pet-sales/petForm";
-import BookSlot from "@/components/grooming/bookSlot";
+import React from "react";
+import DashboardLayout from "../../components/dashboard/DashboardLayout";
 
-const Index = () => {
-  const [editingPet, setEditingPet] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const menuItems = [
-    { name: "Dashboard", icon: <FourDots />, path: "/grooming" },
-    { name: "Bookings", icon: <Calender3 />, path: "/grooming/booking" },
-    { name: "Invoice Generation", icon: <Calender3 />, path: "/grooming/invoice-generation" },
-    { name: "Parties & Purchases", icon: <Calender3 />, path: "/grooming/parties-purchases" },
-    // { name: "Expenses", icon: <Calender3 />, path: "/grooming/expenses" },
-    // { name: "Inventory", icon: <Calender3 />, path: "/grooming/inventory" },
-    { name: "Staff Management", icon: <Calender3 />, path: "/grooming/staff-management" },
-    // { name: "Reports", icon: <Calender3 />, path: "/grooming/reports" },
-    // { name: "Settings", icon: <Calender3 />, path: "/settings" },
-    // { name: "Logout", icon: <Calender3 />, path: "/logout" },
+export default function GroomingPage() {
+  const topbarButtons = [
+    // { label: "+ Add Session",  color: "purple", action: "addSession"  },
+    // { label: "+ Add Bookings", color: "red",    action: "addBookings" },
+    // { label: "+ Add More",     color: "gray",   action: "addMore"     },
   ];
 
   return (
-    <Layout menuItems={menuItems} sidebarToggleButton={<BackButton />}>
-      <Topbar
-        buttons={[
-          { label: "+ Add Rooms", color: "purple", action: "addRoom" },
-          { label: "+ Add Bookings", color: "red", action: "addBooking" },
-          { label: "+ Add More", color: "gray", action: "addMore" },
-        ]}
-        onButtonClick={(action) => {
-          if (action === "addRoom") {
-            setEditingPet(null);
-            setShowForm(true);
-          }
-        }}
-      />
-
-      {!showForm && (
-        <div className={styles["show"]}>
-          <Charts />
-          <ChatOnline />
-        </div>
-      )}
-      {showForm && (
-        <div>
-       <BookSlot/>
-            {/* <button className={styles.closeBtn} onClick={() => setShowForm(false)}>
-              Back
-            </button> */}
-          </div>
-        
-      )}
-    </Layout>
+    <DashboardLayout topbarButtons={topbarButtons}>
+      <div style={{ padding: "clamp(16px,2vw,32px)", textAlign: "center", marginTop: "10vh" }}>
+        <h2 style={{ fontSize: "clamp(20px,2.2vw,28px)", fontWeight: 700, color: "#111" }}>
+          Grooming
+        </h2>
+        <p style={{ fontSize: "clamp(13px,1.1vw,16px)", color: "#888", marginTop: 8 }}>
+        This section is under development.
+        Please visit again soon to explore new updates.
+        </p>
+      </div>
+    </DashboardLayout>
   );
-};
-
-export default Index;
+}

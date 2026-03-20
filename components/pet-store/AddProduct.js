@@ -695,7 +695,7 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
               ))}
               {[...Array(Math.max(0, 3 - images.length))].map((_, i) => (
                 <div key={`empty-${i}`} className={styles.emptyBox}>
-                  <Image src="https://zaanvar-care.b-cdn.net/media/1759818805009-ZAANVAR_FINAL%20LOGO%203.png" width={40} height={40} alt="placeholder" />
+                  <Image src="https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg" width={80} height={40} alt="placeholder" />
                 </div>
               ))}
             </div>

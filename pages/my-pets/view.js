@@ -12,7 +12,7 @@ import {
   Share,
   Size,
   Whatsapp,
-} from "@/public/image/SVG";
+} from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 

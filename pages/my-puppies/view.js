@@ -11,7 +11,7 @@ import {
   Share,
   Size,
   Whatsapp,
-} from "@/public/image/SVG";
+} from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { useRouter } from "next/router";
 

@@ -1,0 +1,140 @@
+.sitterContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #ffffff;
+  padding: 10px 0;
+}
+
+.featureTitle {
+  /* color: #ff6b35; */
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.textInput {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.addBtn {
+  background: #fff5f2;
+  color: #ff6b35;
+  border: 1px dashed #ff6b35;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sideBySideRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.flexInputTwo {
+  flex: 2;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.flexInputOne {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.removeBtn {
+  background: #feeaea;
+  color: #e74c3c;
+  border: 1px solid #fabebb;
+  border-radius: 6px;
+  width: 35px;
+  height: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.bottomRow {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+.toggleField {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 8px;
+  height: 44px;
+}
+
+.checkboxWrapper input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #ff6b35;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .topGrid, .sideBySideRow, .bottomRow {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .flexInputOne, .flexInputTwo {
+    width: 100%;
+  }
+
+  .removeBtn {
+    width: 100%;
+    height: 35px;
+  }
+}

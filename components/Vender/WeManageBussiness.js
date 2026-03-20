@@ -1,6 +1,6 @@
 import React from 'react'
 import styles from "../../styles/vender/weManageBussiness.module.css"
-import { PetIcon } from '@/public/image/SVG'
+import { PetIcon } from '@/public/images/SVG'
 
 const WeManageBussiness = () => {
   const data = [

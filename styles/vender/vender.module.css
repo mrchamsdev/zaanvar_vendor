@@ -1,44 +1,30 @@
 .carouselContainer {
   width: 100%;
-  margin-bottom: 150px;
+  margin-bottom: clamp(40px, 8vw, 150px);
+  padding-top: clamp(8px, 2vw, 20px);
 }
 
 .header {
   text-align: center;
-  margin-bottom: 2rem;
-}
-
-.title {
-  font-size: 24px; 
-  margin: 0px;
-  padding-bottom: 8px;
-  color: white;
-  z-index: 2;
-  position: relative;
-}
-
-.belowText {
-  font-size: 18px;
-  margin: 0px;
-  color: white;
-  z-index: 2;
-  position: relative;
+  margin-bottom: clamp(12px, 2.5vw, 32px);
 }
 
 .headerSubtitle {
   color: rgba(245, 121, 12, 1);
   font-weight: 600;
-  font-size: 30px;
-  margin: 0px;
-  padding-bottom: 10px;
+  font-size: clamp(14px, 2vw, 30px);
+  margin: 0;
+  padding-bottom: clamp(6px, 1vw, 12px);
+  letter-spacing: 0.05em;
 }
 
 .headerTitle {
-  font-size: 48px;
+  font-size: clamp(26px, 3.5vw, 50px);
   font-weight: 700;
-  margin: 0px;
+  margin: 0;
 }
 
+/* ─── Carousel ─── */
 .carouselWrapper {
   position: relative;
   overflow: visible;
@@ -51,13 +37,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.5s;
+  transition: transform 0.5s ease-in-out;
+  overflow: hidden;
 }
 
 .carouselItem {
   flex: 0 0 auto;
   transition: transform 0.5s, opacity 0.5s;
-  /* cursor: pointer; */
   transform: scale(0.7);
   z-index: 1;
 }
@@ -86,14 +72,14 @@
   position: relative;
   border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-  width: 300px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  width: clamp(140px, 20vw, 300px);
 }
 
 .imageContainer {
   position: relative;
   width: 100%;
-  height: 310px;
+  height: clamp(140px, 20vw, 310px);
 }
 
 .card img {
@@ -102,13 +88,10 @@
   object-fit: cover;
 }
 
-/* Image Mask Overlay */
+/* Image gradient overlay */
 .imageMask {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
@@ -119,69 +102,49 @@
   transition: opacity 0.5s ease;
 }
 
-/* Active mask - only for center card */
 .maskActive {
   opacity: 1;
 }
 
 .cardContent {
   position: absolute;
-  bottom: 1rem;
+  bottom: clamp(6px, 1vw, 14px);
   left: 0;
   right: 0;
   color: white;
   text-align: center;
-  padding: 0 1rem;
+  padding: 0 clamp(6px, 1vw, 16px);
   z-index: 3;
 }
 
-.navButton {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(255, 255, 255, 0.7);
-  padding: 0.5rem;
-  border-radius: 9999px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  /* cursor: pointer; */
+.title {
+  font-size: clamp(14px, 1.5vw, 24px);
+  margin: 0;
+  padding-bottom: clamp(4px, 0.5vw, 8px);
+  color: white;
+  z-index: 2;
+  position: relative;
 }
 
-.navButtonLeft {
-  left: 0.5rem;
+.belowText {
+  font-size: clamp(11px, 1.1vw, 18px);
+  margin: 0;
+  color: white;
+  z-index: 2;
+  position: relative;
 }
 
-.navButtonRight {
-  right: 0.5rem;
-}
-
+/* ─── Dots ─── */
 .dots {
   display: flex;
   justify-content: center;
-  margin-top: 1rem;
-  gap: 0.5rem;
+  margin-top: clamp(8px, 1.5vw, 16px);
+  gap: clamp(4px, 0.5vw, 8px);
 }
 
 .dot {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 9999px;
-  background-color: #d1d5db;
-}
-
-.dotActive {
-  background-color: #f97316;
-}
-
-.carouselTrack {
-  display: flex;
-  align-items: center;
-  transition: transform 0.5s ease-in-out;
-  overflow: hidden;
-}
-
-.dot {
-  width: 5px;
-  height: 5px;
+  width: clamp(4px, 0.5vw, 8px);
+  height: clamp(4px, 0.5vw, 8px);
   border-radius: 9999px;
   background-color: #d1d5db;
   display: inline-block;
@@ -193,115 +156,21 @@
 }
 
 .dash {
-  width: 1.5rem;
-  height: 0.35rem;
+  width: clamp(14px, 1.5vw, 24px);
+  height: clamp(4px, 0.4vw, 6px);
   border-radius: 0.25rem;
 }
 
-
-
-
-
-/* Responsive Styles */
-@media (max-width: 768px) {
-  .carouselContainer {
-    margin-bottom: 40px; 
-    padding-top: 20px;
-  }
-
-  .headerTitle {
-    font-size: 32px;
-  }
-  
-  .carouselTrack {
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .headerSubtitle {
-    font-size: 14px;
-    padding: 0px;
-  }
-  
-  .header {
-    margin-bottom: 10px;
-  }
-
-  .title {
-    font-size: 18px;
-  }
-
-  .belowText {
-    font-size: 14px;
-  }
-
-  .carouselItem {
-    transform: scale(0.6);
-    margin: 0 5px;
-  }
-
-  .carouselItem.left,
-  .carouselItem.right {
-    transform: scale(0.75);
-  }
-
-  .carouselItem.center {
-    transform: scale(0.9);
-  }
-
-  .card {
-    width: 200px;
-  }
-
-  .imageContainer {
-    height: 200px;
-  }
-
-  .cardContent {
-    bottom: 0.5rem;
-    padding: 0 0.5rem;
-    font-size: 12px;
-  }
-
-  .dots {
-    gap: 0.25rem;
-  }
-
-  .dot {
-    width: 4px;
-    height: 4px;
-  }
-
-  .dash {
-    width: 1rem;
-    height: 0.25rem;
-  }
+/* Nav buttons */
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem;
+  border-radius: 9999px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 786px) {
-  .card {
-    width: 150px;
-  }
-  
-  .imageContainer {
-    height: 150px;
-  }
-}
-
-@media (max-width: 480px) {
-  .card {
-    width: 150px;
-  }
-  
-  .imageContainer {
-    height: 150px;
-  }
-  
-  .title {
-    font-size: 16px;
-  }
-  
-  .belowText {
-    font-size: 12px;
-  }
-}
+.navButtonLeft  { left: 0.5rem; }
+.navButtonRight { right: 0.5rem; }

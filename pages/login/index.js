@@ -1,489 +1,107 @@
-// import React, { useEffect, useState } from "react";
-// import { useRouter } from "next/router";
-// import Image from "next/image";
-// // import { ClosedEyeIcon, EyeIcon } from "@/public/images/SVG";
-// import styles from "../../styles/login/signin.module.css"
-// import { RoundIcon, RoundIcon2, Roundsmall2Icon, RoundsmallIcon } from "@/public/SVG";
-// const Login = () => {
-//   const route = useRouter();
-//   const [isLoaded, setIsLoaded] = useState(false);
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [details, setDetails] = useState({ email: "", passWord: "" });
-//   const [rememberMe, setRememberMe] = useState(false);
-//   const [errors, setErrors] = useState({ email: "", passWord: "" });
-
-//   useEffect(() => {
-//     const savedEmail = localStorage.getItem("savedEmail");
-//     if (savedEmail) {
-//       setDetails((prev) => ({ ...prev, email: savedEmail }));
-//       setRememberMe(true);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     setTimeout(() => setIsLoaded(true), 100);
-//   }, []);
-
-//   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-//   const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
-
-//   const handleLoginChange = (e) => {
-//     const { name, value } = e.target;
-//     setDetails((prev) => ({ ...prev, [name]: value }));
-
-//     if (name === "email") {
-//       setErrors((prev) => ({
-//         ...prev,
-//         email: value.trim() === "" ? "" : validateEmail(value) ? "" : "Invalid email format",
-//       }));
-//     }
-//     if (name === "passWord") setErrors((prev) => ({ ...prev, passWord: "" }));
-//   };
-
-//   const handleLoginSubmit = (e) => {
-//     e.preventDefault();
-
-//     if (!details.email || !validateEmail(details.email)) {
-//       setErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }));
-//       return;
-//     }
-
-//     if (!details.passWord || !validatePassword(details.passWord)) {
-//       setErrors((prev) => ({ ...prev, passWord: "Please enter a valid password" }));
-//       return;
-//     }
-
-//     // Save email if Remember Me is checked
-//     if (rememberMe) localStorage.setItem("savedEmail", details.email);
-//     else localStorage.removeItem("savedEmail");
-
-//     toast.success("Logged in (Static Mode)!");
-//   };
-
-//   const forgotpassword = () => route.push("/forgotpassword");
-
-//   return (
-//     <>
-//       {/* <ToastContainer /> */}
-//       <div className={`${styles.signInContainer} ${isLoaded ? styles.loaded : ""}`}>
-//         <div className={styles.leftSection}>
-//           <div className={styles.mobileZaanvar}>
-//             <Image src="https://zaanvar-care.b-cdn.net/media/1761368604038-ZAANVAR_FINAL.png" alt="Zaanvar Logo" width={120} height={60} priority />
-//           </div>
-//           <h1 className={styles.text}>
-//             Welcome <span style={{ color: "#F5790C" }}>Back!</span>
-//           </h1>
-//           <p className={styles.text}>
-//             We’ve missed you and your furry friend! Log in to explore pet events, services, and new matches waiting just for you.
-//           </p>
-//           <div className={styles.dogImageContainer}>
-//             <div className={styles.roundBigIcon}>
-//                 <RoundIcon />
-//                 </div>
-//             <div className={styles.roundBigIcon2}>
-//                 <RoundIcon2 />
-//             </div>
-//             <div className={styles.roundsmallIcon}>
-//                 <RoundsmallIcon />
-//                 </div>
-//             <div className={styles.roundsmall2Icon}>
-//                 <Roundsmall2Icon />
-//             </div>
-//             <div className={styles.DogImg}>
-//               <img src="https://zaanvar-care.b-cdn.net/media/1761368987866-Dog.png" className={styles.dogImg} />
-//             </div>
-//           </div>
-//         </div>
-
-//         <div className={styles.rightSection}>
-//           <div className={styles.logoContainer}>
-//             <Image src="https://zaanvar-care.b-cdn.net/media/1761368604038-ZAANVAR_FINAL.png" alt="Zaanvar Logo" width={180} height={80} priority />
-//           </div>
-
-//           <form onSubmit={handleLoginSubmit} className={styles.formContainer}>
-//             <div className={styles.inputGroup}>
-//               <label>Email</label>
-//               <input
-//                 type="email"
-//                 name="email"
-//                 placeholder="Enter your email"
-//                 value={details.email}
-//                 onChange={handleLoginChange}
-//                 required
-//               />
-//               {errors.email && <span className={styles.error1}>{errors.email}</span>}
-//             </div>
-
-//             <div className={styles.inputGroup}>
-//               <label>Password</label>
-//               <input
-//                 type={showPassword ? "text" : "password"}
-//                 name="passWord"
-//                 placeholder="Enter your password"
-//                 value={details.passWord}
-//                 onChange={handleLoginChange}
-//                 required
-//               />
-//               <span onClick={() => setShowPassword(!showPassword)} className={styles.passwordToggle}>
-//                 {/* {showPassword ? <EyeIcon /> : <ClosedEyeIcon />} */}
-//               </span>
-//             </div>
-//             {errors.passWord && <span className={styles.error}>{errors.passWord}</span>}
-
-//             <div className={styles.formOptions}>
-//               <label className={styles.rememberMe}>
-//                 <input
-//                   type="checkbox"
-//                   checked={rememberMe}
-//                   onChange={(e) => setRememberMe(e.target.checked)}
-//                 />
-//                 Remember me
-//               </label>
-//               <a onClick={forgotpassword} className={styles.forgotPassword}>
-//                 Forgot Password
-//               </a>
-//             </div>
-
-//             <button type="submit" className={styles.signInButton}>
-//               LOG IN
-//             </button>
-
-//             <p className={styles.signUpPrompt}>
-//               Don't have an account?
-//               <button type="button" className={styles.signUpLink} onClick={() => route.push("/sign-up")}>
-//                 Sign Up
-//               </button>
-//             </p>
-//           </form>
-//         </div>
-//       </div>
-//     </>
-//   );
-// };
-
-// export default Login;
-
-import React, { useEffect, useState } from "react";
-import styles from "../../styles/login/signin.module.css";
-
-import { WebApimanager } from "../../components/utilities/WebApiManager"
-import useStore from "../../components/state/useStore";
-// import * as Icon from "react-bootstrap-icons";
-import { useRouter } from "next/router";
-import Image from "next/image";
-import { RoundIcon, RoundIcon2, Roundsmall2Icon, RoundsmallIcon } from "@/public/image/SVG";
-import { signIn , useSession} from "next-auth/react";
-import { ClosedEyeIcon, EyeIcon } from "@/public/image/SVG";
-
-const SignIn = ({ onSignUpClick }) => {
-    // const { data: session } = useSession();
-    const webApi = new WebApimanager();
-    const route = useRouter();
-    const { getPreviousPath, setJwtToken, setUserInfo } = useStore();
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [details, setDetails] = useState({
-      email: "",
-      passWord: "",
-    });
-    const [rememberMe, setRememberMe] = useState(false);
-
-useEffect(() => {
-  const savedEmail = localStorage.getItem("savedEmail");
-
-  if (savedEmail) {
-    setDetails((prev) => ({ ...prev, email: savedEmail }));
-    setRememberMe(true);
-  }
-}, []);
-    const [errors, setErrors] = useState({
-      email: "",
-      passWord: "",
-    });
+import SignIn from '../../components/signin/signin'
+// import Signup from '@/components/SignIn/signup'
+import React, { useEffect, useState } from 'react'
+import styles from "../../styles/login/signin.module.css"
+// import { SchemaData } from '@/components/Utilities/SchemaData';
+import Head from "next/head";
+const Index = () => {
+  const [currentPage, setCurrentPage] = useState('signin');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationType, setAnimationType] = useState('');
+    const [canonicalUrl, setCanonicalUrl] = useState("");
+     useEffect(() => {
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("utm_source");
+          url.searchParams.delete("utm_medium");
+          url.searchParams.delete("utm_campaign");
+          url.searchParams.delete("utm_term");
+          url.searchParams.delete("utm_content");
+          setCanonicalUrl(url.origin + url.pathname);
+        }
+      }, []);
   
-    useEffect(() => {
-      setTimeout(() => {
-        setIsLoaded(true);
-      }, 100);
-    }, []);
-  
-    const validateEmail = (email) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    };
-  
-    const validatePassword = (password) => {
-      // Must contain at least one lowercase, one uppercase, one number, and be at least 8 chars
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-      return passwordRegex.test(password);
-    };
+  const handlePageTransition = (page) => {
+    setIsAnimating(true);
+    setAnimationType(page === 'signup' ? 'animate' : 'animateReverse');
     
-  
- const handleLoginChange = (e) => {
-  const { name, value } = e.target;
-  setDetails((prev) => ({ ...prev, [name]: value }));
-
-  if (name === "email") {
-    setErrors((prev) => ({
-      ...prev,
-      email: value.trim() === "" ? "" : validateEmail(value) ? "" : "Invalid email format",
-    }));
-  }
-
-  // Do not validate password on change — clear error only
-  if (name === "passWord") {
-    setErrors((prev) => ({
-      ...prev,
-      passWord: "", // Clear any previous password error
-    }));
-  }
-};
-
-  
-    const handleLoginSubmit = async (e) => {
-      e.preventDefault();
-  
-      if (!details.email || !validateEmail(details.email)) {
-        setErrors((prev) => ({
-          ...prev,
-          email: "Please enter a valid email address",
-        }));
-        return;
-      }
-  
-      if (!details.passWord || !validatePassword(details.passWord)) {
-  setErrors((prev) => ({
-    ...prev,
-    passWord: "Please enter valid password",
-  }));
-  return;
-}
-
-  
-      try {
-        const response = await webApi.postwithouttoken("users/login", details);
-        const { token, user } = response;
-  
-        if (token && user) {
-          setJwtToken(token);
-          setUserInfo(user);
-    console.log(response,"response")
-            // Save only the email for security reasons
-      if (rememberMe) {
-        localStorage.setItem("savedEmail", details.email);
-      } else {
-        localStorage.removeItem("savedEmail");
-      }
-
-          
-         if(response.user.type==="vendor"){
-          route.push("/")
-         }
-        } else {
-          toast.error("Login failed: Missing token or user information.");
-        }
-      } catch (error) {
-        console.error("Login error:", error);
+    // First phase of animation
+    setTimeout(() => {
+      setCurrentPage(page);
       
-      }
-    };
- const handleGoogleLogin = async () => {
-    // Step 1: open Google login popup
-    // await signIn("google", { redirect: false });
-      const result = await signIn("google", { 
-      redirect: false, 
-      prompt: "select_account" 
-    });
+      // Second phase
+      setTimeout(() => {
+        setIsAnimating(false);
+        setAnimationType('');
+      }, 1200); // Match animation duration
+    }, 600); // Half of animation duration
   };
 
-  // useEffect(() => {
-  //   // Step 2: Trigger after user selects an email
-  //   if (session?.user?.email) {
-  //     verifyGoogleEmail(session.user.email);
-  //   }
-  // }, [session]);
-
-  const verifyGoogleEmail = async (email) => {
-    try {
-      // Step 3: Check if the email exists in your backend
-      const response = await webApi.postwithouttoken("users/check-email", { email });
-
-      if (response.exists) {
-        // If user exists → login with Google
-        const loginRes = await webApi.postwithouttoken("users/login", {
-          email,
-          passWord: "",
-          isGoogleLogin: true,
-        });
-console.log(loginRes, "loginRes")
-        const { token, user } = loginRes;
-        if (token && user) {
-          setJwtToken(token);
-          setUserInfo(user);
-          // toast.success("Logged in Successfully!");
-          // route.push("/"); // redirect
-        }
-      } else {
-        // If user does not exist → show error
-        // toast.error("This account doesn’t exist. Please create an account or try another email.");
-      }
-    } catch (error) {
-      console.error(error);
-      // toast.error("Something went wrong with Google login.");
-    }
-  };
-
-    const forgotpassword = () => {
-      route.push("/forgotpassword");
-    };
-
-    const handleLogin = async () => {
-  const res = await fetch("/api/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-    headers: { "Content-Type": "application/json" },
-  });
-
-  const data = await res.json();
-
-  if (data.success) {
-    useStore.getState().setUser({
-      name: data.user.name,
-      email: data.user.email,
-    });
-
-    localStorage.setItem("user", JSON.stringify(data.user));
-  }
-};
   return (
-    <>
-  
-      <div className={`${styles.signInContainer} ${isLoaded ? styles.loaded : ""}`}>
-
-       
-        <div className={styles.leftSection}>
-        <div className={styles.mobileZaanvar}>
-     
-            <Image
-              src="https://zaanvar-care.b-cdn.net/media/1761368604038-ZAANVAR_FINAL.png"
-              alt="Zaanvar Logo"
-              width={120}
-              height={60}
-              priority
-             style={{marginTop:"40px"}}
+    <>  <Head>
+            {/* <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredJson) }}
+            /> */}
+    
+            <title>Sign In | Zaanvar – Pet Sales, Genie & Pet Services</title>
+            <meta
+              name="description"
+              content="Sign in to your Zaanvar account to explore pet names, sales, matchmaking, and more – your trusted pet care platform."
             />
-          </div>
-          <h1 className={styles.text}>Welcome <span style={{color:"#F5790C"}}>Back!</span></h1>
-          <p className={styles.text}>We’ve missed you and your furry friend! Log in to explore pet events, services, and new matches waiting just for you.</p>
-          <div className={styles.dogImageContainer}>
-          <div className={styles.roundBigIcon}>
-          <RoundIcon/>
-          </div>
-          <div className={styles.roundBigIcon2}>
-          <RoundIcon2/>
-          </div>
-          <div className={styles.roundsmallIcon}>
-          <RoundsmallIcon/>
-          </div>
-          <div className={styles.roundsmall2Icon}>
-            <Roundsmall2Icon/>
-          </div>
-          <div className={styles.DogImg}>
-            <img src="https://zaanvar-care.b-cdn.net/media/1761368987866-Dog.png"  className={styles.dogImg}></img>
-          </div>
-          
-          </div>
-        </div>
-     
-        <div className={styles.rightSection}>
-          <div className={styles.logoContainer}>
-            <Image
-              src="https://zaanvar-care.b-cdn.net/media/1761368604038-ZAANVAR_FINAL.png"
-              alt="Zaanvar Logo"
-              width={180}
-              height={80}
-              priority
-             
+            <meta
+              name="keywords"
+              content="zaanvar sign in, pet account login, pet care platform, pet name generator, pet sales, pet matchmaking"
             />
-          </div>
-          <div className={styles.mobilewelcome}>
-          <h1>Welcome <span style={{color:"#F5790C"}}>Back!</span></h1>
-          <p>We’ve missed you and your furry friend! Log in to explore pet events, services, and new matches waiting just for you.</p>
-
-          </div>
-          
-          <form onSubmit={handleLoginSubmit} className={styles.formContainer}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="email">Email</label>
-              <input
-                   type="email"
-                   name="email"
-                   placeholder="Enter your email"
-                   value={details.email}
-                   onChange={handleLoginChange}
-
-                required
-              />
-                 {errors.email && <span className={styles.error1}>{errors.email}</span>}
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label htmlFor="password">Password</label>
-              <input
-               type={showPassword ? "text" : "password"}
-               name="passWord"
-               placeholder="Enter your password here"
-               value={details.passWord}
-               onChange={handleLoginChange}
-                required
-              />
-               <span onClick={() => setShowPassword(!showPassword)} className={styles.passwordToggle}>
-                  {showPassword ? <EyeIcon /> : <ClosedEyeIcon />}
-                </span>
-            </div>
-            {errors.passWord && <span className={styles.error}>{errors.passWord}</span>}
-
-            <div className={styles.formOptions}>
-              <label className={styles.rememberMe}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                Remember me
-              </label>
-              <a href="#" className={styles.forgotPassword} onClick={forgotpassword}>Forgot Password</a>
-            </div>
-
-            <button type="submit" className={styles.signInButton}  >
-              LOG IN
-            </button>
-
- {/* <button
-  type="button"
-   onClick={handleGoogleLogin}
-     // onClick={() => signIn("google")}
-  className={styles.googleButton}
->
-  <FcGoogle className={styles.googleIcon} />
-  <span className={styles.googleText}>Log in with Google</span>
-</button> */}
-            <p className={styles.signUpPrompt}>
-              Don't have an account? 
-              <button 
-  type="button" 
-  className={styles.signUpLink} 
-  onClick={() => route.push("/sign-up")}
->
-  Sign Up
-</button>
-
-            </p>
-          </form>
-        </div>
+            <link rel="canonical" href={canonicalUrl} />
+    
+            {/* Open Graph Meta */}
+            <meta property="og:title" content="Sign In | Zaanvar" />
+            <meta
+              property="og:description"
+              content="Access your Zaanvar account to manage your pet care services and explore personalized recommendations."
+            />
+            <meta property="og:url" content={canonicalUrl} />
+            <meta
+              property="og:image"
+              content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
+            />
+            <meta property="og:type" content="website" />
+            <meta property="og:site_name" content="Zaanvar" />
+    
+            {/* Twitter Card */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content="Sign In | Zaanvar" />
+            <meta
+              name="twitter:description"
+              content="Login to Zaanvar to access pet care tools, matchmaking, pet naming, and e-commerce features."
+            />
+            <meta
+              name="twitter:image"
+              content="https://zaanvarprods3.b-cdn.net/media/1760772673169-zaanvar.png"
+            />
+          </Head>
+    <div className={styles.pageContainer}>
+      <div 
+        className={`${styles.backgroundTransition} ${isAnimating ? styles[animationType] : ''}`} 
+      />
+      <div className={isAnimating ? styles.componentFade : ''}>
+        {/* {currentPage === 'signin' ? ( */}
+          <SignIn onSignUpClick={() => handlePageTransition('signup')} />
+        {/* ) : (
+          <Signup onSignInClick={() => handlePageTransition('signin')} />
+        )} */}
       </div>
+    </div>
     </>
   );
 };
 
-export default SignIn;
+// SSG (Static Site Generation) - Static login page
+export async function getStaticProps() {
+  return {
+    props: {},
+  };
+}
+
+export default Index;

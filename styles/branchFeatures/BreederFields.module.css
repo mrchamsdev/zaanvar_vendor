@@ -1,0 +1,47 @@
+.breederContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #ffffff;
+  padding: 10px 0;
+}
+
+.featureTitle {
+  /* color: #ff6b35; */
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.textInput {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  width: 90%;
+}
+
+/* Responsive Logic */
+@media (max-width: 768px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+}
