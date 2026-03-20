@@ -61,7 +61,8 @@
     min-height: clamp(260px, 70vw, 380px);
     overflow: visible;
     margin-bottom: clamp(24px, 5vw, 48px);
-    background: #fff8f3;   /* fallback colour when image is hidden */
+    background: #fff8f3;
+    /* fallback colour when image is hidden */
   }
 
   .image-wrapper img {
@@ -69,7 +70,8 @@
   }
 
   .overlay-text {
-    position: relative;   /* flow normally so it doesn't clip */
+    position: relative;
+    /* flow normally so it doesn't clip */
     top: auto;
     width: 100%;
     padding: clamp(14px, 4vw, 24px) clamp(10px, 3.5vw, 18px);
