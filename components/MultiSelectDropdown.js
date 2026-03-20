@@ -9,7 +9,8 @@ const MultiSelectDropdown = ({
   heading,
   mandatory = false,
   display,
-  isSingleSelect = false
+  isSingleSelect = false,
+  customStyles = {}
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,20 +60,21 @@ const MultiSelectDropdown = ({
   }, []);
 
   return (
-    <div className={styles["multi-select-container"]} ref={dropdownRef}>
-      <label className={styles["label"]}>
-        {heading} {mandatory}
-        {/* {heading} {mandatory && <span className={styles["required"]}>*</span>} */}
-      </label>
+    <div className={styles["multi-select-container"]} style={customStyles.container || {}} ref={dropdownRef}>
+      {heading && (
+        <label className={styles["label"]}>
+          {heading} {mandatory}
+        </label>
+      )}
 
       {/* Dropdown Toggle */}
-      <div className={styles["dropdown"]} onClick={() => setIsOpen(!isOpen)}>
+      <div className={styles["dropdown"]} style={customStyles.dropdown || {}} onClick={() => setIsOpen(!isOpen)}>
         <div className={styles["selected-items"]}>
           {selectedIds.length > 0 ? (
             selectedIds.map((id) => {
               const item = listItems.find((li) => li.id === id);
               return (
-                <div key={id} className={styles["chip"]}>
+                <div key={id} className={isSingleSelect ? "" : styles["chip"]} style={isSingleSelect ? { color: "#121212", fontSize: "14px" } : {}}>
                   {item?.name}
                   {!isSingleSelect && (
                     <span

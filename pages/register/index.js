@@ -348,65 +348,6 @@ const VendorRegistration = () => {
     }
   };
 
-  // ════════════════════════════════════════════════════════════════
-  // API Functions (unchanged)
-  // ════════════════════════════════════════════════════════════════
-  const fetchAllVendors = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${API_URL}companies/organized-list`);
-      const data = response.data?.data;
-
-      const items = [];
-      const processedCompanyIds = new Set();
-
-      (data?.companyArray || []).forEach((company) => {
-        if (company.compId && !processedCompanyIds.has(company.compId)) {
-          processedCompanyIds.add(company.compId);
-          items.push({
-            type: "company",
-            id: company.compId,
-            displayName: company.name || company.user?.name || "Unnamed Company",
-            email: company.email || company.user?.email || "",
-            phone: company.phoneNo || company.user?.phoneNumber || "",
-            branchesCount: company.noOfBranches || company.branches?.length || 0,
-            branches: company.branches || [],
-            user: company.user || null,
-            address: company.address || null,
-            createdAt: company.createdAt,
-            raw: company,
-          });
-        }
-      });
-
-      (data?.branchArray || []).forEach((branch) => {
-        const isActuallyStandalone = !branch.compId || !processedCompanyIds.has(branch.compId);
-        if (isActuallyStandalone) {
-          items.push({
-            type: "standalone-branch",
-            id: branch.id,
-            displayName: branch.name || "Unnamed Branch",
-            email: branch.contactUs?.email || branch.email || "",
-            phone: branch.contactUs?.mobile || branch.phone || "",
-            branchesCount: 1,
-            branches: [branch],
-            vendorDetails: branch.vendorDetails || null,
-            createdAt: branch.createdAt,
-            raw: branch,
-          });
-        }
-      });
-
-      items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setListItems(items);
-    } catch (error) {
-      console.error("Error fetching list:", error);
-      alert("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateCompanyAndStores = async (companyId, payload) => {
     const res = await axios.put(
       `${API_URL}companies/update-onboarding/${companyId}`,
@@ -1187,8 +1128,6 @@ const VendorRegistration = () => {
 
         // ── EDIT MODE: Trigger L3 immediately if userVerificationSent is checked ──
         await triggerL3ForBranches(branches);
-
-        await fetchAllVendors();
         resetForm();
         setShowPopup(false);
         return;
@@ -1221,10 +1160,9 @@ const VendorRegistration = () => {
         }
 
         alert("Store added successfully!");
-        await fetchAllVendors();
 
         // ── ADD MODE: Trigger L3 AFTER save ──
-        const l3TargetId = res?.data?.vendorDetails?.UserId || res?.data?.userId || newBranchId;
+        const l3TargetId = res?.data?.vendorDetails?.userId || res?.data?.vendordetails?.userId || res?.vendorDetails?.userId || res?.vendordetails?.userId || res?.data?.data?.vendorDetails?.userId || res?.data?.data?.vendordetails?.userId || res?.data?.vendorDetails?.UserId || res?.data?.userId || res?.userId || newBranchId;
         if (l3TargetId) {
           try {
             const l3Res = await sendL3Verification(l3TargetId);
@@ -1269,13 +1207,12 @@ const VendorRegistration = () => {
       }
 
       alert("Vendor & stores created successfully!");
-      await fetchAllVendors();
 
       // ── Trigger L3 AFTER save ──
       const branchesNeedingL3 = updatedBranches.filter((b) => b.branchId);
 
       if (branchesNeedingL3.length > 0) {
-        const l3TargetId = res?.data?.vendorDetails?.UserId || res?.data?.userId || res?.data?.compId;
+        const l3TargetId = res?.data?.vendorDetails?.userId || res?.data?.vendordetails?.userId || res?.vendorDetails?.userId || res?.vendordetails?.userId || res?.data?.data?.vendorDetails?.userId || res?.data?.data?.vendordetails?.userId || res?.data?.vendorDetails?.UserId || res?.data?.userId || res?.userId || res?.data?.compId || res?.compId;
 
         if (l3TargetId) {
           try {
@@ -1309,7 +1246,6 @@ const VendorRegistration = () => {
     }
   };
 
-  useEffect(() => { fetchAllVendors(); }, []);
 
   const resetForm = () => {
     setFormData({
@@ -1769,6 +1705,8 @@ const VendorRegistration = () => {
   const handleEditItem = (item) => {
     resetForm();
     setEditingBusinessId(item.id);
+    const resolvedUserId = item.vendorDetails?.userId || item.vendordetails?.userId || item.vendorDetails?.UserId || item.raw?.vendorDetails?.userId || item.raw?.vendordetails?.userId || item.raw?.vendor?.userId || item.raw?.vendor?.id || item.raw?.userId || item.user?.userId || item.user?.id || item.raw?.user?.userId || item.raw?.user?.id || null;
+    setEditingUser(resolvedUserId);
 
     const mapTimings = (t) => ({
       Monday: t?.monday || "", Tuesday: t?.tuesday || "", Wednesday: t?.wednesday || "",
@@ -1881,7 +1819,6 @@ const VendorRegistration = () => {
       try {
         await deleteBusiness(businessId);
         alert("Business deleted successfully!");
-        await fetchAllVendors();
       } catch (error) {
         console.error("Error deleting business:", error.response ? error.response.data : error.message);
         alert("Failed to delete business: " + (error.response ? error.response.data.message : error.message));
@@ -2644,7 +2581,7 @@ const VendorRegistration = () => {
                           </div>
 
                           <div style={{ gridColumn: "1 / -1" }}>
-                            <MultiSelectDropdown listItems={getFilteredFeatureTypeListItems(formData.featureNeeds)} selectedIds={branch.featureType} setSelectedIds={(ids) => handleBranchChange(branchIndex, "featureType", ids)} heading="Feature Type" mandatory={true} />
+                            <MultiSelectDropdown listItems={getFilteredFeatureTypeListItems(isAddingNewStoreOnly ? featureNeedsOptions : formData.featureNeeds)} selectedIds={branch.featureType} setSelectedIds={(ids) => handleBranchChange(branchIndex, "featureType", ids)} heading="Feature Type" mandatory={true} />
                             {branch.featureType.map(type => (
                               <div key={type} className={styles["feature-box"]}>
                                 {type === "Pet Clinic" && <ClinicFields branch={branch} branchIndex={branchIndex} type={type} setBranches={setBranches} petList={petList} availablePetTypes={isAddingNewStoreOnly ? petList : petList.filter(p => formData.petTypes.includes(p.id))} serviceOptionsByFeatureType={serviceOptionsByFeatureType} />}
@@ -2657,7 +2594,7 @@ const VendorRegistration = () => {
                                 {type === "Pet Sitter/Walker" && <SitterFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={petList} />}
                               </div>
                             ))}
-                            {getFilteredFeatureTypeListItems(formData.featureNeeds).length === 0 && <small style={{ color: '#ff6b35' }}>Please select Feature Needs first</small>}
+                            {getFilteredFeatureTypeListItems(isAddingNewStoreOnly ? featureNeedsOptions : formData.featureNeeds).length === 0 && <small style={{ color: '#ff6b35' }}>Please select Feature Needs first</small>}
                             {errors[`featureType_${branchIndex}`] && <p className={styles["error"]}>{errors[`featureType_${branchIndex}`]}</p>}
                           </div>
 
