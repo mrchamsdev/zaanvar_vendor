@@ -4,7 +4,7 @@ import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
 
 /* ── helpers ── */
-const AVATAR_COLORS = ["#e05c2d","#2d8ae0","#2de07a","#c42de0","#e0c42d"];
+const AVATAR_COLORS = ["#e05c2d", "#2d8ae0", "#2de07a", "#c42de0", "#e0c42d"];
 
 const StarIcon = ({ filled }) => (
   <svg width="14" height="14" viewBox="0 0 24 24"
@@ -16,16 +16,16 @@ const StarIcon = ({ filled }) => (
 /* ── Donut chart ── */
 const DonutChart = ({ value = 0, total = 0, size = 80 }) => {
   const displayVal = value ? Number(value).toFixed(1) : "—";
-  const r    = (size - 14) / 2;
+  const r = (size - 14) / 2;
   const circ = 2 * Math.PI * r;
   const fill = value ? Math.min((value / 5) * circ, circ) : 0;
   return (
     <svg width={size} height={size}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e9ecef" strokeWidth="12" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e9ecef" strokeWidth="12" />
       {fill > 0 && (
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#8b5cf6" strokeWidth="12"
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#8b5cf6" strokeWidth="12"
           strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
-          transform={`rotate(-90 ${size/2} ${size/2})`} />
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       )}
       <text x="50%" y="42%" textAnchor="middle" dy="0.35em" fontSize="16" fontWeight="800" fill="#111">
         {displayVal}
@@ -54,22 +54,22 @@ export default function ReviewsPage() {
 
   /* ── Rating distribution bars built from real data ── */
   const distBars = (() => {
-    const colours = { 5:"#22c55e", 4:"#84cc16", 3:"#fbbf24", 2:"#fb923c", 1:"#ef4444" };
+    const colours = { 5: "#22c55e", 4: "#84cc16", 3: "#fbbf24", 2: "#fb923c", 1: "#ef4444" };
     if (ratings?.distribution) {
-      return [5,4,3,2,1].map((s) => ({
+      return [5, 4, 3, 2, 1].map((s) => ({
         stars: s, pct: ratings.distribution[s] ?? 0, color: colours[s],
       }));
     }
     // Compute from reviews array if no summary available
     if (reviews.length > 0) {
-      const counts = { 1:0, 2:0, 3:0, 4:0, 5:0 };
+      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       reviews.forEach((r) => {
         const stars = Math.round(r.rating || r.stars || 0);
         if (stars >= 1 && stars <= 5) counts[stars]++;
       });
-      return [5,4,3,2,1].map((s) => ({
+      return [5, 4, 3, 2, 1].map((s) => ({
         stars: s,
-        pct:   Math.round((counts[s] / reviews.length) * 100),
+        pct: Math.round((counts[s] / reviews.length) * 100),
         color: colours[s],
       }));
     }
@@ -78,8 +78,8 @@ export default function ReviewsPage() {
 
   const avgRating = ratings?.averageRating
     || (reviews.length
-        ? (reviews.reduce((a,r) => a + (r.rating || r.stars || 0), 0) / reviews.length).toFixed(1)
-        : 0);
+      ? (reviews.reduce((a, r) => a + (r.rating || r.stars || 0), 0) / reviews.length).toFixed(1)
+      : 0);
 
   const totalReviews = ratings?.totalReviews || reviews.length;
 
@@ -92,32 +92,32 @@ export default function ReviewsPage() {
           <h3 className={styles.reviewsTitle}>User Reviews</h3>
 
           {reviewsLoading && (
-            <p style={{ color:"#aaa", fontSize:14, textAlign:"center", padding:"40px 0" }}>
+            <p style={{ color: "#aaa", fontSize: 14, textAlign: "center", padding: "40px 0" }}>
               Loading reviews…
             </p>
           )}
 
           {!reviewsLoading && reviewsError && (
-            <p style={{ color:"#ef4444", fontSize:13, textAlign:"center", padding:"24px 0" }}>
-              Could not load reviews. Please try again.
+            <p style={{ color: "#ef4444", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+              Reviews are currently unavailable. Please try again shortly.
             </p>
           )}
 
           {!reviewsLoading && !reviewsError && reviews.length === 0 && (
-            <p style={{ color:"#aaa", fontSize:14, textAlign:"center", padding:"40px 0" }}>
+            <p style={{ color: "#aaa", fontSize: 14, textAlign: "center", padding: "40px 0" }}>
               No reviews yet for this branch.
             </p>
           )}
 
           {!reviewsLoading && reviews.map((rev, i) => {
-            const name    = rev.userName || rev.name || rev.reviewerName || "User";
-            const rating  = rev.rating   || rev.stars || 0;
-            const comment = rev.comment  || rev.text  || rev.review || "";
+            const name = rev.userName || rev.name || rev.reviewerName || "User";
+            const rating = rev.rating || rev.stars || 0;
+            const comment = rev.comment || rev.text || rev.review || "";
             const dateStr = rev.createdAt
-              ? new Date(rev.createdAt).toLocaleDateString("en-IN", { day:"2-digit", month:"2-digit", year:"numeric" })
+              ? new Date(rev.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
               : rev.date || "";
-            const images  = rev.images || rev.reviewImages || [];
-            const source  = rev.source || rev.platform || "";
+            const images = rev.images || rev.reviewImages || [];
+            const source = rev.source || rev.platform || "";
 
             return (
               <div key={rev.id || i} className={styles.reviewCard}>

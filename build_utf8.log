@@ -1,0 +1,206 @@
+﻿
+> zaanvar_vendor@0.1.0 build
+> next build
+
+node.exe : 
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i b
+aseline-browser-mapping@lates
+t -D`
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: ([baseli  
+  ne-brows...ping@latest -   
+ D`:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+   Γû▓ Next.js 16.0.10 (Turbopack)
+
+   Running TypeScript ...
+   Creating an optimized production build ...
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i b
+aseline-browser-mapping@lates
+t -D`
+
+> Build error occurred
+Error: Turbopack build 
+failed with 3 errors:
+./components/utilities/search
+ablecountrycode.jsx:3:1
+Parsing ecmascript source 
+code failed
+[0m [90m 1 |[39m 
+[36mimport[39m 
+[33mReact[39m[33m,[39m { 
+useState[33m,[39m 
+useEffect[33m,[39m useRef 
+} [36mfrom[39m 
+[32m"react"[39m[33m;[39m
+ [90m 2 |[39m 
+[36mimport[39m styles 
+[36mfrom[39m [32m"../../st
+yles/utilities/SearchableCoun
+tryCode.module.css"[39m[33m
+;[39m
+[31m[1m>[22m[39m[90m 3 
+|[39m [33m<<[39m[33m<<[3
+9m[33m<<[39m[33m<[39m 
+[33mHEAD[39m
+ [90m   |[39m [31m[1m^[2
+2m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m
+^[22m[39m
+ [90m 4 |[39m [33m===[39m
+[33m===[39m[33m=[39m
+ [90m 5 |[39m
+ [90m 6 |[39m [33m>>>[39m
+[33m>>>[39m[33m>[39m a861
+dd34ada1ca21db55a3bdaa4d05e38
+c7e87b1[0m
+
+Merge conflict marker 
+encountered.
+
+Import traces:
+  Browser:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+  SSR:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+
+./components/utilities/search
+ablecountrycode.jsx:4:1
+Parsing ecmascript source 
+code failed
+[0m [90m 2 |[39m 
+[36mimport[39m styles 
+[36mfrom[39m [32m"../../st
+yles/utilities/SearchableCoun
+tryCode.module.css"[39m[33m
+;[39m
+ [90m 3 |[39m [33m<<[39m
+[33m<<[39m[33m<<[39m[33m<
+[39m [33mHEAD[39m
+[31m[1m>[22m[39m[90m 4 
+|[39m [33m===[39m[33m===
+[39m[33m=[39m
+ [90m   |[39m [31m[1m^[2
+2m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m
+^[22m[39m
+ [90m 5 |[39m
+ [90m 6 |[39m [33m>>>[39m
+[33m>>>[39m[33m>[39m a861
+dd34ada1ca21db55a3bdaa4d05e38
+c7e87b1
+ [90m 7 |[39m[0m
+
+Merge conflict marker 
+encountered.
+
+Import traces:
+  Browser:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+  SSR:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+
+./components/utilities/search
+ablecountrycode.jsx:6:1
+Parsing ecmascript source 
+code failed
+[0m [90m 4 |[39m [33m===
+[39m[33m===[39m[33m=[39m
+ [90m 5 |[39m
+[31m[1m>[22m[39m[90m 6 
+|[39m [33m>>>[39m[33m>>>
+[39m[33m>[39m a861dd34ada1c
+a21db55a3bdaa4d05e38c7e87b1
+ [90m   |[39m [31m[1m^[2
+2m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m
+^[22m[39m
+ [90m 7 |[39m
+ [90m 8 |[39m 
+[36mconst[39m [33mSearchab
+leCountryCode[39m 
+[33m=[39m ({ 
+countries[33m,[39m 
+selectedCode[33m,[39m 
+onSelect[33m,[39m 
+className }) [33m=>[39m {
+ [90m 9 |[39m     
+[36mconst[39m 
+[isOpen[33m,[39m 
+setIsOpen] [33m=[39m useSta
+te([36mfalse[39m)[33m;[39
+m[0m
+
+Merge conflict marker 
+encountered.
+
+Import traces:
+  Browser:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+  SSR:
+    ./components/utilities/se
+archablecountrycode.jsx
+    
+./components/signin/signin.js
+    ./pages/login/index.js
+
+
+    at <unknown> (./component
+s/utilities/searchablecountry
+code.jsx:3:1)
+    at <unknown> (./component
+s/utilities/searchablecountry
+code.jsx:4:1)
+    at <unknown> (./component
+s/utilities/searchablecountry
+code.jsx:6:1)
