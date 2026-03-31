@@ -1,270 +1,670 @@
+
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --c-primary:      #f5790c;
+  --c-primary-bg:   #f5790c1a;
+  --c-text:         #111827;
+  --c-muted:        #727271;
+  --c-border:       #f1f1f1;
+  --c-white:        #ffffff;
+
+  --radius-sm:  clamp(6px,  0.8vw, 10px);
+  --radius-md:  clamp(10px, 1.2vw, 15px);
+  --radius-lg:  clamp(14px, 1.8vw, 20px);
+
+  /* Fluid type scale */
+  --font-xs:   clamp(11px, 1vw,   13px);
+  --font-sm:   clamp(12px, 1.2vw, 14px);
+  --font-base: clamp(13px, 1.4vw, 16px);
+  --font-md:   clamp(14px, 1.6vw, 18px);
+  --font-lg:   clamp(16px, 1.8vw, 20px);
+  --font-xl:   clamp(18px, 2vw,   24px);
+
+  /* Fluid spacing */
+  --gap-xs:  clamp(4px,  0.6vw, 8px);
+  --gap-sm:  clamp(8px,  1vw,   12px);
+  --gap-md:  clamp(12px, 1.6vw, 20px);
+  --gap-lg:  clamp(16px, 2.2vw, 28px);
+  --gap-xl:  clamp(20px, 3vw,   36px);
+
+  --pad-card: clamp(12px, 2vw, 20px);
+  --pad-x:    clamp(12px, 4vw, 32px);
+
+  /* Image heights */
+  --img-h-primary:  clamp(200px, 38vw, 420px);
+  --img-h-mobile:   clamp(200px, 55vw, 320px);
+}
+
+
+/* ============================================================
+   OUTER WRAPPER
+   ============================================================ */
 .viewDetailsMainWrapper {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-top: 40px;
+  gap: var(--gap-md);
   width: 100%;
 }
 
+
+/* ============================================================
+   TWO-COLUMN LAYOUT
+   ============================================================ */
 .viewDetailsMainContainer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 32px;
-  /* width: 100%; */
-}
-.additional {
-  font-size: 24px;
-}
-.petImage {
-  width: 100%;
-  height: 400px; /* external height */
-  object-fit: cover;
+  display: grid;
+  grid-template-columns: 55fr 45fr;
+  gap: clamp(8px, 1.5vw, 20px);
+  padding: 0 var(--pad-x);
+  align-items: start;
 }
 
 .viewDetailsLeftContainer {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  width: 54%;
+  gap: var(--gap-md);
+  min-width: 0;           /* prevent overflow */
 }
 
 .viewDetailsRightContainer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 42%;
+  gap: var(--gap-sm);
+  min-width: 0;
 }
 
+
+/* ============================================================
+   IMAGE + CONTENT CARD
+   ============================================================ */
 .Image-content-details {
   display: flex;
   flex-direction: column;
-  border-radius: 5px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px clamp(6px, 0.8vw, 12px) rgba(0, 0, 0, 0.1);
+  overflow: hidden;       /* clip image corners */
+  background: var(--c-white);
 }
 
+/* Image container */
 .viewDetailsPetImageContainer {
   width: 100%;
-  height: 450px;
-  border-radius: 15px 15px 0 0;
-  overflow: hidden;
+  height: var(--img-h-primary);
   position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+/* ============================================================
+   IMAGE WRAPPER FIX - CRITICAL FOR NEXT.JS IMAGE
+   ============================================================ */
+.image-relative-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the Next.js Image component fills the container properly */
+.image-relative-wrapper > span {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+
+.image-relative-wrapper img {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Fallback for regular img tags */
+.petImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.petImage:hover { transform: scale(1.02); }
+
+/* Reward badge */
 .reward-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  width: 200px;
-  background-color: #f5790c;
-  color: white;
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: 10px 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(26px, 4vw, 38px);
+  padding: 0 clamp(8px, 1.2vw, 14px);
+  background-color: var(--c-primary);
+  color: var(--c-white);
+  border-radius: var(--radius-sm) 0 var(--radius-sm) 0;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 2;
 }
 
-.breed-post-date {
-  padding: 15px;
-  color: #727271;
-  font-size: 20px;
+
+/* ============================================================
+   BELOW-IMAGE TEXT  (breed, post date, description)
+   ============================================================ */
+.below-text {
+  padding: var(--pad-card);
 }
 
-.breed-post-date {
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 160%;
-}
-.post-date {
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 160%;
+.below-text h4 {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: var(--gap-xs);
 }
 
+.below-text p {
+  font-size: var(--font-md);
+  color: var(--c-muted);
+  line-height: 1.6;
+}
+
+.breed-post-date,
+.post-date,
 .breed-post-date .date-cont {
-  color: #727271;
-  font-size: 24px;
+  font-size: var(--font-md);
   font-weight: 500;
-  line-height: 160%;
+  line-height: 1.6;
+  color: var(--c-muted);
 }
 
+.additional {
+  font-size: var(--font-xl);
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+
+/* ============================================================
+   SHARE ROW
+   ============================================================ */
 .viewDetailsShareIconsContainer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
+  padding: var(--gap-xs) var(--pad-card);
 }
 
 .shareContainer {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-sm);
 }
 
 .shareContainer p {
-  color: #131313;
-  font-size: 16px;
-  margin: 0;
+  font-size: var(--font-base);
+  color: var(--c-muted);
 }
 
 .Icons {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: var(--gap-sm);
 }
 
+.Icons svg,
+.Icons img {
+  width: clamp(18px, 2.2vw, 26px);
+  height: clamp(18px, 2.2vw, 26px);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.Icons svg:hover,
+.Icons img:hover { opacity: 0.7; }
+
+
+/* ============================================================
+   INFO CARDS  (right column + anywhere)
+   ============================================================ */
 .card {
-  border-radius: 10px;
-  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px clamp(5px, 0.6vw, 10px) rgba(0, 0, 0, 0.08);
+  background: var(--c-white);
   width: 100%;
-  margin: 0 auto;
+  overflow: hidden;
 }
 
+/* Card header strip */
 .header {
-  padding: 12px 20px;
+  padding: clamp(10px, 1.5vw, 16px) var(--pad-card);
+  font-size: var(--font-lg);
   font-weight: 600;
-  font-size: 21px;
-  border-bottom: 1px solid #f1f1f1;
+  color: var(--c-text);
+  border-bottom: 1px solid var(--c-border);
 }
 
-.content {
-  padding: 20px;
+/* Card body */
+.content,
+.content2 {
+  padding: var(--pad-card);
 }
-
+.content2 {
+    border-radius: var(--radius-sm);
+    background: var(--c-white);
+    overflow: hidden;
+    box-shadow: 0 2px clamp(5px, .6vw, 10px) #00000014
+}
+/* Key–value row */
 .row {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
-  gap: 10px;
+  gap: var(--gap-sm);
+  margin-bottom: clamp(8px, 1.2vw, 14px);
 }
+.row:last-child { margin-bottom: 0; }
+
 .label {
   flex: 1;
-  font-size: 18px;
-  color: #121212;
-  font-weight: 400;
-}
-.content2 {
-  padding: 20px;
-}
-
-.row2 {
-  /* display: flex; */
-  align-items: center;
-  margin-bottom: 16px;
-  gap: 10px;
+  font-size: var(--font-base);
+  color: var(--c-text);
+  font-weight: 500;
 }
 
 .label2 {
-  flex: 1;
-  font-size: 18px;
-  color: #727271;
-  font-weight: 400;
-  padding-bottom: 10px;
-  padding-top: 10px;
+  font-size: var(--font-sm);
+  color: var(--c-muted);
+  padding: var(--gap-xs) 0;
+  line-height: 1.5;
 }
 
 .value {
-  font-size: 18px;
-  color: black;
-  white-space: nowrap;
+  font-size: var(--font-base);
+  color: var(--c-text);
+  font-weight: 400;
+  text-align: right;
+  word-break: break-word;    /* prevent overflow on long values */
 }
 
+
+/* ============================================================
+   PET IDENTIFICATION BOX
+   ============================================================ */
 .viewDetailsPetIdentifications {
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+  gap: var(--gap-xs);
+  background: var(--c-white);
+  border-radius: var(--radius-sm);
+  padding: var(--pad-card);
+  box-shadow: 0 0 clamp(4px, 0.5vw, 8px) rgba(0, 0, 0, 0.08);
 }
 
 .viewDetailsPetIdentifications h5 {
-  color: #131313;
-  font-size: 20px;
+  font-size: var(--font-lg);
   font-weight: 600;
+  color: var(--c-text);
 }
 
 .viewDetailsPetIdentifications p {
-  color: #727271;
-  font-size: 18px;
+  font-size: var(--font-base);
+  color: var(--c-muted);
+  line-height: 1.5;
 }
-.below-text {
-  padding: 20px 20px;
-  margin: 0px;
-}
-.below-text h4 {
-  font-size: 24px;
-  margin: 0px;
-}
-.below-text p {
-  font-size: 20px;
-  color: #727271;
-}
+
+
+/* ============================================================
+   STATUS BADGE
+   ============================================================ */
 .status {
-  color: #727271;
+  color: var(--c-muted);
+  font-size: var(--font-base);
 }
+
 .status span {
-  color: #f5790c;
-  padding: 5px;
-  background: #f5790c1a;
-  border-radius: 2px;
+  color: var(--c-primary);
+  padding: clamp(2px, 0.4vw, 5px) clamp(5px, 0.8vw, 8px);
+  background: var(--c-primary-bg);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
 }
-.mobile-view {
-  display: none;
+.headerWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  position: relative;
 }
 
+.menuContainer {
+  position: relative;
+}
+
+.threeDotsBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
+}
+
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-width: 120px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.menuItem {
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.menuItem:hover {
+  background: #f5f5f5;
+}
+
+.deleteItem {
+  color: #ef4444;
+}
+
+.deleteItem:hover {
+  background: #fee2e2;
+}
+
+.deleteOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.deleteModal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.deleteModal h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.deleteModal p {
+  margin: 0 0 24px 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.deleteButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #e0e0e0;
+}
+
+.confirmDeleteBtn {
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.confirmDeleteBtn:hover {
+  background: #dc2626;
+}
+
+
+
+
+/* ============================================================
+   MOBILE / WEB VISIBILITY HELPERS
+   ============================================================ */
+.mobile-view { display: none; }
+.web-view    { display: block; }
+
+
+/* ============================================================
+   RESPONSIVE — LARGE DESKTOP  (≥ 1400 px)
+   ============================================================ */
+@media (min-width: 1400px) {
+  :root {
+    --img-h-primary: clamp(380px, 28vw, 500px);
+  }
+
+  .viewDetailsMainContainer {
+    grid-template-columns: 58fr 42fr;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — TABLET LANDSCAPE  (≤ 1100 px)
+   ============================================================ */
+@media (max-width: 1100px) {
+  .viewDetailsMainContainer {
+    grid-template-columns: 1fr 1fr;   /* equal halves */
+  }
+
+  :root {
+    --img-h-primary: clamp(200px, 42vw, 380px);
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — MOBILE  (≤ 768 px)
+   ============================================================ */
 @media (max-width: 768px) {
-  .web-view {
-    display: none;
-  }
-  .mobile-view {
-    display: block;
+  /* Swap visibility */
+  .web-view    { display: none; }
+  .mobile-view { display: block; }
+
+  .viewDetailsMainContainer {
+    padding: 0 clamp(10px, 4vw, 16px);
+    gap: var(--gap-sm);
   }
 
+  /* Image container mobile adjustments */
+  .viewDetailsPetImageContainer {
+    height: var(--img-h-mobile);
+    min-height: 200px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  
+  .image-relative-wrapper {
+    min-height: 200px;
+  }
+
+  /* Reward badge absolute → sits inside image */
+  .reward-container {
+    top: 0;
+    left: 0;
+    height: clamp(24px, 6vw, 32px);
+    font-size: var(--font-xs);
+  }
+
+  /* Mobile key-value wrapper (two items side-by-side) */
   .mob-wrapper {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
+    align-items: center;
+    font-size: clamp(12px, 3vw, 14px);
+    margin: clamp(6px, 2vw, 10px) 0;
+    gap: var(--gap-sm);
   }
-  .breed-post-date {
-    font-size: 14px;
-  }
-  .post-date {
-    font-size: 14px;
-  }
-  .viewDetailsPetImageContainer {
-    height: 300px;
-    padding: 10px;
-  }
-  .reward-container {
-    justify-content: center;
-    height: 30px;
-    width: auto;
-    background-color: #f5790c;
-    color: white;
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    border-radius: 10px 0 10px 0;
-    padding: 0px 10px;
-  }
-  .below-text h4 {
-    font-size: 18px;
-  }
-  .below-text p {
-    font-size: 16px;
-  }
+
+  /* Allow values to wrap on mobile */
   .value {
-    word-wrap: wrap;
-    white-space: wrap;
-    font-size: 16px;
+    white-space: normal;
+    text-align: left;
   }
+
+  .card .header {
+    font-size: var(--font-md);
+  }
+
+  .below-text h4 {
+    font-size: var(--font-lg);
+  }
+
   .additional {
-    font-size: 21px;
-    margin: 0px;
+    font-size: var(--font-lg);
   }
-  .label2 {
-    font-size: 14px;
+
+  /* Share icons row */
+  .viewDetailsShareIconsContainer {
+    padding: var(--gap-xs) clamp(10px, 4vw, 16px);
+  }
+
+  .Icons svg,
+  .Icons img {
+    width: clamp(20px, 5vw, 26px);
+    height: clamp(20px, 5vw, 26px);
+  }
+  .headerWrapper {
+    padding: 12px 16px;
+  }
+  
+  .dropdownMenu {
+    min-width: 100px;
+  }
+  
+  .menuItem {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — SMALL MOBILE  (≤ 480 px)
+   ============================================================ */
+@media (max-width: 480px) {
+  :root {
+    --img-h-mobile: clamp(180px, 60vw, 280px);
+    --pad-card: clamp(10px, 3.5vw, 16px);
+  }
+
+  .viewDetailsPetImageContainer {
+    min-height: 180px;
+  }
+  
+  .image-relative-wrapper {
+    min-height: 180px;
+  }
+
+  .viewDetailsMainContainer {
+    padding: 0 clamp(8px, 3vw, 12px);
+  }
+
+  .viewDetailsPetIdentifications h5 {
+    font-size: var(--font-md);
+  }
+
+  /* .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  } */
+
+  .value {
+    font-size: var(--font-sm);
+  }
+
+  .label {
+    font-size: var(--font-sm);
+  }
+
+  .below-text h4 {
+    font-size: var(--font-md);
+  }
+
+  .below-text p {
+    font-size: var(--font-sm);
+  }
+
+  .shareContainer p {
+    display: none;          /* hide "Share" label, keep icons */
+  }
+}
+
+
+/* ============================================================
+   RESPONSIVE — VERY SMALL  (≤ 360 px)
+   ============================================================ */
+@media (max-width: 360px) {
+  :root {
+    --img-h-mobile: clamp(160px, 62vw, 240px);
+  }
+
+  .viewDetailsPetImageContainer {
+    min-height: 160px;
+  }
+  
+  .image-relative-wrapper {
+    min-height: 160px;
+  }
+
+  .viewDetailsMainContainer {
+    padding: 0 8px;
+  }
+
+  .card .header {
+    font-size: var(--font-base);
+  }
+
+  .mob-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
