@@ -1,398 +1,334 @@
-.dashboardContainer {
-    display: flex;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
-  }
-  
-  .mainSection {
-    flex: 1;
-    padding: 20px;
-    background-color: #f7f8fa;
-    overflow-x: auto;
-  }
-  
-  .petTable {
-    margin-top: 20px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #fff;
-    overflow: hidden;
-  }
-  
-  .tableHeader, .tableRow {
-    display: grid;
-    grid-template-columns:  1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr; /* 5 columns */
-    align-items: center;
-    padding: 12px 16px;
-    text-align: center;
-  }
-  
-  .tableHeader {
-    font-weight: bold;
-    background-color: #f1f3f6;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .tableRow {
-    border-bottom: 1px solid #e0e0e0;
-  }
-  .tableRow2 {
-    display: grid;
-    grid-template-columns:  1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr; /* 5 columns */
-    align-items: center;
-    padding: 12px 16px;
-    color: #727271;
-    text-align: center;
-  }
-  
-  .tableRow:last-child {
-    border-bottom: none;
-  }
-  
-  .tableRow p {
-    margin: 0;
-  }
-  
-  .tableRow button {
-    margin-right: 8px;
-    padding: 4px 8px;
-    font-size: 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .tableRow button:first-child {
-    background-color: #4caf50;
-    color: white;
-  }
-  
-  .tableRow button:last-child {
-    background-color: #f44336;
-    color: white;
-  }
-  
-  .tableRow button:hover {
-    opacity: 0.85;
-  }
-  
-  /* Optional: Hover effect for rows */
-  .tableRow:hover {
-    background-color: #f5f7fa;
-  }
-.petImage{
-    height: 50px;
-    width:50px;
-    border-radius: 50%;
-    margin: auto;
-}
-.edit-container{
-    display: flex;
-    gap: 15px;
-    justify-content: center;
+:root {
+  --color-bg:        #f7f8fa;
+  --color-surface:   #ffffff;
+  --color-border:    #e4e7ec;
+  --color-header-bg: #eff1f5;
+  --color-text:      #1a1d23;
+  --color-muted:     #121212;
+  --color-primary:   #2563eb;
+
+  --status-lost-bg:   #fef2f2;
+  --status-lost-fg:   #dc2626;
+  --status-found-bg:  #f0fdf4;
+  --status-found-fg:  #16a34a;
+  --status-adopt-bg:  #eff6ff;
+  --status-adopt-fg:  #2563eb;
+  --status-def-bg:    #f3f4f6;
+  --status-def-fg:   orange;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* clamp(min, preferred, max) */
+  --font-base:   clamp(12px, 1.4vw, 15px);
+  --font-sm:     clamp(11px, 1.2vw, 13px);
+  --font-lg:     clamp(14px, 1.6vw, 17px);
+
+  --row-pad-v:   clamp(10px, 1.5vh, 16px);
+  --row-pad-h:   clamp(12px, 2vw,   24px);
+
+  --avatar-size: clamp(34px, 4vw, 48px);
 }
 
-  
-  /* Responsive */
-  @media (max-width: 768px) {
-    .tableHeader, .tableRow {
-      grid-template-columns: repeat(8, 1fr);
-      grid-row-gap: 8px;
-    }
-    
-
-
-  
-    .tableHeader {
-      display: none; /* hide header on mobile, you can make custom cards instead */
-    }
-  }
-  
-
-  /*!!!!!!!!!!!!!!!!!!!!  */
-
-  .div-wrapper{
-    display: flex;
-    /* justify-content: space-between; */
-    /* padding: 32px; */
-    height: 100vh;
-
-  }
-  .image-container{
-    background: #F1F2F5;
-    border-radius: 50%;
-    padding: 60px;
-  }
-  .image-video-wrapper{
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 30px 100px;
-    gap: 50px;
-    display: flex;
-    flex-direction: column;
-  }
-  .selected{
-    width: 100%;
-  }
-  .formWrapper {
-
-    /* max-width: 1100px; */
-    /* margin: 40px auto; */
-    background: #fff;
-    border-radius: 12px;
-    padding: 40px;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
-    padding-top: 0px;
-  }
-  
-  .formTitle {
-    font-size: 22px;
-    font-weight: 600;
-    color: #222;
-    margin-bottom: 30px;
-  }
-  
-  .twoColumn {
-    /* display: flex; */
-    /* flex-wrap: wrap; */
-    gap: 40px;
-    display: flex;
-    flex-direction: row;
-  }
-  
-  .column {
-    flex: 1;
-    /* min-width: 250px; */
-    width: 50%;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-  }
-  
-  .formField {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .label {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #222;
-  }
-  .filter-icon{
-    background-color: none;
-  }
-  
-  .select {
-    border: 1px solid #eee;
-    background-color: #fafafa;
-    padding: 12px 15px;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #555;
-    outline: none;
-    transition: all 0.2s ease;
- 
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 18px;
-  }
-  
-  .select:focus {
-    border-color: #b388ff;
-    background-color: #fff;
-    color: #000;
-  }
-  
-  /* Modal overlay */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+/* ── Wrapper ──────────────────────────────── */
+.tableContainer {
   width: 100%;
-  height: 100vh;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding-top: 30px;
-  overflow: auto; 
-}
-
-/* Modal content */
-.modalContent {
-  background: #fff;
-  width: 100%;
-  /* max-width: 900px;   */
-  /* border-radius: 12px; */
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  animation: slideDown 0.3s ease;
-  padding: 50px 0px;
-  padding-top: 0px;
+  font-size: var(--font-base);
+  color: var(--color-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Header */
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
+/* ── Shared grid layout ───────────────────── */
+/* 6-column desktop grid */
+.tableHeader,
+.tableRow {
+  display: grid;
+  /* Using calc to distribute remaining space evenly between middle columns */
+  grid-template-columns:
+    clamp(44px, 5vw, 64px)          /* S NO  */
+    minmax(120px, 1fr)               /* Name  */
+    minmax(100px, 0.9fr)             /* Type  */
+    minmax(100px, 0.9fr)             /* Breed */
+    clamp(80px, 10vw, 130px)         /* Status */
+    clamp(90px, 11vw, 140px)
+    clamp(90px, 11vw, 140px);
+           /* Actions */
   align-items: center;
-  padding: 30px 2rem;
-  background: #f5f5f5;
-  border-bottom: 1px solid #ddd;
-  /* margin-top: 50px; */
-  position: fixed;
-  z-index: 23232323232323;
-  width: -webkit-fill-available;
-  margin-top: -10px;
-  padding-top: 40px;
+  gap: clamp(6px, 1vw, 14px);
+  padding: var(--row-pad-v) var(--row-pad-h);
 }
 
-.modalHeader h2 {
-  margin: 0;
-  text-align: center;
-  flex: 1;
+/* ── Header ──────────────────────────────── */
+.tableHeader {
+  background: var(--color-header-bg);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: var(--font-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
 }
 
-.closeBtn {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
+/* ── Row ─────────────────────────────────── */
+.tableRow {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+}
+.tableRow:last-child {
+  border-bottom: none;
+}
+.tableRow:hover {
+  background-color: #f9fafb;
 }
 
-/* Slide-down animation */
-@keyframes slideDown {
-  from { transform: translateY(-50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-
-/* Overlay that dims the background */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+/* ── Cell ────────────────────────────────── */
+.cell {
   display: flex;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Column alignments ───────────────────── */
+.colSno    { justify-content: left; color: var(--color-muted); font-size: var(--font-sm); }
+.colType   { color: var(--color-muted); }
+.colBreed  { color: var(--color-muted); }
+.colStatus { justify-content: left;}
+.colActions{ justify-content: left; }
+
+/* ── Pet meta (avatar + name) ─────────────── */
+.petMeta {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 12px);
+  min-width: 0;
+}
+.petAvatar {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+}
+
+/* ── Status badge ────────────────────────── */
+.statusBadge {
+  display: inline-block;
+  padding: calc(clamp(2px, 0.3vh, 4px)) calc(clamp(8px, 1vw, 14px));
+  border-radius: 999px;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.statusLost  { background: var(--status-lost-bg);  color: var(--status-lost-fg);  }
+.statusFound { background: var(--status-found-bg); color: var(--status-found-fg); }
+.statusAdopt { background: var(--status-adopt-bg); color: var(--status-adopt-fg); }
+.statusDefault{  color: var(--status-def-fg);   }
+
+/* ── Action buttons ─────────────────────── */
+.actionGroup {
+  display: flex;
+  /* align-items: center;
+  gap: clamp(6px, 0.8vw, 12px); */
+}
+.addIconContainer{
+  display: none;
+}
+.actionBtn {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-/* Modal content box */
-.modal {
-  background-color: #fff;
-  /* padding: 20px 25px; */
-  border-radius: 12px;
-  max-width: 700px;
-  width: 90%;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  /* text-align: center; */
-}
-.para{
-  padding: 0px 20px;
-}
-
-/* Modal heading */
-.modal h3 {
-  margin-bottom: 20px;
-  font-size: 18px;
-  /* color: #333; */
-  padding: 25px 20px;
-  margin: 0px;
-  background: #F9FAFC;
-    box-shadow: 0 2px 10px rgba(0, 0, 0,0.2);
-    border-top-left-radius: 12px;   /* top-left corner */
-    border-top-right-radius: 12px;
-}
-
-/* Button container */
-.buttonContainer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  flex-direction: row;
-  padding: 15px;
-}
-
-/* Buttons */
-.cancelBtn,
-.confirmBtn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  width: clamp(28px, 2.8vw, 36px);
+  height: clamp(28px, 2.8vw, 36px);
+  /* border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-muted); */
   cursor: pointer;
-  border: none;
-  flex: 1;
+  /* transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s; */
+  padding: 0;
+}
+/* .actionBtn:hover {
+  color: var(--color-primary);
+  border-color: #bfdbfe;
+  transform: translateY(-1px);
+} */
+
+.actionBtn svg {
+  width: clamp(14px, 1.5vw, 18px);
+  height: clamp(14px, 1.5vw, 18px);
+}
+.actionDelete:hover {
+  background: #fff0f0;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
-.cancelBtn {
-  background-color: #e0e0e0;
-  color: #333;
+/* ── Empty state ────────────────────────── */
+.emptyState {
+  padding: clamp(24px, 5vh, 48px);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--font-base);
 }
 
-.confirmBtn {
-  background-color: #ff4d4f;
-  color: #fff;
+/* ══════════════════════════════════════════
+   MOBILE CARD LAYOUT
+   Below 640px: hide desktop cells, show cards
+   ══════════════════════════════════════════ */
+
+/* Mobile card is hidden on desktop */
+.mobileCard {
+  display: none;
 }
-.change-status{
+
+@media (max-width: 640px) {
+  /* Kill desktop grid on rows */
+  .tableRow {
+    display: block;           /* override grid */
+    padding: 0;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .tableRow:hover {
+    background: none;
+  }
+
+  /* Hide desktop cells */
+  .cell {
+    display: none;
+  }
+
+  /* Hide header entirely on mobile */
+  .tableHeader {
+    display: none;
+  }
+
+  /* Show the mobile card */
+  .mobileCard {
+    display: flex;
+    align-items: center;
+    gap: clamp(10px, 3vw, 16px);
+    padding: clamp(12px, 3vw, 18px) clamp(14px, 4vw, 20px);
+    transition: background-color 0.15s;
+  }
+  .tableRow:hover .mobileCard {
+    background-color: #f9fafb;
+  }
+  .addIconContainer {
   display: flex;
-  flex-direction: column;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: auto;
+        z-index: 100;
+        cursor: pointer;
 }
 
-.header{
-  background-color: black;
-  color: white;
+  /* Left: avatar */
+  .mobileCardLeft {
+    flex-shrink: 0;
+  }
+  .mobileAvatar {
+    width: clamp(48px, 14vw, 64px);
+    height: clamp(48px, 14vw, 64px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-border);
+  }
+  .mobileAvatarPlaceholder {
+    width: clamp(48px, 14vw, 64px);
+    height: clamp(48px, 14vw, 64px);
+    border-radius: 50%;
+    background: var(--color-header-bg);
+    border: 2px solid var(--color-border);
+  }
+
+  /* Body: name + sub + price */
+  .mobileCardBody {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.6vw, 4px);
+  }
+  .mobilePetName {
+    margin: 0;
+    font-size: clamp(14px, 4vw, 16px);
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mobilePetSub {
+    margin: 0;
+    font-size: clamp(11px, 3vw, 13px);
+    color: var(--color-muted);
+  }
+  .mobilePetPrice {
+    margin: clamp(2px, 0.5vw, 4px) 0 0;
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  /* Right: status + actions */
+  .mobileCardRight {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: clamp(6px, 2vw, 10px);
+    color: orange;
+  }
+  .mobileActions {
+    display: flex;
+    gap: clamp(4px, 1.5vw, 8px);
+  }
+  /* Slightly smaller action buttons on mobile */
+  .mobileActions .actionBtn {
+    width: clamp(28px, 8vw, 34px);
+    height: clamp(28px, 8vw, 34px);
+  }
 }
 
-.petInfoSection {
-  padding: 20px;
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
+/* ── Tablet (641px – 900px): compact table ── */
+@media (min-width: 641px) and (max-width: 900px) {
+  .tableHeader,
+  .tableRow {
+    grid-template-columns:
+      clamp(36px, 4vw, 52px)
+      minmax(90px, 1fr)
+      minmax(80px, 0.8fr)
+      minmax(80px, 0.8fr)
+      clamp(70px, 9vw, 110px)
+      clamp(80px, 10vw, 120px)
+      clamp(80px, 10vw, 120px);
+    gap: clamp(4px, 0.8vw, 10px);
+    padding: calc(var(--row-pad-v) * 0.9) calc(var(--row-pad-h) * 0.85);
+  }
 }
 
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.formGroup label {
-  font-weight: 500;
-  font-size: 14px;
-  color: #555;
-}
-
-.formGroup input {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.changeStatusSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 20px 20px 20px;
-  text-align: left;
-}
-
-.changeStatusSection label {
-  font-weight: 500;
-  margin-bottom: 5px;
-}
-
-.changeStatusSection select {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
+/* ── Large screens ──────────────────────── */
+@media (min-width: 1400px) {
+  .tableHeader,
+  .tableRow {
+    grid-template-columns:
+      80px
+      minmax(160px, 1.2fr)
+      minmax(130px, 1fr)
+      minmax(130px, 1fr)
+      150px
+      160px
+      140px;
+  }
 }
