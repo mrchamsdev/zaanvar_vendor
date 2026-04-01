@@ -329,10 +329,10 @@
 }
 
 /* ── Page content ── */
-.pageContent {
+/* .pageContent {
   padding: clamp(16px, 2.5vw, 32px);
   flex: 1;
-}
+} */
 
 /* ── Section heading ── */
 .sectionTitle {
@@ -1405,9 +1405,9 @@
 }
 
 @media (max-width: 480px) {
-  .pageContent {
+  /* .pageContent {
     padding: 12px;
-  }
+  } */
 
   .tsTimeBox {
     width: 36px;

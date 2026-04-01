@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/addNewAddressPopup.module.css";
 
-const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
+const AddNewAddressPopup = ({ onSaveAddress, onClose }) => {
   const [formData, setFormData] = useState({
-    fullName: postFormData?.fullName || "",
-    mobileNumber: postFormData?.phone || "",
+    fullName: "",
+    mobileNumber: "",
     flat: "",
     street: "",
     landmark: "",
@@ -20,7 +20,7 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
 
-  // 🧭 1️⃣ Fetch all countries on mount
+  // Fetch all countries on mount
   useEffect(() => {
     const fetchCountries = async () => {
       try {
@@ -34,7 +34,7 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
     fetchCountries();
   }, []);
 
-  // 🧭 2️⃣ Fetch states when country changes
+  // Fetch states when country changes
   const handleCountryChange = async (e) => {
     const countryName = e.target.value;
     setFormData((prev) => ({
@@ -63,7 +63,7 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
     }
   };
 
-  // 🧭 3️⃣ Fetch cities when state changes
+  // Fetch cities when state changes
   const handleStateChange = async (e) => {
     const stateName = e.target.value;
     setFormData((prev) => ({
@@ -94,7 +94,7 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
     }
   };
 
-  // 🔄 Handle Input Change
+  // Handle Input Change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -104,7 +104,7 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
     if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
-  // 🧾 Validate Before Save
+  // Validate Before Save
   const handleSave = () => {
     const newErrors = {};
 
@@ -129,16 +129,38 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
       return;
     }
 
-    // Compose full address
-    const fullAddress = `${formData.flat}, ${formData.street}, ${formData.landmark}, ${formData.city}, ${formData.state}, ${formData.country} - ${formData.pinCode}`;
+    // Create an object that matches the address structure expected by the API
+    const newAddressObj = {
+      id: Date.now(), // Temporary ID for selection
+      flatOrHouseNoOrBuildingOrCompanyOrApartment: formData.flat,
+      areaOrStreetOrSectorOrVillage: formData.street,
+      landmark: formData.landmark,
+      townOrCity: formData.city,
+      state: formData.state,
+      country: formData.country,
+      pinCode: formData.pinCode,
+      addressStatus: formData.isDefault ? "Default" : "Active"
+    };
 
-    // Pass address to parent
-    if (onSaveAddress) onSaveAddress(fullAddress, formData.isDefault);
+    // Format address as object for the API payload
+    const formattedAddress = {
+      street: formData.flat,
+      area: formData.street,
+      city: formData.city,
+      state: formData.state,
+      pincode: formData.pinCode,
+      landmark: formData.landmark
+    };
+
+    // Pass both the address object and formatted address to parent
+    if (onSaveAddress) {
+      onSaveAddress(newAddressObj, formattedAddress);
+    }
 
     if (onClose) onClose();
   };
 
-  // 🪟 Close on outside click
+  // Close on outside click
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget && onClose) onClose();
   };
@@ -154,21 +176,17 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
         </div>
 
         <div className={styles.content}>
-          {/* Full Name */}
           <div className={styles.formGroup}>
             <label>Full Name</label>
             <input
               name="fullName"
               placeholder="Enter First and Last Name"
-              value={formData?.fullName}
+              value={formData.fullName}
               onChange={handleChange}
             />
-            {errors.fullName && (
-              <span className={styles.error}>{errors.fullName}</span>
-            )}
+            {errors.fullName && <span className={styles.error}>{errors.fullName}</span>}
           </div>
 
-          {/* Mobile Number */}
           <div className={styles.formGroup}>
             <label>Mobile Number</label>
             <input
@@ -180,12 +198,9 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
                 if (/^\d*$/.test(val) && val.length <= 10) handleChange(e);
               }}
             />
-            {errors.mobileNumber && (
-              <span className={styles.error}>{errors.mobileNumber}</span>
-            )}
+            {errors.mobileNumber && <span className={styles.error}>{errors.mobileNumber}</span>}
           </div>
 
-          {/* Flat */}
           <div className={styles.formGroup}>
             <label>Flat, House no., Building, Company, Apartment</label>
             <input
@@ -197,7 +212,6 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
             {errors.flat && <span className={styles.error}>{errors.flat}</span>}
           </div>
 
-          {/* Street */}
           <div className={styles.formGroup}>
             <label>Area, Street, Sector, Village</label>
             <input
@@ -206,12 +220,9 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
               value={formData.street}
               onChange={handleChange}
             />
-            {errors.street && (
-              <span className={styles.error}>{errors.street}</span>
-            )}
+            {errors.street && <span className={styles.error}>{errors.street}</span>}
           </div>
 
-          {/* Landmark */}
           <div className={styles.formGroup}>
             <label>Landmark</label>
             <input
@@ -220,71 +231,43 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
               value={formData.landmark}
               onChange={handleChange}
             />
-            {errors.landmark && (
-              <span className={styles.error}>{errors.landmark}</span>
-            )}
+            {errors.landmark && <span className={styles.error}>{errors.landmark}</span>}
           </div>
 
-          {/* Country & State */}
           <div className={styles.row}>
             <div className={styles.formContainer}>
               <label>Country</label>
-              <select
-                name="country"
-                value={formData.country}
-                onChange={handleCountryChange}
-              >
+              <select name="country" value={formData.country} onChange={handleCountryChange}>
                 <option value="">Select Country</option>
                 {countries.map((c, idx) => (
-                  <option key={idx} value={c.country}>
-                    {c.country}
-                  </option>
+                  <option key={idx} value={c.country}>{c.country}</option>
                 ))}
               </select>
-              {errors.country && (
-                <span className={styles.error}>{errors.country}</span>
-              )}
+              {errors.country && <span className={styles.error}>{errors.country}</span>}
             </div>
 
             <div className={styles.formContainer}>
               <label>State</label>
-              <select
-                name="state"
-                value={formData.state}
-                onChange={handleStateChange}
-              >
+              <select name="state" value={formData.state} onChange={handleStateChange}>
                 <option value="">Select State</option>
                 {states.map((s, idx) => (
-                  <option key={idx} value={s.name}>
-                    {s.name}
-                  </option>
+                  <option key={idx} value={s.name}>{s.name}</option>
                 ))}
               </select>
-              {errors.state && (
-                <span className={styles.error}>{errors.state}</span>
-              )}
+              {errors.state && <span className={styles.error}>{errors.state}</span>}
             </div>
           </div>
 
-          {/* City & Pin Code */}
           <div className={styles.row}>
             <div className={styles.formContainer}>
               <label>City/Town</label>
-              <select
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-              >
+              <select name="city" value={formData.city} onChange={handleChange}>
                 <option value="">Select City</option>
                 {cities.map((city, idx) => (
-                  <option key={idx} value={city}>
-                    {city}
-                  </option>
+                  <option key={idx} value={city}>{city}</option>
                 ))}
               </select>
-              {errors.city && (
-                <span className={styles.error}>{errors.city}</span>
-              )}
+              {errors.city && <span className={styles.error}>{errors.city}</span>}
             </div>
 
             <div className={styles.formContainer}>
@@ -298,13 +281,10 @@ const AddNewAddressPopup = ({ postFormData, onSaveAddress, onClose }) => {
                   if (/^\d*$/.test(val) && val.length <= 6) handleChange(e);
                 }}
               />
-              {errors.pinCode && (
-                <span className={styles.error}>{errors.pinCode}</span>
-              )}
+              {errors.pinCode && <span className={styles.error}>{errors.pinCode}</span>}
             </div>
           </div>
 
-          {/* Default Address */}
           <div className={styles.formGroupCheckbox}>
             <input
               type="checkbox"

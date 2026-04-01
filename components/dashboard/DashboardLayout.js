@@ -382,8 +382,8 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
         {/* Desktop topbar */}
         <header className={styles.topbar}>
           <div className={styles.searchBox}>
-            <IconSearch />
             <input type="text" placeholder="Search here" />
+            <IconSearch />
           </div>
 
           <div className={styles.topbarActions}>

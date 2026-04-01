@@ -1,293 +1,499 @@
+:root {
+  --c-white:        #ffffff;
+  --c-bg:           #f9fafb;
+  --c-border:       #e2e4e8;
+  --c-text:         #111827;
+  --c-muted:        #9ca3af;
+  --c-primary:      #f5790c;
+  --c-primary-dk:   #d9620a;
+  --c-error:        #ef4444;
+  --c-label:        #374151;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* fluid sizing */
+  --font-xs:  clamp(10px, 1.1vw, 12px);
+  --font-sm:  clamp(12px, 1.3vw, 13px);
+  --font-md:  clamp(13px, 1.5vw, 15px);
+  --font-lg:  clamp(15px, 1.8vw, 18px);
+  --font-xl:  clamp(17px, 2vw,   22px);
+
+  --gap-sm:   clamp(8px,  1.2vw, 14px);
+  --gap-md:   clamp(14px, 2vw,   24px);
+  --gap-lg:   clamp(20px, 3vw,   36px);
+
+  --pad-x:    clamp(16px, 4vw,   40px);
+  --pad-y:    clamp(12px, 2vh,   20px);
+
+  --input-h:  clamp(36px, 4.5vh, 44px);
+  --field-gap: clamp(6px, 0.8vh, 10px);
+}
+
+
+/* Prevent scroll */
 .no-scroll {
-    overflow: hidden;
-  }
+  overflow: hidden;
+}
+
+/* Overlay */
+.Background {
+  position: fixed;
+  inset: 0;
+
+  /* width: 100vw;
+  height: 100vh; */
+
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  justify-content: flex-start; /* ✅ FIX */
+  align-items: flex-start;     /* ✅ FIX */
+
+  z-index: 9999;
+}
+
+/* FULL SCREEN POPUP */
+.popupContainer {
+  /* width: 100vw;    */
+  height: 100vh;  
+
+  background-color: #fff;
+
+  display: flex;
+  flex-direction: column;
+
+  border-radius: 0; /* ✅ remove modal look */
+  box-shadow: none; /* ✅ remove card effect */
+
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  padding-left: clamp(16px, 4vw, 60px);
+  /* height: clamp(50px, 8vh, 70px);
+
   
-  .Background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  gap: clamp(20px, 4vw, 60px);
+
+  background: #fff;
+  box-shadow: 0 0 calc(6px + 0.5vw) rgba(0, 0, 0, 0.07);
+
+  position: sticky;
+  top: 0;
+  z-index: 10; */
+}
+
+.header p {
+  font-size: clamp(14px, 1.5vw, 18px);
+  font-weight: 500;
+}
+
+/* MAIN CONTENT */
+.mainContainer {
+  flex: 1;
+
+  padding:
+    0
+    clamp(12px, 6vw, 100px)
+    calc(clamp(80px, 10vh, 120px)); /* space for button */
+
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.uploadSections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-lg);
+  margin-top: var(--gap-lg);
+}
+
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.uploadLabel {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--c-text);
+  margin: 0;
+}
+.image-slot-empty svg{
+  width: clamp(70px, 9vw, 100px);
+  height: clamp(70px, 9vw, 100px);
+}
+/* upload grid: primary (larger) + 3 thumbs */
+.uploadGrid {
+  display: grid;
+  grid-template-columns: clamp(100px, 22vw, 180px) repeat(3, 1fr);
+  gap: clamp(6px, 1vw, 12px);
+  align-items: start;
+}
+
+/* Primary upload box */
+.uploadPrimary {
+  aspect-ratio: 1;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--c-bg);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s, background-color 0.15s;
+  gap: clamp(4px, 0.5vh, 6px);
+}
+.uploadPrimary:hover {
+  border-color: var(--c-primary);
+  background-color: #fff8f2;
+}
+
+.uploadPlus {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 300;
+  color: var(--c-muted);
+  line-height: 1;
+}
+.uploadHint {
+  font-size: var(--font-xs);
+  color: var(--c-muted);
+  text-align: center;
+  padding: 0 clamp(4px, 0.5vw, 8px);
+}
+
+.primaryThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+/* Small thumbs */
+.uploadThumb {
+  aspect-ratio: 1;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--c-bg);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.uploadThumb:hover { border-color: var(--c-muted); }
+
+.thumbMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+.thumbIcon {
+  font-size: clamp(16px, 2.5vw, 22px);
+  color: var(--c-muted);
+}
+.thumbRemove {
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 18px; height: 18px;
+  background: rgba(0,0,0,0.55);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+
+/* ── Error msg ───────────────────────────────── */
+.errorMsg {
+  font-size: var(--font-sm);
+  color: var(--c-error);
+  margin-top: var(--gap-sm);
+}
+
+
+/* IMAGE UPLOAD */
+.addButtonDiv {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: clamp(100px, 15vw, 155px);
+  height: clamp(100px, 15vw, 155px);
+
+  border-radius: 50%;
+  border: 2px dashed #a6acb8;
+
+  cursor: pointer;
+  margin-bottom: clamp(16px, 2vw, 25px);
+}
+
+.addButtonDiv p {
+  font-size: clamp(40px, 8vw, 100px);
+  color: #a6acb8;
+}
+/* ================================
+   Upload Sections Wrapper
+================================ */
+.uploadSections {
+  width: 100%;
+  display: flex;
+  gap: clamp(16px, 2vw, 28px);
+}
+
+/* ================================
+   Each Section
+================================ */
+.uploadSection {
+  width: 100%;
+}
+
+/* Label */
+.uploadLabel {
+  font-size: clamp(14px, 1vw, 16px);
+  font-weight: 600;
+  margin-bottom: clamp(8px, 1vw, 12px);
+  color: #222;
+}
+
+.required {
+  color: red;
+  margin-left: 4px;
+}
+
+/* ================================
+   Grid Layout
+================================ */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(80px, 10vw, 120px), 1fr));
+  gap: clamp(8px, 1vw, 16px);
+}
+
+/* Column wrapper */
+.slot-column {
+  display: flex;
+  justify-content: center;
+}
+
+/* ================================
+   Empty Slot
+================================ */
+.image-slot-empty {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  border: 2px dashed #ccc;
+  border-radius: clamp(8px, 1vw, 12px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+/* Hover effect */
+.image-slot-empty:hover {
+  border-color: #888;
+  background: #f2f2f2;
+}
+
+/* Mandatory (first slot) */
+.mandatory-border {
+  border-color: #ff4d4f;
+}
+
+/* ================================
+   Preview Box
+================================ */
+.image-preview-below {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+
+  position: relative;
+  border-radius: clamp(8px, 1vw, 12px);
+  overflow: hidden;
+
+  background: #eee;
+}
+
+/* Image / Video */
+.image-preview-below img,
+.image-preview-below video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ================================
+   Remove Button
+================================ */
+.remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+
+  width: clamp(22px, 2vw, 28px);
+  height: clamp(22px, 2vw, 28px);
+
+  border-radius: 50%;
+  border: none;
+
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover */
+.remove-btn:hover {
+  background: red;
+}
+
+/* ================================
+   Error Text
+================================ */
+.error-text {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(12px, 0.9vw, 13px);
+  color: red;
+}
+
+.errorMsg {
+  color: red;
+  font-size: clamp(13px, 1vw, 14px);
+  margin-top: 10px;
+}
+
+
+/* IMAGE */
+.previewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* FORM */
+.formDiv2 {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 100%;
+  gap: clamp(10px, 2vw, 20px);
+}
+
+/* FILE */
+.fileContainer {
+  width: calc(50% - clamp(10px, 2vw, 20px));
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  margin-bottom: clamp(16px, 3vw, 40px);
+}
+
+.fileDescription {
+  width: 100%;
+  margin-bottom: clamp(10px, 2vw, 18px);
+
+  font-size: clamp(12px, 1.2vw, 14px);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileLabel {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  height: clamp(32px, 5vw, 35px);
+
+  border: 1px solid #d9d9d9;
+  gap: clamp(6px, 1vw, 10px);
+
+  /* padding: 0 clamp(8px, 2vw, 16px); */
+}
+
+.mobSubmit {
+  position: sticky; /* ✅ FIX (instead of fixed) */
+  bottom: 0;
+
+  width: 100%;
+  background: #fff;
+
+  display: flex;
+  justify-content: center;
+
+}
+
+.submitButton {
+  width: clamp(200px, 40vw, 400px);
+  height: clamp(45px, 7vh, 60px);
+
+  font-size: clamp(14px, 1.5vw, 18px);
+
+  /* background: #f5790c; */
+  color: #fff;
+
+  border: none;
+  border-radius: clamp(6px, 1vw, 10px);
+  cursor: pointer;
+}
+
+
+
+
+/* Mobile */
+@media (max-width: 480px) {
+  .image-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  
-  .popupContainer {
-    background-color: white;
-    /* border-radius: 15px; */
-    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-    overflow: hidden;
-    height: auto;
-    /* max-height: 90%;
-    width: 1050px; */
+
+  .uploadLabel {
+    font-size: 14px;
   }
-  
-  .header {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    height: 60px;
-    /* background-color: #4d4d4d; */
-    background: #fff;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.07);
-    padding-left: 60px;
-    gap: 60px;
-    padding-top: 10px;
-  }
-  
-  .header p {
-    font-size: 18px;
-    color: black;
-    font-weight: 500;
-  }
-  
-  .mainContainer {
-    /* background-color: #f6f9fe; */
-    /* min-height: 100vh; */
-    padding: 50px 100px 100px 60px;
-    max-height: 95vh; /* Constrain height to make room for scroll */
-    overflow-y: auto; /* Enable scrolling when overflowed */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* width: 100%; */
-  }
-  
-  .mainContainer p {
-    font-size: 16px;
-    font-weight: 600;
-  }
-  
+}
+/* SMALL DEVICES */
+@media (max-width: 431px) {
   .addButtonDiv {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 2px dashed #a6acb8;
-    height: 155px;
-    width: 155px;
-    border-radius: 50%;
-    cursor: pointer;
-    margin-bottom: 25px;
-    background-color: #ffffff;
+    width: clamp(80px, 20vw, 100px);
+    height: clamp(80px, 20vw, 100px);
   }
-  
+
   .addButtonDiv p {
-    /* margin: 0px; */
-    font-size: 100px;
-    font-weight: 100;
-    color: #a6acb8;
+    font-size: clamp(30px, 10vw, 65px);
   }
-  
-  .formDiv2 {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    width: 100%;
+
+  .mainContainer {
+    padding: clamp(16px, 4vw, 40px) clamp(10px, 3vw, 20px);
   }
-  
-  .submitButton {
-    width: 250px;
-    height: 50px;
-    background: #f5790c;
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 500;
-    margin-top: 50px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  
-  /* Wrapper */
-  .mobSubmit {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* --- Mobile View --- */
-  @media (max-width: 768px) {
-    .mobSubmit {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      z-index: 1000;
-    }
-  
-    .mainContainer {
-    height: calc(100vh - 110px);
-  }
-    .submitButton {
-      width: 100%;
-      margin-top: 0;
-      height: 55px;
-      font-size: 16px;
-      border-radius: 0;
-      border-top-left-radius: 15px;
-      border-top-right-radius: 15px;
-    }
-  }
-  
-  .previewImg {
-    height: 150px;
-    width: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
-  .customInput {
-    padding: 0px !important;
-  }
-  .mobback{
-    display: none;
-  }
-  .fileContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    width: 48%;
-    /* justify-content: flex-start; */
-    margin-bottom: 40px;
-    /* gap: 5px; */
-  }
-  .fileDescription {
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-    margin-bottom: 18px;
-  }
-  .fileLabel {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: 20px;
-    width: 100%;
-    border: 1px solid #d9d9d9;
-    height: 35px;
-  }
-  
-  @media (max-width: 768px) {
-    .previewImg {
-      height: 160px;
-      width: 100%;
-      object-fit: cover;
-      border-radius: 50%;
-    }
-    .header {
-      justify-content: center; /* Center the text */
-      padding-left: 0;
-      gap: 0;
-    }
-  .fileLabel {
-    width: 95vw;
-    height: auto;
-  }
-    /* Center the “Add New Pet” text */
-    .header p:nth-of-type(2) {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      font-weight: 600;
-      margin: 0;
-    }
-  
-    /* Mobile back arrow */
-    .mobback {
-      display: block;
-      position: absolute;
-      left: 15px;
-      top: 4%;
-      transform: translateY(-50%);
-    }
-  
-    /* Hide desktop back icon on mobile */
-    .webback {
-      display: none;
-    }
-  .header {
-  
-    padding-left: 10px;
-    
-  }
-  .addnew{
-    margin-bottom: 10px;
-  }
-    .Background {
-      /* padding: 10px; */
-      
-    }
-    .fileContainer {
-      display: block;
-    }
-    .popupContainer {
-      border-radius: 0px;
-      max-height: 100%;
-      height: 100%;
-      width: 100%;
-    }
-  
-    /* .mainContainer p {
-                  font-size: 14px;
-                  font-weight: 600;
-              } */
-    .imgP {
-      font-size: 50px;
-      font-weight: 100px;
-    }
-    .fileDescription {
-      /* padding-bottom: 16px; */
-      width: 100%;
-    }
-    .fileLabel {
-      margin-left: 0px;
-    }
-    .fileContainer {
-    margin-bottom: 20px;
-  }
-  
-  .mobSubmit{
-    width: 100%;
-  }
-    .formDiv2 {
-      flex-direction: column; /* Stack items vertically */
-    }
-    .mainContainer {
-      padding: 50px 50px;
-    }
-   
-  }
-  @media (max-width: 431px) {
-    .formDiv2 {
-      flex-direction: column; /* Stack items vertically */
-    }
-  
-    .previewImg {
-      height: 100px;
-      width: 100px;
-    }
-    .addButtonDiv {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: 2px dashed #a6acb8;
-      height: 100px;
-      width: 100px;
-    }
-    .Background {
-      /* padding: 10px; */
-    }
-    .mainContainer {
-      padding: 50px 10px;
-    }
-    .addButtonDiv p {
-      margin: 0px;
-      font-size: 65px;
-    }
-    
-  }
-  
+}
