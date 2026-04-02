@@ -48,12 +48,12 @@ const AddNewPetPopup = ({
   const videoFileInputRef = useRef(null);
   const isProcessingCrop = useRef(false);
   const blobUrlsRef = useRef([]);
-
+const vaccMenuRef = useRef(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
   const [videoPreviews, setVideoPreviews] = useState([]);
-
+const [showVaccDropdown, setShowVaccDropdown] = useState(false);
   // Cropper queue
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
@@ -86,16 +86,19 @@ const AddNewPetPopup = ({
     petWeightIn: "", microchipNo: "", howmanyTimesBreedingDone: "",
   });
   const vaccinationOptions = [
-    "Rabies",
-    "DHLPP",
+     "DHPP (Distemper, Hepatitis, Parvo, Parainfluenza)",
+    "DA2PP (Distemper, Cav-2, Parvo, Parainfluenza)",
     "Bordetella",
+    "Canine Coronavirus (CCoV)",
+    "Canine Distemper",
+    "Canine influenza (H3H2)",
+    "Canine influenza (H3N8)",
+    "Adenovirus Type 1 (Cav-1, Canine Hepatitis)",
+    "Adenovirus Type 2 (Cav-2, Kennel Cough)",
     "Leptospirosis",
-    "Lyme Disease",
-    "Canine Influenza",
+    "Lyme disease",
+    "Parainfluenza",
     "Parvovirus",
-    "Distemper",
-    "Adenovirus",
-    "Parainfluenza"
   ];
  useEffect(() => {
     return () => {
@@ -140,58 +143,16 @@ const AddNewPetPopup = ({
   }, []);
 
   
-
-  // ── Populate form when editing ────────────────────────────────────────────
-  // useEffect(() => {
-  //   if (petData) {
-  //     setFormData({
-  //       petName: petData.petName || "",
-  //       petAge: petData.petAge || "",
-  //       petType: petData.petType || "",
-  //       color: petData.color || "",
-  //       breed: petData.breed || "",
-  //       additionalInfo: petData.additionalInfo || "",
-  //       weight:
-  //         petData?.weight?.endsWith("kg") || petData?.weight?.endsWith("lb")
-  //           ? petData.weight.split(" ")[0]
-  //           : petData?.weight || "",
-  //       petWeightIn: petData?.weight?.endsWith("kg") ? "kg" : "lb",
-  //       vaccinated: petData.vaccinated ?? null,
-  //       kci: petData.kci || "",
-  //       championship: petData.championship || "",
-  //       Events: petData.Events || "",
-  //       skills: petData.skills || "",
-  //       instagramLink: petData.instagramLink || "",
-  //       petGender: petData.petGender || "",
-  //       vaccineCertificate: petData.vaccineCertificate || "",
-  //       kciCertificate: petData.kciCertificate || "",
-  //       spayedOrNeutered: petData.spayedOrNeutered || "",
-  //       dob: petData?.birthday?.slice(0, 10) || "",
-  //       medication: petData.medication || "",
-  //       size: petData.size || "",
-  //       healthCondition: petData.doesYourPetHasAnyHealthIssues || "",
-  //       microchipNumber: petData.microchipNumber || "",
-  //       breedingCount: petData.breedingCount || "",
-  //     });
-  //     // Show existing primary image from server
-  //     if (petData.morePhotos && petData.morePhotos.length > 0) {
-  //       setImagePreviews([`${IMAGE_URL}${petData.morePhotos[0]}`]);
-  //       setImageFiles(["existing"]); // sentinel so validation passes
-  //     }
-  //   } else {
-  //     setFormData({
-  //       petName: "", petAge: "", petType: "", color: "", breed: "", additionalInfo: "",
-  //       weight: "", vaccinated: null, kci: "", championship: "", Events: "", skills: "",
-  //       instagramLink: "", petGender: "", vaccineCertificate: "", kciCertificate: "",
-  //       dob: "", spayedOrNeutered: "", medication: "", size: "", healthCondition: "",
-  //       petWeightIn: "", microchipNumber: "", breedingCount: "",
-  //     });
-  //     setImageFiles([]);
-  //     setImagePreviews([]);
-  //     setVideoFiles([]);
-  //     setVideoPreviews([]);
-  //   }
-  // }, [petData]);
+useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (vaccMenuRef.current && !vaccMenuRef.current.contains(event.target)) {
+        setShowVaccDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  
   useEffect(() => {
   if (petData) {
     setFormData({
@@ -362,20 +323,14 @@ useEffect(() => {
       console.log(error.message);
     }
   };
-  const handleVaccinationCheckboxChange = (vaccine) => {
-    const currentVaccinations = [...formData.howManyVaccinationsDone];
-    
-    if (currentVaccinations.includes(vaccine)) {
-      setFormData(prev => ({
-        ...prev,
-        howManyVaccinationsDone: currentVaccinations.filter(v => v !== vaccine)
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        howManyVaccinationsDone: [...currentVaccinations, vaccine]
-      }));
-    }
+ const handleVaccinationToggle = (vaccine) => {
+    setFormData(prev => {
+      const current = prev.howManyVaccinationsDone || [];
+      const updated = current.includes(vaccine) 
+        ? current.filter(v => v !== vaccine) 
+        : [...current, vaccine];
+      return { ...prev, howManyVaccinationsDone: updated };
+    });
   };
 
  
@@ -600,643 +555,6 @@ const handleDeleteMedia = async (index, type) => {
     console.log("Videos added. Total videos:", videoFiles.length + toAdd.length);
   };
 
-  // const handleRemoveVideo = (index) => {
-  //   console.log("Removing video at index:", index);
-  //   const urlToRemove = videoPreviews[index];
-  //   if (urlToRemove && urlToRemove.startsWith("blob:")) {
-  //     URL.revokeObjectURL(urlToRemove);
-  //     blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== urlToRemove);
-  //   }
-  //   setVideoFiles((prev) => prev.filter((_, i) => i !== index));
-  //   setVideoPreviews((prev) => prev.filter((_, i) => i !== index));
-  // };
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SUBMIT
-  // ─────────────────────────────────────────────────────────────────────────
-//   const handleSubmit = async () => {
-//     const newErrors = {};
-//     if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//     if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//     if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//     if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//     if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//     if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//     else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//     if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//     if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//     if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-//     if (formData.instagramLink && !instagramRegex.test(formData.instagramLink))
-//       newErrors.instagramLink = "Please check your Instagram URL & enter a valid Instagram URL";
-
-//     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-
-//     setErrors({});
-//     const payload = {
-//       petAge: formData.petAge, petName: formData.petName, petType: formData.petType,
-//       breed: formData.breed, additionalInfo: formData.additionalInfo,
-//       weight: `${formData.weight} ${formData.petWeightIn}`,
-//       vaccinated: formData.vaccinated, petGender: formData.petGender, kci: formData.kci,
-//       color: formData.color, championship: formData.championship, Events: formData.Events,
-//       skills: formData.skills, instagramLink: formData.instagramLink, birthday: formData.dob,
-//       spayedOrNeutered: formData.spayedOrNeutered, medication: formData.medication,
-//       doesYourPetHasAnyHealthIssues: formData.healthCondition, size: formData.size,
-//     };
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-//     if (!petData) response = await webApi.post("vendorPetProfile/create", payload);
-//     else response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-
-//     if (response.status === "success") {
-//       const petId = response.data?.petProfile?.id;
-//       const uploadPromises = [];
-
-//       // Queue Image Uploads
-//       imageFiles.forEach((file) => {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("petImage", file);
-//           uploadPromises.push(webApi.imagePut(`vendorPetProfile/morePhotos/${petData.id}`));
-//         }
-//       });
-
-//       // Queue Video Uploads
-//       videoFiles.forEach((file) => {
-//         const fd = new FormData();
-//         fd.append("petVideo", file);
-//         uploadPromises.push(webApi.imagePut(`/vendorPetProfile/moreVideos/${petData.id}`));
-//       });
-
-//       // Execute all uploads at once
-//       if (uploadPromises.length > 0) {
-//         setApiProcessing({ loader: true, message: "Uploading media..." });
-//         await Promise.all(uploadPromises);
-//       }
-
-//       closePopup();
-//       fetchPetData();
-//     }
-//   } catch (err) {
-//     setErrorMessage("Failed to save profile. Please check your connection.");
-//   } finally {
-//     setApiProcessing({ loader: false, message: "" });
-//   }
-// };
-// const handleSubmit = async () => {
-//   const newErrors = {};
-//   if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//   if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//   if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//   if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//   if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//   if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//   else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//   if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//   if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//   if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-//   if (formData.instagramLink && !instagramRegex.test(formData.instagramLink))
-//     newErrors.instagramLink = "Please check your Instagram URL & enter a valid Instagram URL";
-
-//   if (Object.keys(newErrors).length > 0) { 
-//     setErrors(newErrors); 
-//     return; 
-//   }
-
-//   setErrors({});
-  
-//   const payload = {
-//     petAge: formData.petAge, 
-//     petName: formData.petName, 
-//     petType: formData.petType,
-//     breed: formData.breed, 
-//     additionalInfo: formData.additionalInfo,
-//     weight: `${formData.weight} ${formData.petWeightIn}`,
-//     vaccinated: formData.vaccinated, 
-//     petGender: formData.petGender, 
-//     kci: formData.kci,
-//     color: formData.color, 
-//     championship: formData.championship, 
-//     Events: formData.Events,
-//     skills: formData.skills, 
-//     instagramLink: formData.instagramLink, 
-//     birthday: formData.dob,
-//     spayedOrNeutered: formData.spayedOrNeutered, 
-//     medication: formData.medication,
-//     doesYourPetHasAnyHealthIssues: formData.healthCondition, 
-//     size: formData.size,
-//   };
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-    
-//     if (!petData) {
-//       // Create new pet profile
-//       response = await webApi.post("vendorPetProfile/create", payload);
-//       console.log("Create response:", response);
-//     } else {
-//       // Update existing pet profile
-//       response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-//       console.log("Update response:", response);
-//     }
-
-//     if (response.status === "success") {
-//       // Get the pet ID from response - it might be in different places
-//       let petId;
-//       if (response.data?.petProfile?.id) {
-//         petId = response.data.petProfile.id;
-//       } else if (response.data?.id) {
-//         petId = response.data.id;
-//       } else if (petData?.id) {
-//         petId = petData.id;
-//       } else {
-//         console.error("Could not find pet ID in response:", response);
-//         setErrorMessage("Failed to get pet ID after creation");
-//         return;
-//       }
-      
-//       console.log("Pet ID for uploads:", petId);
-      
-//       const uploadPromises = [];
-
-//       // Queue Image Uploads - Only upload new images (not "existing" sentinel)
-//       imageFiles.forEach((file) => {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("morePhotos", file);
-//           // Use the correct endpoint with petId
-//           uploadPromises.push(webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd));
-//           console.log("Uploading image:", file.name);
-//         }
-//       });
-
-//       // Queue Video Uploads
-//       videoFiles.forEach((file) => {
-//         const fd = new FormData();
-//         fd.append("petVideo", file);
-//         // Use the correct endpoint with petId
-//         uploadPromises.push(webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd));
-//         console.log("Uploading video:", file.name);
-//       });
-
-//       // Execute all uploads at once
-//       if (uploadPromises.length > 0) {
-//         setApiProcessing({ loader: true, message: `Uploading ${uploadPromises.length} media files...` });
-        
-//         try {
-//           const uploadResults = await Promise.all(uploadPromises);
-//           console.log("All uploads completed:", uploadResults);
-//         } catch (uploadError) {
-//           console.error("Error uploading media:", uploadError);
-//           setErrorMessage("Pet profile saved but some media failed to upload.");
-//           // Don't throw here - pet profile was saved successfully
-//         }
-//       }
-
-//       closePopup();
-//       fetchPetData();
-//     } else {
-//       console.error("API response error:", response);
-//       setErrorMessage(response.message || "Failed to save profile. Please try again.");
-//     }
-//   } catch (err) {
-//     console.error("Submit error details:", err);
-//     setErrorMessage(`Failed to save profile: ${err.message || "Please check your connection."}`);
-//   } finally {
-//     setApiProcessing({ loader: false, message: "" });
-//   }
-// };
-
-// const handleSubmit = async () => {
-//   const newErrors = {};
-//   if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//   if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//   if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//   if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//   if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//   if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//   else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//   if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//   if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//   if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-//   if (formData.instagramLink && !instagramRegex.test(formData.instagramLink))
-//     newErrors.instagramLink = "Please check your Instagram URL & enter a valid Instagram URL";
-
-//   if (Object.keys(newErrors).length > 0) { 
-//     setErrors(newErrors); 
-//     return; 
-//   }
-
-//   setErrors({});
-//   setErrorMessage(""); // Clear any previous error messages
-  
-//   const payload = {
-//     petAge: formData.petAge, 
-//     petName: formData.petName, 
-//     petType: formData.petType,
-//     breed: formData.breed, 
-//     additionalInfo: formData.additionalInfo,
-//     weight: `${formData.weight} ${formData.petWeightIn}`,
-//     vaccinated: formData.vaccinated, 
-//     petGender: formData.petGender, 
-//     kci: formData.kci,
-//     color: formData.color, 
-//     championship: formData.championship, 
-//     Events: formData.Events,
-//     skills: formData.skills, 
-//     instagramLink: formData.instagramLink, 
-//     birthday: formData.dob,
-//     spayedOrNeutered: formData.spayedOrNeutered, 
-//     medication: formData.medication,
-//     doesYourPetHasAnyHealthIssues: formData.healthCondition, 
-//     size: formData.size,
-//   };
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-    
-//     if (!petData) {
-//       // Create new pet profile
-//       response = await webApi.post("vendorPetProfile/create", payload);
-//       console.log("Create response:", response);
-//     } else {
-//       // Update existing pet profile
-//       response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-//       console.log("Update response:", response);
-//     }
-
-//     if (response.status === "success") {
-//       // Get the pet ID from response
-//       let petId;
-//       if (response.data?.petProfile?.id) {
-//         petId = response.data.petProfile.id;
-//       } else if (response.data?.id) {
-//         petId = response.data.id;
-//       } else if (petData?.id) {
-//         petId = petData.id;
-//       } else {
-//         console.error("Could not find pet ID in response:", response);
-//         setErrorMessage("Failed to get pet ID after creation");
-//         setApiProcessing({ loader: false, message: "" });
-//         return;
-//       }
-      
-//       console.log("Pet ID for uploads:", petId);
-      
-//       const uploadPromises = [];
-
-//       // Queue Image Uploads - Only upload new images (not "existing" sentinel)
-//       imageFiles.forEach((file) => {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("morePhotos", file);
-//           uploadPromises.push(webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd));
-//           console.log("Uploading image:", file.name);
-//         }
-//       });
-
-//       // Queue Video Uploads
-//       videoFiles.forEach((file) => {
-//         const fd = new FormData();
-//         fd.append("moreVideos", file);
-//         uploadPromises.push(webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd));
-//         console.log("Uploading video:", file.name);
-//       });
-
-//       // Execute all uploads at once
-//       if (uploadPromises.length > 0) {
-//         setApiProcessing({ loader: true, message: `Uploading ${uploadPromises.length} media files...` });
-        
-//         try {
-//           const uploadResults = await Promise.allSettled(uploadPromises);
-//           console.log("All uploads completed:", uploadResults);
-          
-//           const failedUploads = uploadResults.filter(r => r.status === 'rejected');
-//           if (failedUploads.length > 0) {
-//             console.warn(`${failedUploads.length} file(s) failed to upload`);
-//             // Only show warning but don't block closing
-//             setErrorMessage(`Note: ${failedUploads.length} file(s) failed to upload.`);
-//             setTimeout(() => setErrorMessage(""), 3000); // Clear after 3 seconds
-//           }
-//         } catch (uploadError) {
-//           console.error("Error uploading media:", uploadError);
-//           // Don't block the success flow
-//         }
-//       }
-
-//       // Clear any previous errors and close popup
-//       setErrorMessage("");
-//       closePopup();
-//       fetchPetData();
-//     } else {
-//       console.error("API response error:", response);
-//       setErrorMessage(response.message || "Failed to save profile. Please try again.");
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   } catch (err) {
-//     console.error("Submit error details:", err);
-//     setErrorMessage(`Failed to save profile: ${err.message || "Please check your connection."}`);
-//     setApiProcessing({ loader: false, message: "" });
-//   } finally {
-//     // Only reset loading if we're not closing the popup
-//     if (!closePopup) {
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   }
-// };
-
-
-// const handleSubmit = async () => {
-//   const newErrors = {};
-//   if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//   if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//   if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//   if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//   if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//   if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//   else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//   if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//   if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//   if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-//   if (formData.instagramLink && !instagramRegex.test(formData.instagramLink))
-//     newErrors.instagramLink = "Please check your Instagram URL & enter a valid Instagram URL";
-
-//   if (Object.keys(newErrors).length > 0) { 
-//     setErrors(newErrors); 
-//     return; 
-//   }
-
-//   setErrors({});
-//   setErrorMessage(""); // Clear any previous error messages
-  
-//   const payload = {
-//     petAge: formData.petAge, 
-//     petName: formData.petName, 
-//     petType: formData.petType,
-//     breed: formData.breed, 
-//     additionalInfo: formData.additionalInfo,
-//     weight: `${formData.weight} ${formData.petWeightIn}`,
-//     vaccinated: formData.vaccinated, 
-//     petGender: formData.petGender, 
-//     kci: formData.kci,
-//     color: formData.color, 
-//     championship: formData.championship, 
-//     Events: formData.Events,
-//     skills: formData.skills, 
-//     instagramLink: formData.instagramLink, 
-//     birthday: formData.dob,
-//     spayedOrNeutered: formData.spayedOrNeutered, 
-//     medication: formData.medication,
-//     doesYourPetHasAnyHealthIssues: formData.healthCondition, 
-//     size: formData.size,
-//   };
-
-//   let success = false; // Add flag to track success
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-    
-//     if (!petData) {
-//       // Create new pet profile
-//       response = await webApi.post("vendorPetProfile/create", payload);
-//       console.log("Create response:", response);
-//     } else {
-//       // Update existing pet profile
-//       response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-//       console.log("Update response:", response);
-//     }
-
-//     if (response.status === "success") {
-//       success = true; // Set success flag
-      
-//       // Get the pet ID from response
-//       let petId;
-//       if (response.data?.petProfile?.id) {
-//         petId = response.data.petProfile.id;
-//       } else if (response.data?.id) {
-//         petId = response.data.id;
-//       } else if (petData?.id) {
-//         petId = petData.id;
-//       } else {
-//         console.error("Could not find pet ID in response:", response);
-//         setErrorMessage("Failed to get pet ID after creation");
-//         setApiProcessing({ loader: false, message: "" });
-//         return;
-//       }
-      
-//       console.log("Pet ID for uploads:", petId);
-      
-//       const uploadPromises = [];
-
-//       // Queue Image Uploads - Only upload new images (not "existing" sentinel)
-//       imageFiles.forEach((file) => {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("morePhotos", file);
-//           uploadPromises.push(webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd));
-//           console.log("Uploading image:", file.name);
-//         }
-//       });
-
-//       // Queue Video Uploads
-//       videoFiles.forEach((file) => {
-//         const fd = new FormData();
-//         fd.append("moreVideos", file);
-//         uploadPromises.push(webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd));
-//         console.log("Uploading video:", file.name);
-//       });
-
-//       // Execute all uploads at once
-//       if (uploadPromises.length > 0) {
-//         setApiProcessing({ loader: true, message: `Uploading ${uploadPromises.length} media files...` });
-        
-//         try {
-//           const uploadResults = await Promise.allSettled(uploadPromises);
-//           console.log("All uploads completed:", uploadResults);
-          
-//           const failedUploads = uploadResults.filter(r => r.status === 'rejected');
-//           if (failedUploads.length > 0) {
-//             console.warn(`${failedUploads.length} file(s) failed to upload`);
-//             // Only show warning but don't block closing
-//             setErrorMessage(`Note: ${failedUploads.length} file(s) failed to upload.`);
-//             setTimeout(() => setErrorMessage(""), 3000); // Clear after 3 seconds
-//           }
-//         } catch (uploadError) {
-//           console.error("Error uploading media:", uploadError);
-//           // Don't block the success flow
-//         }
-//       }
-
-//       // Clear any previous errors and close popup
-//       setErrorMessage("");
-//       closePopup();
-//       fetchPetData();
-//     } else {
-//       console.error("API response error:", response);
-//       setErrorMessage(response.message || "Failed to save profile. Please try again.");
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   } catch (err) {
-//     console.error("Submit error details:", err);
-//     setErrorMessage(`Failed to save profile: ${err.message || "Please check your connection."}`);
-//     setApiProcessing({ loader: false, message: "" });
-//   } finally {
-//     // Only reset loading if we're not closing the popup AND it wasn't successful
-//     if (!closePopup && !success) {
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   }
-//   // 4. Handle Media Uploads
-// console.log("Checking for files to upload...", imageFiles);
-
-// // Image Uploads
-// for (let i = 0; i < imageFiles.length; i++) {
-//   const file = imageFiles[i];
-  
-//   // TRIGGER LOGIC:
-//   // If it's a new File object (from the cropper), trigger the API.
-//   // If it's the string "existing", skip it (it's already on the server).
-//   if (file && file !== "existing") {
-//     console.log(`Triggering Image API for file ${i}:`, file.name);
-    
-//     const fd = new FormData();
-//     // Check if your API expects 'morePhotos' or 'petImage'
-//     fd.append("morePhotos", file); 
-    
-//     try {
-//       const imgRes = await webApi.imagePut(`vendorPetProfile/morePhotos/${petData.id}`, fd);
-//       console.log(`Image ${i} upload success:`, imgRes);
-//     } catch (imgErr) {
-//       console.error(`Image ${i} upload failed:`, imgErr);
-//     }
-//   } else {
-//     console.log(`Skipping image ${i} because it is already on the server.`);
-//   }
-// }
-// };
-
-
-
-// const handleSubmit = async () => {
-//   // 1. Validation
-//   const newErrors = {};
-//   if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//   if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//   if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//   if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//   if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//   if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//   else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//   if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//   if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//   if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-
-//   if (Object.keys(newErrors).length > 0) {
-//     setErrors(newErrors);
-//     return;
-//   }
-
-//   setErrors({});
-//   setErrorMessage("");
-
-//   const payload = {
-//     petAge: formData.petAge,
-//     petName: formData.petName,
-//     petType: formData.petType,
-//     breed: formData.breed,
-//     additionalInfo: formData.additionalInfo,
-//     weight: `${formData.weight} ${formData.petWeightIn}`,
-//     vaccinated: formData.vaccinated,
-//     petGender: formData.petGender,
-//     kci: formData.kci,
-//     color: formData.color,
-//     championship: formData.championship,
-//     Events: formData.Events,
-//     skills: formData.skills,
-//     instagramLink: formData.instagramLink,
-//     birthday: formData.dob,
-//     spayedOrNeutered: formData.spayedOrNeutered,
-//     medication: formData.medication,
-//     doesYourPetHasAnyHealthIssues: formData.healthCondition,
-//     size: formData.size,
-//     microchipNo : formData.microchipNo, 
-//     howmanyTimesBreedingDone : formData.howmanyTimesBreedingDone,
-//   };
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-
-//     if (!petData) {
-//       response = await webApi.post("vendorPetProfile/create", payload);
-//     } else {
-//       response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-//     }
-
-//     // Check for success string or status 200
-//     if (response.status === "success" || response.status === 200) {
-//       // Get the correct ID for media uploads
-//       const petId = response.data?.petProfile?.id || response.data?.id || petData?.id;
-
-//       if (!petId) {
-//         setErrorMessage("Profile saved but Pet ID was not found for media upload.");
-//         setApiProcessing({ loader: false, message: "" });
-//         return;
-//       }
-
-//       // 2. Upload Images
-//       setApiProcessing({ loader: true, message: "Uploading images..." });
-//       for (const file of imageFiles) {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("morePhotos", file);
-//           try {
-//             await webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd);
-//             console.log("Image uploaded successfully to ID:", petId);
-//           } catch (err) {
-//             console.error("Image upload failed:", err);
-//           }
-//         }
-//       }
-
-//       // 3. Upload Videos
-//       setApiProcessing({ loader: true, message: "Uploading videos..." });
-//       for (const file of videoFiles) {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("moreVideos", file);
-//           try {
-//             await webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd);
-//             console.log("Video uploaded successfully to ID:", petId);
-//           } catch (err) {
-//             console.error("Video upload failed:", err);
-//           }
-//         }
-//       }
-
-//       // 4. Finalize
-//       setErrorMessage("");
-//       closePopup();
-//       fetchPetData();
-//     } else {
-//       setErrorMessage(response.message || "Failed to save profile.");
-//     }
-//   } catch (err) {
-//     console.error("Submit Error:", err);
-//     setErrorMessage(err.response?.data?.message || "An error occurred while saving.");
-//   } finally {
-//     setApiProcessing({ loader: false, message: "" });
-//   }
-// };
-
-
-
-
-
 
 const handleSubmit = async () => {
   // 1. Validation
@@ -1280,6 +598,7 @@ const handleSubmit = async () => {
     medication: formData.medication,
     doesYourPetHasAnyHealthIssues: formData.healthCondition,
     size: formData.size,
+    howManyVaccinationsDone: formData.howManyVaccinationsDone || []
   };
 
   try {
@@ -1351,165 +670,6 @@ const handleSubmit = async () => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const handleSubmit = async () => {
-//   const newErrors = {};
-//   if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-//   if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-//   if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-//   if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-//   if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-//   if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-//   else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-//   if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-//   if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-//   if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-//   if (formData.instagramLink && !instagramRegex.test(formData.instagramLink))
-//     newErrors.instagramLink = "Please check your Instagram URL & enter a valid Instagram URL";
-
-//   if (Object.keys(newErrors).length > 0) { 
-//     setErrors(newErrors); 
-//     return; 
-//   }
-
-//   setErrors({});
-//   setErrorMessage(""); // Clear any previous error messages
-  
-//   const payload = {
-//     petAge: formData.petAge, 
-//     petName: formData.petName, 
-//     petType: formData.petType,
-//     breed: formData.breed, 
-//     additionalInfo: formData.additionalInfo,
-//     weight: `${formData.weight} ${formData.petWeightIn}`,
-//     vaccinated: formData.vaccinated, 
-//     petGender: formData.petGender, 
-//     kci: formData.kci,
-//     color: formData.color, 
-//     championship: formData.championship, 
-//     Events: formData.Events,
-//     skills: formData.skills, 
-//     instagramLink: formData.instagramLink, 
-//     birthday: formData.dob,
-//     spayedOrNeutered: formData.spayedOrNeutered, 
-//     medication: formData.medication,
-//     doesYourPetHasAnyHealthIssues: formData.healthCondition, 
-//     size: formData.size,
-//   };
-
-//   try {
-//     setApiProcessing({ loader: true, message: "Saving profile..." });
-//     let response;
-    
-//     if (!petData) {
-//       // Create new pet profile
-//       response = await webApi.post("vendorPetProfile/create", payload);
-//       console.log("Create response:", response);
-//     } else {
-//       // Update existing pet profile
-//       response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-//       console.log("Update response:", response);
-//     }
-
-//     // Check for success - status could be 200, 201, or "success"
-//     const isSuccess = response.status === 200 || 
-//                       response.status === 201 || 
-//                       response.status === "success";
-    
-//     if (isSuccess) {
-//       // Get the pet ID from response
-//       let petId;
-//       if (response.data?.petProfile?.id) {
-//         petId = response.data.petProfile.id;
-//       } else if (response.data?.data?.id) {
-//         petId = response.data.data.id;
-//       } else if (response.data?.id) {
-//         petId = response.data.id;
-//       } else if (petData?.id) {
-//         petId = petData.id;
-//       } else {
-//         console.error("Could not find pet ID in response:", response);
-//         setErrorMessage("Failed to get pet ID after creation");
-//         setApiProcessing({ loader: false, message: "" });
-//         return;
-//       }
-      
-//       console.log("Pet ID for uploads:", petId);
-      
-//       const uploadPromises = [];
-
-//       // Queue Image Uploads - Only upload new images (not "existing" sentinel)
-//       imageFiles.forEach((file) => {
-//         if (file && file !== "existing") {
-//           const fd = new FormData();
-//           fd.append("morePhotos", file);
-//           uploadPromises.push(webApi.put(`vendorPetProfile/morePhotos/${petId}`));
-//           console.log("Uploading image:", file.name);
-//         }
-//       });
-
-//       // Queue Video Uploads
-//       videoFiles.forEach((file) => {
-//         const fd = new FormData();
-//         fd.append("petVideo", file);
-//         uploadPromises.push(webApi.put(`vendorPetProfile/moreVideos/${petId}`));
-//         console.log("Uploading video:", file.name);
-//       });
-
-//       // Execute all uploads at once
-//       if (uploadPromises.length > 0) {
-//         setApiProcessing({ loader: true, message: `Uploading ${uploadPromises.length} media files...` });
-        
-//         try {
-//           const uploadResults = await Promise.allSettled(uploadPromises);
-//           console.log("All uploads completed:", uploadResults);
-          
-//           const failedUploads = uploadResults.filter(r => r.status === 'rejected');
-//           if (failedUploads.length > 0) {
-//             console.warn(`${failedUploads.length} file(s) failed to upload`);
-//             // Only show warning but don't block closing
-//             setErrorMessage(`Note: ${failedUploads.length} file(s) failed to upload.`);
-//             setTimeout(() => setErrorMessage(""), 3000); // Clear after 3 seconds
-//           }
-//         } catch (uploadError) {
-//           console.error("Error uploading media:", uploadError);
-//           // Don't block the success flow
-//         }
-//       }
-
-//       // Clear any previous errors and close popup
-//       setErrorMessage("");
-//       closePopup();
-//       fetchPetData();
-//     } else {
-//       console.error("API response error:", response);
-//       setErrorMessage(response.data?.message || response.message || "Failed to save profile. Please try again.");
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   } catch (err) {
-//     console.error("Submit error details:", err);
-//     setErrorMessage(`Failed to save profile: ${err.message || "Please check your connection."}`);
-//     setApiProcessing({ loader: false, message: "" });
-//   } finally {
-//     // Only reset loading if we're not closing the popup
-//     if (!closePopup) {
-//       setApiProcessing({ loader: false, message: "" });
-//     }
-//   }
-// };
 // Update sizeOptions with useMemo
 const sizeOptions = useMemo(() => {
   // For edit mode: if we have a size value from petData, show it
@@ -1654,24 +814,37 @@ const sizeOptions = useMemo(() => {
             onChange={(value) => handleInputChange("vaccinated", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-           {formData.vaccinated === "Yes" && (
-            <div style={{ width: isMobile ? "100%" : "48%" }}>
-              <p>Vaccinations Given</p>
-              <div className={styles.vaccinationCheckboxGroup}>
-                {vaccinationOptions.map((vaccine) => (
-                  <label key={vaccine} className={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={formData.howManyVaccinationsDone.includes(vaccine)}
-                      onChange={() => handleVaccinationCheckboxChange(vaccine)}
-                      className={styles.checkbox}
+            {formData.vaccinated === "Yes" && (
+                       <div style={{ width: isMobile ? "100%" : "48%", position: "relative" }} ref={vaccMenuRef}>
+            <p><b>Vaccinations Done</b></p>
+            <div 
+              className={styles.customSelectHeader} 
+              onClick={() => setShowVaccDropdown(!showVaccDropdown)}
+              style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
+            >
+              {formData.howManyVaccinationsDone.length > 0 
+                ? `${formData.howManyVaccinationsDone.length} Selected` 
+                : "Select Vaccinations"}
+              <span style={{ float: "right" }}>{showVaccDropdown ? "▲" : "▼"}</span>
+            </div>
+            
+            {showVaccDropdown && (
+              <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+                {vaccinationOptions.map(v => (
+                  <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={formData.howManyVaccinationsDone.includes(v)} 
+                      onChange={() => handleVaccinationToggle(v)}
+                      style={{ marginRight: "10px" }}
                     />
-                    <span>{vaccine}</span>
+                    <span style={{ fontSize: "13px" }}>{v}</span>
                   </label>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+                     )}
           <DropDownv1
             options={["select", "Yes", "No"]} question={"KCI"} width={isMobile ? "100%" : "48%"}
             backgroundColor="#FFFFFF" value={formData.kci}

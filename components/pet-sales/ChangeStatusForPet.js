@@ -77,7 +77,7 @@ const ChangeStatusForPet = ({ pet, setPet, onClose, onStatusChange }) => {
       <div className={`${styles.modal} ${styles.changeStatusModal}`}>
         <div className={styles.modalHeader}>
           <button onClick={onClose} className={styles.backBtn}> ← </button>
-          <h3 className={styles.modalTitle}>Manage Pet Status</h3>
+          <h3 className={styles.modalTitle}>Change Status</h3>
         </div>
 
         <div className={styles.petInfoSection}>
@@ -94,7 +94,7 @@ const ChangeStatusForPet = ({ pet, setPet, onClose, onStatusChange }) => {
         </div>
 
         <div className={styles.changeStatusSection}>
-          <label className={styles["lable-div"]}>Update Status</label>
+          <label className={styles["lable-div"]}>Pet Status</label>
           <select 
             value={selectedStatus} 
             onChange={(e) => setSelectedStatus(e.target.value)} 
