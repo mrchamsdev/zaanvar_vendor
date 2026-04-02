@@ -1,0 +1,148 @@
+.sharepost-classname-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999999;
+  padding: 20px;
+}
+
+.sharepost-classname-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 700px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sharePost-header-names {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f47d15;
+
+}
+
+.sharePost-header-names p {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sharepost-classname-close {
+
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sharepost-classname-close:hover {
+  background: #eeeeee;
+  color: #000;
+}
+
+.sharepost-classname-content {
+  padding: 24px;
+}
+
+.sharePost-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.sharePost-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #495057;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.copy-button {
+  background: #f5790c;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.copy-button:hover {
+  background: #e46e0a;
+}
+
+.sharepost-container {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 16px;
+}
+
+.sharepost-container button {
+
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sharepost-container button svg {
+  width: clamp(24px, 5vw, 32px);
+  height: clamp(24px, 5vw, 32px);
+}
+
+.sharepost-container button:hover {
+  background: #fdf2e9;
+  border-color: #f5790c33;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 121, 12, 0.1);
+}
+
+
+
+@media (max-width: 480px) {
+  .sharepost-classname-modal {
+    max-width: 100%;
+  }
+
+  .sharepost-container {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}

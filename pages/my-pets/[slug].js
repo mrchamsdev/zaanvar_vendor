@@ -7,29 +7,30 @@ import {
   Age,
   Call,
   Color,
-  Facebook,
   Gender,
   PetType,
   Size,
-  Whatsapp,
-  ThreeDots
+  ThreeDots,
+  ShareIcon
 } from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
-import ChangeStatus from "@/components/pet-sales/ChangeStatus";
+import AddNewPetPopup from "@/components/pet-sales/AddNewPetPopup";
+import ChangeStatusForPet from "@/components/pet-sales/ChangeStatusForPet";
+import SharePopup from "@/components/pet-sales/SharePopup";
 
 
 const ViewDetails = () => {
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showChangeStatus, setShowChangeStatus] = useState(false);
-  const [sharePopup, setSharePopup] = useState(false);
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const menuRef = useRef(null);
+  const [sharePopup, setSharePopup] = useState(false);
+  const desktopMenuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const router = useRouter();
   const { slug } = router.query;
 
@@ -71,15 +72,19 @@ const ViewDetails = () => {
       }
     }
   }, [slug]);
-  useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (menuRef.current && !menuRef.current.contains(event.target)) {
-          setShowMenu(false);
-        }
-      };
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+   useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click was outside BOTH desktop and mobile menus
+      const isOutsideDesktop = !desktopMenuRef.current || !desktopMenuRef.current.contains(event.target);
+      const isOutsideMobile = !mobileMenuRef.current || !mobileMenuRef.current.contains(event.target);
+      
+      if (isOutsideDesktop && isOutsideMobile) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchPetDetails = async (id) => {
     try {
@@ -98,21 +103,31 @@ const ViewDetails = () => {
   const handleLocalStatusUpdate = (updatedPetId, newStatus) => {
     setPet((prev) => (prev && prev.id === updatedPetId ? { ...prev, petStatus: newStatus } : prev));
   };
-  const handleShare = () => {
+   const handleShare = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    console.log("Opening Share Popup");
+    setShowMenu(false);
     setSharePopup(true);
   };
 
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+   const handleEdit = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     console.log("Opening Edit Popup");
     setShowMenu(false);
     setShowEditPopup(true);
   };
 
   const handleDelete = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     console.log("Opening Delete Popup");
     setShowMenu(false);
     setShowDeletePopup(true);
@@ -141,27 +156,27 @@ const ViewDetails = () => {
       <div className={styles["web-view"]}>
         <div className={styles.headerWrapper}>
         <BackHeader text={pet?.petName || "Pet Details"} />
-        <div className={styles.menuContainer} ref={menuRef}>
+        <div className={styles.menuContainer} ref={desktopMenuRef}>
             <button 
-              type="button"
               className={styles.threeDotsBtn} 
               onClick={(e) => {
                 e.stopPropagation();
-                console.log("Three Dots Clicked");
                 setShowMenu(!showMenu);
               }}
-              style={{ cursor: 'pointer', background: 'none', border: 'none', padding: '10px', position: 'relative', zIndex: 110 }}
             >
-              <ThreeDots />
+              <ThreeDots/>
             </button>
-            {showMenu && (
-              <div className={styles.dropdownMenu} style={{ position: 'absolute', right: 0, top: '40px', background: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', borderRadius: '8px', width: '150px', zIndex: 200 }}>
-                <div onClick={handleEdit} className={styles.menuItem} style={{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+             {showMenu && (
+              <div className={styles.dropdownMenu}>
+                <button onClick={handleEdit} className={styles.menuItem}>
                   Edit
-                </div>
-                <div onClick={handleDelete} className={`${styles.menuItem} ${styles.deleteItem}`} style={{ padding: '12px', cursor: 'pointer', color: 'red' }}>
+                </button>
+                <button onClick={handleDelete} className={styles.menuItem}>
                   Delete
-                </div>
+                </button>
+                {/* <button onClick={handleShare} className={styles.menuItem}>
+                  Share
+                </button> */}
               </div>
             )}
           </div>
@@ -175,16 +190,18 @@ const ViewDetails = () => {
               </div>
               <div className={styles["Image-content-details"]}>
                 <div className={styles["viewDetailsPetImageContainer"]}>
-                  <div className={styles["image-relative-wrapper"]}>
-                    <Image
-                      src={displayImage}
-                      alt={pet?.petName}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      priority
-                      unoptimized={displayImage.includes('b-cdn.net')}
-                    />
-                  </div>
+                  <div style={{ position: "relative", width: "100%", height: "400px" }}>
+                                      <Image
+                                        src={
+                                          pet?.morePhotos && pet.morePhotos.length > 0
+                                            ? `${IMAGE_URL}${pet.morePhotos[0]}`
+                                            : "https://zaanvar-care.b-cdn.net/media/1760510016605-how-ai-is-helping-us-understand-what-our-pets-are-saying.jpg"
+                                        }
+                                        alt={pet?.petName || "Pet Image"}
+                                        fill
+                                        style={{ objectFit: "cover" }}
+                                      />
+                                    </div>
                 </div>
                 <div className={styles["below-text"]}>
                   <h4>{pet?.breed || "Unknown Breed"}</h4>
@@ -221,15 +238,11 @@ const ViewDetails = () => {
 
             <div className={styles["viewDetailsRightContainer"]}>
               <div className={styles["viewDetailsShareIconsContainer"]}>
-               <div className={styles["shareContainer"]}>
-                 <p>Share:</p>                 
-                  {/* <div className={styles["Icons"]}>
-                  <span onClick={handleShare} style={{ cursor: "pointer" }}>
-                    <ShareIcon />
-                  </span>
-                  </div> */}
+                <div className={styles["shareContainer"]}>
+                  <p>Share:</p><span style={{cursor: "pointer"}}onClick={handleShare} ><ShareIcon /></span>
                 </div>
               </div>
+          
               <div className={styles["viewDetails-details-container"]}>
                 <div className={styles["card"]}>
                   <div className={styles["header"]}>Basic Information</div>
@@ -264,10 +277,13 @@ const ViewDetails = () => {
       <div className={styles["mobile-view"]}>
          <div className={styles.headerWrapper}>
         <BackHeader text={pet?.petName || "Pet Details"} />
-        <div className={styles.menuContainer} ref={menuRef}>
+        <div className={styles.menuContainer} ref={mobileMenuRef}>
             <button 
               className={styles.threeDotsBtn} 
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
             >
               <ThreeDots/>
             </button>
@@ -293,14 +309,16 @@ const ViewDetails = () => {
         </div>
         <div className={styles["Image-content-details"]}>
           <div className={styles["viewDetailsPetImageContainer"]}>
-            <div className={styles["image-relative-wrapper"]}>
-              <Image 
-                src={displayImage} 
-                alt={pet?.petName} 
-                fill 
-                style={{ objectFit: "cover", borderRadius: "20px" }} 
-              />
-            </div>
+            <Image
+                          src={
+                            pet?.morePhotos && pet.morePhotos.length > 0
+                              ? `${IMAGE_URL}${pet.morePhotos[0]}`
+                              : "https://zaanvar-care.b-cdn.net/media/1760510016605-how-ai-is-helping-us-understand-what-our-pets-are-saying.jpg"
+                          }
+                          alt={pet?.petName || "Pet Image"}
+                          fill
+                          style={{ objectFit: "cover", borderRadius: "20px" }}
+                        />
           </div>
           <div className={styles["below-text"]}>
             <h4>{pet?.breed}</h4>
@@ -359,13 +377,36 @@ const ViewDetails = () => {
         )}
       </div>
 
-      {showChangeStatus && (
-        <ChangeStatus
+      {showEditPopup && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <div style={{ width: '100%', overflow: 'auto' }}>
+            <AddNewPetPopup
+              closePopup={() => setShowEditPopup(false)}
+              petData={pet}
+              fetchPetData={() => fetchPetDetails(pet.id || pet._id)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showDeletePopup && (
+        <ChangeStatusForPet
           pet={pet}
-          setpet={setPet}
-          onClose={() => setShowChangeStatus(false)}
-          onStatusChange={handleLocalStatusUpdate}
-          filter="petSales"
+          onClose={() => setShowDeletePopup(false)}
+          onStatusChange={(newStatus) => {
+             handleLocalStatusUpdate(pet.id || pet._id, newStatus);
+             // Optionally redirect to listing if deleted
+             if (newStatus === "Deleted") {
+               router.push('/my-pets');
+             }
+          }}
+        />
+      )}
+
+      {sharePopup && (
+        <SharePopup
+          pet={pet}
+          onClose={() => setSharePopup(false)}
         />
       )}
     </>

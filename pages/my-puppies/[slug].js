@@ -9,6 +9,7 @@ import {
   PetType,
   Size,
   ThreeDots,
+  ShareIcon
 } from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
@@ -17,22 +18,21 @@ import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 import ChangeStatus from "@/components/pet-sales/ChangeStatus";
 import AddNewPuppyPopup from "@/components/pet-sales/AddNewPuppyPopUp";
+import SharePopup from "@/components/pet-sales/SharePopup";
 
-const ViewDetails = ({
-  showForm, 
-  setShowForm, 
-  setEditingPet, 
-  refreshPets, 
-  editingPet }) => {
+
+
+const ViewDetails = () => {
   const [loading, setLoading] = useState(true);
   const [pet, setPet] = useState(null);
   const [sharePopup, setSharePopup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [showChangeStatus, setShowChangeStatus] = useState(false);
-  const [selectedPet, setSelectedPet] = useState(null);
-  const menuRef = useRef(null);
+  // const [showChangeStatus, setShowChangeStatus] = useState(false);
+  // const [selectedPet, setSelectedPet] = useState(null);
+  const desktopMenuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   
   const router = useRouter();
   const { slug } = router.query;
@@ -48,14 +48,19 @@ const ViewDetails = ({
   }, [slug]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+      const handleClickOutside = (event) => {
+        // Check if click was outside BOTH desktop and mobile menus
+        const isOutsideDesktop = !desktopMenuRef.current || !desktopMenuRef.current.contains(event.target);
+        const isOutsideMobile = !mobileMenuRef.current || !mobileMenuRef.current.contains(event.target);
+        
+        if (isOutsideDesktop && isOutsideMobile) {
+          setShowMenu(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+  
 
   const fetchPetDetails = async (postId) => {
     try {
@@ -76,68 +81,38 @@ const ViewDetails = ({
     }
   };
 
-  const handleShare = () => {
+   const handleLocalStatusUpdate = (updatedPetId, newStatus) => {
+    setPet((prev) => (prev && prev.id === updatedPetId ? { ...prev, petStatus: newStatus } : prev));
+  };
+   const handleShare = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    console.log("Opening Share Popup");
+    setShowMenu(false);
     setSharePopup(true);
   };
-  const handleDeleteClick = (pet) => {
-    setSelectedPet(pet);
-    setShowChangeStatus(true);
-  };
-   const handleAddEditSuccess = async () => {
-    console.log("Add/Edit popup closed, refreshing data...");
-    setShowForm(false);
-    setEditingPet(null);
-    if (refreshPets) {
-      const refreshedData = await refreshPets();
-      console.log("Refreshed data count:", refreshedData?.length);
+
+   const handleEdit = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
     }
+    console.log("Opening Edit Popup");
+    setShowMenu(false);
+    setShowEditPopup(true);
   };
-
-  const handleStatusChangeSuccess = async () => {
-    console.log("Status changed, refreshing data...");
-    setShowChangeStatus(false);
-    setSelectedPet(null);
-    if (refreshPets) {
-      const refreshedData = await refreshPets();
-      console.log("Refreshed data count:", refreshedData?.length);
-    }
-  };
-
-  const handleLocalUpdate = ({ status, details }) => {
-    // Update local state immediately for better UX
-    setPetList(prev =>
-      prev.map(p =>
-        p.id === selectedPet?.id || p._id === selectedPet?._id
-          ? { ...p, petStatus: status }
-          : p
-      )
-    );
-    handleStatusChangeSuccess();
-  };
-
 
   const handleDelete = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     console.log("Opening Delete Popup");
     setShowMenu(false);
     setShowDeletePopup(true);
   };
-
-  const confirmDelete = async () => {
-    try {
-      const response = await webApi.delete(`vendorPetSales/Update/${pet?.id}`);
-      if (response.status === "success" || response.status === 200) {
-        router.push("/my-puppies");
-      } else {
-        console.error("Delete failed:", response);
-      }
-    } catch (error) {
-      console.error("Error deleting pet:", error);
-    }
-    setShowDeletePopup(false);
-  };
-
   const PostDate = (pet) => {
     if (!pet?.createdDate) return "N/A";
     return new Date(pet.createdDate).toISOString().split("T")[0];
@@ -177,31 +152,27 @@ const ViewDetails = ({
       <div className={styles["web-view"]}>
         <div className={styles.headerWrapper}>
           <BackHeader text={pet?.petName || "Pet Details"} />
-          <div className={styles.menuContainer} ref={menuRef}>
+          <div className={styles.menuContainer} ref={desktopMenuRef}>
             <button 
-              type="button"
               className={styles.threeDotsBtn} 
               onClick={(e) => {
                 e.stopPropagation();
-                console.log("Three Dots Clicked");
                 setShowMenu(!showMenu);
               }}
-              style={{ cursor: 'pointer', background: 'none', border: 'none', padding: '10px', position: 'relative', zIndex: 110 }}
             >
-              <ThreeDots />
+              <ThreeDots/>
             </button>
-            {showMenu && (
-              <div className={styles.dropdownMenu} style={{ position: 'absolute', right: 0, top: '40px', background: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', borderRadius: '8px', width: '150px', zIndex: 200 }}>
-                <div onClick={() => {
-                      console.log("Editing pet:", pet);
-                      setEditingPet(pet);
-                      setShowForm(true);
-                    }} className={styles.menuItem} style={{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+             {showMenu && (
+              <div className={styles.dropdownMenu}>
+                <button onClick={handleEdit} className={styles.menuItem}>
                   Edit
-                </div>
-                <div onClick={() => handleDeleteClick(pet)} className={`${styles.menuItem} ${styles.deleteItem}`} style={{ padding: '12px', cursor: 'pointer', color: 'red' }}>
+                </button>
+                <button onClick={handleDelete} className={styles.menuItem}>
                   Delete
-                </div>
+                </button>
+                {/* <button onClick={handleShare} className={styles.menuItem}>
+                  Share
+                </button> */}
               </div>
             )}
           </div>
@@ -300,7 +271,7 @@ const ViewDetails = ({
             <div className={styles["viewDetailsRightContainer"]}>
               <div className={styles["viewDetailsShareIconsContainer"]}>
                 <div className={styles["shareContainer"]}>
-                  <p>Share:</p>
+                  <p>Share:</p><span style={{cursor: "pointer"}}onClick={handleShare} ><ShareIcon /></span>
                 </div>
               </div>
               <div className={styles["viewDetails-details-container"]}>
@@ -368,23 +339,22 @@ const ViewDetails = ({
       <div className={styles["mobile-view"]}>
         <div className={styles.headerWrapper}>
           <BackHeader text={pet?.petName || "Pet Details"} />
-          <div className={styles.menuContainer} ref={menuRef}>
+          <div className={styles.menuContainer} ref={mobileMenuRef}>
             <button 
               className={styles.threeDotsBtn} 
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
             >
               <ThreeDots/>
             </button>
             {showMenu && (
               <div className={styles.dropdownMenu}>
-                <button onClick={() => {
-                      console.log("Editing pet:", pet);
-                      setEditingPet(pet);
-                      setShowForm(true);
-                    }} className={styles.menuItem}>
+                <button onClick={handleEdit} className={styles.menuItem}>
                   Edit
                 </button>
-                <button onClick={() => handleDeleteClick(pet)} className={`${styles.menuItem} ${styles.deleteItem}`}>
+                <button onClick={handleDelete} className={`${styles.menuItem} ${styles.deleteItem}`}>
                   Delete
                 </button>
                 <button onClick={handleShare} className={styles.menuItem}>
@@ -531,20 +501,36 @@ const ViewDetails = ({
         )}
       </div>
 
-      {/* Edit Popup - Same as MyPuppies */}
-      {showForm && (
-        <AddNewPuppyPopup
-          closePopup={handleAddEditSuccess}
-          petData={editingPet}
-          fetchPetData={refreshPets}
+     {showEditPopup && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <div style={{ width: '100%', overflow: 'auto' }}>
+            <AddNewPuppyPopup
+              closePopup={() => setShowEditPopup(false)}
+              petData={pet}
+              fetchPetData={() => fetchPetDetails(pet.id || pet._id)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showDeletePopup && (
+        <ChangeStatus
+          pet={pet}
+          onClose={() => setShowDeletePopup(false)}
+          onStatusChange={(newStatus) => {
+             handleLocalStatusUpdate(pet.id || pet._id, newStatus);
+             // Optionally redirect to listing if deleted
+             if (newStatus === "Deleted") {
+               router.push('/my-pets');
+             }
+          }}
         />
       )}
 
-      {showChangeStatus && selectedPet && (
-        <ChangeStatus
-          pet={selectedPet}
-          onClose={() => setShowChangeStatus(false)}
-          onStatusChange={handleLocalUpdate}
+      {sharePopup && (
+        <SharePopup
+          pet={pet}
+          onClose={() => setSharePopup(false)}
         />
       )}
 
