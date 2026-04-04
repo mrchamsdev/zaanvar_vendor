@@ -160,6 +160,38 @@
     color: red;
     font-size: 14px;
   }
+  .selectWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.selectWrapper select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  padding: 12px;
+  padding-right: 35px;
+  border: 1px solid #d9d9d9;
+  background-color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+
+
+.dropdownArrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #666;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+
   
   @media (max-width: 768px) {
     .modal {

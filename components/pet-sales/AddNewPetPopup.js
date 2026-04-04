@@ -1,3 +1,5 @@
+
+
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
@@ -9,21 +11,20 @@ import DropDownv1 from "@/components/register/dropdown";
 import CustomInputComp from "@/components/register/customInput";
 import BackHeader from "@/components/pet-sales/backHeader";
 import Cookies from "js-cookie";
-import { IMAGE_URL } from "../utilities/Constants";
-// import { GalleryIcon } from "@/src/icons/GalleryIcon";
-// import { CrossIcon } from "@/src/icons/CrossIcon";
+import SearchableDropdown from "../register/FilterDropDown";
+import { formatDate, IMAGE_URL } from "../utilities/Constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
-const MAX_IMAGES = 3; // 1 primary + 3 extra  (adjust as needed)
-const MAX_VIDEOS = 3;
-
+const MAX_IMAGES = 1;
+const MAX_VIDEOS = 1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 const calculateAge = (dob) => {
+  if (!dob) return "";
   const dobDate = new Date(dob);
   const today = new Date();
   let years = today.getFullYear() - dobDate.getFullYear();
@@ -44,30 +45,29 @@ const AddNewPetPopup = ({
   const jwt = getJwtToken();
   const webApi = new WebApimanager(jwt);
 
-   const imageFileInputRef = useRef(null);
+  const imageFileInputRef = useRef(null);
   const videoFileInputRef = useRef(null);
   const isProcessingCrop = useRef(false);
   const blobUrlsRef = useRef([]);
-const vaccMenuRef = useRef(null);
+  const vaccMenuRef = useRef(null);
+  
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
   const [videoPreviews, setVideoPreviews] = useState([]);
-const [showVaccDropdown, setShowVaccDropdown] = useState(false);
-  // Cropper queue
+  const [showVaccDropdown, setShowVaccDropdown] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [filesToCrop, setFilesToCrop] = useState([]);
   const [isCropping, setIsCropping] = useState(false);
-
-  // ── Other state ───────────────────────────────────────────────────────────
   const [breedOptions, setBreedOptions] = useState([]);
-  const [breed, setBreed]               = useState([]);
+  const [breed, setBreed] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const [errors, setErrors]             = useState({});
+  const [errors, setErrors] = useState({});
   const [locationDetails, setLocationDetails] = useState("");
   const [apiProcessing, setApiProcessing] = useState({ loader: false, message: "Loading..." });
-  const [isMobile, setIsMobile]         = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const selectedLocation = useStore((s) => s.selectedLocation);
 
@@ -83,10 +83,11 @@ const [showVaccDropdown, setShowVaccDropdown] = useState(false);
     weight: "", vaccinated: null, kci: null, championship: "", Events: "", skills: "",
     instagramLink: "", petGender: "", vaccineCertificate: "", kciCertificate: "",
     dob: "", spayedOrNeutered: "", medication: "", size: "", healthCondition: "",
-    petWeightIn: "", microchipNo: "", howmanyTimesBreedingDone: "",
+    petWeightIn: "", microchipNo: "", howmanyTimesBreedingDone: "", howManyVaccinationsDone: [],
   });
+
   const vaccinationOptions = [
-     "DHPP (Distemper, Hepatitis, Parvo, Parainfluenza)",
+    "DHPP (Distemper, Hepatitis, Parvo, Parainfluenza)",
     "DA2PP (Distemper, Cav-2, Parvo, Parainfluenza)",
     "Bordetella",
     "Canine Coronavirus (CCoV)",
@@ -100,7 +101,129 @@ const [showVaccDropdown, setShowVaccDropdown] = useState(false);
     "Parainfluenza",
     "Parvovirus",
   ];
- useEffect(() => {
+
+  const instagramRegex = /^(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am)\/[A-Za-z0-9._%-]+\/?$/;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Validation Functions
+  // ─────────────────────────────────────────────────────────────────────────────
+  const validateField = (field, value) => {
+    let error = "";
+    
+    switch(field) {
+      case "petName":
+        if (!value || value.trim() === "") {
+          error = "Pet Name is required.";
+        } else if (value.length < 2) {
+          error = "Pet Name must be at least 2 characters.";
+        } else if (value.length > 50) {
+          error = "Pet Name cannot exceed 50 characters.";
+        }
+        break;
+        
+      case "petType":
+        if (!value || value === "select") {
+          error = "Please select a pet type.";
+        }
+        break;
+        
+      case "breed":
+        if (!value || value === "select") {
+          error = "Please select a pet breed.";
+        }
+        break;
+        
+      case "dob":
+        if (!value) {
+          error = "Date of Birth is required.";
+        } else {
+          const selectedDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          if (selectedDate > today) {
+            error = "Date of Birth cannot be in the future.";
+          } else if (selectedDate.getFullYear() < 1900) {
+            error = "Please enter a valid year (1900 or later).";
+          }
+        }
+        break;
+        
+      case "petGender":
+        if (!value || value === "select") {
+          error = "Please select gender.";
+        }
+        break;
+        
+      case "color":
+        if (!value || value === "Select Color") {
+          error = "Please select a color.";
+        }
+        break;
+        
+      case "weight":
+        if (!value) {
+          error = "Weight is required.";
+        } else if (isNaN(value) || value <= 0) {
+          error = "Please enter a valid weight.";
+        } else if (value > 200) {
+          error = "Weight seems too high. Please verify.";
+        }
+        break;
+        
+      case "petWeightIn":
+        if (!value) {
+          error = "Please select weight unit (kg/lb).";
+        }
+        break;
+        
+      case "spayedOrNeutered":
+        if (!value || value === "select") {
+          error = "Please specify if pet is spayed/neutered.";
+        }
+        break;
+        
+      case "medication":
+        if (!value || value.trim() === "") {
+          error = "Medication information is required.";
+        }
+        break;
+        
+      case "healthCondition":
+        if (!value || value.trim() === "") {
+          error = "Please specify if pet has any health issues.";
+        }
+        break;
+        
+      case "vaccinated":
+        if (!value || value === "select") {
+          error = "Please specify if pet is vaccinated.";
+        }
+        break;
+        
+      case "microchipNo":
+        if (value && value.length > 0 && value.length !== 15) {
+          error = "Microchip number must be exactly 15 digits.";
+        }
+        break;
+        
+      case "instagramLink":
+        if (value && !instagramRegex.test(value)) {
+          error = "Please enter a valid Instagram URL (ex: https://instagram.com/username)";
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Lifecycle Hooks
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
     return () => {
       blobUrlsRef.current.forEach((url) => {
         if (url && url.startsWith("blob:")) {
@@ -110,7 +233,6 @@ const [showVaccDropdown, setShowVaccDropdown] = useState(false);
     };
   }, []);
 
-  // ── Location ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (selectedLocation) setLocationDetails(selectedLocation);
   }, [selectedLocation]);
@@ -132,7 +254,6 @@ const [showVaccDropdown, setShowVaccDropdown] = useState(false);
     } catch (_) {}
   }, [selectedLocation]);
 
-  // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -142,8 +263,7 @@ const [showVaccDropdown, setShowVaccDropdown] = useState(false);
     }
   }, []);
 
-  
-useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (vaccMenuRef.current && !vaccMenuRef.current.contains(event.target)) {
         setShowVaccDropdown(false);
@@ -152,103 +272,106 @@ useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  
-  useEffect(() => {
-  if (petData) {
-    setFormData({
-      petName: petData.petName || "",
-      petAge: petData.petAge || "",
-      petType: petData.petType || "",
-      color: petData.color || "",
-      breed: petData.breed || "",
-      additionalInfo: petData.additionalInfo || "",
-      weight:
-        petData?.weight?.endsWith("kg") || petData?.weight?.endsWith("lb")
-          ? petData.weight.split(" ")[0]
-          : petData?.weight || "",
-      petWeightIn: petData?.weight?.endsWith("kg") ? "kg" : "lb",
-      vaccinated: petData.vaccinated ?? null,
-      kci: petData.kci || "",
-      championship: petData.championship || "",
-      Events: petData.Events || "",
-      skills: petData.skills || "",
-      instagramLink: petData.instagramLink || "",
-      petGender: petData.petGender || "",
-      vaccineCertificate: petData.vaccineCertificate || "",
-      kciCertificate: petData.kciCertificate || "",
-      spayedOrNeutered: petData.spayedOrNeutered || "",
-      dob: petData?.birthday?.slice(0, 10) || "",
-      medication: petData.medication || "",
-      size: petData.size || "",
-      healthCondition: petData.doesYourPetHasAnyHealthIssues || "",
-      microchipNo: petData.microchipNo || "",
-      howmanyTimesBreedingDone: petData.howmanyTimesBreedingDone || "",
-    });
-    
-    // Show existing images from server
-    if (petData.morePhotos && petData.morePhotos.length > 0) {
-      const imageUrls = petData.morePhotos.map(photo => {
-        // Ensure the URL is properly formatted
-        const baseUrl = IMAGE_URL.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
-        const cleanPath = photo.startsWith('/') ? photo.slice(1) : photo;
-        return `${baseUrl}${cleanPath}`;
-      });
-      setImagePreviews(imageUrls);
-      setImageFiles(Array(petData.morePhotos.length).fill("existing"));
-    }
-    if (petData.moreVideos && petData.moreVideos.length > 0) {
-      const videoUrls = petData.moreVideos.map(video => {
-        const baseUrl = IMAGE_URL.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
-        const cleanPath = video.startsWith('/') ? video.slice(1) : video;
-        return `${baseUrl}${cleanPath}`;
-      });
-      setVideoPreviews(videoUrls);
-      setVideoFiles(Array(petData.moreVideos.length).fill("existing"));
-    }
-  } else {
-    // Reset for new pet
-    setFormData({
-      petName: "", petAge: "", petType: "", color: "", breed: "", additionalInfo: "",
-      weight: "", vaccinated: null, kci: "", championship: "", Events: "", skills: "",
-      instagramLink: "", petGender: "", vaccineCertificate: "", kciCertificate: "",
-      dob: "", spayedOrNeutered: "", medication: "", size: "", healthCondition: "",
-      petWeightIn: "", microchipNo: "", howmanyTimesBreedingDone: "",
-    });
-    setImageFiles([]);
-    setImagePreviews([]);
-    setVideoFiles([]);
-    setVideoPreviews([]);
-    setErrorMessage(""); // Clear any errors when resetting
-  }
-}, [petData]);
 
-  // ── Fetch breeds when editing ─────────────────────────────────────────────
+  // Populate form when editing - FIXED MAPPING
+  useEffect(() => {
+    if (petData) {
+      console.log("PetData received:", petData);
+      
+      // Extract weight value and unit
+      let weightValue = "";
+      let weightUnit = "";
+      if (petData.weight) {
+        const weightParts = petData.weight.split(" ");
+        weightValue = weightParts[0] || "";
+        weightUnit = weightParts[1] || "";
+      }
+      
+      setFormData({
+        petName: petData.petName || "",
+        petAge: petData.petAge || "",
+        petType: petData.petType || "",
+        color: petData.color || "",
+        breed: petData.breed || "",
+        additionalInfo: petData.additionalInfo || petData.description || "",
+        weight: weightValue,
+        petWeightIn: weightUnit,
+        vaccinated: petData.vaccinated || null,
+        kci: petData.kci || "",
+        championship: petData.championship || "",
+        Events: petData.Events || "",
+        skills: petData.skills || "",
+        instagramLink: petData.instagramLink || "",
+        petGender: petData.petGender || "",
+        spayedOrNeutered: petData.spayedOrNeutered || "",
+        dob: petData.birthday ? petData.birthday.split("T")[0] : "",
+        medication: petData.medication || "",
+        howManyVaccinationsDone: petData.howManyVaccinationsDone || [],
+        size: petData.size || "",
+        healthCondition: petData.doesYourPetHasAnyHealthIssues || "",
+        microchipNo: petData.microchipNo || "",
+        howmanyTimesBreedingDone: petData.howmanyTimesBreedingDone || "",
+      });
+      
+      // Show existing images from server
+      if (petData.morePhotos && petData.morePhotos.length > 0) {
+        const imageUrls = petData.morePhotos.map(photo => {
+          const baseUrl = IMAGE_URL.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
+          const cleanPath = photo.startsWith('/') ? photo.slice(1) : photo;
+          return `${baseUrl}${cleanPath}`;
+        });
+        setImagePreviews(imageUrls);
+        setImageFiles(Array(petData.morePhotos.length).fill("existing"));
+      }
+      if (petData.moreVideos && petData.moreVideos.length > 0) {
+        const videoUrls = petData.moreVideos.map(video => {
+          const baseUrl = IMAGE_URL.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
+          const cleanPath = video.startsWith('/') ? video.slice(1) : video;
+          return `${baseUrl}${cleanPath}`;
+        });
+        setVideoPreviews(videoUrls);
+        setVideoFiles(Array(petData.moreVideos.length).fill("existing"));
+      }
+    } else {
+      // Reset for new pet
+      setFormData({
+        petName: "", petAge: "", petType: "", color: "", breed: "", additionalInfo: "",
+        weight: "", vaccinated: null, kci: "", championship: "", Events: "", skills: "",
+        instagramLink: "", petGender: "", vaccineCertificate: "", kciCertificate: "",
+        dob: "", spayedOrNeutered: "", medication: "", size: "", healthCondition: "",
+        petWeightIn: "", microchipNo: "", howmanyTimesBreedingDone: "", howManyVaccinationsDone: [],
+      });
+      setImageFiles([]);
+      setImagePreviews([]);
+      setVideoFiles([]);
+      setVideoPreviews([]);
+      setErrorMessage("");
+      setErrors({});
+    }
+  }, [petData]);
+
+  // Fetch breeds when editing
   useEffect(() => {
     if (petData?.petType && breedOptions.length === 0) {
       fetchBreeds(petData.petType);
     }
   }, [petData?.petType]);
 
-  // ── Auto-fill size from breed ─────────────────────────────────────────────
-  // ── Auto-fill size from breed ─────────────────────────────────────────────
-useEffect(() => {
-  // Don't auto-fill size when editing an existing pet
-  if (petData) {
-    return;
-  }
-  
-  if (formData.breed && formData.breed !== "select" && breed.length > 0) {
-    const selectedBreed = breed.find((b) => b["breedName"] === formData.breed);
-    if (selectedBreed?.size) {
-      setFormData((prev) => ({ ...prev, size: selectedBreed.size.trim() }));
-      setErrors((prev) => ({ ...prev, size: "" }));
-    } else {
-      setFormData((prev) => ({ ...prev, size: "select" }));
+  // Auto-fill size from breed (only for new pets)
+  useEffect(() => {
+    if (petData) return;
+    if (formData.breed && formData.breed !== "select" && breed.length > 0) {
+      const selectedBreed = breed.find((b) => b["breedName"] === formData.breed);
+      if (selectedBreed?.size) {
+        setFormData((prev) => ({ ...prev, size: selectedBreed.size.trim() }));
+        setErrors((prev) => ({ ...prev, size: "" }));
+      } else {
+        setFormData((prev) => ({ ...prev, size: "select" }));
+      }
     }
-  }
-}, [breed, formData.breed, petData]);
+  }, [breed, formData.breed, petData]);
 
-  // ── Auto-calculate age from DOB ───────────────────────────────────────────
+  // Auto-calculate age from DOB
   useEffect(() => {
     if (formData.dob) {
       const age = calculateAge(formData.dob);
@@ -259,47 +382,65 @@ useEffect(() => {
     }
   }, [formData.dob]);
 
-  // ── Field helpers ─────────────────────────────────────────────────────────
-  const instagramRegex =
-    /^(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am)\/[A-Za-z0-9._%-]+\/?$/;
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Event Handlers
+  // ─────────────────────────────────────────────────────────────────────────────
   const handleVictoriaInfoChange = (inputValue) => {
     setFormData((prev) => ({ ...prev, additionalInfo: inputValue }));
   };
 
   const handleInputChange = (field, value) => {
-    if (field === "weight") value = value.replace(/[^0-9]/g, "");
-    if (value.trim() !== "") {
-    setErrors((prev) => ({
-      ...prev,
-      [field]: "", // This clears the error for the specific field
-    }));
-  }
-    if (field === "instagramLink") {
-      setErrors((prev) => ({
-        ...prev,
-        instagramLink:
-          value && !instagramRegex.test(value)
-            ? "Please check your Instagram URL & enter a valid Instagram URL (ex: https://instagram.com/john_doe)"
-            : "",
-      }));
-      
-      if (field === "dob") {
-    const selectedDate = new Date(value);
-    const today = new Date();
+    // Handle Weight (Numbers only)
+    if (field === "weight") {
+      value = value.replace(/[^0-9]/g, "");
+    }
     
-    // If the date is in the future, don't update state or show an error immediately
-    if (selectedDate > today) {
-      setErrors(prev => ({ ...prev, dob: "Date of Birth cannot be in the future." }));
-      // Optional: return; // Uncomment this to block the entry entirely
-    } else {
-      setErrors(prev => ({ ...prev, dob: "" }));
+    if (field === "microchipNo") {
+      value = value.replace(/[^0-9]/g, "").slice(0, 15);
+      const error = validateField(field, value);
+      setErrors((prev) => ({ ...prev, microchipNo: error }));
     }
-  }
+    
+    // Handle Date of Birth Validation
+    if (field === "dob") {
+      const selectedDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedYear = selectedDate.getFullYear();
+      const currentYear = today.getFullYear();
+      const isValidDate = !isNaN(selectedDate.getTime());
 
+      if (value && isValidDate) {
+        if (selectedDate > today) {
+          setErrors((prev) => ({ ...prev, dob: "Date of Birth cannot be in the future." }));
+        } else if (selectedYear < 1900 || selectedYear > currentYear) {
+          setErrors((prev) => ({ ...prev, dob: `Please enter a valid year between 1900 and ${currentYear}.` }));
+        } else {
+          setErrors((prev) => ({ ...prev, dob: "" }));
+        }
+      } else if (value && value.length >= 4) {
+        setErrors((prev) => ({ ...prev, dob: "Invalid date format." }));
+      } else {
+        setErrors((prev) => ({ ...prev, dob: "" }));
+      }
     }
+    
+    // Handle Instagram Validation
+    if (field === "instagramLink") {
+      const error = validateField(field, value);
+      setErrors((prev) => ({ ...prev, instagramLink: error }));
+    }
+    
+    // Update State
     setFormData((prev) => ({ ...prev, [field]: value }));
-
+    
+    // Validate on change for other fields
+    if (!["dob", "instagramLink", "microchipNo"].includes(field)) {
+      const error = validateField(field, value);
+      setErrors((prev) => ({ ...prev, [field]: error }));
+    }
+    
+    // Auto-fill size from breed
     if (field === "breed" && value !== "select") {
       const selectedBreed = breed.find((b) => b["breedName"] === value);
       if (selectedBreed?.size) {
@@ -310,6 +451,11 @@ useEffect(() => {
         setErrors((prev) => ({ ...prev, size: "Size not available for this breed." }));
       }
     }
+  };
+
+  const handleBlur = (field, value) => {
+    const error = validateField(field, value);
+    setErrors((prev) => ({ ...prev, [field]: error }));
   };
 
   const fetchBreeds = async (petType) => {
@@ -323,7 +469,8 @@ useEffect(() => {
       console.log(error.message);
     }
   };
- const handleVaccinationToggle = (vaccine) => {
+
+  const handleVaccinationToggle = (vaccine) => {
     setFormData(prev => {
       const current = prev.howManyVaccinationsDone || [];
       const updated = current.includes(vaccine) 
@@ -333,14 +480,9 @@ useEffect(() => {
     });
   };
 
- 
   const handleImageFileChange = (e) => {
     const files = Array.from(e.target.files);
     e.target.value = "";
-
-    console.log("Files selected:", files);
-    console.log("First file type:", files[0]?.type);
-    console.log("First file size:", files[0]?.size);
 
     if (errors.images) setErrors((prev) => ({ ...prev, images: "" }));
 
@@ -356,10 +498,6 @@ useEffect(() => {
         setErrors((prev) => ({ ...prev, images: "Please upload valid image files." }));
         return;
       }
-      // if (file.size > MAX_FILE_SIZE) {
-      //   setErrors((prev) => ({ ...prev, images: "Each image must be under 5 MB." }));
-      //   return;
-      // }
       const isDuplicate = imageFiles.some(
         (f) => typeof f !== "string" && f.name === file.name && f.size === file.size
       );
@@ -367,9 +505,6 @@ useEffect(() => {
     }
 
     if (!validFiles.length) return;
-
-    console.log("Valid files:", validFiles);
-    console.log("Opening cropper for:", validFiles[0].name);
 
     const queue = validFiles.slice(0, remainingSlots);
     setFilesToCrop(queue);
@@ -383,27 +518,20 @@ useEffect(() => {
     isProcessingCrop.current = true;
 
     try {
-      console.log("Crop complete, blob size:", croppedBlob.size);
-      
       const croppedFile = new File(
         [croppedBlob],
         `cropped-${Date.now()}.jpg`,
         { type: "image/jpeg" }
       );
 
-      // Create preview URL immediately
       const previewUrl = URL.createObjectURL(croppedFile);
       blobUrlsRef.current.push(previewUrl);
       
-      // Update state
       setImageFiles((prev) => [...prev, croppedFile].slice(0, MAX_IMAGES));
       setImagePreviews((prev) => [...prev, previewUrl].slice(0, MAX_IMAGES));
       
-      console.log("Image added. Total images:", imagePreviews.length + 1);
-
       if (errors.images) setErrors((prev) => ({ ...prev, images: "" }));
 
-      // Process next file in queue
       setFilesToCrop((prevQueue) => {
         const remaining = prevQueue.slice(1);
         if (remaining.length > 0) {
@@ -425,7 +553,6 @@ useEffect(() => {
   };
 
   const handleCropCancel = () => {
-    console.log("Crop cancelled");
     isProcessingCrop.current = false;
     setIsCropping(false);
     setFilesToCrop((prevQueue) => {
@@ -443,82 +570,54 @@ useEffect(() => {
     });
   };
 
-  // const handleRemoveImage = (index) => {
-  //   console.log("Removing image at index:", index);
-  //   const urlToRemove = imagePreviews[index];
-  //   if (urlToRemove && urlToRemove.startsWith("blob:")) {
-  //     URL.revokeObjectURL(urlToRemove);
-  //     blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== urlToRemove);
-  //   }
-  //   setImageFiles((prev) => prev.filter((_, i) => i !== index));
-  //   setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  // };
-  
-const handleDeleteMedia = async (index, type) => {
-  const isPhoto = type === "photo";
-  const files = isPhoto ? imageFiles : videoFiles;
-  const fileToRemove = files[index];
+  const handleDeleteMedia = async (index, type) => {
+    const isPhoto = type === "photo";
+    const files = isPhoto ? imageFiles : videoFiles;
+    const fileToRemove = files[index];
 
-  // 1. Logic for EXISTING media on server
-  if (fileToRemove === "existing") {
-    const confirmDelete = window.confirm(`Permanently delete this ${type}?`);
-    if (!confirmDelete) return;
+    if (fileToRemove === "existing") {
+      try {
+        setApiProcessing({ loader: true, message: `Deleting ${type}...` });
+        const endpoint = isPhoto 
+          ? `vendorPetProfile/deleteMedia/${petData.id}?index=${index}` 
+          : `vendorPetProfile/deleteMedia/${petData.id}?index=${index}`;
+        const response = await webApi.delete(endpoint);
 
-    try {
-      setApiProcessing({ loader: true, message: `Deleting ${type}...` });
-
-      // Build the URL with query parameters if your backend uses ?index=X&type=Y
-      // Example: vendorPetProfile/deletePhoto/23?index=0
-      const endpoint = isPhoto 
-        ? `vendorPetProfile/deleteMedia/${petData.id}?index=${index}` 
-        : `vendorPetProfile/deleteMedia/${petData.id}?index=${index}`;
-
-      const response = await webApi.delete(endpoint);
-
-      if (response.status === "success" || response.status === 200) {
-        console.log(`${type} deleted successfully from server`);
-        // Refresh the data so the server and UI are in sync
-        fetchPetData();
-      } else {
-        setErrorMessage(response.message || "Server failed to delete item.");
+        if (response.status === "success" || response.status === 200) {
+          fetchPetData();
+        } else {
+          setErrorMessage(response.message || "Server failed to delete item.");
+          return;
+        }
+      } catch (error) {
+        console.error("Delete Error:", error.response?.data || error.message);
+        setErrorMessage(error.response?.data?.message || "Failed to delete from server.");
         return;
+      } finally {
+        setApiProcessing({ loader: false, message: "" });
       }
-    } catch (error) {
-      console.error("Delete Error:", error.response?.data || error.message);
-      setErrorMessage(error.response?.data?.message || "Failed to delete from server.");
-      return; 
-    } finally {
-      setApiProcessing({ loader: false, message: "" });
     }
-  }
 
-  // 2. Local State Cleanup (runs for both new and existing files)
-  if (isPhoto) {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => {
-      const url = prev[index];
-      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
-      return prev.filter((_, i) => i !== index);
-    });
-  } else {
-    setVideoFiles((prev) => prev.filter((_, i) => i !== index));
-    setVideoPreviews((prev) => {
-      const url = prev[index];
-      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-};
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // VIDEO UPLOAD
-  // ─────────────────────────────────────────────────────────────────────────
+    if (isPhoto) {
+      setImageFiles((prev) => prev.filter((_, i) => i !== index));
+      setImagePreviews((prev) => {
+        const url = prev[index];
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+        return prev.filter((_, i) => i !== index);
+      });
+    } else {
+      setVideoFiles((prev) => prev.filter((_, i) => i !== index));
+      setVideoPreviews((prev) => {
+        const url = prev[index];
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+        return prev.filter((_, i) => i !== index);
+      });
+    }
+  };
 
   const handleVideoFileChange = (e) => {
     const files = Array.from(e.target.files);
     e.target.value = "";
-
-    console.log("Videos selected:", files.length);
 
     if (errors.videos) setErrors((prev) => ({ ...prev, videos: "" }));
 
@@ -551,382 +650,511 @@ const handleDeleteMedia = async (index, type) => {
     
     setVideoFiles((prev) => [...prev, ...toAdd].slice(0, MAX_VIDEOS));
     setVideoPreviews((prev) => [...prev, ...previews].slice(0, MAX_VIDEOS));
+  };
+
+  const handleSubmit = async () => {
+    setHasSubmitted(true);
     
-    console.log("Videos added. Total videos:", videoFiles.length + toAdd.length);
-  };
-
-
-const handleSubmit = async () => {
-  // 1. Validation
-  const newErrors = {};
-  if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
-  if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-  if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
-  if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
-  if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
-  if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-  else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
-  if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
-  if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
-  if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
+    // Validate all fields
+    const newErrors = {};
+    
+    if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
+    if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
+    if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
+    if (!formData.color.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
+    if (!formData.medication.trim()) newErrors.medication = "Medication is required.";
+    if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
+    else if (!formData.petWeightIn) newErrors.petWeightIn = "Select pet weight type";
+    if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
+    if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
+    if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
+    if (!formData.vaccinated) newErrors.vaccinated = "Please specify if pet is vaccinated.";
+    if (!formData.healthCondition.trim()) newErrors.healthCondition = "Please specify if pet has any health issues.";
+    if (!formData.spayedOrNeutered || formData.spayedOrNeutered === "select") newErrors.spayedOrNeutered = "Please specify if pet is spayed or neutered.";
+      if (formData.microchipNo && formData.microchipNo.length > 0) {
+    if (formData.microchipNo.length !== 15) {
+      newErrors.microchipNo = "Microchip number must be exactly 15 digits.";
+    } else if (!/^\d+$/.test(formData.microchipNo)) {
+      newErrors.microchipNo = "Microchip number must contain only digits.";
+    }
   }
-
-  setErrors({});
-  setErrorMessage("");
-
-  const payload = {
-    petAge: formData.petAge,
-    petName: formData.petName,
-    petType: formData.petType,
-    breed: formData.breed,
-    additionalInfo: formData.additionalInfo,
-    weight: `${formData.weight} ${formData.petWeightIn}`,
-    vaccinated: formData.vaccinated,
-    petGender: formData.petGender,
-    kci: formData.kci,
-    color: formData.color,
-    championship: formData.championship,
-    Events: formData.Events,
-    skills: formData.skills,
-    instagramLink: formData.instagramLink,
-    birthday: formData.dob,
-    spayedOrNeutered: formData.spayedOrNeutered,
-    medication: formData.medication,
-    doesYourPetHasAnyHealthIssues: formData.healthCondition,
-    size: formData.size,
-    howManyVaccinationsDone: formData.howManyVaccinationsDone || []
-  };
-
-  try {
-    setApiProcessing({ loader: true, message: "Saving profile..." });
-    let response;
-
-    if (!petData) {
-      response = await webApi.post("vendorPetProfile/create", payload);
-      console.log("Create response:", response);
-    } else {
-      response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
-      console.log("Update response:", response);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setTimeout(() => {
+        const firstErrorElement = document.querySelector(`.${styles["error-text"]}`);
+        if (firstErrorElement) {
+          firstErrorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      return;
     }
 
-    // Check for success
-    if (response.status === "success" || response.status === 200) {
-      const petId = response.data?.petProfile?.id || response.data?.id || petData?.id;
+    setErrors({});
+    setErrorMessage("");
 
-      if (petId) {
-        // Upload Images
-        for (const file of imageFiles) {
-          if (file && file !== "existing") {
-            const fd = new FormData();
-            fd.append("morePhotos", file);
-            try {
-              await webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd);
-              console.log("Image uploaded successfully");
-            } catch (err) {
-              console.error("Image upload failed:", err);
-            }
-          }
-        }
+    const payload = {
+      petName: formData.petName,
+      petType: formData.petType,
+      breed: formData.breed,
+      additionalInfo: formData.additionalInfo,
+      weight: `${formData.weight} ${formData.petWeightIn}`,
+      vaccinated: formData.vaccinated,
+      petGender: formData.petGender,
+      kci: formData.kci,
+      color: formData.color,
+      championship: formData.championship,
+      Events: formData.Events,
+      skills: formData.skills,
+      instagramLink: formData.instagramLink,
+      birthday: formData.dob ? new Date(formData.dob).toISOString() : null,
+      spayedOrNeutered: formData.spayedOrNeutered,
+      medication: formData.medication,
+      doesYourPetHasAnyHealthIssues: formData.healthCondition,
+      size: formData.size,
+      howManyVaccinationsDone: formData.howManyVaccinationsDone || [],
+      microchipNo: formData.microchipNo || "",
+      howmanyTimesBreedingDone: formData.howmanyTimesBreedingDone || ""
+    };
 
-        // Upload Videos
-        for (const file of videoFiles) {
-          if (file && file !== "existing") {
-            const fd = new FormData();
-            fd.append("moreVideos", file);
-            try {
-              await webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd);
-              console.log("Video uploaded successfully");
-            } catch (err) {
-              console.error("Video upload failed:", err);
-            }
-          }
-        }
+    try {
+      setApiProcessing({ loader: true, message: "Saving profile..." });
+      let response;
+
+      if (!petData) {
+        response = await webApi.post("vendorPetProfile/create", payload);
+      } else {
+        response = await webApi.put(`vendorPetProfile/update/${petData.id}`, payload);
       }
 
-      setErrorMessage("");
-     if (fetchPetData) {
-  console.log("Calling fetchPetData from AddNewPetPopup");
-  // Add a small delay to ensure backend has processed the update
-  setTimeout(async () => {
-    fetchPetData();
-    console.log("fetchPetData completed");
-    closePopup();
-  }, 500);
-} else {
-  closePopup();
-}
-    } else {
-      setErrorMessage(response.message || "Failed to save profile.");
-    }
-  } catch (err) {
-    console.error("Submit Error:", err);
-    setErrorMessage(err.response?.data?.message || "An error occurred while saving.");
-  } finally {
-    setApiProcessing({ loader: false, message: "" });
-  }
-};
+      if (response.status === "success" || response.status === 200) {
+        const petId = response.data?.petProfile?.id || response.data?.id || petData?.id;
 
-// Update sizeOptions with useMemo
-const sizeOptions = useMemo(() => {
-  // For edit mode: if we have a size value from petData, show it
-  if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
-    return [formData.size];
-  }
+        if (petId) {
+          for (const file of imageFiles) {
+            if (file && file !== "existing") {
+              const fd = new FormData();
+              fd.append("morePhotos", file);
+              try {
+                await webApi.imagePut(`vendorPetProfile/morePhotos/${petId}`, fd);
+              } catch (err) {
+                console.error("Image upload failed:", err);
+              }
+            }
+          }
+
+          for (const file of videoFiles) {
+            if (file && file !== "existing") {
+              const fd = new FormData();
+              fd.append("moreVideos", file);
+              try {
+                await webApi.imagePut(`vendorPetProfile/moreVideos/${petId}`, fd);
+              } catch (err) {
+                console.error("Video upload failed:", err);
+              }
+            }
+          }
+        }
+
+        setErrorMessage("");
+        closePopup(true);
+      } else {
+        setErrorMessage(response.message || "Failed to save profile.");
+      }
+    } catch (err) {
+      console.error("Submit Error:", err);
+      setErrorMessage(err.response?.data?.message || "An error occurred while saving.");
+    } finally {
+      setApiProcessing({ loader: false, message: "" });
+    }
+  };
+
+  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
   
-  // For new pet with selected breed that has size
-  if (!petData && formData.breed !== "select" && formData.size && formData.size !== "select size" && formData.size !== "") {
-    return [formData.size];
-  }
-  
-  // Default size options for new pet
-  return ["select size", "Toy", "Small", "Medium", "Large", "Giant"];
-}, [petData, formData.breed, formData.size]);
+  const sizeOptions = useMemo(() => {
+    if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
+      return [formData.size];
+    }
+    if (!petData && formData.breed !== "select" && formData.size && formData.size !== "select size" && formData.size !== "") {
+      return [formData.size];
+    }
+    return ["select size"];
+  }, [petData, formData.breed, formData.size]);
 
   return (
-    <div
-      className={styles.popupContainer}
-      style={{ background: "#fff", borderRadius: "10px", width: "100%", position: "relative" }}
-    >
+    <div className={styles.popupContainer} style={{ background: "#fff", borderRadius: "10px", width: "100%", position: "relative" }}>
       {/* Header */}
-      <div
-        className={styles.header}
-        style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}
-      >
+      <div className={styles.header} style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", padding: "0 10px 0 0" }}>
-          <BackHeader />
-          <h2>{petData ? "Edit Pet" : "Add New Pet"}</h2>
+          <span><BackHeader onClick={closePopup} /></span>
+          <h2>{petData ? "Edit Pet Details" : "Add New Pet"}</h2>
         </div>
-        <button
-          style={{ background: "transparent", border: "none", fontSize: "1.2rem", padding: "20px", cursor: "pointer" }}
-          onClick={closePopup}
-        >
-          &#x2715;
-        </button>
+        {/* <button style={{ background: "transparent", border: "none", fontSize: "1.2rem", padding: "20px", cursor: "pointer" }} onClick={closePopup}>&#x2715;</button> */}
       </div>
 
       <div className={styles.mainContainer}>
-
-        {/* ── Section 1: Basic Info ──────────────────────────────────────── */}
+        {/* Section 1: Basic Info */}
         <div className={styles.formDiv2}>
-          <DropDownv1
-            options={["select", "Dog", "Cat", "Bird", "Fish", "Small Pet"]}
-            question={"Pet Type *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            value={formData.petType}
-            onChange={(value) => {
-              handleInputChange("petType", value);
-              if (value && value !== "select") fetchBreeds(value);
-              else setBreedOptions([]);
-            }}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.petType}
-          />
+          {!!petData ? (
+            <div style={{ width: isMobile ? "100%" : "48%" }}>
+              <p>Pet Type <span style={{ color: "red" }}>*</span></p>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+                {formData.petType}
+              </div>
+            </div>
+          ) : (
+            <DropDownv1
+              options={["select", "Dog", "Cat", "Bird", "Fish", "Small Pet"]}
+              question={"Pet Type *"} 
+              width={isMobile ? "100%" : "48%"} 
+              backgroundColor="#FFFFFF"
+              value={formData.petType}
+              onChange={(value) => {
+                handleInputChange("petType", value);
+                if (value && value !== "select") fetchBreeds(value);
+                else setBreedOptions([]);
+              }}
+              CustomInputElementAddpet={{ color: "#000000" }} 
+              error={errors.petType}
+            />
+          )}
+          
           <CustomInputElement2
-            question={"Pet Name *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            placeholder="Enter Pet Name" type="text" value={formData.petName}
+            question={"Pet Name *"} 
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF"
+            placeholder="Enter Pet Name" 
+            type="text" 
+            value={formData.petName}
             onChange={(e) => handleInputChange("petName", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} error={errors.petName} ownMargin={true}
+            onBlur={(e) => handleBlur("petName", e.target.value)}
+            custommarrgin={{ marginBottom: "14px" }} 
+            error={errors.petName} 
+            ownMargin={true}
           />
-          <DropDownv1
-            options={petData ? [formData.breed] : ["select", ...breedOptions]}
-            question={"Pet Breed *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            value={formData.breed} onChange={(value) => handleInputChange("breed", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.breed}
-          />
+          
+          {!!petData ? (
+            <div style={{ width: isMobile ? "100%" : "48%" }}>
+              <p>Pet Breed <span style={{ color: "red" }}>*</span></p>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+                {formData.breed}
+              </div>
+            </div>
+          ) : (
+            <SearchableDropdown
+              options={["select", ...breedOptions]}
+              value={formData.breed}
+              onChange={(value) => handleInputChange("breed", value)}
+              placeholder="Breed"
+              label="Pet Breed"
+              error={errors.breed}
+              disabled={false}
+              isMobile={isMobile}
+            />
+          )}
+
           <CustomInputElement2
-            question={"Date Of Birth *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            placeholder="Date Of Birth" type="date" value={formData.dob}
+            question={"Date Of Birth *"} 
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF"
+            type="date"
+            value={formData.dob}
             onChange={(e) => handleInputChange("dob", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} error={errors.dob} ownMargin={true}
+            onBlur={(e) => handleBlur("dob", e.target.value)}
+            max={maxDate}
+            error={errors.dob}
+            custommarrgin={{ marginBottom: "14px" }} 
+            ownMargin={true}
           />
-          <DropDownv1
-            options={["select", "Male", "Female"]} question={"Gender *"}
-            width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.petGender}
-            onChange={(value) => handleInputChange("petGender", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.petGender}
+          
+          {!!petData ? (
+            <div style={{ width: isMobile ? "100%" : "48%" }}>
+              <p>Gender <span style={{ color: "red" }}>*</span></p>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+                {formData.petGender}
+              </div>
+            </div>
+          ) : (
+            <DropDownv1
+              options={["select", "Male", "Female"]} 
+              question={"Gender *"}
+              width={isMobile ? "100%" : "48%"} 
+              backgroundColor="#FFFFFF" 
+              value={formData.petGender}
+              onChange={(value) => handleInputChange("petGender", value)}
+              CustomInputElementAddpet={{ color: "#000000" }} 
+              error={errors.petGender}
+            />
+          )}
+          
+          <div style={{ width: isMobile ? "100%" : "48%" }}>
+            <p>Size <span style={{ color: "red" }}>*</span></p>
+            <div style={{ padding: "12px", border: "1px solid #e0e0e0", }}>
+              {formData.size || (petData ? "Not specified" : "Select pet breed")}
+            </div>
+          </div>
+          
+          <SearchableDropdown
+            options={petColors}
+            value={formData.color}
+            onChange={(value) => handleInputChange("color", value)}
+            placeholder="Color"
+            label="Color"
+            error={errors.color}
+            disabled={false}
+            isMobile={isMobile}
           />
-          <DropDownv1
-  options={sizeOptions} 
-  question={"Size *"} 
-  width={isMobile ? "100%" : "48%"}
-  backgroundColor="#FFFFFF" 
-  value={formData.size || ""}
-  onChange={(value) => {
-    // Only allow size change for new pets
-    if (!petData) {
-      handleInputChange("size", value === "select size" ? "" : value);
+          
+     <CustomInputComp
+  question={"Weight *"} 
+  width={isMobile ? "100%" : "48%"} 
+  backgroundColor="#FFFFFF"
+  type="text" 
+  placeholder="Enter Pet Weight (e.g., 12 kg or 25 lb)" 
+  value={formData.weight ? `${formData.weight} ${formData.petWeightIn}` : ""}
+  onChange={(e) => {
+    const value = e.target.value;
+    // Extract number and unit from input
+    const numberMatch = value.match(/\d+/);
+    const unitMatch = value.match(/(kg|lb|KG|LB)/i);
+    
+    if (numberMatch) {
+      const numericValue = numberMatch[0].slice(0, 3);
+      handleInputChange("weight", numericValue);
+    }
+    if (unitMatch) {
+      const unit = unitMatch[0].toLowerCase();
+      handleInputChange("petWeightIn", unit);
     }
   }}
-  CustomInputElementAddpet={{ color: "#000000" }} 
-  error={errors.size}
+  onBlur={(e) => {
+    handleBlur("weight", formData.weight);
+    if (!formData.petWeightIn && formData.weight) {
+      setErrors((prev) => ({ ...prev, petWeightIn: "Please specify weight unit (kg or lb)" }));
+    }
+  }}
+  custommarrgin={{ marginBottom: "14px" }} 
+  error={errors.weight || errors.petWeightIn} 
+  ownMargin={true}
+  filter={formData.weight ? "weight" : ""} 
+  setFormData={setFormData} 
+  formData={formData}
 />
+{errors.petWeightIn && !errors.weight && (
+  <span style={{ color: "red", fontSize: "12px", marginTop: "-10px", display: "block" }}>
+    {errors.petWeightIn}
+  </span>
+)}
+          
           <DropDownv1
-            options={petColors} question={"Color *"} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.color}
-            onChange={(value) => handleInputChange("color", value)}
-            error={errors.color}
-          />
-          <CustomInputComp
-            question={"Weight *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            type="text" placeholder="Enter Pet Weight" value={formData.weight}
-            onChange={(e) => {
-              const numericValue = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
-              handleInputChange("weight", numericValue);
-            }}
-            custommarrgin={{ marginBottom: "14px" }} error={errors.weight} ownMargin={true}
-            filter={formData.weight ? "weight" : ""} setFormData={setFormData} formData={formData}
-          />
-          <DropDownv1
-            options={["select", "Yes", "No"]} question={"Spayed/Neutered *"}
-            width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.spayedOrNeutered}
+            options={["select", "Yes", "No"]} 
+            question={"Spayed/Neutered *"}
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF" 
+            value={formData.spayedOrNeutered}
             onChange={(value) => handleInputChange("spayedOrNeutered", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.spayedOrNeutered}
+            CustomInputElementAddpet={{ color: "#000000" }} 
+            error={errors.spayedOrNeutered}
           />
+          
           <CustomInputElement2
-            question={"Medication *"} width={isMobile ? "100%" : "48%"} type="text"
-            backgroundColor="#FFFFFF" value={formData.medication} placeholder="Enter Medication"
+            question={"Medication *"} 
+            width={isMobile ? "100%" : "48%"} 
+            type="text"
+            backgroundColor="#FFFFFF" 
+            value={formData.medication} 
+            placeholder="Enter Medication"
             onChange={(e) => handleInputChange("medication", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} error={errors.medication} ownMargin={true}
+            onBlur={(e) => handleBlur("medication", e.target.value)}
+            custommarrgin={{ marginBottom: "14px" }} 
+            error={errors.medication} 
+            ownMargin={true}
           />
         </div>
 
-        {/* ── Section 2: Extra Info ──────────────────────────────────────── */}
+        {/* Section 2: Extra Info */}
         <div className={styles.formDiv2}>
           <CustomInputElement2
-            question={"Health Condition *"} width={isMobile ? "100%" : "48%"} type="text"
-            backgroundColor="#FFFFFF" value={formData.healthCondition}
+            question={"Health Condition *"} 
+            width={isMobile ? "100%" : "48%"} 
+            type="text"
+            backgroundColor="#FFFFFF" 
+            value={formData.healthCondition}
             placeholder="Enter Health Conditions"
             onChange={(e) => handleInputChange("healthCondition", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} error={errors.healthCondition} ownMargin={true}
+            onBlur={(e) => handleBlur("healthCondition", e.target.value)}
+            custommarrgin={{ marginBottom: "14px" }} 
+            error={errors.healthCondition} 
+            ownMargin={true}
           />
+          
           <CustomInputElement2
-            question={"Microchip Number"} width={isMobile ? "100%" : "48%"} type="text"
-            backgroundColor="#FFFFFF" value={formData.microchipNo}
-            placeholder="Enter Microchip Number"
+            question={"Microchip Number"} 
+            width={isMobile ? "100%" : "48%"} 
+            type="text"
+            backgroundColor="#FFFFFF" 
+            value={formData.microchipNo || ""}
+            placeholder="Enter Microchip Number (15 digits)"
             onChange={(e) => handleInputChange("microchipNo", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} ownMargin={true}
+            onBlur={(e) => handleBlur("microchipNo", e.target.value)}
+            custommarrgin={{ marginBottom: "14px"}} 
+            error={errors.microchipNo}
+            ownMargin={true}
           />
+          
           <DropDownv1
-            options={["select", "Yes", "No"]} question={"Vaccinated"}
-            width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.vaccinated}
+            options={["select", "Yes", "No"]} 
+            question={"Vaccinated *"}
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF" 
+            value={formData.vaccinated}
             onChange={(value) => handleInputChange("vaccinated", value)}
-            CustomInputElementAddpet={{ color: "#000000" }}
+            CustomInputElementAddpet={{ color: "#000000" }} 
+            error={errors.vaccinated}
           />
-            {formData.vaccinated === "Yes" && (
-                       <div style={{ width: isMobile ? "100%" : "48%", position: "relative" }} ref={vaccMenuRef}>
-            <p><b>Vaccinations Done</b></p>
-            <div 
-              className={styles.customSelectHeader} 
-              onClick={() => setShowVaccDropdown(!showVaccDropdown)}
-              style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
-            >
-              {formData.howManyVaccinationsDone.length > 0 
-                ? `${formData.howManyVaccinationsDone.length} Selected` 
-                : "Select Vaccinations"}
-              <span style={{ float: "right" }}>{showVaccDropdown ? "▲" : "▼"}</span>
-            </div>
-            
-            {showVaccDropdown && (
-              <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
-                {vaccinationOptions.map(v => (
-                  <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
-                    <input 
-                      type="checkbox" 
-                      checked={formData.howManyVaccinationsDone.includes(v)} 
-                      onChange={() => handleVaccinationToggle(v)}
-                      style={{ marginRight: "10px" }}
-                    />
-                    <span style={{ fontSize: "13px" }}>{v}</span>
-                  </label>
-                ))}
+          
+          {formData.vaccinated === "Yes" && (
+            <div style={{ width: isMobile ? "100%" : "48%", position: "relative" }} ref={vaccMenuRef}>
+              <p>Vaccinations Done</p>
+              <div 
+                className={styles.customSelectHeader} 
+                onClick={() => setShowVaccDropdown(!showVaccDropdown)}
+                style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
+              >
+                {formData.howManyVaccinationsDone.length > 0 
+                  ? `${formData.howManyVaccinationsDone.length} Selected` 
+                  : "Select Vaccinations"}
+                <span style={{ float: "right" }}>{showVaccDropdown ? "▲" : "▼"}</span>
               </div>
-            )}
-          </div>
-                     )}
+              
+              {showVaccDropdown && (
+                <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+                  {vaccinationOptions.map(v => (
+                    <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={formData.howManyVaccinationsDone.includes(v)} 
+                        onChange={() => handleVaccinationToggle(v)}
+                        style={{ marginRight: "10px" }}
+                      />
+                      <span style={{ fontSize: "13px" }}>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
           <DropDownv1
-            options={["select", "Yes", "No"]} question={"KCI"} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.kci}
+            options={["select", "Yes", "No"]} 
+            question={"KCI"} 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF" 
+            value={formData.kci}
             onChange={(value) => handleInputChange("kci", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
+          
           <CustomInputElement2
-            question={"How many times breeding done earlier?"} width={isMobile ? "100%" : "48%"}
-            type="number" backgroundColor="#FFFFFF" value={formData.howmanyTimesBreedingDone}
+            question={"How many times breeding done earlier?"} 
+            width={isMobile ? "100%" : "48%"}
+            type="number" 
+            backgroundColor="#FFFFFF" 
+            value={formData.howmanyTimesBreedingDone || ""}
             placeholder="Enter Breeding Count"
             onChange={(e) => handleInputChange("howmanyTimesBreedingDone", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} ownMargin={true}
+            custommarrgin={{ marginBottom: "14px" }} 
+            ownMargin={true}
           />
-          <DropDownv1
-            question={"Skills"} options={["select", "Good", "Bad"]} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.skills}
-            onChange={(value) => handleInputChange("skills", value)}
+          
+          <CustomInputElement2
+            question={"Skills"} 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF" 
+            value={formData.skills} 
+            placeholder="Enter Skills"
+            onChange={(e) => handleInputChange("skills", e.target.value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
+          
           <DropDownv1
-            question={"Championship"} options={["select", "Yes", "No"]}
-            width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.championship}
+            question={"Championship"} 
+            options={["select", "Yes", "No"]}
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF" 
+            value={formData.championship}
             onChange={(value) => handleInputChange("championship", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          <DropDownv1
-            question={"Events"} options={["select", "Yes", "No"]} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.Events}
-            onChange={(value) => handleInputChange("Events", value)}
+          
+          <CustomInputElement2
+            question={"Events"} 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF" 
+            value={formData.Events} 
+            placeholder="Enter Events"
+            onChange={(e) => handleInputChange("Events", e.target.value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
+          
           <CustomInputElement2
-            question={"Instagram Link"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            placeholder="URL" value={formData.instagramLink}
+            question={"Instagram Link"} 
+            width={isMobile ? "100%" : "48%"} 
+            backgroundColor="#FFFFFF"
+            placeholder="URL" 
+            value={formData.instagramLink}
             onChange={(e) => handleInputChange("instagramLink", e.target.value)}
-            error={errors.instagramLink} custommarrgin={{ marginBottom: "14px" }} ownMargin={true}
+            onBlur={(e) => handleBlur("instagramLink", e.target.value)}
+            error={errors.instagramLink} 
+            custommarrgin={{ marginBottom: "14px" }} 
+            ownMargin={true}
           />
+          
           <CustomInputElement2
-            question="Additional Information" width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" placeholder="Add more information"
+            question="Additional Information" 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF" 
+            placeholder="Add more information"
             onInputChange={handleVictoriaInfoChange}
+            value={formData.additionalInfo}
             onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
             rows={3}
             customStylestext={{ backgroundColor: "#fff", border: "1px solid rgb(217, 217, 217)", marginBottom: "16px" }}
           />
 
-                    {/* Upload Section */}
-           <div className={styles.uploadSections}>
-             <div className={styles.uploadSection}>
-                <p className={styles.uploadLabel}>
-                  Pet Images <span className={styles.required}>*</span>
-                </p>
-                <div className={styles["image-grid"]}>
-                  {/* Use isMobile to limit slots to 1, otherwise show MAX_IMAGES */}
-                  {Array.from({ length: isMobile ? 1 : MAX_IMAGES }).map((_, index) => {
-                    const hasImage = !!imagePreviews[index];
-                    const isMandatory = index === 0;
-                    return (
-                      <div key={index} className={styles["slot-column"]}>
-                        {!hasImage ? (
-                          <label
-                            className={`${styles["image-slot-empty"]} ${isMandatory ? styles["mandatory-border"] : ""}`}
-                            onClick={() => imageFileInputRef.current?.click()}
-                            style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", width: "100%", height: "100%", minHeight: "120px", border:  "2px dashed #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" }}
-                          >
-                            <AddIcon />
-                          </label>
-                        ) : (
-                          <div className={styles["image-preview-below"]} style={{ position: "relative", width: "100%", height: "100%" }}>
-                            <img src={imagePreviews[index]} alt={`pet-${index}`} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
-                            <button type="button" onClick={() => handleDeleteMedia(index, "photo")} style={{ position: "absolute", top: "-1px", right: "-3px", background: "rgba(0, 0, 0, 0.6)", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "none", fontSize: "14px" }}>✕</button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <input ref={imageFileInputRef} type="file" accept="image/*" multiple={!isMobile} hidden onChange={handleImageFileChange} />
-                {errors.images && <span className={styles["error-text"]} style={{ color: "red", fontSize: "12px", marginTop: "5px", display: "block" }}>{errors.images}</span>}
+          {/* Upload Section */}
+          <div className={styles.uploadSections}>
+            <div className={styles.uploadSection}>
+              <p className={styles.uploadLabel}>
+                Pet Images <span className={styles.required}>*</span>
+              </p>
+              <div className={styles["image-grid"]}>
+                {Array.from({ length: isMobile ? 1 : MAX_IMAGES }).map((_, index) => {
+                  const hasImage = !!imagePreviews[index];
+                  const isMandatory = index === 0;
+                  return (
+                    <div key={index} className={styles["slot-column"]}>
+                      {!hasImage ? (
+                        <label
+                          className={`${styles["image-slot-empty"]} ${isMandatory ? styles["mandatory-border"] : ""}`}
+                          onClick={() => imageFileInputRef.current?.click()}
+                          style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", width: "100%", height: "100%", minHeight: "120px", border: "2px dashed #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" }}
+                        >
+                          <AddIcon />
+                        </label>
+                      ) : (
+                        <div className={styles["image-preview-below"]} style={{ position: "relative", width: "100%", height: "100%" }}>
+                          <img src={imagePreviews[index]} alt={`pet-${index}`} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
+                          <button type="button" onClick={() => handleDeleteMedia(index, "photo")} style={{ position: "absolute", top: "-1px", right: "-3px", background: "rgba(0, 0, 0, 0.6)", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "none", fontSize: "14px" }}>✕</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              <input ref={imageFileInputRef} type="file" accept="image/*" multiple={!isMobile} hidden onChange={handleImageFileChange} />
+              {errors.images && <span className={styles["error-text"]} style={{ color: "red", fontSize: "12px", marginTop: "5px", display: "block" }}>{errors.images}</span>}
+            </div>
 
-            {/* Cropper Modal */}
             {cropperOpen && imageToCrop && (
               <ImageCropperModal
                 open={cropperOpen}
@@ -936,36 +1164,34 @@ const sizeOptions = useMemo(() => {
               />
             )}
 
-         <div className={styles.uploadSection} style={{ marginTop: isMobile ? "10px" : "0" }}>
-             <p className={styles.uploadLabel}>Pet Videos <span style={{ color: "#666" }}>(Optional)</span></p>
-             <div className={styles["image-grid"]}>
-               {/* Use isMobile to limit slots to 1, otherwise show MAX_VIDEOS */}
-               {Array.from({ length: isMobile ? 1 : MAX_VIDEOS }).map((_, index) => {
-                 const hasVideo = !!videoPreviews[index];
-                 return (
-                   <div key={index} className={styles["slot-column"]}>
-                     {!hasVideo ? (
-                       <label className={styles["image-slot-empty"]} onClick={() => videoFileInputRef.current?.click()} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", width: "100%", height: "100%", minHeight: "120px", border: "2px dashed #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
-                         <div style={{ fontSize: "32px", marginBottom: "8px" }}>+</div>
-                         <div style={{ fontSize: "12px", textAlign: "center" }}>Add Video</div>
-                       </label>
-                     ) : (
-                       <div className={styles["image-preview-below"]} style={{ position: "relative", width: "100%", height: "100%" }}>
-                         <video src={videoPreviews[index]} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} controls />
-                         <button type="button" onClick={() => handleDeleteMedia(index, "video")} style={{ position: "absolute", top: "-1px", right: "-3px", background: "rgba(0, 0, 0, 0.6)", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "none", fontSize: "14px" }}>✕</button>
-                       </div>
-                     )}
-                   </div>
-                 );
-               })}
-             </div>
-             <input ref={videoFileInputRef} type="file" accept="video/*" multiple={!isMobile} hidden onChange={handleVideoFileChange} />
-             {errors.videos && <span className={styles["error-text"]} style={{ color: "red", fontSize: "12px", marginTop: "5px", display: "block" }}>{errors.videos}</span>}
-           </div>
-         </div>
+            {/* <div className={styles.uploadSection} style={{ marginTop: isMobile ? "10px" : "0" }}>
+              <p className={styles.uploadLabel}>Pet Videos <span style={{ color: "#666" }}>(Optional)</span></p>
+              <div className={styles["image-grid"]}>
+                {Array.from({ length: isMobile ? 1 : MAX_VIDEOS }).map((_, index) => {
+                  const hasVideo = !!videoPreviews[index];
+                  return (
+                    <div key={index} className={styles["slot-column"]}>
+                      {!hasVideo ? (
+                        <label className={styles["image-slot-empty"]} onClick={() => videoFileInputRef.current?.click()} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", width: "100%", height: "100%", minHeight: "120px", border: "2px dashed #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+                          <div style={{ fontSize: "32px", marginBottom: "8px" }}>+</div>
+                          <div style={{ fontSize: "12px", textAlign: "center" }}>Add Video</div>
+                        </label>
+                      ) : (
+                        <div className={styles["image-preview-below"]} style={{ position: "relative", width: "100%", height: "100%" }}>
+                          <video src={videoPreviews[index]} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} controls />
+                          <button type="button" onClick={() => handleDeleteMedia(index, "video")} style={{ position: "absolute", top: "-1px", right: "-3px", background: "rgba(0, 0, 0, 0.6)", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "none", fontSize: "14px" }}>✕</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <input ref={videoFileInputRef} type="file" accept="video/*" multiple={!isMobile} hidden onChange={handleVideoFileChange} />
+              {errors.videos && <span className={styles["error-text"]} style={{ color: "red", fontSize: "12px", marginTop: "5px", display: "block" }}>{errors.videos}</span>}
+            </div> */}
+          </div>
 
-
-          {/* ── Action Buttons ──────────────────────────────────────────── */}
+          {/* Action Buttons */}
           <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
             <div className={styles.deskSubmit}>
               <div className={styles.mobSubmit}>
@@ -985,7 +1211,7 @@ const sizeOptions = useMemo(() => {
           </div>
 
           {errorMessage && (
-            <p style={{ color: "red", fontSize: "14px", marginTop: "10px" }}>{errorMessage}</p>
+            <p style={{ color: "red", fontSize: "14px", marginTop: "10px", textAlign: "center" }}>{errorMessage}</p>
           )}
         </div>
       </div>
@@ -994,4 +1220,3 @@ const sizeOptions = useMemo(() => {
 };
 
 export default AddNewPetPopup;
-

@@ -71,7 +71,7 @@ export default function useDashboardData() {
     setReviewsLoading(true);
 
     webApi
-      .get(`vendorUser/getReviews/${branchId}`)
+      .get(`vendor-reviews/branch/${branchId}`)
       .then((res) => {
         const data = res?.data || res;
         const list = data?.reviews || data?.data || data || [];

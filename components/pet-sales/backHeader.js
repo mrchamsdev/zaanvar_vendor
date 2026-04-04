@@ -1,17 +1,28 @@
+
+
+
 import React from "react";
 import styles from "../../styles/pet-sales/backHeader.module.css";
 import { useRouter } from "next/navigation";
 import { LeftArrowIcon } from "@/public/images/SVG";
 
-const BackHeader = ({ text }) => {
+const BackHeader = ({ text, onClick }) => {
   const router = useRouter();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      router.back();
+    }
+  };
 
   return (
     <div className={styles.MobHeaderContainer}>
       <div className={styles.textContainer}>
         <span
           className={styles.backIcon}
-          onClick={() => router.back()}
+          onClick={handleClick}
         >
           <LeftArrowIcon />
         </span>

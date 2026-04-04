@@ -1,698 +1,9 @@
-// import React, { useState, useEffect } from "react";
-// import styles from "../../styles/pet-sales/chageStutus.module.css";
-
-// const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
-//   const [selectedStatus, setSelectedStatus] = useState("");
-//   const [showInnerPopup, setShowInnerPopup] = useState(false);
-//   const [detailData, setDetailData] = useState({});
-//   const [errors, setErrors] = useState({});
-//   const [petBreed, setPetBreed] = useState("");
-//   const [petId, setPetId] = useState("");
-//   const [petName, setPetName] = useState("");
-
-//   const [zaanvarHelpSell, setZaanvarHelpSell] = useState("");
-//   const [zaanvarRecommend, setZaanvarRecommend] = useState("");
-//   const [changePrice, setChangePrice] = useState("");
-//   const [newPrice, setNewPrice] = useState("");
-
-//   useEffect(() => {
-//     document.body.style.overflow = "hidden";
-//     return () => (document.body.style.overflow = "auto");
-//   }, []);
-
-//  const handleSave = () => {
-//   if (!selectedStatus) return;
-
-//   if (selectedStatus === "Sold Out") {
-//     setDetailData(initDetailDataForStatus(selectedStatus));
-//     setErrors({});
-//     setShowInnerPopup(true); // Only popup for Sold Out
-//   } else {
-//     // Other statuses: just save directly
-//     if (onStatusChange) {
-//       onStatusChange({
-//         status: selectedStatus,
-//         details: detailData,
-//       });
-//     }
-//     onClose();
-//   }
-// };
-
-  
-
-//   const handleSubmitInner = () => {
-//     const validation = validateForStatus(selectedStatus, detailData);
-//     if (!validation.valid) {
-//       setErrors(validation.errors);
-//       return;
-//     }
-
-//     if (onStatusChange) {
-//       onStatusChange({
-//         status: selectedStatus,
-//         details: detailData,
-//         zaanvarHelpSell,
-//         zaanvarRecommend,
-//         priceChanged: changePrice === "yes" ? newPrice : null,
-//       });
-//     }
-//     setShowInnerPopup(false);
-//     onClose();
-//   };
-
-//   const handleCancel = () => {
-//     setShowInnerPopup(false);
-//     onClose();
-//   };
-
-//   const initDetailDataForStatus = (status) => {
-//     switch (status) {
-//       case "Available":
-//         return { availableDate: "", notes: "" };
-//       case "Reserved":
-//         return { reservedUntil: "", reserverName: "", notes: "" };
-//       case "Sold Out":
-//         return { soldDate: "", buyerId: "", soldPrice: "" };
-//       case "Not Available":
-//         return { reason: "", expectedReturnDate: "" };
-//       case "On Hold":
-//         return { holdUntil: "", holdReason: "" };
-//       default:
-//         return {};
-//     }
-//   };
-
-//   const validateForStatus = (status, data) => {
-//     const errors = {};
-//     let valid = true;
-
-//     switch (status) {
-//       case "Available":
-//         if (!data.availableDate) {
-//           valid = false;
-//           errors.availableDate = "Please pick available date.";
-//         }
-//         break;
-//       case "Reserved":
-//         if (!data.reservedUntil) {
-//           valid = false;
-//           errors.reservedUntil = "Please pick reserved-until date.";
-//         }
-//         if (!data.reserverName) {
-//           valid = false;
-//           errors.reserverName = "Please enter reserver name or id.";
-//         }
-//         break;
-//       case "Sold Out":
-//         if (!data.soldDate) {
-//           valid = false;
-//           errors.soldDate = "Please enter sold date.";
-//         }
-//         if (!data.buyerId) {
-//           valid = false;
-//           errors.buyerId = "Please enter buyer ID.";
-//         }
-//         break;
-//       case "Not Available":
-//         if (!data.reason) {
-//           valid = false;
-//           errors.reason = "Please provide a reason.";
-//         }
-//         break;
-//       case "On Hold":
-//         if (!data.holdUntil) {
-//           valid = false;
-//           errors.holdUntil = "Please select hold until date.";
-//         }
-//         if (!data.holdReason) {
-//           valid = false;
-//           errors.holdReason = "Please provide hold reason.";
-//         }
-//         break;
-//       default:
-//         break;
-//     }
-
-//     return { valid, errors };
-//   };
-
-//   const StatusInnerPopup = () => {
-//     return (
-//       <div className={styles.overlay}>
-//         <div className={styles.modal}>
-//           <div className={styles.modalHeader}>
-//             <button
-//               className={styles.backBtn}
-//               onClick={() => setShowInnerPopup(false)}
-//             >
-//               ←
-//             </button>
-//             <h3 className={styles.modalTitle}>{selectedStatus} Details</h3>
-//           </div>
-
-//           <div className={styles.innerBody}>
-//             {/* ✅ All statuses except Sold Out will use this same layout */}
-//             {selectedStatus !== "Sold Out" && (
-//               <>
-//                 <div className={styles.petInfoSection}>
-//                   <div className={styles.inputGroup}>
-//                     <label className={styles["lable-div"]}>Pet Breed</label>
-//                     <input
-//                       type="text"
-//                       value={petBreed}
-//                       onChange={(e) => setPetBreed(e.target.value)}
-//                       className={styles.inputField}
-//                       placeholder="Enter pet breed"
-//                     />
-//                   </div>
-
-//                   <div className={styles.inputGroup}>
-//                     <label className={styles["lable-div"]}>Pet ID</label>
-//                     <input
-//                       type="text"
-//                       value={petId}
-//                       onChange={(e) => setPetId(e.target.value)}
-//                       className={styles.inputField}
-//                       placeholder="Enter pet ID"
-//                     />
-//                   </div>
-
-//                   <div className={styles.inputGroup}>
-//                     <label className={styles["lable-div"]}>Pet Name</label>
-//                     <input
-//                       type="text"
-//                       value={petName}
-//                       onChange={(e) => setPetName(e.target.value)}
-//                       className={styles.inputField}
-//                       placeholder="Enter pet name"
-//                     />
-//                   </div>
-
-//                   <p className={styles.description}>
-//                     To change pet status, select the appropriate status from the
-//                     dropdown below and click the “Change Status” button.
-//                   </p>
-
-//                   <div className={styles.changeStatusSection}>
-//   <label className={styles["lable-div"]}>Pet Status </label>
-//   <select
-//     value={selectedStatus}
-//     onChange={(e) => setSelectedStatus(e.target.value)}
-//     className={styles.selectField}
-//   >
-//     <option value="">Select Status</option>
-//     <option value="Available">Available</option>
-//     <option value="Reserved">Reserved</option>
-//     <option value="Sold Out">Sold Out</option>
-//     <option value="Not Available">Not Available</option>
-//     <option value="On Hold">On Hold</option>
-//   </select>
-// </div>
-
-
-// {selectedStatus && selectedStatus !== "Sold Out" && (
-//   <div className={styles.descriptionField}>
-//     <label className={styles["lable-div"]}>Description</label>
-//     <textarea
-//       value={detailData.notes || ""}
-//       onChange={(e) =>
-//         setDetailData((prev) => ({ ...prev, notes: e.target.value }))
-//       }
-//       className={styles.inputField}
-//       placeholder="Enter description..."
-//       style={{ height: "80px" }}
-//     />
-//   </div>
-// )}
-
-// {/* 
-//                   <div className={styles["below-para"]}>Description</div>
-//                   <textarea
-//                     className={styles.inputField}
-//                     style={{ height: "80px", fontSize: "16px" }}
-//                     placeholder="Enter description..."
-//                   />  */}
-
-//                   <div className={styles.warningBox}>
-//                     <span className={styles.warningText}>
-//                       <span>⚠️</span>
-//                       Please update the status as soon as the situation changes
-//                       to help others stay informed and avoid confusion.
-//                     </span>
-//                   </div>
-//                 </div>
-//               </>
-//             )}
-
-
-//             {selectedStatus === "Sold Out" && (
-//               <>
-//                 <div className={styles["wrapper-div"]}>
-//                   <img
-//                     src="https://zaanvar-care.b-cdn.net/media/1760693132852-Congratulation.png"
-//                     alt="congrats"
-//                     width="50%"
-//                   />
-//                 </div>
-
-//                 <p>Did Zaanvar directly help sell your pet?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="zaanvarHelpSell"
-//                       value="yes"
-//                       checked={zaanvarHelpSell === "yes"}
-//                       onChange={(e) => setZaanvarHelpSell(e.target.value)}
-//                     />
-//                     Yes
-//                   </label>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="zaanvarHelpSell"
-//                       value="no"
-//                       checked={zaanvarHelpSell === "no"}
-//                       onChange={(e) => setZaanvarHelpSell(e.target.value)}
-//                     />
-//                     No
-//                   </label>
-//                 </div>
-//                 <p>Would you recommend Zaanvar to your friend?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="zaanvarRecommend"
-//                       value="yes"
-//                       checked={zaanvarRecommend === "yes"}
-//                       onChange={(e) => setZaanvarRecommend(e.target.value)}
-//                     />
-//                     Yes, I would recommend
-//                   </label>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="zaanvarRecommend"
-//                       value="no"
-//                       checked={zaanvarRecommend === "no"}
-//                       onChange={(e) => setZaanvarRecommend(e.target.value)}
-//                     />
-//                     No, I would not recommend
-//                   </label>
-//                 </div>
-
-//                 <p>Do you want to change the current price?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="changePrice"
-//                       value="yes"
-//                       checked={changePrice === "yes"}
-//                       onChange={(e) => setChangePrice(e.target.value)}
-//                     />
-//                     Yes
-//                   </label>
-//                   <label>
-//                     <input
-//                       type="radio"
-//                       name="changePrice"
-//                       value="no"
-//                       checked={changePrice === "no"}
-//                       onChange={(e) => setChangePrice(e.target.value)}
-//                     />
-//                     No
-//                   </label>
-//                 </div>
-
-//                 {changePrice === "yes" && (
-//                   <div>
-//                     <label>Enter Price</label>
-//                     <input
-//                       type="number"
-//                       value={newPrice}
-//                       onChange={(e) => setNewPrice(e.target.value)}
-//                       placeholder="Enter new price"
-//                       className={styles.inputField}
-//                     />
-//                   </div>
-//                 )}
-
-//                 <div className={styles["below-para"]}>
-//                   Want to say thanks to all the ethical breeders, responsible
-//                   vendors, and loving pet parents who help pets find happy,
-//                   healthy homes?
-//                 </div>
-//                 <textarea
-//                   className={styles.inputField}
-//                   style={{ height: "80px", fontSize: "16px" }}
-//                   placeholder="Enter something..."
-//                 />
-//               </>
-//             )}
-//           </div>
-
-//           <div className={styles.buttonContainer}>
-//             <button className={styles.confirmBtn} onClick={handleSubmitInner}>
-//               Save
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   };
-
-//   return (
-//     <>
-//       {!showInnerPopup && (
-//         <div className={styles.overlay}>
-//           <div className={`${styles.modal} ${styles.changeStatusModal}`}>
-//             <div className={styles.modalHeader}>
-//               <button onClick={onClose} className={styles.backBtn}>
-//                 ←
-//               </button>
-//               <h3 className={styles.modalTitle}>Change Status</h3>
-//             </div>
-
-//             {/* ✅ New input fields section */}
-//             <div className={styles.petInfoSection}>
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet Breed </label>
-//                 <input
-//                   type="text"
-//                   value={petBreed}
-//                   onChange={(e) => setPetBreed(e.target.value)}
-//                   className={styles.inputField}
-//                   placeholder="Enter pet breed"
-//                 />
-//               </div>
-
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet ID </label>
-//                 <input
-//                   type="text"
-//                   value={petId}
-//                   onChange={(e) => setPetId(e.target.value)}
-//                   className={styles.inputField}
-//                   placeholder="Enter pet ID"
-//                 />
-//               </div>
-
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet Name </label>
-//                 <input
-//                   type="text"
-//                   value={petName}
-//                   onChange={(e) => setPetName(e.target.value)}
-//                   className={styles.inputField}
-//                   placeholder="Enter pet name"
-//                 />
-//               </div>
-//             </div>
-
-//             <p className={styles.description}>
-//               To change pet status, select the appropriate status from the
-//               dropdown below and click the “Change Status” button.
-//             </p>
-
-//             <div className={styles.changeStatusSection}>
-//               <label className={styles["lable-div"]}>Pet Status </label>
-//               <select
-//                 value={selectedStatus}
-//                 onChange={(e) => setSelectedStatus(e.target.value)}
-//                 className={styles.selectField}
-//               >
-//                 <option value="">Select Status</option>
-//                 <option value="Available">Available</option>
-//                 <option value="Reserved">Reserved</option>
-//                 <option value="Sold Out">Sold Out</option>
-//                 <option value="Not Available">Not Available</option>
-//                 <option value="On Hold">On Hold</option>
-//               </select>
-//             </div>
-//             {selectedStatus && selectedStatus !== "Sold Out" && (
-//   <div className={styles.descriptionField} >
-//     <label className={styles["lable-div"]}>Description</label>
-//     <textarea
-//       value={detailData.notes || ""}
-//       onChange={(e) =>
-//         setDetailData((prev) => ({ ...prev, notes: e.target.value }))
-//       }
-//       className={styles.inputField}
-//       placeholder="Enter description..."
-//       style={{ height: "80px" }}
-//     />
-//   </div>
-// )}
-//             <div className={styles.warningBox}>
-//               <span className={styles.warningText}>
-//                 <span>⚠️</span>
-//                 Please update the status as soon as the situation changes to
-//                 help others stay informed and avoid confusion.
-//               </span>
-//             </div>
-
-//             <button className={styles.confirmBtnFull} onClick={handleSave}>
-//               Change Status
-//             </button>
-//           </div>
-//         </div>
-//       )}
-
-//       {showInnerPopup && <StatusInnerPopup />}
-//     </>
-//   );
-// };
-
-// export default ChangeStatus;
-
-
-// import React, { useState, useEffect } from "react";
-// import styles from "../../styles/pet-sales/chageStutus.module.css";
-
-// const ChangeStatus = ({ pet = null, onClose, onStatusChange }) => {
-//   const [selectedStatus, setSelectedStatus] = useState("");
-//   const [showInnerPopup, setShowInnerPopup] = useState(false);
-//   const [detailData, setDetailData] = useState({});
-//   const [errors, setErrors] = useState({});
-  
-//   // States for pet info
-//   const [petBreed, setPetBreed] = useState("");
-//   const [petId, setPetId] = useState("");
-//   const [petName, setPetName] = useState("");
-
-//   const [zaanvarHelpSell, setZaanvarHelpSell] = useState("");
-//   const [zaanvarRecommend, setZaanvarRecommend] = useState("");
-//   const [changePrice, setChangePrice] = useState("");
-//   const [newPrice, setNewPrice] = useState("");
-
-//   // 1. Set Initial Values from the 'pet' prop
-//   useEffect(() => {
-//     if (pet) {
-//       setPetBreed(pet.breed || pet.petBreed || "");
-//       // Handling both numeric id and formatted postId
-//       setPetId(pet.postId || pet.id || ""); 
-//       setPetName(pet.petName || "");
-//       setSelectedStatus(pet.status || pet.petStatus || "");
-//     }
-//   }, [pet]);
-
-//   useEffect(() => {
-//     document.body.style.overflow = "hidden";
-//     return () => (document.body.style.overflow = "auto");
-//   }, []);
-
-//   const handleSave = () => {
-//     if (!selectedStatus) return;
-
-//     if (selectedStatus === "Sold Out") {
-//       setDetailData(initDetailDataForStatus(selectedStatus));
-//       setErrors({});
-//       setShowInnerPopup(true);
-//     } else {
-//       if (onStatusChange) {
-//         onStatusChange({
-//           id: petId,
-//           petName: petName,
-//           status: selectedStatus,
-//           details: detailData,
-//         });
-//       }
-//       onClose();
-//     }
-//   };
-
-//   const handleSubmitInner = () => {
-//     const validation = validateForStatus(selectedStatus, detailData);
-//     if (!validation.valid) {
-//       setErrors(validation.errors);
-//       return;
-//     }
-
-//     if (onStatusChange) {
-//       onStatusChange({
-//         id: petId,
-//         petName: petName,
-//         status: selectedStatus,
-//         details: detailData,
-//         zaanvarHelpSell,
-//         zaanvarRecommend,
-//         priceChanged: changePrice === "yes" ? newPrice : null,
-//       });
-//     }
-//     setShowInnerPopup(false);
-//     onClose();
-//   };
-
-//   const initDetailDataForStatus = (status) => {
-//     switch (status) {
-//       case "Available": return { availableDate: "", notes: "" };
-//       case "Reserved": return { reservedUntil: "", reserverName: "", notes: "" };
-//       case "Sold Out": return { soldDate: "", buyerId: "", soldPrice: "" };
-//       case "Not Available": return { reason: "", expectedReturnDate: "" };
-//       case "On Hold": return { holdUntil: "", holdReason: "" };
-//       default: return {};
-//     }
-//   };
-
-//   const validateForStatus = (status, data) => {
-//     const errors = {};
-//     let valid = true;
-//     if (status === "Sold Out") {
-//       // Add validation if needed for the radio buttons or extra fields
-//     }
-//     return { valid, errors };
-//   };
-
-//   const StatusInnerPopup = () => {
-//     return (
-//       <div className={styles.overlay}>
-//         <div className={styles.modal}>
-//           <div className={styles.modalHeader}>
-//             <button className={styles.backBtn} onClick={() => setShowInnerPopup(false)}> ← </button>
-//             <h3 className={styles.modalTitle}>{selectedStatus} Details</h3>
-//           </div>
-
-//           <div className={styles.innerBody}>
-//             {selectedStatus === "Sold Out" && (
-//               <>
-//                 <div className={styles["wrapper-div"]}>
-//                   <img src="https://zaanvar-care.b-cdn.net/media/1760693132852-Congratulation.png" alt="congrats" width="50%" />
-//                 </div>
-//                 <p>Did Zaanvar directly help sell your pet?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label><input type="radio" name="zaanvarHelpSell" value="yes" checked={zaanvarHelpSell === "yes"} onChange={(e) => setZaanvarHelpSell(e.target.value)} /> Yes</label>
-//                   <label><input type="radio" name="zaanvarHelpSell" value="no" checked={zaanvarHelpSell === "no"} onChange={(e) => setZaanvarHelpSell(e.target.value)} /> No</label>
-//                 </div>
-//                 <p>Would you recommend Zaanvar to your friend?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label><input type="radio" name="zaanvarRecommend" value="yes" checked={zaanvarRecommend === "yes"} onChange={(e) => setZaanvarRecommend(e.target.value)} /> Yes</label>
-//                   <label><input type="radio" name="zaanvarRecommend" value="no" checked={zaanvarRecommend === "no"} onChange={(e) => setZaanvarRecommend(e.target.value)} /> No</label>
-//                 </div>
-//                 <p>Do you want to change the current price?</p>
-//                 <div className={styles["para-text"]}>
-//                   <label><input type="radio" name="changePrice" value="yes" checked={changePrice === "yes"} onChange={(e) => setChangePrice(e.target.value)} /> Yes</label>
-//                   <label><input type="radio" name="changePrice" value="no" checked={changePrice === "no"} onChange={(e) => setChangePrice(e.target.value)} /> No</label>
-//                 </div>
-//                 {changePrice === "yes" && (
-//                   <div>
-//                     <label>Enter Price</label>
-//                     <input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} placeholder="Enter new price" className={styles.inputField} />
-//                   </div>
-//                 )}
-//               </>
-//             )}
-//           </div>
-//           <div className={styles.buttonContainer}>
-//             <button className={styles.confirmBtn} onClick={handleSubmitInner}>Save</button>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   };
-
-//   return (
-//     <>
-//       {!showInnerPopup && (
-//         <div className={styles.overlay}>
-//           <div className={`${styles.modal} ${styles.changeStatusModal}`}>
-//             <div className={styles.modalHeader}>
-//               <button onClick={onClose} className={styles.backBtn}> ← </button>
-//               <h3 className={styles.modalTitle}>Change Status</h3>
-//             </div>
-
-//             <div className={styles.petInfoSection}>
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet Breed</label>
-//                 <input type="text" value={petBreed} readOnly className={styles.inputField} style={{backgroundColor: '#f0f0f0'}} />
-//               </div>
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet ID</label>
-//                 <input type="text" value={petId} readOnly className={styles.inputField} style={{backgroundColor: '#f0f0f0'}} />
-//               </div>
-//               <div className={styles.inputGroup}>
-//                 <label className={styles["lable-div"]}>Pet Name</label>
-//                 <input type="text" value={petName} readOnly className={styles.inputField} style={{backgroundColor: '#f0f0f0'}} />
-//               </div>
-//             </div>
-//  <p className={styles.description}>
-//             To change pet status, select the appropriate status from the
-//             dropdown below and click the “Change Status” button.
-//            </p>
-//             <div className={styles.changeStatusSection}>
-//               <label className={styles["lable-div"]}>Pet Status</label>
-//               <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className={styles.selectField}>
-//                 <option value="">Select Status</option>
-//                 <option value="Available">Available</option>
-//                 <option value="Reserved">Reserved</option>
-//                 <option value="Sold Out">Sold Out</option>
-//                 <option value="Not Available">Not Available</option>
-//                 <option value="On Hold">On Hold</option>
-//               </select>
-//             </div>
-//                 {selectedStatus && selectedStatus !== "Sold Out" && (
-//                     <div className={styles.descriptionField} >
-//                       <label className={styles["lable-div"]}>Description</label>
-//                       <textarea
-//                         value={detailData.notes || ""}
-//                         onChange={(e) =>
-//                           setDetailData((prev) => ({ ...prev, notes: e.target.value }))
-//                         }
-//                         className={styles.inputField}
-//                         placeholder="Enter description..."
-//                         style={{ height: "80px" }}
-//                       />
-//                     </div>
-//                   )}
-//             <div className={styles.warningBox}>
-//               <span className={styles.warningText}>
-//                 <span>⚠️</span>
-//                 Please update the status as soon as the situation changes to
-//                 help others stay informed and avoid confusion.
-//               </span>
-//             </div>
-
-//             <button className={styles.confirmBtnFull} onClick={handleSave}>Change Status</button>
-//           </div>
-//         </div>
-//       )}
-//       {showInnerPopup && <StatusInnerPopup />}
-//     </>
-//   );
-// };
-
-// export default ChangeStatus;
-
-
-
 
 import React, { useState, useEffect } from "react";
 import { WebApimanager } from "../utilities/WebApiManager";
 import styles from "../../styles/pet-sales/chageStutus.module.css";
 import useStore from "../state/useStore";
-// import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
   const { getJwtToken } = useStore();
@@ -703,6 +14,7 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
   const [showInnerPopup, setShowInnerPopup] = useState(false);
   const [detailData, setDetailData] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [apiProcessing, setApiProcessing] = useState({ loader: false, message: "" });
 
   // Radio button states for "Sold Out" flow
@@ -720,68 +32,139 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
     return () => (document.body.style.overflow = "auto");
   }, [pet]);
 
-  // Combined logic from your previous code
-  const handleSave = async () => {
+  const validateStatus = () => {
+    const errors = {};
+    
     if (!selectedStatus) {
-      setErrorMessage("Please select a status.");
+      errors.selectedStatus = "Please select a status.";
+    }
+    
+    if (selectedStatus === "Sold Out") {
+      if (!zaanvarHelpSell) {
+        errors.zaanvarHelpSell = "Please select if Zaanvar helped sell your pet.";
+      }
+      if (!zaanvarRecommend) {
+        errors.zaanvarRecommend = "Please select if you would recommend Zaanvar.";
+      }
+      if (changePrice === "yes" && !newPrice) {
+        errors.newPrice = "Please enter the new price.";
+      }
+      if (changePrice === "yes" && newPrice && parseFloat(newPrice) <= 0) {
+        errors.newPrice = "Price must be greater than 0.";
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    // Clear any previous errors
+    setErrorMessage("");
+    setValidationErrors({});
+    
+    if (!selectedStatus) {
+      setValidationErrors({ selectedStatus: "Please select a status." });
       return;
     }
 
+    // Check if Sold Out is selected - show inner popup first
     if (selectedStatus === "Sold Out") {
-      setErrorMessage("");
-      setShowInnerPopup(true); // Open the inner popup for Sold Out details
+      console.log("Sold Out selected, showing inner popup");
+      setShowInnerPopup(true);
+      return; // Don't proceed with API call yet
     } else {
-      // Logic for all other statuses
-      await triggerStatusUpdateAPI({
+      // For all other statuses, proceed with API call
+      const payload = {
         petStatus: selectedStatus,
         thanksNote: detailData.notes || "",
         statusDate: new Date().toISOString(),
-      });
+      };
+      await triggerStatusUpdateAPI(payload);
     }
   };
 
   const handleSubmitInner = async () => {
-    // Payload for Sold Out based on your requirements
+    // Validate the inner form fields
+    const errors = {};
+    if (!zaanvarHelpSell) {
+      errors.zaanvarHelpSell = "Please select if Zaanvar helped sell your pet.";
+    }
+    if (!zaanvarRecommend) {
+      errors.zaanvarRecommend = "Please select if you would recommend Zaanvar.";
+    }
+    if (changePrice === "yes" && !newPrice) {
+      errors.newPrice = "Please enter the new price.";
+    }
+    if (changePrice === "yes" && newPrice && parseFloat(newPrice) <= 0) {
+      errors.newPrice = "Price must be greater than 0.";
+    }
+    
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    
     const payload = {
       petStatus: selectedStatus,
       zaanvarHelpSell,
       zaanvarRecommend,
       price: changePrice === "yes" ? newPrice : pet?.price,
       statusDate: new Date().toISOString(),
+      thanksNote: detailData.notes || "",
     };
 
+    console.log("Submitting Sold Out payload:", payload);
     await triggerStatusUpdateAPI(payload);
   };
 
   const triggerStatusUpdateAPI = async (payload) => {
     try {
       setApiProcessing({ loader: true, message: "Updating..." });
+      setErrorMessage("");
       
       const response = await webApi.put(`vendorPetSales/update/${pet.id}`, payload);
 
       if (response.status === 200 || response.data?.status === "success") {
-        // Local state sync from your previous logic
-       if (typeof setPet === "function") {
-          setPet((prevPet) => ({
-            ...prevPet,
-            ...payload,
-            petStatus: payload.petStatus // Ensure the display field matches
-          }));
+        // Create updated pet object
+        const updatedPetData = {
+          ...pet,
+          petStatus: payload.petStatus,
+          price: payload.price || pet.price,
+          thanksNote: payload.thanksNote || pet.thanksNote,
+        };
+
+        // Update local state
+        if (typeof setPet === "function") {
+          setPet(updatedPetData);
         }
 
-        // toast.success("Status updated successfully!");
+        toast.success(`Status updated to "${payload.petStatus}" successfully!`);
         
-        // Pass info to parent if needed for list updates
-        if (onStatusChange) onStatusChange(selectedStatus, pet.id); 
+        // Pass the updated data to parent
+        if (onStatusChange) {
+          onStatusChange({
+            status: payload.petStatus,
+            petId: pet.id,
+            updatedPet: updatedPetData
+          });
+        }
         
+        // Close the inner popup first if it's open
+        setShowInnerPopup(false);
+        // Then close the main popup
         onClose();
       } else {
-        setErrorMessage(response.data?.message || "Failed to update.");
+        const errorMsg = response.data?.message || "Failed to update status.";
+        setErrorMessage(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error("Update Error:", err);
-      // toast.error("Failed to update status.");
-      setErrorMessage("Connection error.");
+      const errorMsg = err.response?.data?.message || "Connection error. Please try again.";
+      toast.error(errorMsg);
+      setErrorMessage(errorMsg);
     } finally {
       setApiProcessing({ loader: false, message: "" });
     }
@@ -791,8 +174,11 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
     <div className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <button className={styles.backBtn} onClick={() => setShowInnerPopup(false)}> ← </button>
-          <h3 className={styles.modalTitle}>{selectedStatus} Details</h3>
+          <button className={styles.backBtn} onClick={() => {
+            setShowInnerPopup(false);
+            setValidationErrors({});
+          }}> ← </button>
+          <h3 className={styles.modalTitle}>Sold Out Details</h3>
         </div>
 
         <div className={styles.innerBody}>
@@ -800,32 +186,120 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
             <img src="https://zaanvar-care.b-cdn.net/media/1760693132852-Congratulation.png" alt="congrats" width="50%" />
           </div>
           
-          <p>Did Zaanvar directly help sell your pet?</p>
+          <p>Did Zaanvar directly help sell your pet? <span className={styles.requiredStar}>*</span></p>
           <div className={styles["para-text"]}>
-            <label><input type="radio" value="yes" checked={zaanvarHelpSell === "yes"} onChange={(e) => setZaanvarHelpSell(e.target.value)} /> Yes</label>
-            <label><input type="radio" value="no" checked={zaanvarHelpSell === "no"} onChange={(e) => setZaanvarHelpSell(e.target.value)} /> No</label>
+            <label>
+              <input 
+                type="radio" 
+                value="yes" 
+                checked={zaanvarHelpSell === "yes"} 
+                onChange={(e) => {
+                  setZaanvarHelpSell(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, zaanvarHelpSell: "" }));
+                }} 
+              /> Yes
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                value="no" 
+                checked={zaanvarHelpSell === "no"} 
+                onChange={(e) => {
+                  setZaanvarHelpSell(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, zaanvarHelpSell: "" }));
+                }} 
+              /> No
+            </label>
           </div>
+          {validationErrors.zaanvarHelpSell && (
+            <p className={styles.errorText}>{validationErrors.zaanvarHelpSell}</p>
+          )}
 
-          <p>Would you recommend Zaanvar to your friend?</p>
+          <p>Would you recommend Zaanvar to your friend? <span className={styles.requiredStar}>*</span></p>
           <div className={styles["para-text"]}>
-            <label><input type="radio" value="yes" checked={zaanvarRecommend === "yes"} onChange={(e) => setZaanvarRecommend(e.target.value)} /> Yes</label>
-            <label><input type="radio" value="no" checked={zaanvarRecommend === "no"} onChange={(e) => setZaanvarRecommend(e.target.value)} /> No</label>
+            <label>
+              <input 
+                type="radio" 
+                value="yes" 
+                checked={zaanvarRecommend === "yes"} 
+                onChange={(e) => {
+                  setZaanvarRecommend(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, zaanvarRecommend: "" }));
+                }} 
+              /> Yes
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                value="no" 
+                checked={zaanvarRecommend === "no"} 
+                onChange={(e) => {
+                  setZaanvarRecommend(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, zaanvarRecommend: "" }));
+                }} 
+              /> No
+            </label>
           </div>
+          {validationErrors.zaanvarRecommend && (
+            <p className={styles.errorText}>{validationErrors.zaanvarRecommend}</p>
+          )}
 
           <p>Do you want to change the price?</p>
           <div className={styles["para-text"]}>
-            <label><input type="radio" value="yes" checked={changePrice === "yes"} onChange={(e) => setChangePrice(e.target.value)} /> Yes</label>
-            <label><input type="radio" value="no" checked={changePrice === "no"} onChange={(e) => setChangePrice(e.target.value)} /> No</label>
+            <label>
+              <input 
+                type="radio" 
+                value="yes" 
+                checked={changePrice === "yes"} 
+                onChange={(e) => {
+                  setChangePrice(e.target.value);
+                  if (e.target.value !== "yes") {
+                    setNewPrice("");
+                  }
+                  setValidationErrors(prev => ({ ...prev, newPrice: "" }));
+                }} 
+              /> Yes
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                value="no" 
+                checked={changePrice === "no"} 
+                onChange={(e) => {
+                  setChangePrice(e.target.value);
+                  setNewPrice("");
+                  setValidationErrors(prev => ({ ...prev, newPrice: "" }));
+                }} 
+              /> No
+            </label>
           </div>
           
           {changePrice === "yes" && (
-            <input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} placeholder="New price" className={styles.inputField} />
+            <>
+              <input 
+                type="number" 
+                value={newPrice} 
+                onChange={(e) => {
+                  setNewPrice(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, newPrice: "" }));
+                }} 
+                placeholder="Enter new price" 
+                className={styles.inputField} 
+              />
+              {validationErrors.newPrice && (
+                <p className={styles.errorText}>{validationErrors.newPrice}</p>
+              )}
+            </>
           )}
         </div>
 
         <div className={styles.buttonContainer}>
-          <button className={styles.confirmBtn} onClick={handleSubmitInner} disabled={apiProcessing.loader}>
-            {apiProcessing.loader ? "Saving..." : "Save"}
+          <button 
+            className={styles.confirmBtn} 
+            onClick={handleSubmitInner} 
+            disabled={apiProcessing.loader}
+          >
+            {apiProcessing.loader ? "Saving..." : "Confirm & Save"}
           </button>
         </div>
       </div>
@@ -842,33 +316,29 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
               <h3 className={styles.modalTitle}>Change Status</h3>
             </div>
 
-            <div className={styles.petInfoSection}>
-              <div className={styles.inputGroup}>
-                <label className={styles["lable-div"]}>Pet Breed</label>
-                <input type="text" value={pet?.breed || ""} readOnly className={styles.inputField} style={{ backgroundColor: "#f0f0f0" }} />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles["lable-div"]}>Pet ID</label>
-                <input type="text" value={pet?.id || ""} readOnly className={styles.inputField} style={{ backgroundColor: "#f0f0f0" }} />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles["lable-div"]}>Pet Name</label>
-                <input type="text" value={pet?.petName || ""} readOnly className={styles.inputField} style={{ backgroundColor: "#f0f0f0" }} />
-              </div>
-            </div>
-
             <div className={styles.changeStatusSection}>
-              <label className={styles["lable-div"]}>Pet Status</label>
-              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className={styles.selectField}>
-                 <option value="">Select Status</option>                 <option value="Available">Available</option>
-                 <option value="Reserved">Reserved</option>
-               <option value="Sold Out">Sold Out</option>
-                <option value="Not Available">Not Available</option>              
-                  <option value="On Hold">On Hold</option>
-                  <option value="Not for Sale">Not for Sale</option>
+              <label className={styles["lable-div"]}>Pet Status <span className={styles.requiredStar}>*</span></label>
+              <select 
+                value={selectedStatus} 
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setValidationErrors(prev => ({ ...prev, selectedStatus: "" }));
+                  setErrorMessage("");
+                }} 
+                className={styles.selectField}
+              >
+                <option value="">Select Status</option>                
+                <option value="Reserved">Reserved</option>
+                <option value="Sold Out">Sold Out</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Not for Sale">Not for Sale</option>
+                <option value="Ready for Sale">Ready for Sale</option>
               </select>
+              {validationErrors.selectedStatus && (
+                <p className={styles.errorText}>{validationErrors.selectedStatus}</p>
+              )}
             </div>
-
+            
             {selectedStatus && selectedStatus !== "Sold Out" && (
               <div className={styles.descriptionField}>
                 <label className={styles["lable-div"]}>Description</label>
@@ -882,10 +352,14 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
               </div>
             )}
 
-            <button className={styles.confirmBtnFull} onClick={handleSave} disabled={apiProcessing.loader}>
+            <button 
+              className={styles.confirmBtnFull} 
+              onClick={handleSave} 
+              disabled={apiProcessing.loader}
+            >
               {apiProcessing.loader ? "Processing..." : "Change Status"}
             </button>
-            {errorMessage && <p style={{ color: "red", fontSize: "12px" }}>{errorMessage}</p>}
+            {errorMessage && <p className={styles.errorText}>{errorMessage}</p>}
           </div>
         </div>
       )}
