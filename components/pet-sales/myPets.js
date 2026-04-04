@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import ChangeStatusForPet from "./ChangeStatusForPet";
@@ -12,12 +14,12 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
   const router = useRouter();
   const [selectedPet, setSelectedPet] = useState(null);
   const [showChangeStatus, setShowChangeStatus] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [petList, setPetList] = useState(pets);
 
-  // Force re-render when pets change
+  // Update petList when pets prop changes
   useEffect(() => {
     console.log("MyPets received new pets data, count:", pets.length);
-    setRefreshKey(prev => prev + 1);
+    setPetList(pets);
   }, [pets]);
 
   const statusClass = (status) => {
@@ -25,6 +27,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     if (s === "lost") return styles.statusLost;
     if (s === "found") return styles.statusFound;
     if (s === "adopt") return styles.statusAdopt;
+    if (s === "deleted") return styles.statusDeleted;
     return styles.statusDefault;
   };
 
@@ -32,6 +35,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     setSelectedPet(pet);
     setShowChangeStatus(true);
   };
+
   const handleAddBtnClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -46,20 +50,57 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     setIsAddPopupOpen(true);
   };
 
-  const handleAddEditSuccess = async () => {
-    console.log("Add/Edit popup closed, refreshing data...");
+  // Handle add/edit success - refresh data from server
+  const handleAddEditSuccess = async (savedPet) => {
+    console.log("Add/Edit popup closed, received pet:", savedPet);
     setIsAddPopupOpen(false);
     setEditingPet(null);
+    
+    // Always refresh data from server to get latest
     if (refreshPets) {
+      console.log("Refreshing data after add/edit...");
       const refreshedData = await refreshPets();
       console.log("Refreshed data count:", refreshedData?.length);
     }
   };
-  const handleStatusChangeSuccess = async () => {
-    console.log("Status changed, refreshing data...");
+
+   // Handle status change success - FIXED to only update the specific pet
+  const handleStatusChangeSuccess = async (result) => {
+    console.log("Status changed, result:", result);
     setShowChangeStatus(false);
+    
+    if (result) {
+      const { status, petId, updatedPet } = result;
+      
+      console.log("Updating pet with ID:", petId, "to status:", status);
+      
+      // Update only the specific pet that changed
+      setPetList(prevList => {
+        const updatedList = prevList.map(pet => {
+          // Match by id or _id
+          if (pet.id === petId || pet._id === petId) {
+            console.log("Found matching pet:", pet.petName, "updating status from", pet.petStatus, "to", status);
+            // Return the updated pet object
+            return { 
+              ...pet, 
+              petStatus: status,
+              ...updatedPet // Merge any other updated fields
+            };
+          }
+          // Return unchanged pet
+          return pet;
+        });
+        
+        console.log("Updated list length:", updatedList.length);
+        return updatedList;
+      });
+    }
+    
     setSelectedPet(null);
+    
+    // Optional: Refresh data from server to ensure consistency
     if (refreshPets) {
+      console.log("Refreshing data after status change...");
       const refreshedData = await refreshPets();
       console.log("Refreshed data count:", refreshedData?.length);
     }
@@ -67,7 +108,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
 
   return (
     <>
-      <div className={styles.tableContainer} key={refreshKey}>
+      <div className={styles.tableContainer}>
         <div className={styles.tableHeader}>
           <span className={styles.colSno}>S NO</span>
           <span className={styles.colName}>Pet Name</span>
@@ -77,17 +118,15 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
           <span className={styles.colActions}>Actions</span>
         </div>
 
-        {pets && pets.length > 0 ? (
-          pets.map((pet, index) => (
+        {petList && petList.length > 0 ? (
+          petList.map((pet, index) => (
             <div key={pet._id || pet.id || index} className={styles.tableRow}>
               <span className={`${styles.cell} ${styles.colSno}`}>
                 {(index + 1).toString().padStart(2, "0")}
               </span>
 
               <span className={`${styles.cell} ${styles.colName}`}>
-               
-                  <span>{pet.petName || "—"}</span>
-                
+                <span>{pet.petName || "—"}</span>
               </span>
 
               <span className={`${styles.cell} ${styles.colType}`}>
@@ -110,6 +149,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
                     className={styles.actionBtn}
                     title="Edit"
                     onClick={() => {
+                      console.log("Editing pet:", pet);
                       setEditingPet(pet);
                       setIsAddPopupOpen(true);
                     }}
@@ -118,7 +158,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
                   </button>
                   <button
                     className={`${styles.actionBtn} ${styles.actionDelete}`}
-                    title="Delete"
+                    title="Delete/Change Status"
                     onClick={() => handleDeleteClick(pet)}
                   >
                     <Delete />
@@ -134,10 +174,17 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
                   </button>
                 </div>
               </span>
-                <div className={styles.mobileCard} onClick={() => router.push({ pathname: `/my-pets/${pet.id || pet._id}` })}>
+              
+              <div className={styles.mobileCard} onClick={() => router.push({ pathname: `/my-pets/${pet.id || pet._id}` })}>
                 <div className={styles.mobileCardLeft}>
                   {pet.morePhotos && pet.morePhotos.length > 0 ? (
-                    <Image src={`${IMAGE_URL}${pet.morePhotos[0]}`} alt={pet.petName} width={56} height={56} className={styles.mobileAvatar} />
+                    <Image 
+                      src={`${IMAGE_URL}${pet.morePhotos[0]}`} 
+                      alt={pet.petName} 
+                      width={56} 
+                      height={56} 
+                      className={styles.mobileAvatar} 
+                    />
                   ) : (
                     <div className={styles.mobileAvatarPlaceholder} />
                   )}
@@ -156,15 +203,16 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
             </div>
           ))
         ) : (
-          <div className={styles.emptyState}>No puppies found.</div>
+          <div className={styles.emptyState}>No pets found.</div>
         )}
-          <div 
-        className={styles.addIconContainer} 
-        onClick={handleAddBtnClick}
-        style={{ cursor: 'pointer', zIndex: 100}}
-      >
-        <AddPetIcon className={styles.addIcon} />
-      </div>
+        
+        <div 
+          className={styles.addIconContainer} 
+          onClick={handleAddBtnClick}
+          style={{ cursor: 'pointer', zIndex: 100 }}
+        >
+          <AddPetIcon className={styles.addIcon} />
+        </div>
       </div>
 
       {showChangeStatus && selectedPet && (

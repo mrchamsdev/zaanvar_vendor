@@ -1,11 +1,14 @@
+
+
 import { useState, useEffect } from 'react';
 import styles from "../../styles/pet-sales/addNewAddressPopup.module.css";
 import AddNewAddressPopup from './addNewAddressPopup';
 
-const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
+const AddressDropdown = ({ formData, setFormData, userInfo, errors, petData }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [localNewAddresses, setLocalNewAddresses] = useState([]);
   const [userAddresses, setUserAddresses] = useState([]);
+  const [hasAddedTempAddress, setHasAddedTempAddress] = useState(false);
 
   // Load user addresses from userInfo
   useEffect(() => {
@@ -17,21 +20,91 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
   // Combine server addresses with locally added ones
   const allAddresses = [...userAddresses, ...localNewAddresses];
 
+  // Remove duplicates based on address ID
+  const uniqueAddresses = Array.from(
+    new Map(allAddresses.map(addr => [(addr.id || addr._id), addr])).values()
+  );
+
   // Sort addresses - default address first, then others
-  const sortedAddresses = [...allAddresses].sort((a, b) => {
-    // Default address comes first
+  const sortedAddresses = [...uniqueAddresses].sort((a, b) => {
     if (a.addressStatus === 'Default') return -1;
     if (b.addressStatus === 'Default') return 1;
     return 0;
   });
 
+  // Set the selected address ID when editing
+  useEffect(() => {
+    if (petData && petData.address && !formData.addressId && !hasAddedTempAddress) {
+      // Try to find matching address from user's addresses
+      const matchingAddress = userAddresses.find(addr => {
+        const addrCity = addr.townOrCity?.toLowerCase().trim();
+        const petCity = petData.address?.city?.toLowerCase().trim();
+        const addrPincode = addr.pinCode?.toString();
+        const petPincode = petData.address?.pincode?.toString();
+        
+        return addrCity === petCity && addrPincode === petPincode;
+      });
+      
+      if (matchingAddress) {
+        const addressId = matchingAddress.id || matchingAddress._id;
+        setFormData(prev => ({
+          ...prev,
+          addressId: addressId?.toString(),
+          address: {
+            street: matchingAddress.flatOrHouseNoOrBuildingOrCompanyOrApartment || "",
+            area: matchingAddress.areaOrStreetOrSectorOrVillage || "",
+            city: matchingAddress.townOrCity || "",
+            state: matchingAddress.state || "",
+            pincode: matchingAddress.pinCode || "",
+            landmark: matchingAddress.landmark || "",
+            country: matchingAddress.country || ""
+          }
+        }));
+      } else if (petData.address && userAddresses.length === 0) {
+        // Only add temp address once
+        setHasAddedTempAddress(true);
+        
+        const tempAddress = {
+          id: "temp_address",
+          _id: "temp_address",
+          flatOrHouseNoOrBuildingOrCompanyOrApartment: petData.address.street || "",
+          areaOrStreetOrSectorOrVillage: petData.address.area || "",
+          townOrCity: petData.address.city || "",
+          state: petData.address.state || "",
+          pinCode: petData.address.pincode || "",
+          landmark: petData.address.landmark || "",
+          country: petData.address.country || "",
+          addressStatus: "Active"
+        };
+        setLocalNewAddresses(prev => {
+          // Check if temp address already exists
+          const exists = prev.some(addr => addr.id === "temp_address");
+          if (!exists) {
+            return [...prev, tempAddress];
+          }
+          return prev;
+        });
+        setFormData(prev => ({
+          ...prev,
+          addressId: "temp_address",
+          address: {
+            street: petData.address.street || "",
+            area: petData.address.area || "",
+            city: petData.address.city || "",
+            state: petData.address.state || "",
+            pincode: petData.address.pincode || "",
+            landmark: petData.address.landmark || "",
+            country: petData.address.country || ""
+          }
+        }));
+      }
+    }
+  }, [petData, userAddresses, formData.addressId, setFormData, hasAddedTempAddress]);
+
   const handleNewAddressSaved = (addressObj, formattedAddress) => {
-    // Add to local list so it appears in dropdown
     setLocalNewAddresses(prev => [...prev, addressObj]);
     
-    // If this is a default address, update the userAddresses to ensure other addresses are marked as non-default
     if (addressObj.addressStatus === 'Default') {
-      // Update local state to mark other addresses as non-default
       setUserAddresses(prev => 
         prev.map(addr => ({
           ...addr,
@@ -40,12 +113,12 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
       );
     }
 
-    // Automatically select the newly created address
     setFormData(prev => ({
       ...prev,
       addressId: addressObj.id?.toString() || addressObj._id?.toString(),
       address: formattedAddress
     }));
+    setShowPopup(false);
   };
 
   const handleSelectChange = (e) => {
@@ -59,7 +132,6 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
       );
       
       if (selectedAddress) {
-        // Format address as object for API payload
         const formattedAddress = {
           street: selectedAddress.flatOrHouseNoOrBuildingOrCompanyOrApartment || "",
           area: selectedAddress.areaOrStreetOrSectorOrVillage || "",
@@ -78,7 +150,6 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
     }
   };
 
-  // Format address for display in dropdown
   const formatAddressDisplay = (item) => {
     const addressParts = [];
     
@@ -106,7 +177,6 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
     
     const displayText = addressParts.length > 0 ? addressParts.join(', ') : 'Address';
     
-    // Add " (Default)" suffix if it's the default address
     if (item.addressStatus === 'Default') {
       return `${displayText} (Default)`;
     }
@@ -114,30 +184,49 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors }) => {
     return displayText;
   };
 
+  // Get the current value for the select
+  const getSelectValue = () => {
+    if (formData.addressId) {
+      // Check if the addressId exists in the options
+      const exists = sortedAddresses.some(addr => 
+        (addr.id?.toString() === formData.addressId || addr._id?.toString() === formData.addressId)
+      );
+      if (exists) {
+        return formData.addressId;
+      }
+    }
+    return "";
+  };
+
   return (
     <div className={styles.addressDropdownContainer}>
-      <select 
-        className={`${styles['input-field']} ${errors.address ? styles.error : ''}`}
-        value={formData.addressId || ''} 
-        onChange={handleSelectChange}
-      >
-        <option value="">Select Address</option>
-        <option value="add_new" style={{ color: '#F5790C', fontWeight: '500' }}>
-          + Add New Address
-        </option>
-        {sortedAddresses.map((item) => {
-          const addressId = item.id || item._id;
-          const displayText = formatAddressDisplay(item);
-          
-          return (
-            <option key={addressId} value={addressId}>
-              {displayText}
-            </option>
-          );
-        })}
-      </select>
-
-
+      <div className={styles.selectWrapper}>
+        <select 
+          className={`${styles['input-field']} ${errors.address ? styles.error : ''}`}
+          value={getSelectValue()} 
+          onChange={handleSelectChange}
+        >
+          <option value="">Select Address</option>
+          <option value="add_new" style={{ color: '#F5790C', fontWeight: '500' }}>
+            + Add New Address
+          </option>
+          {sortedAddresses.map((item) => {
+            const addressId = item.id || item._id;
+            const displayText = formatAddressDisplay(item);
+            
+            return (
+              <option key={addressId} value={addressId}>
+                {displayText}
+              </option>
+            );
+          })}
+        </select>
+        <div className={styles.dropdownArrow}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
       {showPopup && (
         <AddNewAddressPopup
           onClose={() => setShowPopup(false)}

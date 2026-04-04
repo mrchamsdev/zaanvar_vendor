@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
@@ -53,9 +53,22 @@ export default function ProfilePage() {
     "https://zaanvarprods3.b-cdn.net/media/1773901839732-petdaycare.png",
     "https://zaanvarprods3.b-cdn.net/media/1773901858062-Petgrooming.png",
   ];
-  const images = branch?.images?.length ? branch.images
-               : company?.images?.length ? company.images
-               : PLACEHOLDERS;
+ const rawImages = branch?.images?.length ? branch.images
+                   : company?.images?.length ? company.images
+                   : [];
+
+  const images = useMemo(() => {
+    if (!rawImages.length) return PLACEHOLDERS;
+    
+    return rawImages.map(img => {
+      if (!img) return PLACEHOLDERS[0];
+      // If it's already a full URL, return it. Otherwise, prepend IMAGE_URL
+      if (img.startsWith("http")) return img;
+      const baseUrl = IMAGE_URL?.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
+      const cleanPath = img.startsWith('/') ? img.slice(1) : img;
+      return `${baseUrl}${cleanPath}`;
+    });
+  }, [rawImages]);
 
   /* Company creation date */
   const startDate = company?.experienceDateOfCreation || company?.createdAt;
@@ -77,13 +90,16 @@ export default function ProfilePage() {
   ];
 
   /* Feature / categories / pets */
-  const featureTypes  = branch?.petShops?.[0]?.categories || [];
+  const featureTypes  = branch?.petShops?.[0]?.categories || []; 
+  
   const categories    = company?.servicesProvided || [];
-  const availablePets = [
-    ...(branch?.petSales?.[0]?.breedsName || []),
-    ...(branch?.petShops?.[0]?.AvailablePets || []),
-    ...(branch?.petShops?.[0]?.supportedPets || []),
-  ].filter(Boolean);
+const availablePets = useMemo(() => {
+    return [
+      ...(Array.isArray(branch?.petSales?.[0]?.breedsName) ? branch.petSales[0].breedsName : []),
+      ...(Array.isArray(branch?.petShops?.[0]?.AvailablePets) ? branch.petShops[0].AvailablePets : []),
+      ...(Array.isArray(branch?.petShops?.[0]?.supportedPets) ? branch.petShops[0].supportedPets : []),
+    ].filter(Boolean);
+  }, [branch]); // Only recalculates when the branch changes
 
   const topbarButtons = [
     // { label: "+ Add Rooms",    color: "purple", action: "addRooms" },

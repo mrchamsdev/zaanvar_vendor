@@ -1,6 +1,8 @@
+
+
 import React, { useEffect, useState } from "react";
 import styles from "../../styles/pet-sales/myPuppies.module.css";
-import { Delete, Edit, Filter, View2,AddPetIcon } from "@/public/images/SVG";
+import { Delete, Edit, Filter, View2, AddPetIcon } from "@/public/images/SVG";
 import AddNewPuppyPopup from "./AddNewPuppyPopUp";
 import { useRouter } from "next/router";
 import ChangeStatus from "./ChangeStatus";
@@ -27,14 +29,12 @@ const MyPuppies = ({
   const [showChangeStatus, setShowChangeStatus] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
   const [petList, setPetList] = useState(pets);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const Router = useRouter();
 
-  // Update petList when pets prop changes
+  // Update petList when pets prop changes (initial load)
   useEffect(() => {
     setPetList(pets);
-    setRefreshKey(prev => prev + 1);
   }, [pets]);
 
   const statusClass = (status) => {
@@ -53,7 +53,8 @@ const MyPuppies = ({
     setSelectedPet(pet);
     setShowChangeStatus(true);
   };
- const handleAddBtnClick = (e) => {
+
+  const handleAddBtnClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     console.log("Add button clicked");
@@ -67,27 +68,66 @@ const MyPuppies = ({
     setShowForm(true);
   };
 
-  const handleAddEditSuccess = async () => {
-    console.log("Add/Edit popup closed, refreshing data...");
-    setShowForm(false);
-    setEditingPet(null);
-    if (refreshPets) {
-      const refreshedData = await refreshPets();
-      console.log("Refreshed data count:", refreshedData?.length);
+const handleAddEditSuccess = (savedPet) => {
+  console.log("Add/Edit puppy popup closed, received pet:", savedPet);
+  setShowForm(false);
+  setEditingPet(null);
+  
+  if (savedPet && savedPet !== false) {
+    if (editingPet) {
+      // Update existing pet
+      setPetList(prevList => 
+        prevList.map(pet => 
+          (pet.id === editingPet.id || pet._id === editingPet._id) 
+            ? { ...pet, ...savedPet } // Merge updates
+            : pet
+        )
+      );
+    } else if (savedPet.id || savedPet._id) {
+      // Add new pet to the list (add to beginning)
+      setPetList(prevList => [savedPet, ...prevList]);
     }
-  };
+  }
+};
 
-  const handleStatusChangeSuccess = async () => {
-    console.log("Status changed, refreshing data...");
-    setShowChangeStatus(false);
-    setSelectedPet(null);
-    if (refreshPets) {
-      const refreshedData = await refreshPets();
-      console.log("Refreshed data count:", refreshedData?.length);
-    }
-  };
+  // Handle status change - update local state without refresh
+ const handleStatusChangeSuccess = async (updatedPet) => {
+  console.log("Status changed, updating local state:", updatedPet);
+  setShowChangeStatus(false);
+  setSelectedPet(null);
+  
+  // Update local state immediately for better UX
+  if (updatedPet) {
+    setPetList(prevList =>
+      prevList.map(pet =>
+        (pet.id === updatedPet.id || pet._id === updatedPet._id)
+          ? { 
+              ...pet, 
+              petStatus: updatedPet.petStatus,
+              ...updatedPet
+            }
+          : pet
+      )
+    );
+  }
+  
+  // Refresh data from server to ensure consistency
+  if (refreshPets) {
+    console.log("Refreshing data from server after status change...");
+    await refreshPets();
+  }
+};
 
-  const handleLocalUpdate = ({ status, details }) => {
+  const handleStatusUpdate = (data) => {
+  // data contains { petId, status, updatedPet }
+  setAllPets(currentPets => 
+    currentPets.map(item => 
+      item.id === data.petId ? { ...item, petStatus: data.status } : item
+    )
+  );
+};
+
+  const handleLocalUpdate = ({ status, details, updatedPet }) => {
     // Update local state immediately for better UX
     setPetList(prev =>
       prev.map(p =>
@@ -96,7 +136,7 @@ const MyPuppies = ({
           : p
       )
     );
-    handleStatusChangeSuccess();
+    handleStatusChangeSuccess(updatedPet || selectedPet);
   };
 
   // Filter pets based on status
@@ -117,14 +157,14 @@ const MyPuppies = ({
 
   return (
     <>
-      <div className={styles.tableContainer} key={refreshKey}>
+      <div className={styles.tableContainer}>
         {/* ── Desktop / Tablet header ── */}
         <div className={styles.tableHeader}>
           <span className={styles.colSno}>S NO</span>
           <span className={styles.colName}>Puppy Name</span>
           <span className={styles.colType}>Puppy Type</span>
           <span className={styles.colBreed}>Puppy Breed</span>
-            <span className={styles.colStatus}>Status</span>
+          <span className={styles.colStatus}>Status</span>
           <span className={styles.colPrice}>Price</span>
           <span className={styles.colActions}>Actions</span>
         </div>
@@ -194,64 +234,66 @@ const MyPuppies = ({
               </span>
 
               {/* ── Mobile card layout ── */}
-            
-                <div className={styles.mobileCard} onClick={() =>
-                  Router.push({ pathname: `/my-puppies/${pet.postId || pet.id}` })
-                }>
-                  <div className={styles.mobileCardLeft}>
-                    {pet.morePhotos && pet.morePhotos.length > 0 ? (
-                      <Image
-                        src={`${IMAGE_URL}${pet.morePhotos[0]}`}
-                        alt={pet.petName}
-                        width={56}
-                        height={56}
-                        className={styles.mobileAvatar}
-                      />
-                    ) : (
-                      <div className={styles.mobileAvatarPlaceholder} />
-                    )}
-                  </div>
+              <div className={styles.mobileCard} onClick={() =>
+                Router.push({ pathname: `/my-puppies/${pet.postId || pet.id}` })
+              }>
+                <div className={styles.mobileCardLeft}>
+                  {pet.morePhotos && pet.morePhotos.length > 0 ? (
+                    <Image
+                      src={`${IMAGE_URL}${pet.morePhotos[0]}`}
+                      alt={pet.petName}
+                      width={56}
+                      height={56}
+                      className={styles.mobileAvatar}
+                    />
+                  ) : (
+                    <div className={styles.mobileAvatarPlaceholder} />
+                  )}
+                </div>
 
-                  <div className={styles.mobileCardBody}>
-                    <p className={styles.mobilePetName}>{pet.breed || "—"}</p>
-                    <p className={styles.mobilePetSub}>
-                      {pet.petType || "—"} , {pet.petGender || "—"}
-                    </p>
-                    <p className={styles.mobilePetSub}>
-                      {pet.petAge || "—"}
-                    </p>
-                  </div>
+                <div className={styles.mobileCardBody}>
+                  <p className={styles.mobilePetName}>{pet.breed || "—"}</p>
+                  <p className={styles.mobilePetSub}>
+                    {pet.petType || "—"} , {pet.petGender || "—"}
+                  </p>
+                  <p className={styles.mobilePetSub}>
+                    {pet.petAge || "—"}
+                  </p>
+                </div>
 
-                  <div className={styles.mobileCardRight}>
-                    <p className={styles.mobilePetSub}>
-                      {pet.price ? `₹ ${pet.price}/-` : "—"}
-                    </p>
-                    <span className={`${styles.statusBadge} ${statusClass(pet.petStatus)}`}>
-                      {pet.petStatus || "—"}
-                    </span>
-                  </div>
+                <div className={styles.mobileCardRight}>
+                  <p className={styles.mobilePetSub}>
+                    {pet.price ? `₹ ${pet.price}/-` : "—"}
+                  </p>
+                  <span className={`${styles.statusBadge} ${statusClass(pet.petStatus)}`}>
+                    {pet.petStatus || "—"}
+                  </span>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className={styles.emptyState}>No puppies found.</div>
-          )}
-              <div 
-        className={styles.addIconContainer} 
-        onClick={handleAddBtnClick}
-        style={{ cursor: 'pointer', zIndex: 100}}
-      >
-        <AddPetIcon className={styles.addIcon} />
-      </div>
+            </div>
+          ))
+        ) : (
+          <div className={styles.emptyState}>No puppies found.</div>
+        )}
+        
+        <div 
+          className={styles.addIconContainer} 
+          onClick={handleAddBtnClick}
+          style={{ cursor: 'pointer', zIndex: 100 }}
+        >
+          <AddPetIcon className={styles.addIcon} />
         </div>
+      </div>
+      
       {/* Delete/Status Change Popup */}
       {showChangeStatus && selectedPet && (
-        <ChangeStatus
-          pet={selectedPet}
-          onClose={() => setShowChangeStatus(false)}
-          onStatusChange={handleLocalUpdate}
-        />
-      )}
+  <ChangeStatus
+    pet={selectedPet}
+    setPet={setSelectedPet}
+    onClose={() => setShowChangeStatus(false)}
+    onStatusChange={handleLocalUpdate}
+  />
+)}
 
       {/* Add/Edit Puppy Popup */}
       {showForm && (

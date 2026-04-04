@@ -3,12 +3,12 @@ import MyPets from "@/components/pet-sales/myPets";
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 export default function Index() {
   const { getJwtToken, getUserInfo } = useStore();
   const jwttoken = getJwtToken();
-  const webApi = new WebApimanager(jwttoken);
+  const webApi = useMemo(() => new WebApimanager(jwttoken), [jwttoken]);
 
   const [myPetData, setMyPetData] = useState([]);
   const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -47,7 +47,20 @@ export default function Index() {
   useEffect(() => {
     FetchAllData();
   }, [FetchAllData]);
-
+const handleAddEditSuccess = async (success) => {
+    if (success) {
+      setIsAddPopupOpen(false);
+      setEditingPet(null);
+      
+      if (refreshPets) {
+        console.log("Refreshing list after add/edit...");
+        await refreshPets(); 
+      }
+    } else {
+      setIsAddPopupOpen(false);
+      setEditingPet(null);
+    }
+  };
   const refreshPets = useCallback(async () => {
     console.log("RefreshPets called - fetching fresh data...");
     const freshData = await FetchAllData();
@@ -68,6 +81,7 @@ export default function Index() {
         setEditingPet={setEditingPet}
         refreshPets={refreshPets}
         editingPet={editingPet}
+        handleAddEditSuccess={handleAddEditSuccess}
       />
     </Layout>
   );

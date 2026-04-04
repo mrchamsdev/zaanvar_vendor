@@ -412,7 +412,7 @@ const ImageCropperModal = ({ open, image, onClose, onCropComplete }) => {
                 opacity: isProcessing || !croppedAreaPixels ? 0.6 : 1,
               }}
             >
-              {isProcessing ? "Processing..." : "Crop"}
+              {isProcessing ? "Processing..." : "Upload"}
             </button>
           </div>
         </div>

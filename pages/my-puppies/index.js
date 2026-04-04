@@ -1,7 +1,7 @@
 import Layout from "@/components/pet-sales/layout";
 import MyPuppies from "@/components/pet-sales/myPuppins"; // Ensure the filename is 'myPuppins'
 import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 
@@ -15,7 +15,7 @@ const Index = () => {
 
   const { getJwtToken } = useStore();
   const jwttoken = getJwtToken();
-  const webApi = new WebApimanager(jwttoken);
+  const webApi = useMemo(() => new WebApimanager(jwttoken), [jwttoken]);
 
   const [myPetData, setMyPetData] = useState([]);
   const [showForm, setShowForm] = useState(false);

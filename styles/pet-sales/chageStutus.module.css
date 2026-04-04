@@ -9,7 +9,25 @@
   padding: 20px;
   backdrop-filter: blur(2px);
 }
+.requiredStar {
+  color: red;
+  margin-left: 4px;
+}
 
+.errorText {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+.inputField.error {
+  border-color: red;
+}
+
+.selectField.error {
+  border-color: red;
+}
 .modal {
   background: #fff;
   /* padding: 24px; */

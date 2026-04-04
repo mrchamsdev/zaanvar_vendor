@@ -13,6 +13,7 @@ import AddressDropdown from "./addAddressDropDown";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 import { IMAGE_URL } from "@/components/utilities/Constants";
+import SearchableDropdown from "../register/FilterDropDown";
 
 const calculateAge = (dateOfBirth) => {
   if (!dateOfBirth) return "";
@@ -52,7 +53,7 @@ const AddNewPuppyPopup = ({
   const [imageToCrop, setImageToCrop] = useState(null);
   const [filesToCrop, setFilesToCrop] = useState([]);
   const [isCropping, setIsCropping] = useState(false);
-const vaccMenuRef = useRef(null);
+  const vaccMenuRef = useRef(null);
   const [breedOptions, setBreedOptions] = useState([]);
   const [breed, setBreed] = useState([]);
   const [showVaccDropdown, setShowVaccDropdown] = useState(false);
@@ -112,6 +113,14 @@ const vaccMenuRef = useRef(null);
     negotiable: "",
     mother: "",
     father: "",
+    status: "",
+    isTransportService: "",
+    haveParents: "select",
+    fatherId: "",
+    motherId: "",
+    petVariety: "",
+    numberVisibility: false,
+    howManyVaccinationsDone: [],
   });
 
   // Fetch user's pets for father/mother selection
@@ -138,6 +147,7 @@ const vaccMenuRef = useRef(null);
       });
     };
   }, []);
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (vaccMenuRef.current && !vaccMenuRef.current.contains(event.target)) {
@@ -178,28 +188,56 @@ const vaccMenuRef = useRef(null);
     }
   }, []);
 
-  // Populate form when editing
+  // Populate form when editing - EXACT MAPPING from API
   useEffect(() => {
     if (petData) {
-      const petAddressId = petData?.addressId || petData?.address?.id || petData?.address?._id;
-
-      const selectedAddress = userInfo?.addresses?.find((addr) => {
-        // Match by ID if available
-        if (petAddressId && (addr.id?.toString() === petAddressId.toString() || addr._id?.toString() === petAddressId.toString())) {
-          return true;
+      // Find matching address from user's addresses
+      let selectedAddress = null;
+      
+      if (petData.address) {
+        selectedAddress = userInfo?.addresses?.find((addr) => {
+          const addrCity = addr.townOrCity?.toLowerCase().trim();
+          const petCity = petData.address.city?.toLowerCase().trim();
+          const addrPincode = addr.pinCode?.toString();
+          const petPincode = petData.address.pincode?.toString();
+          
+          return addrCity === petCity && addrPincode === petPincode;
+        });
+      }
+      
+      if (!selectedAddress && userInfo?.addresses?.length > 0) {
+        selectedAddress = userInfo.addresses[0];
+      }
+      
+      // Parse weight to get value and unit
+      let weightValue = "";
+      let weightUnit = "";
+      if (petData.weight) {
+        const weightParts = petData.weight.split(" ");
+        weightValue = weightParts[0] || "";
+        weightUnit = weightParts[1] || "";
+      }
+      
+      // Determine haveParents value
+      let haveParentsValue = "select";
+      if (petData.father || petData.mother) {
+        if (petData.father && petData.mother) {
+          haveParentsValue = "Both Father and Mother";
+        } else if (petData.father) {
+          haveParentsValue = "Only Father";
+        } else if (petData.mother) {
+          haveParentsValue = "Only Mother";
         }
-        // Fallback: Match by address details
-        if (petData.address) {
-          return (
-            addr.townOrCity === petData.address.city &&
-            addr.pinCode === petData.address.pincode &&
-            (addr.flatOrHouseNoOrBuildingOrCompanyOrApartment === petData.address.street || 
-             addr.areaOrStreetOrSectorOrVillage === petData.address.area)
-          );
-        }
-        return false;
-      }) || (userInfo?.addresses?.length > 0 ? userInfo.addresses[0] : null);
-
+      } else if (petData.doesThisPetHaveParents === "Both") {
+        haveParentsValue = "Both Father and Mother";
+      } else if (petData.doesThisPetHaveParents === "Father") {
+        haveParentsValue = "Only Father";
+      } else if (petData.doesThisPetHaveParents === "Mother") {
+        haveParentsValue = "Only Mother";
+      } else {
+        haveParentsValue = "Don't Know";
+      }
+      
       setFormData({
         petName: petData.petName || "",
         petAge: petData.petAge || "",
@@ -207,10 +245,8 @@ const vaccMenuRef = useRef(null);
         color: petData.color || "",
         breed: petData.breed || "",
         additionalInfo: petData.description || petData.additionalInfo || "",
-        weight: petData?.weight?.endsWith("kg") || petData?.weight?.endsWith("lb")
-          ? petData.weight.split(" ")[0]
-          : petData?.weight || "",
-        petWeightIn: petData?.weight?.endsWith("kg") ? "kg" : "lb",
+        weight: weightValue,
+        petWeightIn: weightUnit,
         vaccinated: petData.vaccinated || null,
         kci: petData.kciRegistration || petData.kci || "",
         championship: petData.championship || "",
@@ -218,33 +254,34 @@ const vaccMenuRef = useRef(null);
         skills: petData.skills || "",
         instagramLink: petData.instagramLink || "",
         petGender: petData.petGender || "",
-        dateOfBirth: petData.dateOfBirth ? petData.dateOfBirth.split("T")[0] : "",
         spayedOrNeutered: petData.spayedOrNeutered || "",
+        dateOfBirth: petData.dateOfBirth ? petData.dateOfBirth.split("T")[0] : "",
         medication: petData.medication || "",
+        howManyVaccinationsDone: petData.howManyVaccinationsDone || [],
         size: petData.size || "",
         healthCondition: petData.healthCondition || petData.doesYourPetHasAnyHealthIssues || "",
         microchipNo: petData.microchipNo || "",
         howmanyTimesBreedingDone: petData.howmanyTimesBreedingDone || "",
-        addressId: selectedAddress?.id?.toString() || selectedAddress?._id?.toString() || petAddressId?.toString() || "",
+        addressId: selectedAddress?.id?.toString() || selectedAddress?._id?.toString() || "",
         address: {
-          street: petData.address?.street || "",
-          area: petData.address?.area || "",
-          city: petData.address?.city || "",
-          state: petData.address?.state || "",
-          pincode: petData.address?.pincode || "",
-          landmark: petData.address?.landmark || "",
-          country: petData.address?.country || ""
+          street: petData.address?.street || selectedAddress?.flatOrHouseNoOrBuildingOrCompanyOrApartment || "",
+          area: petData.address?.area || selectedAddress?.areaOrStreetOrSectorOrVillage || "",
+          city: petData.address?.city || selectedAddress?.townOrCity || "",
+          state: petData.address?.state || selectedAddress?.state || "",
+          pincode: petData.address?.pincode || selectedAddress?.pinCode || "",
+          landmark: petData.address?.landmark || selectedAddress?.landmark || "",
+          country: petData.address?.country || selectedCountryName || selectedAddress?.country || ""
         },
         isTransportService: petData.transportService || "",
         price: petData.price || "",
-        haveParents: petData.doesThisPetHaveParents === "Both" ? "Yes" : (petData.doesThisPetHaveParents || "select"),
+        haveParents: haveParentsValue,
         negotiable: petData.negotiable || "",
         fatherId: petData.father || "",
         motherId: petData.mother || "",
         petVariety: petData.petVariety || petData.petsVariety || "",
         numberVisibility: petData.numberVisibility === "on",
         howManyVaccinationsDone: petData.howManyVaccinationsDone || [],
-        status: petData.petStatus || ""
+        status: petData.petStatus || "select"
       });
 
       // Show existing images from server
@@ -285,7 +322,7 @@ const vaccMenuRef = useRef(null);
         },
         isTransportService: "", price: "", haveParents: "select",
         negotiable: "", fatherId: "", motherId: "", petVariety: "", numberVisibility: false,
-        howManyVaccinationsDone: []
+        howManyVaccinationsDone: [], status: "select",
       });
       setImageFiles([]);
       setImagePreviews([]);
@@ -293,21 +330,17 @@ const vaccMenuRef = useRef(null);
       setVideoPreviews([]);
       setErrorMessage("");
     }
-  }, [petData, userInfo]);
+  }, [petData, userInfo, selectedCountryName]);
 
   // Clear address error as soon as an address is selected/added
   useEffect(() => {
     if (formData.addressId) {
       setErrors((prev) => {
         const { address, ...rest } = prev;
-        if (!hasSubmitted) {
-          const { file, video } = rest;
-          return { file: file || "", video: video || "" };
-        }
         return rest;
       });
     }
-  }, [formData.addressId, hasSubmitted]);
+  }, [formData.addressId]);
 
   // Fetch breeds when editing
   useEffect(() => {
@@ -348,24 +381,64 @@ const vaccMenuRef = useRef(null);
   };
 
   const handleInputChange = (field, value) => {
-    if (field === "weight") value = value.replace(/[^0-9]/g, "");
+    if (field === "weight") {
+      value = value.replace(/[^0-9]/g, "");
+    }
+
+    if (field === "dateOfBirth") {
+      const selectedDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedYear = selectedDate.getFullYear();
+      const currentYear = today.getFullYear();
+      const isValidDate = !isNaN(selectedDate.getTime());
+
+      if (value && isValidDate) {
+        if (selectedDate > today) {
+          setErrors((prev) => ({ 
+            ...prev, 
+            dateOfBirth: "Date of Birth cannot be in the future." 
+          }));
+        } else if (selectedYear < 1900 || selectedYear > currentYear) {
+          setErrors((prev) => ({ 
+            ...prev, 
+            dateOfBirth: `Please enter a valid year between 1900 and ${currentYear}.` 
+          }));
+        } else {
+          setErrors((prev) => ({ ...prev, dateOfBirth: "" }));
+        }
+      } else if (value && value.length >= 4) {
+        setErrors((prev) => ({ ...prev, dateOfBirth: "Invalid date format." }));
+      } else {
+        setErrors((prev) => ({ ...prev, dateOfBirth: "" }));
+      }
+    }
+
     if (field === "instagramLink") {
       setErrors((prev) => ({
         ...prev,
         instagramLink: value && !instagramRegex.test(value)
-          ? "Please check your Instagram URL & enter a valid Instagram URL (ex: https://instagram.com/john_doe)"
+          ? "Please check your Instagram URL (ex: https://instagram.com/user)"
           : "",
       }));
     }
-    if (field === "dateOfBirth") {
-      const selectedDate = new Date(value);
-      const today = new Date();
-      if (selectedDate > today) {
-        setErrors(prev => ({ ...prev, dateOfBirth: "Date of Birth cannot be in the future." }));
-      } else {
-        setErrors(prev => ({ ...prev, dateOfBirth: "" }));
+
+    if (field === "haveParents") {
+      if (value === "Only Father") {
+        setFormData((prev) => ({ ...prev, haveParents: value, motherId: "" }));
+        return;
+      } else if (value === "Only Mother") {
+        setFormData((prev) => ({ ...prev, haveParents: value, fatherId: "" }));
+        return;
+      } else if (value === "Don't Know") {
+        setFormData((prev) => ({ ...prev, haveParents: value, fatherId: "", motherId: "" }));
+        return;
+      } else if (value === "Both Father and Mother") {
+        setFormData((prev) => ({ ...prev, haveParents: value }));
+        return;
       }
     }
+
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -481,17 +554,12 @@ const vaccMenuRef = useRef(null);
     });
   };
 
-  const todayString = new Date().toISOString().split("T")[0];
-
   const handleDeleteMedia = async (index, type) => {
     const isPhoto = type === "photo";
     const files = isPhoto ? imageFiles : videoFiles;
     const fileToRemove = files[index];
 
     if (fileToRemove === "existing") {
-      const confirmDelete = window.confirm(`Permanently delete this ${type}?`);
-      if (!confirmDelete) return;
-
       try {
         setApiProcessing({ loader: true, message: `Deleting ${type}...` });
         const endpoint = isPhoto 
@@ -569,19 +637,32 @@ const vaccMenuRef = useRef(null);
 
   const validate = () => {
     const newErrors = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!formData.dateOfBirth?.trim()) {
+      newErrors.dateOfBirth = "Date of Birth is required.";
+    } else {
+      const dob = new Date(formData.dateOfBirth);
+      const year = dob.getFullYear();
+      
+      if (dob > today) {
+        newErrors.dateOfBirth = "Date of Birth cannot be in the future.";
+      } else if (year < 1900) {
+        newErrors.dateOfBirth = "Year must be 1900 or later.";
+      }
+    }
     if (!formData.petName?.trim()) newErrors.petName = "Pet Name is required.";
     if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
-    if (!formData.dateOfBirth?.trim()) newErrors.dateOfBirth = "Date of Birth is required.";
     if (!formData.color?.trim() || formData.color === "Select Color") newErrors.color = "Pet color is required.";
     if (!String(formData.weight).trim()) newErrors.weight = "Pet weight is required.";
-    else if (!formData.petWeightIn) newErrors.weight = "Select pet weight type";
+    else if (!formData.petWeightIn) newErrors.petWeightIn = "Select pet weight type";
     if (!formData.petType || formData.petType === "select") newErrors.petType = "Pet Type is required.";
     if (!formData.petGender || formData.petGender === "select") newErrors.petGender = "Pet Gender is required.";
     if (!formData.breed || formData.breed === "select") newErrors.breed = "Pet Breed is required.";
-    if (!formData.addressId) newErrors.address = "Address is required.";
-   
+    if (!formData.addressId && !petData?.address) newErrors.address = "Address is required.";
     if (!formData.price?.trim()) newErrors.price = "Price is required.";
-   
+    if (!formData.status || formData.status === "select") newErrors.status = "Status is required.";
     
     return newErrors;
   };
@@ -599,6 +680,101 @@ const vaccMenuRef = useRef(null);
     pet.id !== petData?.id &&
     (formData.breed === "select" || formData.breed === "" || pet.breed === formData.breed)
   );
+
+  // Function to render father/mother fields based on selection
+  const renderParentFields = () => {
+    const { haveParents } = formData;
+    
+    if (haveParents === "Only Father") {
+      return (
+        <div style={{ width: isMobile ? "100%" : "48%" }}>
+          <p>Father</p>
+          <div className={styles["form-input-container"]}>
+            <select
+              value={formData.fatherId}
+              onChange={(e) => handleInputChange("fatherId", e.target.value)}
+              className={styles.selectField}
+              style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
+              disabled={!formData.breed || formData.breed === "select"}
+            >
+              <option value="">Select Father</option>
+              {filteredFathers.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.petName} ({pet.breed})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      );
+    } else if (haveParents === "Only Mother") {
+      return (
+        <div style={{ width: isMobile ? "100%" : "48%" }}>
+          <p>Mother</p>
+          <div className={styles["form-input-container"]}>
+            <select
+              value={formData.motherId}
+              onChange={(e) => handleInputChange("motherId", e.target.value)}
+              className={styles.selectField}
+              style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
+              disabled={!formData.breed || formData.breed === "select"}
+            >
+              <option value="">Select Mother</option>
+              {filteredMothers.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.petName} ({pet.breed})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      );
+    } else if (haveParents === "Both Father and Mother") {
+      return (
+        <>
+          <div style={{ width: isMobile ? "100%" : "48%" }}>
+            <p>Father</p>
+            <div className={styles["form-input-container"]}>
+              <select
+                value={formData.fatherId}
+                onChange={(e) => handleInputChange("fatherId", e.target.value)}
+                className={styles.selectField}
+                style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
+                disabled={!formData.breed || formData.breed === "select"}
+              >
+                <option value="">Select Father</option>
+                {filteredFathers.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.petName} ({pet.breed})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div style={{ width: isMobile ? "100%" : "48%" }}>
+            <p>Mother</p>
+            <div className={styles["form-input-container"]}>
+              <select
+                value={formData.motherId}
+                onChange={(e) => handleInputChange("motherId", e.target.value)}
+                className={styles.selectField}
+                style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
+                disabled={!formData.breed || formData.breed === "select"}
+              >
+                <option value="">Select Mother</option>
+                {filteredMothers.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.petName} ({pet.breed})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </>
+      );
+    }
+    return null;
+  };
 
   const handleSubmit = async () => {
     setHasSubmitted(true);
@@ -636,6 +812,24 @@ const vaccMenuRef = useRef(null);
       country: selectedCountryName || selectedAddressObj?.country || formData.address?.country || ""
     };
 
+    // Determine father and mother values based on selection
+    let fatherValue = null;
+    let motherValue = null;
+    
+    if (formData.haveParents === "Only Father") {
+      fatherValue = formData.fatherId ? Number(formData.fatherId) : null;
+      motherValue = null;
+    } else if (formData.haveParents === "Only Mother") {
+      fatherValue = null;
+      motherValue = formData.motherId ? Number(formData.motherId) : null;
+    } else if (formData.haveParents === "Both Father and Mother") {
+      fatherValue = formData.fatherId ? Number(formData.fatherId) : null;
+      motherValue = formData.motherId ? Number(formData.motherId) : null;
+    } else {
+      fatherValue = null;
+      motherValue = null;
+    }
+
     const payload = {
       petName: formData.petName,
       petType: formData.petType,
@@ -644,10 +838,7 @@ const vaccMenuRef = useRef(null);
       petGender: formData.petGender,
       size: formData.size,
       petAge: formData.petAge,
-      weight:
-        formData?.weight?.endsWith("kg") || formData?.weight?.endsWith("lb")
-          ? formData.weight.split(" ")[0]
-          : formData?.weight || "",
+      weight: formData.weight ? `${formData.weight} ${formData.petWeightIn}` : "",
       dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
       price: formData.price,
       negotiable: formData.negotiable || "No",
@@ -656,16 +847,17 @@ const vaccMenuRef = useRef(null);
       microchipNo: formData.microchipNo || "",
       kciRegistration: formData.kci || "No",
       transportService: formData.isTransportService || "No",
-      petStatus: petData?.petStatus || "Ready for Sale",
+      petStatus: formData.status || "Ready for Sale",
       address: addressPayload,
       description: formData.additionalInfo || "",
-      haveParentsOfThisPet: formData.haveParents === "Yes" ? "Yes" : "No",
-      doesThisPetHaveParents: formData.haveParents === "Yes" ? "Both" : "No",
-      father: formData.father ? Number(formData.father) : null,
-      mother: formData.mother ? Number(formData.mother) : null,
+      haveParentsOfThisPet: formData.haveParents !== "select" && formData.haveParents !== "Don't Know" ? "Yes" : "No",
+      doesThisPetHaveParents: formData.haveParents === "Both Father and Mother" ? "Both" : 
+                              (formData.haveParents === "Only Father" ? "Father" :
+                              (formData.haveParents === "Only Mother" ? "Mother" : "No")),
+      father: fatherValue,
+      mother: motherValue,
       petVariety: formData.petVariety || "",
       numberVisibility: formData.numberVisibility ? "on" : "off"
-      
     };
 
     setIsLoading(true);
@@ -682,10 +874,21 @@ const vaccMenuRef = useRef(null);
       }
 
       if (response.status === "success" || response.status === 200) {
-        const petId = response.data?.petProfile?.id || response.data?.id || petData?.id;
+        const savedPet = response.data?.petProfile || response.data || null;
+        
+        let petToReturn = savedPet;
+        if (petData && !savedPet) {
+          petToReturn = {
+            ...petData,
+            ...payload,
+            id: petData.id,
+            _id: petData._id
+          };
+        }
 
-        if (petId) {
-          // Upload Images
+        if (response.data?.id || petData?.id) {
+          const petId = response.data?.id || petData?.id;
+          
           for (const file of imageFiles) {
             if (file && file !== "existing") {
               const fd = new FormData();
@@ -698,7 +901,6 @@ const vaccMenuRef = useRef(null);
             }
           }
 
-          // Upload Videos
           for (const file of videoFiles) {
             if (file && file !== "existing") {
               const fd = new FormData();
@@ -714,26 +916,25 @@ const vaccMenuRef = useRef(null);
 
         setErrorMessage("");
         toast.success(petData ? "Pet updated successfully" : "Pet added successfully");
-
-        if (fetchPetData) {
-          await fetchPetData();
-        }
-
-        closePopup();
+        closePopup(petToReturn);
       } else {
         setErrorMessage(response.message || "Failed to save profile.");
         toast.error(response.message || "Failed to save profile.");
+        closePopup(false);
       }
     } catch (err) {
       console.error("Submit Error:", err);
       const errorMsg = err.response?.data?.message || "An error occurred while saving.";
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
+      closePopup(false);
     } finally {
       setIsLoading(false);
       setApiProcessing({ loader: false, message: "" });
     }
   };
+  
+  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const sizeOptions = useMemo(() => {
     if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
@@ -742,17 +943,29 @@ const vaccMenuRef = useRef(null);
     if (!petData && formData.breed !== "select" && formData.size && formData.size !== "select size" && formData.size !== "") {
       return [formData.size];
     }
-    return ["select size", "Toy", "Small", "Medium", "Large", "Giant"];
+    return ["select size"];
   }, [petData, formData.breed, formData.size]);
 
   const MAX_IMAGES = 3;
   const MAX_VIDEOS = 3;
 
+  const formatAddressDisplay = () => {
+    const addr = formData.address;
+    const parts = [];
+    if (addr.street) parts.push(addr.street);
+    if (addr.area) parts.push(addr.area);
+    if (addr.city) parts.push(addr.city);
+    if (addr.state) parts.push(addr.state);
+    if (addr.pincode) parts.push(addr.pincode);
+    if (addr.country) parts.push(addr.country);
+    return parts.length > 0 ? parts.join(", ") : "No address selected";
+  };
+
   return (
     <div className={styles.popupContainer} style={{ background: "#fff", borderRadius: "10px", width: "100%", position: "relative" }}>
       <div className={styles.header} style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
         <div style={{ display: "flex", alignItems: "center", padding: "0 10px 0 0" }}>
-          <BackHeader onClick={closePopup} />
+          <span><BackHeader onClick={closePopup}/></span>
           <h2>{petData ? "Edit Puppy" : "Add New Puppy"}</h2>
         </div>
         <button style={{ background: "transparent", border: "none", fontSize: "1.2rem", cursor: "pointer", padding: "20px" }} onClick={closePopup}>&#x2715;</button>
@@ -760,57 +973,91 @@ const vaccMenuRef = useRef(null);
 
       <div className={styles.mainContainer}>
         <div className={styles.formDiv2}>
-          <DropDownv1
-            options={["select", "Dog", "Cat", "Bird", "Fish", "Small Pet"]}
-            question={"Pet Type *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            value={formData.petType}
-            onChange={(value) => {
-              handleInputChange("petType", value);
-              if (value && value !== "select") fetchBreeds(value);
-              else setBreedOptions([]);
-            }}
-            CustomInputElementAddpet={{ color: "#000000"}} error={errors.petType}
-          />
+          {!!petData ? (
+            <div style={{ width: isMobile ? "100%" : "48%" }}>
+              <p>Pet Type <span style={{ color: "red" }}>*</span></p>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",  }}>
+                {formData.petType}
+              </div>
+            </div>
+          ) : (
+            <DropDownv1
+              options={["select", "Dog", "Cat", "Bird", "Fish", "Small Pet"]}
+              question={"Pet Type *"} 
+              width={isMobile ? "100%" : "48%"} 
+              backgroundColor="#FFFFFF"
+              value={formData.petType}
+              onChange={(value) => {
+                handleInputChange("petType", value);
+                if (value && value !== "select") fetchBreeds(value);
+                else setBreedOptions([]);
+              }}
+              CustomInputElementAddpet={{ color: "#000000" }} 
+              error={errors.petType}
+            />
+          )}
+          
           <CustomInputElement2
             question={"Pet Name *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
             placeholder="Enter Pet Name" type="text" value={formData.petName}
             onChange={(e) => handleInputChange("petName", e.target.value)}
             custommarrgin={{ marginBottom: "14px" }} error={errors.petName} ownMargin={true}
           />
-          <DropDownv1
-            options={petData ? [formData.breed] : ["select", ...breedOptions]}
-            question={"Pet Breed *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            value={formData.breed} onChange={(value) => handleInputChange("breed", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.breed}
-          />
+          
+          {!!petData ? (
+            <div style={{ width: isMobile ? "100%" : "48%" }}>
+              <p>Pet Breed <span style={{ color: "red" }}>*</span></p>
+              <div style={{ padding: "12px",  border: "1px solid #e0e0e0", color: "#666", }}>
+                {formData.breed}
+              </div>
+            </div>
+          ) : (
+            <SearchableDropdown
+              options={["select", ...breedOptions]}
+              value={formData.breed}
+              onChange={(value) => handleInputChange("breed", value)}
+              placeholder="Breed"
+              label="Pet Breed"
+              error={errors.breed}
+              disabled={false}
+              isMobile={isMobile}
+            />
+          )}
+          
           <CustomInputElement2
             question={"Date Of Birth *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            placeholder="Date Of Birth" type="date" value={formData.dateOfBirth}
+            type="date"
+            value={formData.dateOfBirth}
             onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-            max={todayString} custommarrgin={{ marginBottom: "14px" }} error={errors.dateOfBirth} ownMargin={true}
+            max={maxDate}
+            error={errors.dateOfBirth} custommarrgin={{ marginBottom: "14px" }} ownMargin={true}
           />
+          
           <DropDownv1
             options={["select", "Male", "Female"]} question={"Gender *"}
             width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.petGender}
             onChange={(value) => handleInputChange("petGender", value)}
             CustomInputElementAddpet={{ color: "#000000" }} error={errors.petGender}
           />
-          <DropDownv1
-            options={sizeOptions} question={"Size *"} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.size || ""}
-            onChange={(value) => {
-              if (!petData) {
-                handleInputChange("size", value === "select size" ? "" : value);
-              }
-            }}
-            CustomInputElementAddpet={{ color: "#000000" }} error={errors.size}
-          />
-          <DropDownv1
-            options={petColors} question={"Color *"} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.color}
+          
+          <div style={{ width: isMobile ? "100%" : "48%" }}>
+            <p>Size <span style={{ color: "red" }}>*</span></p>
+            <div style={{ padding: "12px", border: "1px solid #e0e0e0", }}>
+              {formData.size || (petData ? "Not specified" : "Select pet breed")}
+            </div>
+          </div>
+          
+          <SearchableDropdown
+            options={petColors}
+            value={formData.color}
             onChange={(value) => handleInputChange("color", value)}
+            placeholder="Color"
+            label="Color"
             error={errors.color}
+            disabled={false}
+            isMobile={isMobile}
           />
+          
           <CustomInputComp
             question={"Weight *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
             type="text" placeholder="Enter Pet Weight" value={formData.weight}
@@ -821,7 +1068,7 @@ const vaccMenuRef = useRef(null);
             custommarrgin={{ marginBottom: "14px" }} error={errors.weight} ownMargin={true}
             filter={formData.weight ? "weight" : ""} setFormData={setFormData} formData={formData}
           />
-         
+          
           <div style={{ width: isMobile ? "100%" : "48%" }}>
             <p>Address <span className={styles["required"]}>*</span></p>
             <div className={styles["form-input-container"]}>
@@ -830,12 +1077,14 @@ const vaccMenuRef = useRef(null);
                 setFormData={setFormData}
                 errors={errors}
                 userInfo={userInfo}
+                petData={petData}
               />
               {hasSubmitted && errors.address && (
                 <span className={styles["error-text"]}>{errors.address}</span>
               )}
             </div>
           </div>
+          
           <CustomInputElement2
             question={"Price *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
             placeholder="Enter Price" type="number" value={formData.price}
@@ -853,133 +1102,88 @@ const vaccMenuRef = useRef(null);
           />
       
           <DropDownv1
-            options={["select", "Only Father", "Only Mother", "Both Father and Mother"]} question={"Have Parents?"}
+            options={["select", "Only Father", "Only Mother", "Both Father and Mother", "Don't Know"]} 
+            question={"Have Parents? *"}
             width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.haveParents}
             onChange={(value) => handleInputChange("haveParents", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
           
-          {/* Father Dropdown - Filtered by breed */}
-          <div style={{ width: isMobile ? "100%" : "48%" }}>
-            <p>Breed of Father</p>
-            <div className={styles["form-input-container"]}>
-              <select
-                value={formData.fatherId}
-                onChange={(e) => handleInputChange("fatherId", e.target.value)}
-                className={styles.selectField}
-                style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
-                disabled={!formData.breed || formData.breed === "select"}
-              >
-                <option value="">Select Father</option>
-                {filteredFathers.map((pet) => (
-                  <option key={pet.id} value={pet.id}>
-                    {pet.petName} ({pet.breed})
-                  </option>
-                ))}
-              </select>
-              {/* {formData.breed && formData.breed !== "select" && filteredFathers.length === 0 && (
-                <span className={styles["error-text"]} style={{ fontSize: "12px", color: "#999" }}>
-                  No {formData.breed} male pets available
-                </span>
-              )} */}
-              
-            </div>
-          </div>
-
-          {/* Mother Dropdown - Filtered by breed */}
-          <div style={{ width: isMobile ? "100%" : "48%" }}>
-            <p>Breed of Mother</p>
-            <div className={styles["form-input-container"]}>
-              <select
-                value={formData.motherId}
-                onChange={(e) => handleInputChange("motherId", e.target.value)}
-                className={styles.selectField}
-                style={{ width: "100%", padding: "12px", border: "1px solid #d9d9d9", borderRadius: "8px" }}
-                disabled={!formData.breed || formData.breed === "select"}
-              >
-                <option value="">Select Mother</option>
-                {filteredMothers.map((pet) => (
-                  <option key={pet.id} value={pet.id}>
-                    {pet.petName} ({pet.breed})
-                  </option>
-                ))}
-              </select>
-              {/* {formData.breed && formData.breed !== "select" && filteredMothers.length === 0 && (
-                <span className={styles["error-text"]} style={{ fontSize: "12px", color: "#999" }}>
-                  No {formData.breed} female pets available
-                </span>
-              )} */}
-            
-            </div>
-          </div>
-
+          {renderParentFields()}
+          
           <DropDownv1
             options={["select", "Pet Quality", "Show Quality", "KCI Registration"]}
-            question={"Pet Variety"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
+            question={"Pet Variety *"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
             value={formData.petVariety} onChange={(value) => handleInputChange("petVariety", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
+          
           <DropDownv1
-            options={["select", "Yes", "No"]} question={"Vaccinated"}
+            options={["select", "Yes", "No"]} question={"Vaccinated *"}
             width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.vaccinated}
             onChange={(value) => handleInputChange("vaccinated", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          {formData.vaccinated === "Yes" && (
+          
+          {/* {formData.vaccinated === "Yes" && (
             <div style={{ width: isMobile ? "100%" : "48%", position: "relative" }} ref={vaccMenuRef}>
-            <p>Vaccinations Done</p>
-            <div 
-              className={styles.customSelectHeader} 
-              onClick={() => setShowVaccDropdown(!showVaccDropdown)}
-              style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
-            >
-              {formData.howManyVaccinationsDone.length > 0 
-                ? `${formData.howManyVaccinationsDone.length} Selected` 
-                : "Select Vaccinations"}
-              <span style={{ float: "right"}}>{showVaccDropdown ? "▲" : "▼"}</span>
-            </div>
-            
-            {showVaccDropdown && (
-              <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
-                {vaccinationOptions.map(v => (
-                  <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
-                    <input 
-                      type="checkbox" 
-                      checked={formData.howManyVaccinationsDone.includes(v)} 
-                      onChange={() => handleVaccinationToggle(v)}
-                      style={{ marginRight: "10px" }}
-                    />
-                    <span style={{ fontSize: "13px" }}>{v}</span>
-                  </label>
-                ))}
+              <p>Vaccinations Done</p>
+              <div 
+                className={styles.customSelectHeader} 
+                onClick={() => setShowVaccDropdown(!showVaccDropdown)}
+                style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
+              >
+                {formData.howManyVaccinationsDone.length > 0 
+                  ? `${formData.howManyVaccinationsDone.length} Selected` 
+                  : "Select Vaccinations"}
+                <span style={{ float: "right"}}>{showVaccDropdown ? "▲" : "▼"}</span>
               </div>
-            )}
-          </div>
-          )}
+              
+              {showVaccDropdown && (
+                <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+                  {vaccinationOptions.map(v => (
+                    <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={formData.howManyVaccinationsDone.includes(v)} 
+                        onChange={() => handleVaccinationToggle(v)}
+                        style={{ marginRight: "10px" }}
+                      />
+                      <span style={{ fontSize: "13px" }}>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )} */}
          
           <DropDownv1
-            options={["select", "Yes", "No"]} question={"Transport Service"}
+            options={["select", "Yes", "No"]} question={"Transport Service *"}
             width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF" value={formData.isTransportService}
             onChange={(value) => handleInputChange("isTransportService", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
+          
           <DropDownv1
-            question={"Status *"} options={["select", "Ready For Sale", "Not For Sale"]} width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" value={formData.status}
+            question={"Status *"} 
+            options={["select", "Ready for Sale",
+                "Reserved",
+                "Sold Out",
+                "On hold",
+                "Not for Sale",]} 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF" 
+            value={formData.status}
             onChange={(value) => handleInputChange("status", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
+            error={errors.status}
           />
-          {/* <CustomInputElement2
-            question={"Instagram Link"} width={isMobile ? "100%" : "48%"} backgroundColor="#FFFFFF"
-            placeholder="URL" value={formData.instagramLink}
-            onChange={(e) => handleInputChange("instagramLink", e.target.value)}
-            error={errors.instagramLink} custommarrgin={{ marginBottom: "14px" }} ownMargin={true}
-          /> */}
+          
           <CustomInputElement2
             question="Add Description" width={isMobile ? "100%" : "48%"}
             backgroundColor="#FFFFFF" placeholder="Add more information"
             onInputChange={handleVictoriaInfoChange}
-            onChange={(e) => handleInputChange("description", e.target.value)}
+            onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
             rows={3}
             customStylestext={{ backgroundColor: "#fff", border: "1px solid rgb(217, 217, 217)", marginBottom: "16px" }}
           />
