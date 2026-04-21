@@ -65,37 +65,70 @@ const FAKE_PRODUCTS = [
 ];
 
 export const productService = {
-  getProducts: async (jwt, type) => {
+  getProducts: async (jwt, branchId, type, search = "") => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`products?type=${type}`);
-      if (response?.data?.data && response.data.data.length > 0) {
-        return response.data.data;
+      // Construction query params
+      const params = {
+        branchId,
+        productType: type
+      };
+      if (search) params.search = search;
+      
+      const response = await webApi.get(`vendor/products`, params);
+      
+      // Standardize response based on provided JSON sample
+      if (response?.data?.data) {
+        return {
+          products: response.data.data,
+          total: response.data.total || response.data.data.length // fallback
+        };
       }
-      return FAKE_PRODUCTS.filter(p => p.productType === type);
+      return { products: [], total: 0 };
     } catch (error) {
       console.error("Error fetching products:", error);
-      return FAKE_PRODUCTS.filter(p => p.productType === type);
+      return { products: [], total: 0 };
+    }
+  },
+
+  getDamagedExpiredReports: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/products/damaged-expired-reports`, { branchId });
+      return response?.data || null;
+    } catch (error) {
+      console.error("Error fetching damaged/expired reports:", error);
+      return null;
     }
   },
 
   getProductById: async (jwt, productId) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.get(`products/${productId}`);
+    return await webApi.get(`vendor/products/${productId}`);
   },
 
   createProduct: async (jwt, formData) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.imagePost("products", formData);
+    return await webApi.imagePost("vendor/products", formData);
   },
 
   updateProduct: async (jwt, productId, formData) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.imagePut(`products/${productId}`, formData);
+    return await webApi.imagePut(`vendor/products/${productId}`, formData);
   },
 
   deleteProduct: async (jwt, productId) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.delete(`products/${productId}`);
+    return await webApi.delete(`vendor/products/${productId}`);
+  },
+
+  generateProductCode: async (jwt) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.get(`vendor/products/generate-product-code`);
+  },
+
+  generateSku: async (jwt) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.get(`vendor/product-variants/generate-sku`);
   }
 };

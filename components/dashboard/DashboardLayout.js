@@ -65,6 +65,14 @@ const IconDog = () => (
     <path d="M16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2" />
   </svg>
 );
+const IconPackage = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m7.5 4.27 9 5.15" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5" />
+    <path d="M12 22V12" />
+  </svg>
+);
 const IconChevronLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="15 18 9 12 15 6" />
@@ -105,7 +113,7 @@ const SERVICE_MAP = {
   "Day Care":     { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
   "Pet Day Care": { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
   Daycare:        { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Sales":    { 
+  "Pet Sales": { 
     label: "Pet Sale", 
     path: "/pet-sales",  
     icon: <IconDog />,
@@ -115,6 +123,16 @@ const SERVICE_MAP = {
     ]
   },
   "Pet Training": { label: "Training",  path: "/training",   icon: <IconActivity /> },
+  Inventory: {
+    label: "Inventory",
+    path: "/inventory",
+    icon: <IconPackage />,
+    subItems: [
+      { label: "Products", path: "/inventory/products" },
+      { label: "Stock Updates", path: "/inventory/stock-updates" },
+      { label: "Stock Status", path: "/inventory/stock-status" }
+    ]
+  }
 };
 
 const BRANCH_SERVICE_MAP = {
@@ -123,6 +141,7 @@ const BRANCH_SERVICE_MAP = {
   daycares:         "Day Care",
   petShops:         "Pet Shop",
   petSales:         "Pet Sales",
+  inventory:        "Inventory",
 };
 
 function buildMenuFromVendor(userInfo) {
@@ -131,6 +150,12 @@ function buildMenuFromVendor(userInfo) {
     { label: "Timing Slots",      path: "/timing-slots",   icon: <IconClock /> },
     { label: "Reviews & Ratings", path: "/reviews",        icon: <IconStar />  },
     { label: "Profile",           path: "/profile",        icon: <IconUser />  },
+    { 
+      label: "Inventory", 
+      path: "/inventory", 
+      icon: <IconPackage />,
+      subItems: SERVICE_MAP["Inventory"].subItems 
+    },
   ];
 
   const serviceSet = new Set();
@@ -148,6 +173,8 @@ function buildMenuFromVendor(userInfo) {
   });
 
   const seen     = new Set();
+  base.forEach(b => seen.add(b.path));
+  
   const svcItems = [];
   serviceSet.forEach((s) => {
     const cfg = SERVICE_MAP[s];
