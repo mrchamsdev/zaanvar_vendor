@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import styles from "../../styles/inventory/inventory.module.css";
+import styles from "../../styles/inventory/products.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import ProductFormManager from "../../components/inventory/ProductFormManager";
@@ -10,6 +10,11 @@ import { IconSearch } from "../../components/dashboard/DashboardLayout"; // Reus
 const IconPlus = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+const IconChevronUp = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="18 15 12 9 6 15" />
   </svg>
 );
 const IconChevronDown = () => (
@@ -51,6 +56,7 @@ const ProductsPage = () => {
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [formMode, setFormMode] = useState("Add");
   const [editProductData, setEditProductData] = useState(null);
+  const [expandedRows, setExpandedRows] = useState([]);
 
   // Dynamic branchId from sub-vendor info
   const branchId = userInfo?.branchId;
@@ -122,6 +128,19 @@ const ProductsPage = () => {
       setCurrentPage(prev => prev - 1);
     }
   };
+
+  const toggleRowExpansion = (id) => {
+    setExpandedRows(prev => prev.includes(id) ? prev.filter(rid => rid !== id) : [...prev, id]);
+  };
+
+  const getUnitDisplay = (v) => {
+    if (v.variantType && typeof v.variantType === 'object') {
+        return `${v.variantType.size || ''} ${v.variantType.flavor || ''}`.trim() || "-";
+    }
+    return `${v.variantMeasure || ''} ${v.size || v.sizeType?.[0] || ''}`.trim() || "-";
+  };
+
+  console.log(products,"oifwuhihi")
 
   return (
     <DashboardLayout>
@@ -233,45 +252,59 @@ const ProductsPage = () => {
               ) : products.length === 0 ? (
                 <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products found</td></tr>
               ) : (
-                products.map((product) => (
-                  <React.Fragment key={product.productId}>
-                    <tr>
-                      <td>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.includes(product.productId)}
-                          onChange={() => toggleSelection(product.productId)}
-                        />
-                      </td>
-                      <td>{product.ProductCode || "-"}</td>
-                      <td>{product.productName}</td>
-                      <td>{product.brand?.name || product.brand || "-"}</td>
-                      <td>
-                        {Array.isArray(product.categoryId) 
-                          ? product.categoryId.map(c => typeof c === 'object' ? c.name : c).join(", ") 
-                          : (typeof product.categoryId === 'object' ? product.categoryId.name : product.categoryId) || "-"}
-                      </td>
-                      {/* Main product might not show variant data in main row if variants exist, 
-                          but Image 3 shows some data. If variants exist, we'll show them below. */}
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                    </tr>
-                    {/* Render Variants */}
-                    {product.variants && product.variants.map((v) => (
-                      <tr key={v.variantId} className={styles.variantRow}>
-                        <td colSpan="5"></td>
-                        <td>{v.variantMeasure} {typeof v.variantType === 'object' ? Object.values(v.variantType)[0] : v.sizeType?.[0] || ""}</td>
-                        <td>{v.numberOfPieces || v.variantMeasure}</td>
-                        <td>00</td> {/* Hardcoded as per image */}
-                        <td>00</td> {/* Hardcoded as per image */}
-                        <td style={{fontWeight: 600}}>₹{v.mrp} <IconChevronDown /></td>
+                products.map((product) => {
+                  const isExpanded = expandedRows.includes(product.productId);
+                  const firstVariant = product.variants?.[0] || {};
+                  const otherVariants = product.variants?.slice(1) || [];
+                  const hasMultipleVariants = product.variants?.length > 1;
+
+                  return (
+                    <React.Fragment key={product.productId}>
+                      <tr>
+                        <td>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.includes(product.productId)}
+                            onChange={() => toggleSelection(product.productId)}
+                          />
+                        </td>
+                        <td>{product.ProductCode || "-"}</td>
+                        <td>{product.productName}</td>
+                        <td>{product.brand?.name || product.brand || "-"}</td>
+                        <td>
+                          {Array.isArray(product.categoryId) 
+                            ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
+                            : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
+                        </td>
+                        {/* Render first variant info in main row */}
+                        <td>{getUnitDisplay(firstVariant)}</td>
+                        <td>{firstVariant.numberOfPieces || firstVariant.variantMeasure || "-"}</td>
+                        <td>00</td>
+                        <td>00</td>
+                        <td 
+                          style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
+                          onClick={() => hasMultipleVariants && toggleRowExpansion(product.productId)}
+                        >
+                          ₹{firstVariant.mrp || "-"} 
+                          {hasMultipleVariants && (
+                            isExpanded ? <IconChevronUp /> : <IconChevronDown />
+                          )}
+                        </td>
                       </tr>
-                    ))}
-                  </React.Fragment>
-                ))
+                      {/* Render Other Variants if expanded */}
+                      {isExpanded && otherVariants.map((v) => (
+                        <tr key={v.variantId} className={styles.variantRow}>
+                          <td colSpan="5"></td>
+                          <td>{getUnitDisplay(v)}</td>
+                          <td>{v.numberOfPieces || v.variantMeasure || "-"}</td>
+                          <td>00</td>
+                          <td>00</td>
+                          <td style={{fontWeight: 600}}>₹{v.mrp}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -308,11 +341,26 @@ const ProductsPage = () => {
                 <div className={styles.bulkDivider} />
                 <div 
                   className={styles.actionItem} 
-                  onClick={() => {
-                    const productsToView = products.filter(p => selectedIds.includes(p.productId));
-                    setEditProductData(productsToView);
-                    setFormMode("View");
-                    setIsAddingProduct(true);
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const fullProducts = [];
+                      for (const id of selectedIds) {
+                        const res = await productService.getProductById(jwtToken, id);
+                        if (res?.data?.data) {
+                          fullProducts.push(res.data.data);
+                        } else if (res?.data) {
+                          fullProducts.push(res.data);
+                        }
+                      }
+                      setEditProductData(fullProducts);
+                      setFormMode("View");
+                      setIsAddingProduct(true);
+                    } catch (e) {
+                      console.error("Error fetching full product details:", e);
+                    } finally {
+                      setLoading(false);
+                    }
                   }}
                 >
                   <IconEye /> View

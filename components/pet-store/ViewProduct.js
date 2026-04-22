@@ -126,11 +126,11 @@ const ViewProduct = ({ product, onClose }) => {
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Category</span>
-              <span className={styles.metaValue}>{product.category?.name || "Bottles"}</span>
+              <span className={styles.metaValue}>{product.category?.category || product.category?.name || "Bottles"}</span>
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Sub-Category</span>
-              <span className={styles.metaValue}>{product.subCategory?.name || "Liters"}</span>
+              <span className={styles.metaValue}>{product.subCategory?.subCategory || product.subCategory?.name || "Liters"}</span>
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Pet Type</span>

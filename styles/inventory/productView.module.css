@@ -1,0 +1,236 @@
+.viewContainer {
+  padding: 32px;
+  background: #fcfcfc;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.viewHeaderGrid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.viewHeaderLeft {
+  flex: 1;
+  background: #f9f9f9;
+  padding: 24px 32px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.infoGridRow {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.infoGridItem {
+  flex: 1;
+  min-width: 150px;
+  background: transparent;
+  padding: 0;
+}
+
+.infoGridItem label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.infoGridItem strong {
+  display: block;
+  font-size: 14px;
+  color: #333;
+}
+
+.viewHeaderRight {
+  width: 380px;
+  background: #fff;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.galleryTitle {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.viewImageGallery {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.viewImageThumb {
+  width: 60px;
+  height: 60px;
+  background: #eee;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addImageThumb {
+  border: 2px dashed #ddd;
+  color: #aaa;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.totalCountBox {
+  margin-top: 24px;
+  text-align: right;
+}
+
+.totalCountBox label {
+  font-size: 18px;
+  font-weight: 600;
+  margin-right: 12px;
+}
+
+.totalValue {
+  font-size: 24px;
+  color: #eee;
+  letter-spacing: 2px;
+}
+
+.viewSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  margin: 32px 0 16px 0;
+  letter-spacing: 1px;
+}
+
+.viewSubTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  margin: 20px 0 12px 0;
+}
+
+.viewTableWrapper {
+  background: #fff;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid #eee;
+  width: 100%;
+}
+
+.viewTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.viewTable th {
+  background: #f5f5f5;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #777;
+  border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
+}
+
+.viewTable td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #444;
+  border-bottom: 1px solid #f9f9f9;
+  border-right: 1px solid #eee;
+  text-align: center;
+}
+
+.viewHistorySection {
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.viewActions {
+  margin-top: 40px;
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 40px;
+}
+
+.nextBtn {
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Split View Responsive Overrides */
+.splitView {
+  padding: 16px;
+  max-width: 100%;
+}
+
+.splitView .viewHeaderGrid {
+  flex-direction: column;
+}
+
+.splitView .viewHeaderLeft {
+  padding: 16px 20px;
+}
+
+.splitView .viewHeaderRight {
+  width: 100%;
+}
+
+.splitView .infoGridItem {
+  min-width: 100px;
+}
+
+.splitView .infoGridItem label {
+  font-size: 10px;
+}
+
+.splitView .infoGridItem strong {
+  font-size: 12px;
+}
+
+.splitView .viewSectionTitle {
+  font-size: 12px;
+  margin: 20px 0 12px 0;
+}
+
+.splitView .viewSubTitle {
+  font-size: 11px;
+}
+
+.splitView .totalValue {
+  font-size: 16px;
+}
+
+.splitView .viewTable th {
+  padding: 8px 10px;
+  font-size: 10px;
+}
+
+.splitView .viewTable td {
+  padding: 8px 10px;
+  font-size: 11px;
+}

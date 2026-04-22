@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import styles from "../../styles/inventory/inventory.module.css";
+import React, { useState, useEffect, useRef } from "react";
+import styles from "../../styles/inventory/productForm.module.css";
 // import BarcodeScanner from "./BarcodeScanner";
 import useStore from "../state/useStore";
 import { productService } from "../../services/productService";
@@ -39,8 +39,24 @@ const PACKAGING_TYPES = ["BOX (Box)", "PACKS (Pac)", "BOTTLES (Btl)", "CARTONS (
 const SIZE_TYPES = ["PIECES (Pcs)", "PAIRS (Prs)"];
 const DIMENSION_TYPES = ["DIMENSIONS (Dim)"];
 
+const CATEGORY_MAP = {
+  "Food": 1,
+  "Grooming": 1,
+  "Toys": 2,
+  "Cloths": 2, // Map to Toys/Apparel ID
+  "Accessories": 3,
+  "Medicines": 3
+};
+
+const SUB_CATEGORY_MAP = {
+  "Dry": 5,
+  "Wet": 6,
+  "Puppy": 7,
+  "Adult": 8
+};
+
 const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => {
-  const { jwtToken } = useStore();
+  const { jwtToken, userInfo } = useStore();
 
   // Main Form State
   const [productType, setProductType] = useState(initialData?.productType || propType || "Retail");
@@ -48,7 +64,15 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [brand, setBrand] = useState(initialData?.brand || "");
   const [category, setCategory] = useState(Array.isArray(initialData?.categoryId) ? initialData.categoryId[0] : (initialData?.categoryId || ""));
   const [subCategory, setSubCategory] = useState(Array.isArray(initialData?.subCategoryId) ? initialData.subCategoryId[0] : (initialData?.subCategoryId || ""));
-  const [petType, setPetType] = useState(initialData?.productPetType || "");
+  const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
+    if (initialData?.productPetType && Array.isArray(initialData.productPetType)) {
+        const reverseMap = { "Dog": "Dog", "Cat": "Cat", "Birds": "Bird", "Fishes": "Fish", "SmallPets": "Small pets" };
+        return initialData.productPetType.map(t => reverseMap[t] || t);
+    }
+    return [];
+  });
+  const [isPetDropdownOpen, setIsPetDropdownOpen] = useState(false);
+  const petDropdownRef = useRef(null);
   const [productCode, setProductCode] = useState(initialData?.ProductCode || "");
   const [gst, setGst] = useState(initialData?.gst || "");
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
@@ -56,7 +80,43 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [composition, setComposition] = useState(initialData?.composition || "");
   
   // Variants State
-  const [variants, setVariants] = useState(initialData?.variants?.length > 0 ? initialData.variants : [{ packType: "" }]);
+  const [variants, setVariants] = useState(() => {
+    if (initialData?.variants?.length > 0) {
+      return initialData.variants.map(v => ({
+        ...v,
+        images: v.productImages?.map(img => typeof img === 'string' ? { preview: img, file: null } : img) || []
+      }));
+    }
+    return [{ packType: "", images: [] }];
+  });
+  
+  const fileInputsRef = useRef([]); // To handle multiple variants
+  const handleImageChange = (e, index) => {
+    const files = Array.from(e.target.files);
+    const newImages = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    
+    const newVariants = [...variants];
+    newVariants[index].images = [...(newVariants[index].images || []), ...newImages];
+    setVariants(newVariants);
+    
+    e.target.value = null;
+  };
+
+  const removeImage = (e, variantIndex, imgIndex) => {
+    e.stopPropagation();
+    const newVariants = [...variants];
+    const targetVariant = newVariants[variantIndex];
+    
+    if (targetVariant.images[imgIndex].file) {
+        URL.revokeObjectURL(targetVariant.images[imgIndex].preview);
+    }
+    
+    targetVariant.images.splice(imgIndex, 1);
+    setVariants(newVariants);
+  };
   
   const handleGenerateProductCode = async () => {
     try {
@@ -80,10 +140,121 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     }
   };
 
-  const addVariant = () => setVariants([...variants, { packType: "" }]);
+  const handleSave = async () => {
+    try {
+      // Mapping names to numeric IDs for the [1, 5] payload structure
+      const catId = CATEGORY_MAP[category] || 1;
+      const subCatId = SUB_CATEGORY_MAP[subCategory] || 5;
+      
+      const petTypeMap = {
+        "Dog": "Dog",
+        "Cat": "Cat",
+        "Bird": "Birds",
+        "Fish": "Fishes",
+        "Small pets": "SmallPets"
+      };
+      const formattedPetTypes = selectedPetTypes.map(t => petTypeMap[t] || t);
+      const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
+
+      const payload = {
+        branchId: userInfo?.branchId || 1,
+        productName: productName,
+        ProductCode: productCode,
+        brand: brand,
+        categoryId: [catId, subCatId], // Array format [Category, SubCategory]
+        productType: productType,
+        productPetType: formattedPetTypes,
+        hsnCode: hsnCode,
+        variants: variants.map(v => ({
+          mrp: Number(v.mrp) || 0,
+          sellingPrice: Number(v.sellingPrice) || 0,
+          minStockAlert: Number(v.minStock) || 0,
+          SKU: v.skuNumber || "",
+          barcode: v.eanUpc || "",
+          isActive: true,
+          variantType: {
+            flavor: v.flavor || "",
+            size: v.size || (v.unitMeasure ? `${v.unitMeasure}${v.unitType}` : ""),
+            packType: v.packType || "",
+            packCount: v.packCount || "",
+            dimensions: v.height ? `${v.height}${v.heightUnit}x${v.width}${v.widthUnit}x${v.length}${v.lengthUnit}` : ""
+          }
+        }))
+      };
+
+      let response;
+      if (initialData?.productId) {
+        response = await productService.updateProduct(jwtToken, initialData.productId, payload, false);
+      } else {
+        response = await productService.createProduct(jwtToken, payload, false);
+      }
+      
+      console.log("Metadata save response body:", response);
+
+      if (response) {
+        const responseVariants = response.data?.variants || response.variants || [];
+        
+        console.log(`Starting per-variant image upload for ${variants.length} variants...`);
+        
+        for (let i = 0; i < variants.length; i++) {
+          const formVariant = variants[i];
+          const backendVariant = responseVariants[i];
+          const targetId = backendVariant?.variantId || backendVariant?.id || formVariant.variantId;
+          
+          const variantImages = formVariant.images || [];
+          const imageFiles = variantImages.filter(img => img.file).map(img => img.file);
+          
+          if (imageFiles.length > 0 && targetId) {
+            console.log(`Uploading ${imageFiles.length} images for Variant ID: ${targetId}`);
+            for (const file of imageFiles) {
+              const formData = new FormData();
+              formData.append("productImgs", file);
+              try {
+                await productService.uploadProductImages(jwtToken, targetId, formData);
+              } catch (uploadError) {
+                console.error(`Failed to upload image for variant ${targetId}:`, uploadError);
+              }
+            }
+          }
+        }
+        
+        console.log("All variant image uploads processed.");
+        if (onSave) onSave();
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Failed to save product. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (petDropdownRef.current && !petDropdownRef.current.contains(event.target)) {
+        setIsPetDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handlePetTypeToggle = (type) => {
+    setSelectedPetTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSelectAllPetTypes = () => {
+    if (selectedPetTypes.length === PET_TYPES.length) {
+      setSelectedPetTypes([]);
+    } else {
+      setSelectedPetTypes([...PET_TYPES]);
+    }
+  };
+
+  const addVariant = () => setVariants([...variants, { packType: "", images: [] }]);
   const removeVariant = (index) => {
     const newVariants = variants.filter((_, i) => i !== index);
-    setVariants(newVariants.length > 0 ? newVariants : [{ packType: "" }]);
+    setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
   };
 
   const updateVariant = (index, field, value) => {
@@ -103,14 +274,12 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         <button 
           className={`${styles.tab} ${productType === "Retail" ? styles.tabActive : ""}`}
           onClick={() => setProductType("Retail")}
-          style={{borderRadius: 8, height: 40, border: '1px solid #ddd'}}
         >
           Retail Product
         </button>
         <button 
           className={`${styles.tab} ${productType === "Medical" ? styles.tabActive : ""}`}
           onClick={() => setProductType("Medical")}
-          style={{borderRadius: 8, height: 40, border: '1px solid #ddd'}}
         >
           Medical Products
         </button>
@@ -158,19 +327,49 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         </div>
         <div className={styles.inputField}>
           <label>Sub Category</label>
-          <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)}>
-             <option value="">Select Sub Category</option>
-             {Array.isArray(initialData?.subCategoryId) && initialData.subCategoryId.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <input 
+            type="text" 
+            placeholder="Enter Sub Category" 
+            value={subCategory}
+            onChange={(e) => setSubCategory(e.target.value)}
+          />
         </div>
         <div className={styles.inputField}>
           <label>Pet Type <span>*</span></label>
-          <div style={{display: 'flex', alignItems: 'center'}}>
-            <select style={{flex: 1}} value={petType} onChange={(e) => setPetType(e.target.value)}>
-                <option value="">Select Pet Type</option>
-                {PET_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <InfoIcon text="The target animal type for this product." />
+          <div 
+            className={styles.multiSelectContainer} 
+            ref={petDropdownRef}
+            onClick={() => setIsPetDropdownOpen(!isPetDropdownOpen)}
+          >
+            {selectedPetTypes.length === 0 && <span style={{color: '#999', fontSize: 13}}>Select Pet Types...</span>}
+            {selectedPetTypes.map(t => (
+              <div key={t} className={styles.tag}>
+                {t}
+                <span 
+                  className={styles.removeTag} 
+                  onClick={(e) => { e.stopPropagation(); handlePetTypeToggle(t); }}
+                >
+                  ✕
+                </span>
+              </div>
+            ))}
+            
+            {isPetDropdownOpen && (
+              <div className={styles.optionsDropdown} onClick={(e) => e.stopPropagation()}>
+                {PET_TYPES.filter(t => !selectedPetTypes.includes(t)).map(t => (
+                  <div 
+                    key={t} 
+                    className={styles.optionItem}
+                    onClick={() => { handlePetTypeToggle(t); setIsPetDropdownOpen(false); }}
+                  >
+                    {t}
+                  </div>
+                ))}
+                {PET_TYPES.filter(t => !selectedPetTypes.includes(t)).length === 0 && (
+                  <div className={styles.optionItem} style={{color: '#999', cursor: 'default'}}>All types selected</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className={styles.inputField}>
@@ -265,15 +464,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                         onChange={(e) => updateVariant(index, 'packCount', e.target.value)}
                     />
                   </div>
-                  {isPackaged && variant.packType !== "PACKS (Pac)" && (
-                    <div className={styles.inputField}>
-                      <label>Unit Type <InfoIcon text="Measurement type of one piece/item inside the pack." /></label>
-                      <select value={variant.unitType || ""} onChange={(e) => updateVariant(index, 'unitType', e.target.value)}>
-                          <option value="">Select unit</option>
-                          {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                  )}
+      {/* Unit Type is now merged with Unit Measure in the section below */}
                 </>
               )}
 
@@ -365,12 +556,18 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
               {(isDirect || (isPackaged && variant.packType !== "PACKS (Pac)")) && (
                 <div className={styles.inputField}>
                   <label>Unit Measure <span>*</span> <InfoIcon text="Measurement value of one piece/item inside the pack." /></label>
-                  <input 
-                    type="text" 
-                    placeholder="Enter here" 
-                    value={variant.unitMeasure || ""}
-                    onChange={(e) => updateVariant(index, 'unitMeasure', e.target.value)}
-                   />
+                  <div className={styles.dimInputGroup}>
+                    <input 
+                      type="text" 
+                      placeholder="Enter here" 
+                      value={variant.unitMeasure || ""}
+                      onChange={(e) => updateVariant(index, 'unitMeasure', e.target.value)}
+                     />
+                    <select value={variant.unitType || ""} onChange={(e) => updateVariant(index, 'unitType', e.target.value)}>
+                        <option value="">unit</option>
+                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
                 </div>
               )}
 
@@ -430,13 +627,44 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 />
               </div>
             </div>
+
+            {/* Per-Variant Image Upload Section */}
+            <div className={styles.inputField} style={{marginTop: 24}}>
+              <label>Variant Images <InfoIcon text="Images specific to this configuration (e.g. specific color/flavor)." /></label>
+              <div className={styles.imageUpload}>
+                <input 
+                  type="file" 
+                  ref={el => fileInputsRef.current[index] = el}
+                  onChange={(e) => handleImageChange(e, index)} 
+                  multiple 
+                  accept="image/*" 
+                  style={{display: 'none'}} 
+                />
+                <div className={styles.uploadItem} onClick={() => fileInputsRef.current[index]?.click()}>
+                  <div style={{fontSize: 24, marginBottom: 8}}>+</div>
+                  <span>Add Photos</span>
+                </div>
+                {(variant.images || []).map((img, imgIdx) => (
+                  <div key={imgIdx} className={styles.imagePreview}>
+                      <img src={img.preview} alt={`Variant ${index} Img ${imgIdx}`} />
+                      <button 
+                          className={styles.removeImageBtn} 
+                          onClick={(e) => removeImage(e, index, imgIdx)}
+                          title="Remove Image"
+                      >
+                          ✕
+                      </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
       })}
 
       <div className={styles.sectionTitle}>Additional information of product</div>
       <div className={styles.inputGrid}>
-        <div className={styles.inputField} style={{gridColumn: 'span 1'}}>
+        <div className={styles.inputField} style={{gridColumn: productType === "Medical" ? 'span 1' : 'span 2'}}>
           <label>Add Product Description</label>
           <textarea 
             rows="4" 
@@ -445,40 +673,29 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             onChange={(e) => setDescription(e.target.value)}
           ></textarea>
         </div>
-        <div className={styles.inputField} style={{gridColumn: 'span 1'}}>
-          <label>Product Composition <InfoIcon text="Ingredients or chemical makeup." /></label>
-          <textarea 
-            rows="4" 
-            placeholder="Type here"
-            value={composition}
-            onChange={(e) => setComposition(e.target.value)}
-          ></textarea>
-        </div>
+        {productType === "Medical" && (
+          <div className={styles.inputField} style={{gridColumn: 'span 1'}}>
+            <label>Product Composition <InfoIcon text="Ingredients or chemical makeup." /></label>
+            <textarea 
+              rows="4" 
+              placeholder="Type here"
+              value={composition}
+              onChange={(e) => setComposition(e.target.value)}
+            ></textarea>
+          </div>
+        )}
       </div>
 
-      <div className={styles.inputField} style={{marginBottom: 40}}>
-        <label>Add Product Images <span>*</span></label>
-        <div className={styles.imageUpload}>
-          <div className={styles.uploadItem}>
-            <div style={{fontSize: 24, marginBottom: 8}}>+</div>
-            <span>Tap to Select Photo</span>
-          </div>
-          {[1,2,3].map(i => (
-            <div key={i} className={styles.imagePreview} style={{background: '#f1f1f1', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'}}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <button style={{position: 'absolute', top: -8, right: -8, background: '#eee', border: '1px solid #ddd', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, cursor: 'pointer'}}>✕</button>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div style={{display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 40, marginBottom: 20}}>
         <button className={styles.pageBtn} onClick={onBack}>Back</button>
-        <button className={`${styles.pageBtn} ${styles.nextBtn}`} onClick={onSave} style={{background: '#000', color: '#fff'}}>Save</button>
+        <button 
+            className={`${styles.pageBtn} ${styles.nextBtn}`} 
+            onClick={handleSave} 
+            style={{background: '#000', color: '#fff'}}
+        >
+            Save
+        </button>
       </div>
     </div>
   );

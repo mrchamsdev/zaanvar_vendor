@@ -107,14 +107,25 @@ export const productService = {
     return await webApi.get(`vendor/products/${productId}`);
   },
 
-  createProduct: async (jwt, formData) => {
+  createProduct: async (jwt, data, hasImages = false) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.imagePost("vendor/products", formData);
+    if (hasImages) {
+      return await webApi.imagePost("vendor/products", data);
+    }
+    return await webApi.post("vendor/products", data);
   },
 
-  updateProduct: async (jwt, productId, formData) => {
+  updateProduct: async (jwt, productId, data, hasImages = false) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.imagePut(`vendor/products/${productId}`, formData);
+    if (hasImages) {
+      return await webApi.imagePut(`vendor/products/${productId}`, data);
+    }
+    return await webApi.put(`vendor/products/${productId}`, data);
+  },
+
+  uploadProductImages: async (jwt, id, formData) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.imagePut(`vendor/product-variants/upload-images/${id}`, formData);
   },
 
   deleteProduct: async (jwt, productId) => {
