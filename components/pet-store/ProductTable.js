@@ -41,6 +41,9 @@ const ProductTable = ({
     }
   };
 
+
+  console.log(paginatedProducts,"paginatedProducts")
+
   return (
     <div className={styles.tableCard}>
       <div className={styles.tableSearch}>
@@ -94,7 +97,7 @@ const ProductTable = ({
                     {product.productName}
                   </td>
                   <td>{product.brandName || "-"}</td>
-                  <td>{product.category?.name || "Product"}</td>
+                  <td>{product.category?.category || product.category?.name || product.categoryId?.category || product.categoryId?.name || "Product"}</td>
                   <td>{product.totalQuantity || "00"}</td>
                   <td>{product.openingStock || "00"}</td>
                   <td>{product.holdQuantity || "00"}</td>

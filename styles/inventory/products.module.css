@@ -1,0 +1,282 @@
+.container {
+  padding: 24px;
+  background: #fcfcfc;
+  min-height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.branchSelect {
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  min-width: 200px;
+  font-size: 14px;
+}
+
+.addBtnWrapper {
+  position: relative;
+}
+
+.addBtn {
+  background: #E9315D;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  margin-top: 8px;
+  z-index: 100;
+  width: 180px;
+  overflow: hidden;
+  border: 1px solid #eee;
+}
+
+.dropdownItem {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownItem:hover {
+  background: #f5f5f5;
+}
+
+.statusRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.statusLabel {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.statusBadge {
+  padding: 6px 12px;
+  background: #f1f1f1;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.tabsSearchRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  background: #f1f1f1;
+  padding: 4px;
+  border-radius: 8px;
+  width: max-content;
+  gap: 20px;
+}
+
+.tab {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.tabActive {
+  background: #fff;
+  color: #E9315D;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.searchBox {
+  position: relative;
+  width: 300px;
+}
+
+.searchBox input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  outline: none;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+}
+
+.tableWrapper {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: #f9f9f9;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 14px 16px;
+  border-top: 1px solid #eee;
+  font-size: 14px;
+  color: #333;
+}
+
+.variantRow td {
+  background: #fff;
+  border-top: 1px dashed #eee;
+  font-size: 13px;
+}
+
+.bulkActions {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  padding: 12px 24px;
+  border-radius: 100px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  z-index: 1000;
+  border: 1px solid #eee;
+}
+
+.actionItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  margin-top: 24px;
+  border-radius: 12px;
+}
+
+.paginationLeft {
+  display: flex;
+  align-items: center;
+}
+
+.paginationCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.paginationRight {
+  display: flex;
+  align-items: center;
+}
+
+.bulkActionsInline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8f9fa;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bulkCount {
+  font-size: 13px;
+  color: #E9315D;
+  font-weight: 600;
+}
+
+.bulkDivider {
+  width: 1px;
+  height: 16px;
+  background: #ddd;
+}
+
+.pageBtn {
+  padding: 8px 24px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.nextBtn {
+  background: #000;
+  color: #fff;
+  border: none;
+}
+
+.rowsPerPage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.rowsPerPage select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}

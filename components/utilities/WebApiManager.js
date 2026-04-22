@@ -350,7 +350,6 @@ async imagePut(url, data) {
       let headers = {
         Authorization: "Bearer " + jwttoken,
         // jwtToken: jwtToken,
-       "Content-Type": "multipart/form-data",
       };
       return await Axios.put(baseURL + url, data, { headers })
         .then((res) => {
@@ -385,7 +384,6 @@ async imagePut(url, data) {
       const headers = {
 
   Authorization: `Bearer ${this.jwtToken}`,
- "Content-Type": "multipart/form-data",
 };
 
 const response = await Axios.post(BACKEND_URL + url, data, { headers });
