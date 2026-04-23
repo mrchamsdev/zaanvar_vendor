@@ -60,6 +60,15 @@ const ProductsPage = () => {
   const [editProductData, setEditProductData] = useState(null);
   const [expandedRows, setExpandedRows] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Dynamic branchId from sub-vendor info
   const branchId = userInfo?.branchId;
@@ -74,7 +83,7 @@ const ProductsPage = () => {
     if (branchId && jwtToken) {
       fetchProducts();
     }
-  }, [productType, searchTerm, currentPage, rowsPerPage, branchId, jwtToken]);
+  }, [productType, debouncedSearchTerm, currentPage, rowsPerPage, branchId, jwtToken]);
 
   const fetchStats = async () => {
     try {
@@ -99,7 +108,7 @@ const ProductsPage = () => {
         jwtToken, 
         branchId, 
         productType, 
-        searchTerm
+        debouncedSearchTerm
       );
       setProducts(result.products);
       setTotalProducts(result.total);
@@ -117,10 +126,13 @@ const ProductsPage = () => {
   };
 
   const selectAll = () => {
-    if (selectedIds.length === products.length) {
-      setSelectedIds([]);
+    const allCurrentIds = products.map(p => p.productId);
+    const areAllCurrentSelected = allCurrentIds.every(id => selectedIds.includes(id));
+    
+    if (areAllCurrentSelected) {
+      setSelectedIds(prev => prev.filter(id => !allCurrentIds.includes(id)));
     } else {
-      setSelectedIds(products.map(p => p.productId));
+      setSelectedIds(prev => [...new Set([...prev, ...allCurrentIds])]);
     }
   };
 
@@ -144,6 +156,14 @@ const ProductsPage = () => {
   };
 
   const handleDelete = () => {
+    const selectedProducts = products.filter(p => selectedIds.includes(p.productId));
+    const hasRestrictedProducts = selectedProducts.some(p => p.hasOrders);
+
+    if (hasRestrictedProducts) {
+      toast.error("Some selected products have active orders and cannot be deleted.");
+      return;
+    }
+
     if (selectedIds.length > 0) {
       setShowDeleteConfirm(true);
     }
@@ -189,36 +209,36 @@ const ProductsPage = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className={styles.container}>
-        {/* Header Section */}
-        <div className={styles.header}>
-          <select className={styles.branchSelect}>
-            <option>Select Branch</option>
-            <option selected>Main Branch</option>
-          </select>
-
-          <div className={styles.addBtnWrapper}>
-            <button 
-              className={styles.addBtn} 
-              onClick={() => setShowAddDropdown(!showAddDropdown)}
-            >
-              <IconPlus /> Add Product <IconChevronDown />
-            </button>
-            {showAddDropdown && (
-              <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); }}>
-                  <IconPlus /> Add Product
-                </div>
-                <hr style={{margin: 0, border: 'none', borderTop: '1px solid #eee'}} />
-                <div className={styles.dropdownItem}>
-                  <IconPlus /> Add Bulk Product
-                </div>
+    <DashboardLayout
+      customTopbarLeft={(
+        <select className={styles.branchSelect}>
+          <option>Select Branch</option>
+          <option selected>Main Branch</option>
+        </select>
+      )}
+      customTopbarRight={(
+        <div className={styles.addBtnWrapper}>
+          <button 
+            className={styles.addBtn} 
+            onClick={() => setShowAddDropdown(!showAddDropdown)}
+          >
+            <IconPlus /> Add Product <IconChevronDown />
+          </button>
+          {showAddDropdown && (
+            <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); }}>
+                <IconPlus /> Add Product
               </div>
-            )}
-          </div>
+              <hr style={{margin: 0, border: 'none', borderTop: '1px solid #eee'}} />
+              <div className={styles.dropdownItem}>
+                <IconPlus /> Add Bulk Product
+              </div>
+            </div>
+          )}
         </div>
-
+      )}
+    >
+      <div className={styles.container}>
         {/* Multi-tasking Manager Overlay */}
         {isAddingProduct && (
           <ProductFormManager 
@@ -228,43 +248,47 @@ const ProductsPage = () => {
           />
         )}
 
-        {/* Overall Status Section */}
-        <div className={styles.statusRow}>
-          <span className={styles.statusLabel}>Overall Status :</span>
-          <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
-          <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
-          <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
-          <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
-        </div>
+        {/* Fixed Top Section */}
+        <div className={styles.topSection}>
+          {/* Status & Tabs Row */}
+          <div className={styles.statusTabsRow}>
+            <div className={styles.statusGroup}>
+              <span className={styles.statusLabel}>Overall Status :</span>
+              <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
+              <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
+              <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
+              <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
+            </div>
 
-        {/* Tabs and Search Bar */}
-        <div className={styles.tabsSearchRow}>
-          <div className={styles.tabs}>
-            <button 
-              className={`${styles.tab} ${productType === "Retail" ? styles.tabActive : ""}`}
-              onClick={() => { setProductType("Retail"); setCurrentPage(1); }}
-            >
-              Retail Product
-            </button>
-            <button 
-              className={`${styles.tab} ${productType === "Medical" ? styles.tabActive : ""}`}
-              onClick={() => { setProductType("Medical"); setCurrentPage(1); }}
-            >
-              Medical Products
-            </button>
+            <div className={styles.tabs}>
+              <button 
+                className={`${styles.tab} ${productType === "Retail" ? styles.tabActive : ""}`}
+                onClick={() => { setProductType("Retail"); setCurrentPage(1); }}
+              >
+                Retail Product
+              </button>
+              <button 
+                className={`${styles.tab} ${productType === "Medical" ? styles.tabActive : ""}`}
+                onClick={() => { setProductType("Medical"); setCurrentPage(1); }}
+              >
+                Medical Products
+              </button>
+            </div>
           </div>
 
-          <div className={styles.searchBox}>
-             {/* Using local SVG because IconSearch export might fail if not careful */}
-            <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Search products here" 
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            />
+          {/* Search Row */}
+          <div className={styles.searchRow}>
+            <div className={styles.searchBox}>
+              <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Search products here" 
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
           </div>
         </div>
 
@@ -277,7 +301,7 @@ const ProductsPage = () => {
                   <input 
                     type="checkbox" 
                     onChange={selectAll} 
-                    checked={products.length > 0 && selectedIds.length === products.length} 
+                    checked={products.length > 0 && products.every(p => selectedIds.includes(p.productId))} 
                   />
                 </th>
                 <th>Product Code</th>
@@ -295,10 +319,16 @@ const ProductsPage = () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>Loading products...</td></tr>
-              ) : products.length === 0 ? (
+              ) : (searchTerm ? products.filter(p => 
+                  p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                ) : products).length === 0 ? (
                 <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products found</td></tr>
               ) : (
-                products.map((product) => {
+                (searchTerm ? products.filter(p => 
+                  p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                ) : products).map((product) => {
                   const isExpanded = expandedRows.includes(product.productId);
                   const firstVariant = product.variants?.[0] || {};
                   const otherVariants = product.variants?.slice(1) || [];
@@ -411,12 +441,6 @@ const ProductsPage = () => {
                 >
                   <IconEye /> View
                 </div>
-                {/* Only show delete if NO selected item has hasOrders: true */}
-                {!products.filter(p => selectedIds.includes(p.productId)).some(p => p.hasOrders) && (
-                  <div className={styles.actionItem} onClick={handleDelete}>
-                    <IconTrash /> Delete
-                  </div>
-                )}
                 <div 
                   className={styles.actionItem} 
                   onClick={() => { 
@@ -427,6 +451,9 @@ const ProductsPage = () => {
                   }}
                 >
                   <IconEdit /> Edit
+                </div>
+                <div className={styles.actionItem} onClick={handleDelete}>
+                  <IconTrash /> Delete
                 </div>
               </div>
             )}
