@@ -104,6 +104,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
   const [variantToDeleteIndex, setVariantToDeleteIndex] = useState(null);
   const [isDeletingVariant, setIsDeletingVariant] = useState(false);
+  const [priceErrors, setPriceErrors] = useState({}); // Stores errors by variant index
   
   // Variants State
   const [variants, setVariants] = useState(() => {
@@ -191,6 +192,25 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   };
 
   const handleSave = async () => {
+    // Validation: Selling Price should not be greater than MRP
+    const errors = {};
+    variants.forEach((v, index) => {
+      const sp = parseFloat(v.sellingPrice) || 0;
+      const mrp = parseFloat(v.mrp) || 0;
+      if (sp > mrp) {
+        errors[index] = "Selling Price cannot be greater than MRP.";
+      }
+    });
+
+    setPriceErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast.error("Please fix pricing errors in your variants.");
+      return;
+    }
+
+    const toastId = toast.loading(initialData?.productId ? "Updating product..." : "Creating product...");
+
     try {
       // Mapping names to numeric IDs for the [1, 5] payload structure
       const catId = CATEGORY_MAP[category] || 1;
@@ -211,8 +231,8 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         productName: productName,
         ProductCode: productCode,
         brand: brand,
-        categoryId: { category: category?.toLowerCase() },
-        subCategoryId: { subCategory: subCategory?.toLowerCase() },
+        categoryId: { category: String(category || "").toLowerCase() },
+        subCategoryId: { subCategory: String(subCategory || "").toLowerCase() },
         productType: productType,
         productPetType: formattedPetTypes,
         hsnCode: hsnCode,
@@ -270,11 +290,14 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         }
         
         console.log("All variant image uploads processed.");
+        toast.success(initialData?.productId ? "Product updated successfully" : "Product created successfully", { id: toastId });
         if (onSave) onSave();
+      } else {
+        toast.error("Failed to save product. No response from server.", { id: toastId });
       }
     } catch (error) {
       console.error("Save error:", error);
-      alert("Failed to save product. Please try again.");
+      toast.error(error?.response?.data?.msg || "Failed to save product. Please try again.", { id: toastId });
     }
   };
 
@@ -709,8 +732,16 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                     type="text" 
                     placeholder="Enter selling price here" 
                     value={variant.sellingPrice || ""}
-                    onChange={(e) => updateVariant(index, 'sellingPrice', e.target.value)}
+                    onChange={(e) => {
+                      updateVariant(index, 'sellingPrice', e.target.value);
+                      if (priceErrors[index]) {
+                        const newErrors = { ...priceErrors };
+                        delete newErrors[index];
+                        setPriceErrors(newErrors);
+                      }
+                    }}
                 />
+                {priceErrors[index] && <div className={styles.errorMessage}>{priceErrors[index]}</div>}
               </div>
             </div>
 

@@ -220,13 +220,28 @@ function Skeleton() {
 /* ═══════════════════════════════════════════════════════════
  * DashboardLayout
  * ═══════════════════════════════════════════════════════════ */
-const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
+const DashboardLayout = ({ 
+  children, 
+  topbarButtons = [], 
+  onTopbarAction,
+  customTopbarLeft,
+  customTopbarRight
+}) => {
   const router  = useRouter();
   const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
 
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState({ "/pet-sales": true }); // Default expand pet sales if active
+  const [expandedMenus, setExpandedMenus] = useState({});
+
+  /* ── auto-expand active menu ── */
+  useEffect(() => {
+    const parts = router.pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      const parentPath = "/" + parts[0];
+      setExpandedMenus(prev => ({ ...prev, [parentPath]: true }));
+    }
+  }, [router.pathname]);
 
   /* ── auth guard ── */
   useEffect(() => {
@@ -316,7 +331,6 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
                     <div 
                       onClick={() => {
                         setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
-                        if (!isExpanded && !isActive) router.push(item.subItems[0].path);
                       }}
                       className={isActive ? styles.active : ""}
                       title={sidebarCollapsed ? item.label : undefined}
@@ -408,13 +422,18 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
 
         {/* Desktop topbar */}
         <header className={styles.topbar}>
-          <div className={styles.searchBox}>
-            <input type="text" placeholder="Search here" />
-            <IconSearch />
-          </div>
+          {customTopbarLeft ? customTopbarLeft : (
+            <div className={styles.searchBox}>
+              <input type="text" placeholder="Search here" />
+              <IconSearch />
+            </div>
+          )}
 
           <div className={styles.topbarActions}>
-            {topbarButtons.map((btn, i) => (
+            {customTopbarRight}
+            
+            {/* Common Buttons if no custom content */}
+            {!customTopbarRight && topbarButtons.map((btn, i) => (
               <button
                 key={i}
                 className={`${styles.topBtn} ${

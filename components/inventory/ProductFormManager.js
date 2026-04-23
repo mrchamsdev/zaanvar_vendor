@@ -141,7 +141,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
               ) : (
                 <ProductForm 
                   initialData={tabs.find(t => t.id === activeTabId).data} 
-                  onSave={onClose}
+                  onSave={() => closeTab(activeTabId)}
                   onBack={() => closeTab(activeTabId)}
                 />
               )
@@ -165,7 +165,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
                       ) : (
                         <ProductForm 
                           initialData={tab.data}
-                          onSave={onClose}
+                          onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([null, splitTabIds[1]])}
                         />
                       )}
@@ -190,7 +190,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
                       ) : (
                         <ProductForm 
                           initialData={tab.data}
-                          onSave={onClose}
+                          onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([splitTabIds[0], null])}
                         />
                       )}
