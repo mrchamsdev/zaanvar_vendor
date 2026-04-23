@@ -3,6 +3,8 @@ import styles from "../../styles/inventory/productForm.module.css";
 // import BarcodeScanner from "./BarcodeScanner";
 import useStore from "../state/useStore";
 import { productService } from "../../services/productService";
+import ConfirmationModal from "./ConfirmationModal";
+import { toast } from "sonner";
 
 const IconPlus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -19,6 +21,12 @@ const IconScan = () => (
     <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
     <path d="M7 12h10" />
   </svg>
+);
+const IconTrash = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
 );
 
 const RETAIL_CATEGORIES = ["Food", "Cloths", "Accessories", "Grooming"];
@@ -62,8 +70,23 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [productType, setProductType] = useState(initialData?.productType || propType || "Retail");
   const [productName, setProductName] = useState(initialData?.productName || "");
   const [brand, setBrand] = useState(initialData?.brand || "");
-  const [category, setCategory] = useState(Array.isArray(initialData?.categoryId) ? initialData.categoryId[0] : (initialData?.categoryId || ""));
-  const [subCategory, setSubCategory] = useState(Array.isArray(initialData?.subCategoryId) ? initialData.subCategoryId[0] : (initialData?.subCategoryId || ""));
+  const [category, setCategory] = useState(() => {
+    const raw = initialData?.categoryId;
+    let name = "";
+    if (typeof raw === 'object' && raw?.category) name = raw.category;
+    else if (Array.isArray(raw)) name = raw[0];
+    else name = raw || "";
+    
+    // Match against RETAIL_CATEGORIES case-insensitively
+    const match = RETAIL_CATEGORIES.find(c => c.toLowerCase() === String(name).toLowerCase());
+    return match || name;
+  });
+  const [subCategory, setSubCategory] = useState(() => {
+    const raw = initialData?.subCategoryId;
+    if (typeof raw === 'object' && raw?.subCategory) return raw.subCategory;
+    if (Array.isArray(raw)) return raw[0];
+    return raw || "";
+  });
   const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
     if (initialData?.productPetType && Array.isArray(initialData.productPetType)) {
         const reverseMap = { "Dog": "Dog", "Cat": "Cat", "Birds": "Bird", "Fishes": "Fish", "SmallPets": "Small pets" };
@@ -78,14 +101,41 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [composition, setComposition] = useState(initialData?.composition || "");
+  const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
+  const [variantToDeleteIndex, setVariantToDeleteIndex] = useState(null);
+  const [isDeletingVariant, setIsDeletingVariant] = useState(false);
   
   // Variants State
   const [variants, setVariants] = useState(() => {
     if (initialData?.variants?.length > 0) {
-      return initialData.variants.map(v => ({
-        ...v,
-        images: v.productImages?.map(img => typeof img === 'string' ? { preview: img, file: null } : img) || []
-      }));
+      return initialData.variants.map(v => {
+        // Parse size like "2ml" into value and unit for the UI
+        let measure = "";
+        let unit = "";
+        const sizeStr = v.variantType?.size || "";
+        const match = sizeStr.match(/^(\d+(?:\.\d+)?)(.*)$/);
+        if (match) {
+          measure = match[1];
+          unit = match[2];
+        }
+
+        return {
+          ...v,
+          variantId: v.variantId,
+          packType: v.variantType?.packType || "",
+          packCount: v.variantType?.packCount || "",
+          flavor: v.variantType?.flavor || "",
+          size: v.variantType?.size || "",
+          unitMeasure: measure || v.variantMeasure || "",
+          unitType: unit || v.sizeType?.[0] || "",
+          skuNumber: v.SKU || "",
+          eanUpc: v.barcode || v.eanUpcNumber || "",
+          minStock: v.minStockAlert ?? 0,
+          images: (v.productImgs || v.productImages || [])?.map(img => 
+            typeof img === 'string' ? { preview: img, file: null } : img
+          ) || []
+        };
+      });
     }
     return [{ packType: "", images: [] }];
   });
@@ -161,7 +211,8 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         productName: productName,
         ProductCode: productCode,
         brand: brand,
-        categoryId: [catId, subCatId], // Array format [Category, SubCategory]
+        categoryId: { category: category?.toLowerCase() },
+        subCategoryId: { subCategory: subCategory?.toLowerCase() },
         productType: productType,
         productPetType: formattedPetTypes,
         hsnCode: hsnCode,
@@ -252,9 +303,45 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   };
 
   const addVariant = () => setVariants([...variants, { packType: "", images: [] }]);
+  
   const removeVariant = (index) => {
-    const newVariants = variants.filter((_, i) => i !== index);
-    setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
+    const targetVariant = variants[index];
+    
+    // If it's an existing variant (has variantId), show confirmation modal
+    if (targetVariant.variantId) {
+      setVariantToDeleteIndex(index);
+      setShowVariantDeleteConfirm(true);
+    } else {
+      // If it's a new unsaved variant, just remove it from state
+      const newVariants = variants.filter((_, i) => i !== index);
+      setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
+    }
+  };
+
+  const executeVariantDelete = async () => {
+    if (variantToDeleteIndex === null) return;
+    
+    const targetVariant = variants[variantToDeleteIndex];
+    if (!targetVariant.variantId) return;
+
+    setIsDeletingVariant(true);
+    try {
+      const res = await productService.deleteVariant(jwtToken, targetVariant.variantId);
+      if (res?.status === 200 || res?.data?.status === "success") {
+        toast.success("Variant deleted successfully");
+        const newVariants = variants.filter((_, i) => i !== variantToDeleteIndex);
+        setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
+      } else {
+        toast.error("Failed to delete variant");
+      }
+    } catch (error) {
+      console.error("Error deleting variant:", error);
+      toast.error("An error occurred while deleting the variant");
+    } finally {
+      setIsDeletingVariant(false);
+      setShowVariantDeleteConfirm(false);
+      setVariantToDeleteIndex(null);
+    }
   };
 
   const updateVariant = (index, field, value) => {
@@ -387,7 +474,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 style={{background: '#eee', whiteSpace: 'nowrap'}}
                 onClick={handleGenerateProductCode}
             >
-                Assigned Code
+                Assign Code
             </button>
           </div>
         </div>
@@ -418,9 +505,9 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       <div className={styles.sectionTitle} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
         Variants
         <div className={styles.variantActions}>
-          <span className={styles.windowActionIcon} onClick={addVariant} title="Add Variant"><IconPlus /></span>
-          <span className={styles.windowActionIcon} onClick={() => console.log("Scan triggered")} title="Scan Barcode"><IconScan /></span>
-          <span className={styles.windowActionIcon} style={{color: '#ff4d4f'}} onClick={() => removeVariant(variants.length - 1)} title="Remove Last"><IconX /></span>
+          <button className={styles.pageBtn} style={{display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '6px 16px'}} onClick={addVariant}>
+            <IconPlus /> Add Variant
+          </button>
         </div>
       </div>
 
@@ -432,14 +519,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
         return (
           <div key={index} className={styles.variantBox}>
-            {variants.length > 1 && (
-              <button 
-                onClick={() => removeVariant(index)}
-                style={{position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#ff4d4f'}}
-              >
-                <IconX />
-              </button>
-            )}
+            <div className={styles.variantHeader}>
+              <div style={{fontWeight: 600, fontSize: 14, color: '#666'}}>Variant #{index + 1}</div>
+              <div className={styles.variantActions}>
+                <span className={styles.windowActionIcon} onClick={() => console.log("Scan triggered")} title="Scan Barcode"><IconScan /></span>
+                <span className={styles.windowActionIcon} style={{color: '#ff4d4f'}} onClick={() => removeVariant(index)} title="Remove Variant"><IconTrash /></span>
+              </div>
+            </div>
 
             <div className={styles.inputGrid}>
               <div className={styles.inputField}>
@@ -595,7 +681,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                         style={{background: '#eee', padding: '0 8px', fontSize: 11}}
                         onClick={() => handleGenerateSku(index)}
                     >
-                        Assign
+                        Assign SKU
                     </button>
                   </div>
                 </div>
@@ -697,6 +783,15 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             Save
         </button>
       </div>
+
+      <ConfirmationModal 
+        isOpen={showVariantDeleteConfirm}
+        title="Delete Variant?"
+        message="Are you sure you want to delete this variant? This action cannot be undone."
+        onConfirm={executeVariantDelete}
+        onCancel={() => setShowVariantDeleteConfirm(false)}
+        confirmText={isDeletingVariant ? "Deleting..." : "Yes"}
+      />
     </div>
   );
 };
