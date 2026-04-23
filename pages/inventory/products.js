@@ -4,7 +4,9 @@ import styles from "../../styles/inventory/products.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import ProductFormManager from "../../components/inventory/ProductFormManager";
-import { IconSearch } from "../../components/dashboard/DashboardLayout"; // Reuse existing icons if exported, or re-define
+import ConfirmationModal from "../../components/inventory/ConfirmationModal";
+import { IconSearch } from "../../components/dashboard/DashboardLayout"; 
+import { toast } from "sonner";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -57,6 +59,7 @@ const ProductsPage = () => {
   const [formMode, setFormMode] = useState("Add");
   const [editProductData, setEditProductData] = useState(null);
   const [expandedRows, setExpandedRows] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Dynamic branchId from sub-vendor info
   const branchId = userInfo?.branchId;
@@ -140,7 +143,50 @@ const ProductsPage = () => {
     return `${v.variantMeasure || ''} ${v.size || v.sizeType?.[0] || ''}`.trim() || "-";
   };
 
-  console.log(products,"oifwuhihi")
+  const handleDelete = () => {
+    if (selectedIds.length > 0) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const executeDelete = async () => {
+    setShowDeleteConfirm(false);
+    setLoading(true);
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const id of selectedIds) {
+        try {
+          const res = await productService.deleteProduct(jwtToken, id);
+          if (res?.status === 200 || res?.data?.status === "success" || res?.statusText === "OK") {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to delete product ${id}:`, err);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully deleted ${successCount} product(s)`);
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to delete ${failCount} product(s)`);
+      }
+
+      setSelectedIds([]);
+      fetchProducts();
+      fetchStats();
+    } catch (e) {
+      console.error("Bulk delete error:", e);
+      toast.error("An error occurred during deletion");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -367,7 +413,9 @@ const ProductsPage = () => {
                 </div>
                 {/* Only show delete if NO selected item has hasOrders: true */}
                 {!products.filter(p => selectedIds.includes(p.productId)).some(p => p.hasOrders) && (
-                  <div className={styles.actionItem}><IconTrash /> Delete</div>
+                  <div className={styles.actionItem} onClick={handleDelete}>
+                    <IconTrash /> Delete
+                  </div>
                 )}
                 <div 
                   className={styles.actionItem} 
@@ -405,6 +453,15 @@ const ProductsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal 
+          isOpen={showDeleteConfirm}
+          title="Delete Products?"
+          message={`Are you sure you want to delete ${selectedIds.length} selected product(s)? This action is permanent and cannot be undone.`}
+          onConfirm={executeDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
 
       </div>
     </DashboardLayout>

@@ -133,6 +133,11 @@ export const productService = {
     return await webApi.delete(`vendor/products/${productId}`);
   },
 
+  deleteVariant: async (jwt, variantId) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.delete(`vendor/product-variants/${variantId}`);
+  },
+
   generateProductCode: async (jwt) => {
     const webApi = new WebApimanager(jwt);
     return await webApi.get(`vendor/products/generate-product-code`);
