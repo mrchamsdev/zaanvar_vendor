@@ -244,7 +244,10 @@ const ProductsPage = () => {
           <ProductFormManager 
             mode={formMode} 
             initialData={formMode === "Add" ? null : editProductData}
-            onClose={() => setIsAddingProduct(false)} 
+            onClose={() => {
+              setIsAddingProduct(false);
+              fetchProducts();
+            }} 
           />
         )}
 
