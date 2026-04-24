@@ -146,5 +146,32 @@ export const productService = {
   generateSku: async (jwt) => {
     const webApi = new WebApimanager(jwt);
     return await webApi.get(`vendor/product-variants/generate-sku`);
+  },
+
+  getStockUpdates: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/stock-updates/branch/${branchId}`);
+      return response?.data?.data || [];
+    } catch (error) {
+      console.error("Error fetching stock updates:", error);
+      return [];
+    }
+  },
+
+  getAllProductsBrief: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/products`, { branchId});
+      return response?.data?.data || [];
+    } catch (error) {
+      console.error("Error fetching project brief:", error);
+      return [];
+    }
+  },
+
+  updateStock: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.post(`vendor/stock-updates`, data);
   }
 };

@@ -30,6 +30,7 @@ const IconTrash = () => (
 );
 
 const RETAIL_CATEGORIES = ["Food", "Cloths", "Accessories", "Grooming"];
+const MEDICAL_CATEGORIES = ["Medicines"];
 const PET_TYPES = ["Dog", "Cat", "Bird", "Fish", "Small pets"];
 const PACK_TYPES = [
   "BAGS (Bag)", "BOTTLES (Btl)", "BOX (Box)", "BUNDLES (Bdl)", "CANS (Can)", 
@@ -38,6 +39,7 @@ const PACK_TYPES = [
   "PAIRS (Prs)", "PIECES (Pcs)", "QUINTAL (Qtl)", "ROLLS (Rol)"
 ];
 const UNIT_TYPES = ["g", "kg", "ml", "ltr", "mtr"];
+const MEDICAL_UNITS = ["mg", "ml"];
 const CLOTHES_SIZES = ["2XS", "XS", "S", "M", "L", "XL", "2XL"];
 const PAIRS_SIZES = ["1", "2", "3", "4", "5", "6", "7"];
 const DIMENSION_UNITS = ["mm", "cm", "inches"];
@@ -65,6 +67,7 @@ const SUB_CATEGORY_MAP = {
 
 const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => {
   const { jwtToken, userInfo } = useStore();
+  // console.log("ProductForm component rendering", { initialData, propType });
 
   // Main Form State
   const [productType, setProductType] = useState(initialData?.productType || propType || "Retail");
@@ -99,22 +102,25 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [productCode, setProductCode] = useState(initialData?.ProductCode || "");
   const [gst, setGst] = useState(initialData?.gst || "");
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
-  const [description, setDescription] = useState(initialData?.description || "");
-  const [composition, setComposition] = useState(initialData?.composition || "");
   const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
   const [variantToDeleteIndex, setVariantToDeleteIndex] = useState(null);
   const [isDeletingVariant, setIsDeletingVariant] = useState(false);
   const [priceErrors, setPriceErrors] = useState({}); // Stores errors by variant index
+  const [formErrors, setFormErrors] = useState({}); // Global form errors
   
   // Variants State
   const [variants, setVariants] = useState(() => {
-    if (initialData?.variants?.length > 0) {
-      return initialData.variants.map(v => {
-        // Parse size like "2ml" into value and unit for the UI
+    if (initialData?.variants && Array.isArray(initialData.variants)) {
+      return initialData.variants.filter(v => v.isActive !== false).map(v => {
+        // Parse size like "150ml" or "150undefined" into value and unit
         let measure = "";
         let unit = "";
-        const sizeStr = v.variantType?.size || "";
-        const match = sizeStr.match(/^(\d+(?:\.\d+)?)(.*)$/);
+        const sizeStr = String(v.variantType?.size || "");
+        
+        // Clean up "undefined" strings if they leaked into the DB
+        const cleanSizeStr = sizeStr.replace(/undefined/g, '');
+        const match = cleanSizeStr.match(/^(\d+(?:\.\d+)?)(.*)$/);
+        
         if (match) {
           measure = match[1];
           unit = match[2];
@@ -122,23 +128,28 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
         return {
           ...v,
+          _key: v.variantId || `key_${Math.random().toString(36).substr(2, 9)}`,
           variantId: v.variantId,
           packType: v.variantType?.packType || "",
           packCount: v.variantType?.packCount || "",
           flavor: v.variantType?.flavor || "",
-          size: v.variantType?.size || "",
+          size: cleanSizeStr || "",
           unitMeasure: measure || v.variantMeasure || "",
           unitType: unit || v.sizeType?.[0] || "",
+          drugType: v.drugType || "",
+          strength: v.strength || "",
+          variantDescription: v.description || v.variantDescription || "",
+          composition: v.productComposition || v.composition || "",
           skuNumber: v.SKU || "",
           eanUpc: v.barcode || v.eanUpcNumber || "",
           minStock: v.minStockAlert ?? 0,
-          images: (v.productImgs || v.productImages || [])?.map(img => 
+          images: (v.productImgs || v.productImages || v.images || [])?.map(img => 
             typeof img === 'string' ? { preview: img, file: null } : img
           ) || []
         };
       });
     }
-    return [{ packType: "", images: [] }];
+    return [{ _key: `key_${Date.now()}`, packType: "", images: [], variantDescription: "", composition: "", minStock: "" }];
   });
   
   const fileInputsRef = useRef([]); // To handle multiple variants
@@ -161,52 +172,161 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     const newVariants = [...variants];
     const targetVariant = newVariants[variantIndex];
     
-    if (targetVariant.images[imgIndex].file) {
-        URL.revokeObjectURL(targetVariant.images[imgIndex].preview);
-    }
-    
     targetVariant.images.splice(imgIndex, 1);
     setVariants(newVariants);
   };
+
+  const productFileInputRef = useRef(null);
+  const handleProductImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newImages = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    setProductImages(prev => [...prev, ...newImages]);
+    e.target.value = null;
+  };
+
+  const removeProductImage = (e, index) => {
+    e.stopPropagation();
+    setProductImages(prev => {
+        const newImgs = [...prev];
+        if (newImgs[index].file) {
+            URL.revokeObjectURL(newImgs[index].preview);
+        }
+        newImgs.splice(index, 1);
+        return newImgs;
+    });
+  };
   
   const handleGenerateProductCode = async () => {
+    const tid = toast.loading("Generating product code...");
     try {
       const response = await productService.generateProductCode(jwtToken);
       if (response?.data?.data?.productCode) {
         setProductCode(response.data.data.productCode);
+        toast.success("Product code assigned", { id: tid });
+      } else {
+        toast.error("Failed to generate code", { id: tid });
       }
     } catch (error) {
       console.error("Error generating product code:", error);
+      toast.error("Error assigning product code", { id: tid });
     }
   };
 
   const handleGenerateSku = async (index) => {
+    const tid = toast.loading("Generating SKU...");
     try {
       const response = await productService.generateSku(jwtToken);
       if (response?.data?.data?.sku) {
         updateVariant(index, 'skuNumber', response.data.data.sku);
+        toast.success("SKU assigned", { id: tid });
+      } else {
+        toast.error("Failed to generate SKU", { id: tid });
       }
     } catch (error) {
       console.error("Error generating SKU:", error);
+      toast.error("Error assigning SKU", { id: tid });
     }
   };
 
-  const handleSave = async () => {
-    // Validation: Selling Price should not be greater than MRP
-    const errors = {};
+  const handleNumericInput = (value, setter, maxLen, errorKey) => {
+    const val = value.replace(/\D/g, '');
+    if (maxLen && val.length > maxLen) return;
+    setter(val);
+    
+    if (errorKey && formErrors[errorKey]) {
+      const newErrors = { ...formErrors };
+      delete newErrors[errorKey];
+      setFormErrors(newErrors);
+    }
+  };
+
+  const updateVariantNumeric = (index, field, value, maxLen) => {
+    const val = value.replace(/\D/g, '');
+    if (maxLen && val.length > maxLen) return;
+    updateVariant(index, field, val);
+  };
+
+  const handlePriceInput = (index, field, value) => {
+    // Allow digits and at most one decimal point
+    let val = value.replace(/[^\d.]/g, '');
+    const parts = val.split('.');
+    if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+    updateVariant(index, field, val);
+    
+    // Clear sellingPrice/mrp error specifically
+    if (field === 'sellingPrice' || field === 'mrp') {
+        const newErrors = { ...priceErrors };
+        delete newErrors[index];
+        setPriceErrors(newErrors);
+    }
+  };
+
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    console.log("handleSave function triggered");
+    // alert("Save button clicked");
+    // Detailed Validations
+    let validationErrors = {};
+    if (!productName) validationErrors.productName = "Product Name is required";
+    if (!category) validationErrors.category = "Category is required";
+    
+    // Length & Format Validations
+    if (!productCode) {
+        validationErrors.productCode = "Product Code is required";
+    } else if (productCode.length < 4 || productCode.length > 6) {
+        validationErrors.productCode = "Product Code must be 4-6 digits";
+    }
+
+    if (!hsnCode) {
+        validationErrors.hsnCode = "HSN Code is required";
+    } else if (hsnCode.length < 6 || hsnCode.length > 8) {
+        validationErrors.hsnCode = "HSN Code must be 6-8 digits";
+    }
+
+    const currentPriceErrors = {};
     variants.forEach((v, index) => {
-      const sp = parseFloat(v.sellingPrice) || 0;
-      const mrp = parseFloat(v.mrp) || 0;
-      if (sp > mrp) {
-        errors[index] = "Selling Price cannot be greater than MRP.";
-      }
+        // Only require packType for Retail products
+        if (productType !== "Medical" && !v.packType) {
+            validationErrors[`${index}_packType`] = "Pack Type is required";
+        }
+        
+        if (v.minStock === "" || v.minStock === undefined) {
+            validationErrors[`${index}_minStock`] = "Min Stock Alert is required";
+        }
+        
+        // Remove mandatory check for variantDescription if it's optional, 
+        // or ensure user knows it's required. Providing a fallback to avoid blocking.
+        
+        if (!v.mrp) validationErrors[`${index}_mrp`] = "MRP is required";
+        if (!v.sellingPrice) validationErrors[`${index}_sellingPrice`] = "Selling Price is required";
+        
+        const sp = parseFloat(v.sellingPrice) || 0;
+        const mrp = parseFloat(v.mrp) || 0;
+        if (sp > mrp) {
+            currentPriceErrors[index] = "Selling Price cannot be greater than MRP";
+        }
+
+        if (v.eanUpc && v.eanUpc.length !== 12 && v.eanUpc.length !== 13) {
+            validationErrors[`${index}_eanUpc`] = "EAN/UPC must be 12-13 digits";
+        }
+        
+        if (!v.skuNumber) {
+            validationErrors[`${index}_skuNumber`] = "SKU Number is required";
+        } else if (v.skuNumber.length < 4 || v.skuNumber.length > 6) {
+            validationErrors[`${index}_skuNumber`] = "SKU must be 4-6 digits";
+        }
     });
 
-    setPriceErrors(errors);
+    setFormErrors(validationErrors);
+    setPriceErrors(currentPriceErrors);
 
-    if (Object.keys(errors).length > 0) {
-      toast.error("Please fix pricing errors in your variants.");
-      return;
+    if (Object.keys(validationErrors).length > 0 || Object.keys(currentPriceErrors).length > 0) {
+        console.warn("Validation failed", { validationErrors, currentPriceErrors });
+        toast.error("Please fill all required fields correctly.");
+        return;
     }
 
     const toastId = toast.loading(initialData?.productId ? "Updating product..." : "Creating product...");
@@ -226,6 +346,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       const formattedPetTypes = selectedPetTypes.map(t => petTypeMap[t] || t);
       const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
 
+      const firstVariant = variants[0] || {};
       const payload = {
         branchId: userInfo?.branchId || 1,
         productName: productName,
@@ -236,16 +357,26 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         productType: productType,
         productPetType: formattedPetTypes,
         hsnCode: hsnCode,
+        description: firstVariant.variantDescription || "",
+        composition: firstVariant.composition || "",
         variants: variants.map(v => ({
+          variantId: v.variantId || null,
+          productId: initialData?.productId || null,
+          description: v.variantDescription || "",
+          productComposition: v.composition || "",
           mrp: Number(v.mrp) || 0,
           sellingPrice: Number(v.sellingPrice) || 0,
           minStockAlert: Number(v.minStock) || 0,
           SKU: v.skuNumber || "",
           barcode: v.eanUpc || "",
+          drugType: v.drugType || null,
+          strength: v.strength || null,
           isActive: true,
+          variantMeasure: v.unitMeasure || v.strength || "",
+          sizeType: [v.unitType || ""],
           variantType: {
             flavor: v.flavor || "",
-            size: v.size || (v.unitMeasure ? `${v.unitMeasure}${v.unitType}` : ""),
+            size: (v.unitMeasure || v.strength) ? `${v.unitMeasure || v.strength}${v.unitType || ""}` : (v.size || ""),
             packType: v.packType || "",
             packCount: v.packCount || "",
             dimensions: v.height ? `${v.height}${v.heightUnit}x${v.width}${v.widthUnit}x${v.length}${v.lengthUnit}` : ""
@@ -263,7 +394,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       console.log("Metadata save response body:", response);
 
       if (response) {
-        const responseVariants = response.data?.variants || response.variants || [];
+        const responseVariants = response.data?.data?.variants || response.data?.variants || response.variants || [];
         
         console.log(`Starting per-variant image upload for ${variants.length} variants...`);
         
@@ -276,15 +407,16 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           const imageFiles = variantImages.filter(img => img.file).map(img => img.file);
           
           if (imageFiles.length > 0 && targetId) {
-            console.log(`Uploading ${imageFiles.length} images for Variant ID: ${targetId}`);
-            for (const file of imageFiles) {
-              const formData = new FormData();
-              formData.append("productImgs", file);
-              try {
-                await productService.uploadProductImages(jwtToken, targetId, formData);
-              } catch (uploadError) {
-                console.error(`Failed to upload image for variant ${targetId}:`, uploadError);
-              }
+            console.log(`Uploading ${imageFiles.length} new images for Variant ID: ${targetId}`);
+            const formData = new FormData();
+            // Append all files to the same FormData key to send as an array/multiple
+            imageFiles.forEach(file => formData.append("productImgs", file));
+            
+            try {
+              const upResp = await productService.uploadProductImages(jwtToken, targetId, formData);
+              console.log(`Batch image upload successful for variant ${targetId}:`, upResp);
+            } catch (uploadError) {
+              console.error(`Failed to upload images for variant ${targetId}:`, uploadError);
             }
           }
         }
@@ -325,7 +457,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     }
   };
 
-  const addVariant = () => setVariants([...variants, { packType: "", images: [] }]);
+  const addVariant = () => setVariants(prev => [...prev, { _key: `key_${Date.now()}`, packType: "", images: [], variantDescription: "", composition: "", minStock: "" }]);
   
   const removeVariant = (index) => {
     const targetVariant = variants[index];
@@ -336,8 +468,10 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       setShowVariantDeleteConfirm(true);
     } else {
       // If it's a new unsaved variant, just remove it from state
-      const newVariants = variants.filter((_, i) => i !== index);
-      setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
+      setVariants(prev => {
+          const filtered = prev.filter((_, i) => i !== index);
+          return filtered.length > 0 ? filtered : [{ _key: `key_${Date.now()}`, packType: "", images: [], variantDescription: "", minStock: "" }];
+      });
     }
   };
 
@@ -352,8 +486,10 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       const res = await productService.deleteVariant(jwtToken, targetVariant.variantId);
       if (res?.status === 200 || res?.data?.status === "success") {
         toast.success("Variant deleted successfully");
-        const newVariants = variants.filter((_, i) => i !== variantToDeleteIndex);
-        setVariants(newVariants.length > 0 ? newVariants : [{ packType: "", images: [] }]);
+        setVariants(prev => {
+            const filtered = prev.filter((_, i) => i !== variantToDeleteIndex);
+            return filtered.length > 0 ? filtered : [{ _key: `key_${Date.now()}`, packType: "", images: [], variantDescription: "", composition: "", minStock: "" }];
+        });
       } else {
         toast.error("Failed to delete variant");
       }
@@ -371,6 +507,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     const newVariants = [...variants];
     newVariants[index][field] = value;
     setVariants(newVariants);
+
+    // Clear error for this field
+    if (formErrors[`${index}_${field}`]) {
+      const newErrors = { ...formErrors };
+      delete newErrors[`${index}_${field}`];
+      setFormErrors(newErrors);
+    }
   };
 
   const InfoIcon = ({ text }) => (
@@ -402,9 +545,18 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <input 
             type="text" 
             placeholder="Enter Product Name" 
+            className={formErrors.productName ? styles.errorField : ""}
             value={productName}
-            onChange={(e) => setProductName(e.target.value)}
+            onChange={(e) => {
+              setProductName(e.target.value);
+              if (formErrors.productName) {
+                const newErrors = { ...formErrors };
+                delete newErrors.productName;
+                setFormErrors(newErrors);
+              }
+            }}
           />
+          {formErrors.productName && <div className={styles.errorMessage}>{formErrors.productName}</div>}
         </div>
         <div className={styles.inputField}>
           <label>Brand Name</label>
@@ -418,21 +570,40 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         <div className={styles.inputField}>
           <label>Category <span>*</span></label>
           {productType === "Retail" ? (
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">Select Category here</option>
-              {RETAIL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <>
+              <select 
+                  className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
+                value={category} 
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  if (formErrors.category) {
+                    const newErrors = { ...formErrors };
+                    delete newErrors.category;
+                    setFormErrors(newErrors);
+                  }
+                }}
+              >
+                <option value="">Select Category here</option>
+                {RETAIL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {formErrors.category && <div className={styles.errorMessage}>{formErrors.category}</div>}
+            </>
           ) : (
-            <div style={{display: 'flex', gap: 8}}>
-                <input 
-                  type="text" 
-                  placeholder="Medicine" 
-                  style={{flex: 1}} 
-                  value={category || "Medicine"} 
-                  onChange={(e) => setCategory(e.target.value)}
-                />
-                <button className={styles.pageBtn} style={{background: '#eee', whiteSpace: 'nowrap'}}>Enter Category</button>
-            </div>
+            <select 
+              className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
+              value={category} 
+              onChange={(e) => {
+                setCategory(e.target.value);
+                if (formErrors.category) {
+                  const newErrors = { ...formErrors };
+                  delete newErrors.category;
+                  setFormErrors(newErrors);
+                }
+              }}
+            >
+              <option value="">Select Category here</option>
+              {MEDICAL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           )}
         </div>
         <div className={styles.inputField}>
@@ -489,8 +660,9 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
               type="text" 
               placeholder="Enter product code" 
               style={{flex: 1}} 
+              className={formErrors.productCode ? styles.errorField : ""}
               value={productCode}
-              onChange={(e) => setProductCode(e.target.value)}
+              onChange={(e) => handleNumericInput(e.target.value, setProductCode, 6, 'productCode')}
             />
             <button 
                 className={styles.pageBtn} 
@@ -500,6 +672,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 Assign Code
             </button>
           </div>
+          {formErrors.productCode && <div className={styles.errorMessage}>{formErrors.productCode}</div>}
         </div>
       </div>
 
@@ -519,9 +692,11 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <input 
             type="text" 
             placeholder="Enter HSN Code here" 
+            className={formErrors.hsnCode ? styles.errorField : ""}
             value={hsnCode}
-            onChange={(e) => setHsnCode(e.target.value)}
+            onChange={(e) => handleNumericInput(e.target.value, setHsnCode, 8, 'hsnCode')}
           />
+          {formErrors.hsnCode && <div className={styles.errorMessage}>{formErrors.hsnCode}</div>}
         </div>
       </div>
 
@@ -541,7 +716,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         const isDimensional = DIMENSION_TYPES.includes(variant.packType);
 
         return (
-          <div key={index} className={styles.variantBox}>
+          <div key={variant._key || variant.variantId || index} className={styles.variantBox}>
             <div className={styles.variantHeader}>
               <div style={{fontWeight: 600, fontSize: 14, color: '#666'}}>Variant #{index + 1}</div>
               <div className={styles.variantActions}>
@@ -551,29 +726,58 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             </div>
 
             <div className={styles.inputGrid}>
-              <div className={styles.inputField}>
-                <label>Pack Type <span>*</span> <InfoIcon text="Outer packing type of the product." /></label>
-                <select 
-                  value={variant.packType || ""} 
-                  onChange={(e) => updateVariant(index, 'packType', e.target.value)}
-                >
-                  <option value="">Select Pack Type</option>
-                  {PACK_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-
-              {isPackaged && (
+              {productType === "Medical" ? (
                 <>
                   <div className={styles.inputField}>
-                    <label>Pack Count <InfoIcon text="How many pieces/items are inside that pack." /></label>
+                    <label>Drug Type</label>
                     <input 
-                        type="text" 
-                        placeholder="Enter count" 
-                        value={variant.packCount || ""} 
-                        onChange={(e) => updateVariant(index, 'packCount', e.target.value)}
+                      type="text" 
+                      placeholder="Tablet" 
+                      value={variant.drugType || ""} 
+                      onChange={(e) => updateVariant(index, 'drugType', e.target.value)} 
                     />
                   </div>
-      {/* Unit Type is now merged with Unit Measure in the section below */}
+                  <div className={styles.inputField}>
+                    <label>Strength</label>
+                    <div className={styles.dimInputGroup}>
+                      <input 
+                        type="text" 
+                        placeholder="Enter strength" 
+                        value={variant.strength || ""} 
+                        onChange={(e) => updateVariant(index, 'strength', e.target.value)} 
+                      />
+                      <select value={variant.unitType || "ml"} onChange={(e) => updateVariant(index, 'unitType', e.target.value)}>
+                        {MEDICAL_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                <div className={styles.inputField}>
+                  <label>Pack Type <span>*</span> <InfoIcon text="Outer packing type of the product." /></label>
+                  <select 
+                    value={variant.packType || ""} 
+                    onChange={(e) => updateVariant(index, 'packType', e.target.value)}
+                  >
+                    <option value="">Select Pack Type</option>
+                    {PACK_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+
+                {isPackaged && (
+                  <>
+                    <div className={styles.inputField}>
+                      <label>Pack Count <InfoIcon text="How many pieces/items are inside that pack." /></label>
+                      <input 
+                          type="text" 
+                          placeholder="Enter count" 
+                          value={variant.packCount || ""} 
+                          onChange={(e) => updateVariant(index, 'packCount', e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
                 </>
               )}
 
@@ -685,37 +889,43 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <input 
                     type="text" 
                     placeholder="Enter EAN/UPC number" 
+                    className={formErrors[`${index}_eanUpc`] ? styles.errorField : ""}
                     value={variant.eanUpc || ""}
-                    onChange={(e) => updateVariant(index, 'eanUpc', e.target.value)}
+                    onChange={(e) => updateVariantNumeric(index, 'eanUpc', e.target.value, 13)}
                 />
+                {formErrors[`${index}_eanUpc`] && <div className={styles.errorMessage}>{formErrors[`${index}_eanUpc`]}</div>}
               </div>
                 <div className={styles.inputField}>
-                  <label>SKU Number</label>
+                  <label>SKU Number <span>*</span></label>
                   <div style={{display: 'flex', gap: 8}}>
                     <input 
                         type="text" 
                         placeholder="Enter SKU Number" 
                         style={{flex: 1}}
+                        className={formErrors[`${index}_skuNumber`] ? styles.errorField : ""}
                         value={variant.skuNumber || ""}
-                        onChange={(e) => updateVariant(index, 'skuNumber', e.target.value)}
+                        onChange={(e) => updateVariantNumeric(index, 'skuNumber', e.target.value, 6)}
                     />
                     <button 
                         className={styles.pageBtn} 
-                        style={{background: '#eee', padding: '0 8px', fontSize: 11}}
+                        style={{background: '#eee', whiteSpace: 'nowrap'}}
                         onClick={() => handleGenerateSku(index)}
                     >
-                        Assign SKU
+                        Assign Code
                     </button>
                   </div>
+                  {formErrors[`${index}_skuNumber`] && <div className={styles.errorMessage}>{formErrors[`${index}_skuNumber`]}</div>}
                 </div>
               <div className={styles.inputField}>
-                <label>Min Stock Alert</label>
+                <label>Min Stock Alert <span>*</span></label>
                 <input 
                     type="text" 
-                    placeholder="Enter SKU Number" 
+                    placeholder="Enter Min Stock" 
+                    className={formErrors[`${index}_minStock`] ? styles.errorField : ""}
                     value={variant.minStock || ""}
-                    onChange={(e) => updateVariant(index, 'minStock', e.target.value)}
+                    onChange={(e) => updateVariantNumeric(index, 'minStock', e.target.value)}
                 />
+                {formErrors[`${index}_minStock`] && <div className={styles.errorMessage}>Min Stock Alert is required</div>}
               </div>
               <div className={styles.inputField}>
                 <label>MRP <span>*</span></label>
@@ -723,7 +933,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                     type="text" 
                     placeholder="Enter MRP here" 
                     value={variant.mrp || ""}
-                    onChange={(e) => updateVariant(index, 'mrp', e.target.value)}
+                    onChange={(e) => handlePriceInput(index, 'mrp', e.target.value)}
                 />
               </div>
               <div className={styles.inputField}>
@@ -733,7 +943,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                     placeholder="Enter selling price here" 
                     value={variant.sellingPrice || ""}
                     onChange={(e) => {
-                      updateVariant(index, 'sellingPrice', e.target.value);
+                      handlePriceInput(index, 'sellingPrice', e.target.value);
                       if (priceErrors[index]) {
                         const newErrors = { ...priceErrors };
                         delete newErrors[index];
@@ -744,69 +954,83 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 {priceErrors[index] && <div className={styles.errorMessage}>{priceErrors[index]}</div>}
               </div>
             </div>
-
-            {/* Per-Variant Image Upload Section */}
-            <div className={styles.inputField} style={{marginTop: 24}}>
-              <label>Variant Images <InfoIcon text="Images specific to this configuration (e.g. specific color/flavor)." /></label>
-              <div className={styles.imageUpload}>
-                <input 
-                  type="file" 
-                  ref={el => fileInputsRef.current[index] = el}
-                  onChange={(e) => handleImageChange(e, index)} 
-                  multiple 
-                  accept="image/*" 
-                  style={{display: 'none'}} 
-                />
-                <div className={styles.uploadItem} onClick={() => fileInputsRef.current[index]?.click()}>
-                  <div style={{fontSize: 24, marginBottom: 8}}>+</div>
-                  <span>Add Photos</span>
-                </div>
-                {(variant.images || []).map((img, imgIdx) => (
-                  <div key={imgIdx} className={styles.imagePreview}>
-                      <img src={img.preview} alt={`Variant ${index} Img ${imgIdx}`} />
-                      <button 
-                          className={styles.removeImageBtn} 
-                          onClick={(e) => removeImage(e, index, imgIdx)}
-                          title="Remove Image"
-                      >
-                          ✕
-                      </button>
+            {/* Per-Variant Additional Information Section */}
+            <div style={{marginTop: 32}}>
+              <div className={styles.sectionTitle} style={{fontSize: 15, marginBottom: 16, background: 'none', padding: 0}}>Additional information of product</div>
+              <div className={styles.inputGrid} style={{background: '#fafafa', padding: 20, borderRadius: 8}}>
+                {productType === "Medical" ? (
+                  <>
+                    <div className={styles.inputField}>
+                      <label>Add Product Description</label>
+                      <textarea 
+                        placeholder="Type here"
+                        value={variant.variantDescription || ""}
+                        onChange={(e) => updateVariant(index, 'variantDescription', e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+                    <div className={styles.inputField}>
+                      <label>Product Composition <InfoIcon text="Ingredients or chemical makeup." /></label>
+                      <textarea 
+                        placeholder="Type here"
+                        value={variant.composition || ""}
+                        onChange={(e) => updateVariant(index, 'composition', e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className={styles.inputField} style={{gridColumn: 'span 2'}}>
+                    <label>Add Product Description</label>
+                    <textarea 
+                      placeholder="Type here"
+                      value={variant.variantDescription || ""}
+                      onChange={(e) => updateVariant(index, 'variantDescription', e.target.value)}
+                      rows={4}
+                    />
                   </div>
-                ))}
+                )}
+
+                {/* Per-Variant Image Upload Section inside Additional Info */}
+                <div className={styles.inputField} style={{gridColumn: 'span 2', marginTop: 16}}>
+                  <label>Add Product Images <span>*</span></label>
+                  <div className={styles.imageUpload}>
+                    <input 
+                      type="file" 
+                      ref={el => fileInputsRef.current[index] = el}
+                      onChange={(e) => handleImageChange(e, index)} 
+                      multiple 
+                      accept="image/*" 
+                      style={{display: 'none'}} 
+                    />
+                    <div className={styles.uploadItem} onClick={() => fileInputsRef.current[index]?.click()}>
+                      <div style={{fontSize: 24, marginBottom: 8}}>+</div>
+                      <span style={{fontSize: 12, color: '#999'}}>Tap to Select Photo</span>
+                    </div>
+                    {(variant.images || []).map((img, imgIdx) => (
+                      <div key={imgIdx} className={styles.imagePreview}>
+                          <img src={img.preview} alt={`Variant ${index} Img ${imgIdx}`} />
+                          <button 
+                              className={styles.removeImageBtn} 
+                              onClick={(e) => removeImage(e, index, imgIdx)}
+                              title="Remove Image"
+                          >
+                              ✕
+                          </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         );
       })}
 
-      <div className={styles.sectionTitle}>Additional information of product</div>
-      <div className={styles.inputGrid}>
-        <div className={styles.inputField} style={{gridColumn: productType === "Medical" ? 'span 1' : 'span 2'}}>
-          <label>Add Product Description</label>
-          <textarea 
-            rows="4" 
-            placeholder="Type here"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          ></textarea>
-        </div>
-        {productType === "Medical" && (
-          <div className={styles.inputField} style={{gridColumn: 'span 1'}}>
-            <label>Product Composition <InfoIcon text="Ingredients or chemical makeup." /></label>
-            <textarea 
-              rows="4" 
-              placeholder="Type here"
-              value={composition}
-              onChange={(e) => setComposition(e.target.value)}
-            ></textarea>
-          </div>
-        )}
-      </div>
-
-
       <div style={{display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 40, marginBottom: 20}}>
         <button className={styles.pageBtn} onClick={onBack}>Back</button>
         <button 
+            type="button"
             className={`${styles.pageBtn} ${styles.nextBtn}`} 
             onClick={handleSave} 
             style={{background: '#000', color: '#fff'}}

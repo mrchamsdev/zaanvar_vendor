@@ -50,8 +50,12 @@
   width: 100%;
 }
 
-.inputField input:focus {
+.inputField input:focus, .inputField select:focus {
   border-color: #E9315D;
+}
+
+.placeholderSelect {
+  color: #999 !important;
 }
 
 .dimensionalGrid {
@@ -85,27 +89,31 @@
   align-items: center;
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 8px; /* Matching other inputs */
   overflow: hidden;
+  height: 44px; /* Same as others */
+  box-sizing: border-box;
 }
 
 .dimInputGroup input {
   flex: 1;
   border: none !important;
-  padding: 6px 8px;
-  font-size: 13px;
+  padding: 10px 12px; /* Adjusted for 44px height */
+  font-size: 14px;
   min-width: 0;
+  height: 100%;
 }
 
 .dimInputGroup select {
   border: none !important;
   background: #eee;
-  padding: 6px 4px;
-  font-size: 12px;
+  padding: 0 8px;
+  font-size: 13px;
   border-left: 1px solid #ddd !important;
   cursor: pointer;
-  width: 70px; /* Fixed width to prevent it from being too wide */
+  width: 80px;
   flex-shrink: 0;
+  height: 100%;
 }
 
 .variantBox {
@@ -270,12 +278,13 @@
 .multiSelectContainer {
   display: flex;
   flex-wrap: wrap;
+  align-items: center; /* Vertically middle */
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 16px; /* Back to original vertical padding */
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #fcfcfc;
-  min-height: 44px;
+  min-height: 44px; /* Same as others */
   cursor: pointer;
   position: relative;
   box-sizing: border-box;

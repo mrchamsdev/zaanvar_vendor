@@ -8,6 +8,9 @@ const IconChevronDown = () => (
 );
 
 const ProductView = ({ data, onBack, isSplit }) => {
+  const [isGalleryOpen, setIsGalleryOpen] = React.useState(false);
+  const [selectedGalleryImage, setSelectedGalleryImage] = React.useState(null);
+
   if (!data) return <div style={{padding: 40, textAlign: 'center'}}>No product data available.</div>;
 
   // Flatten the category for display
@@ -17,12 +20,17 @@ const ProductView = ({ data, onBack, isSplit }) => {
   };
   const renderCategory = (cat) => {
     if (Array.isArray(cat)) return cat.join(", ");
-    if (typeof cat === 'object' && cat !== null) return cat.category || cat.name || "-";
+    if (typeof cat === 'object' && cat !== null) {
+        return cat.subCategory || cat.category || cat.name || "-";
+    }
     return cat || "-";
   };
 
   // Ensure we get variants from any potential data key
   const allVariants = data.variants || data.productVariants || [];
+
+  // Calculate total stock across all variants
+  const totalStock = allVariants.reduce((sum, v) => sum + (Number(v.stockQty) || 0), 0);
 
   return (
     <div className={`${styles.viewContainer} ${isSplit ? styles.splitView : ""}`}>
@@ -46,19 +54,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <label>Sub-Category</label>
               <strong>{renderCategory(data.subCategory || data.subCategoryId)}</strong>
             </div>
-            <div className={styles.infoGridItem}>
-              <label>Pet Type</label>
-              <strong>{renderList(data.productPetType)}</strong>
-            </div>
+            <div className={styles.infoGridItem}></div>
           </div>
           <div className={styles.infoGridRow}>
             <div className={styles.infoGridItem}>
-              <label>Product Code</label>
-              <strong>{data.ProductCode || "-"}</strong>
-            </div>
-            <div className={styles.infoGridItem}>
-              <label>Min Stock Alert</label>
-              <strong>{data.minStockAlert || "0"}</strong>
+              <label>Pet Type</label>
+              <strong>{renderList(data.productPetType)}</strong>
             </div>
             <div className={styles.infoGridItem}>
               <label>HSN Code</label>
@@ -66,8 +67,9 @@ const ProductView = ({ data, onBack, isSplit }) => {
             </div>
             <div className={styles.infoGridItem}>
               <label>GST(%)</label>
-              <strong>{data.gst || "5"}%</strong>
+              <strong>{data.gst || "-"}%</strong>
             </div>
+            <div className={styles.infoGridItem}></div>
             <div className={styles.infoGridItem}></div>
           </div>
         </div>
@@ -76,26 +78,65 @@ const ProductView = ({ data, onBack, isSplit }) => {
           <div>
             <label className={styles.galleryTitle}>Product Images</label>
             <div className={styles.viewImageGallery}>
-               {/* Use variant images if available, else placeholders */}
-               {(allVariants?.[0]?.productImgs || [1,2,3]).slice(0,3).map((img, i) => (
-                  <div key={i} className={styles.viewImageThumb}>
-                      {typeof img === 'string' ? (
-                         <img src={img} alt="product" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:8}} />
+                {/* Collect all variant images into one unique list */}
+                {(() => {
+                  const allImages = (allVariants || []).reduce((acc, v) => {
+                    const imgs = v.productImgs || v.productImages || [];
+                    imgs.forEach(img => { if (img && !acc.includes(img)) acc.push(img); });
+                    return acc;
+                  }, []);
+
+                  const displayImages = allImages.slice(0, 3);
+                  const remainingCount = allImages.length - 3;
+
+                  return (
+                    <>
+                      {displayImages.map((img, i) => (
+                        <div key={i} className={styles.viewImageThumb} onClick={() => { setSelectedGalleryImage(img); setIsGalleryOpen(true); }}>
+                          <img src={img} alt="product" />
+                        </div>
+                      ))}
+                      {remainingCount > 0 ? (
+                        <div className={`${styles.viewImageThumb} ${styles.overflowThumb}`} onClick={() => { setSelectedGalleryImage(allImages[3]); setIsGalleryOpen(true); }}>
+                          <img src={allImages[3]} alt="more" />
+                          <div className={styles.overflowBadge}>+{remainingCount}</div>
+                        </div>
                       ) : (
-                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2">
-                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                             <circle cx="8.5" cy="8.5" r="1.5" />
-                             <polyline points="21 15 16 10 5 21" />
-                         </svg>
+                        allImages.length < 3 && <div className={`${styles.viewImageThumb} ${styles.addImageThumb}`}>+</div>
                       )}
-                  </div>
-               ))}
-               <div className={`${styles.viewImageThumb} ${styles.addImageThumb}`}>+</div>
+
+                      {/* Image Modal Popup */}
+                      {isGalleryOpen && (
+                        <div className={styles.imageModalOverlay} onClick={() => setIsGalleryOpen(false)}>
+                          <div className={styles.imageModalContent} onClick={e => e.stopPropagation()}>
+                            <button className={styles.closeModalBtn} onClick={() => setIsGalleryOpen(false)}>×</button>
+                            <div className={styles.modalBody}>
+                              <div className={styles.thumbnailsSidebar}>
+                                {allImages.map((img, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className={`${styles.sidebarThumb} ${selectedGalleryImage === img ? styles.activeSidebarThumb : ""}`}
+                                    onClick={() => setSelectedGalleryImage(img)}
+                                  >
+                                    <img src={img} alt={`Thumb ${idx}`} />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className={styles.mainImageContainer}>
+                                <img src={selectedGalleryImage} alt="Selected" className={styles.mainModalImage} />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
             </div>
           </div>
           <div className={styles.totalCountBox}>
              <label>Total :</label>
-             <span className={styles.totalValue}>000000</span>
+             <span className={styles.totalValue}>{String(totalStock).padStart(6, '0')}</span>
           </div>
         </div>
       </div>
@@ -109,7 +150,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <th>SKU Code</th>
               <th>EAN/UPC Number</th>
               <th>Pack Type</th>
-              <th>Unit Measure</th>
+              <th>Size</th>
+              <th>Min Stock</th>
+              <th>Length</th>
+              <th>Height</th>
+              <th>Weight/Unit</th>
+              <th>Radius</th>
               <th>Pack Count</th>
               <th>MRP</th>
               <th>Selling Price</th>
@@ -120,106 +166,132 @@ const ProductView = ({ data, onBack, isSplit }) => {
             </tr>
           </thead>
           <tbody>
-            {(allVariants || []).map((v) => (
-              <tr key={v.variantId}>
-                <td>{v.SKU || v.variantId || "-"}</td>
-                <td>{v.eanUpcNumber || v.barcode || "-"}</td>
-                <td>{v.packType || "Litres"}</td>
-                <td>{v.variantMeasure} {typeof v.variantType === 'object' ? Object.values(v.variantType)[0] : "kgs"}</td>
-                <td>{v.numberOfPieces || "-"}</td>
-                <td>{v.mrp || "-"}</td>
-                <td>{v.sellingPrice || "-"}</td>
-                <td>400</td> {/* Placeholder as per screenshot */}
-                <td>200</td> {/* Placeholder as per screenshot */}
-                <td>50</td>  {/* Placeholder as per screenshot */}
-                <td>150</td> {/* Placeholder as per screenshot */}
-              </tr>
-            ))}
+            {(allVariants || []).map((v) => {
+              const dimensions = v.variantType?.dimensions || "";
+              // Dimensions format typically HxWxL
+              const dimParts = dimensions.split('x');
+              const h = dimParts[0] || "-";
+              const w = dimParts[1] || "-";
+              const l = dimParts[2] || "-";
+
+              return (
+                <tr key={v.variantId}>
+                  <td>{v.SKU || v.variantId || "-"}</td>
+                  <td>{v.barcode || v.eanUpcNumber || "-"}</td>
+                  <td>{v.packType || "-"}</td>
+                  <td>{v.variantType?.size || v.size || "-"}</td>
+                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
+                  <td>{l}</td>
+                  <td>{h}</td>
+                  <td>
+                    {v.variantType?.size || (v.variantMeasure ? `${v.variantMeasure} ${v.sizeType?.[0] || ""}` : "-")}
+                  </td>
+                  <td>{v.variantType?.radius || "-"}</td>
+                  <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
+                  <td>{v.mrp || "-"}</td>
+                  <td>{v.sellingPrice || "-"}</td>
+                  <td>{v.stockQty ?? 0}</td> 
+                  <td>{v.soldQty ?? 0}</td> 
+                  <td>{v.damagedQty ?? 0}</td>  
+                  <td>{v.openingStock ?? 0}</td> 
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      <div className={styles.viewHistorySection}>
-        <div className={styles.viewSectionTitle}>Product History</div>
-        
-        {/* Purchase Order Table */}
-        <div className={styles.viewSubTitle}>Purchase Order</div>
-        <div className={styles.viewTableWrapper}>
-          <table className={styles.viewTable}>
-            <thead>
-              <tr>
-                <th>Order No</th>
-                <th>Supplier Name</th>
-                <th>MRP</th>
-                <th>Cost Price</th>
-                <th>ORDERED</th>
-                <th>Received</th>
-                <th>Defective</th>
-                <th>STOCK RECEIVED DATE</th>
-                <th>EXPIRY DATE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.productsBillItems || []).map((bill, idx) => (
-                <tr key={idx}>
-                  <td>#{bill.productsPurchaseRqstId || bill.productsBillId}</td>
-                  <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
-                  <td>₹{bill.mrp}</td>
-                  <td>₹{bill.costPrice}</td>
-                  <td>{bill.qty}</td>
-                  <td>{bill.receivedQuantity}</td>
-                  <td>{bill.damagedQuantity}</td>
-                  <td>{bill.bill?.receivedDate || "-"}</td>
-                  <td>{bill.expiryDate || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {(data.productsBillItems?.length > 0 || data.stockHistory?.length > 0) && (
+        <div className={styles.viewHistorySection}>
+          <div className={styles.viewSectionTitle}>Product History</div>
+          
+          {/* Purchase Order Table */}
+          {data.productsBillItems?.length > 0 && (
+            <>
+              <div className={styles.viewSubTitle}>Purchase Order</div>
+              <div className={styles.viewTableWrapper}>
+                <table className={styles.viewTable}>
+                  <thead>
+                    <tr>
+                      <th>Order No</th>
+                      <th>Supplier Name</th>
+                      <th>MRP</th>
+                      <th>Cost Price</th>
+                      <th>ORDERED</th>
+                      <th>Received</th>
+                      <th>Defective</th>
+                      <th>STOCK RECEIVED DATE</th>
+                      <th>EXPIRY DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.productsBillItems.map((bill, idx) => (
+                      <tr key={idx}>
+                        <td>#{bill.productsPurchaseRqstId || bill.productsBillId}</td>
+                        <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
+                        <td>₹{bill.mrp}</td>
+                        <td>₹{bill.costPrice}</td>
+                        <td>{bill.qty}</td>
+                        <td>{bill.receivedQuantity}</td>
+                        <td>{bill.damagedQuantity}</td>
+                        <td>{bill.bill?.receivedDate || "-"}</td>
+                        <td>{bill.expiryDate || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
-        {/* Stock History Table */}
-        <div className={styles.viewSubTitle} style={{marginTop: 24}}>Stock History</div>
-        <div className={styles.viewTableWrapper}>
-          <table className={styles.viewTable}>
-            <thead>
-              <tr>
-                <th>UPDATED DATE</th>
-                <th>ADD PRODUCT NAME</th>
-                <th>Product Code</th>
-                <th>CURRENT QTY</th>
-                <th>ADD</th>
-                <th>REMOVE</th>
-                <th>UPDATED QTY</th>
-                <th>REASON</th>
-                <th>EXP. DATE</th>
-                <th>COST PRICE</th>
-                <th>TOTAL (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.stockHistory || []).map((stock, idx) => (
-                <tr key={idx}>
-                  <td>{stock.createdDate?.split("T")[0] || "-"}</td>
-                  <td>{stock.itemName || data.productName}</td>
-                  <td>{stock.productCode || "-"}</td>
-                  <td>{stock.currentQty}</td>
-                  <td>{stock.add}</td>
-                  <td>{stock.remove}</td>
-                  <td>{stock.updatedQty}</td>
-                  <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
-                  <td>{stock.expDate || "-"}</td>
-                  <td>₹{stock.billItem?.costPrice || "-"}</td>
-                  <td>₹{stock.totalValue}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Stock History Table */}
+          {data.stockHistory?.length > 0 && (
+            <>
+              <div className={styles.viewSubTitle} style={{marginTop: 24}}>Stock History</div>
+              <div className={styles.viewTableWrapper}>
+                <table className={styles.viewTable}>
+                  <thead>
+                    <tr>
+                      <th>UPDATED DATE</th>
+                      <th>ADD PRODUCT NAME</th>
+                      <th>Product Code</th>
+                      <th>CURRENT QTY</th>
+                      <th>ADD</th>
+                      <th>REMOVE</th>
+                      <th>UPDATED QTY</th>
+                      <th>REASON</th>
+                      <th>EXP. DATE</th>
+                      <th>COST PRICE</th>
+                      <th>TOTAL (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.stockHistory.map((stock, idx) => (
+                      <tr key={idx}>
+                        <td>{stock.createdDate?.split("T")[0] || "-"}</td>
+                        <td>{stock.itemName || data.productName}</td>
+                        <td>{stock.productCode || "-"}</td>
+                        <td>{stock.currentQty}</td>
+                        <td>{stock.add}</td>
+                        <td>{stock.remove}</td>
+                        <td>{stock.updatedQty}</td>
+                        <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
+                        <td>{stock.expDate || "-"}</td>
+                        <td>₹{stock.billItem?.costPrice || "-"}</td>
+                        <td>₹{stock.totalValue}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      )}
 
-      <div className={styles.viewActions}>
+      {/* <div className={styles.viewActions}>
           <button className={styles.nextBtn} onClick={onBack}>Close View</button>
-      </div>
+      </div> */}
     </div>
   );
 };
