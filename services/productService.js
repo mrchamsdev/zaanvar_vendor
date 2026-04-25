@@ -173,5 +173,27 @@ export const productService = {
   updateStock: async (jwt, data) => {
     const webApi = new WebApimanager(jwt);
     return await webApi.post(`vendor/stock-updates`, data);
+  },
+
+  getStockUpdateById: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.get(`vendor/stock-updates/${id}`);
+  },
+
+  getStockReports: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/products/stock-reports`, { branchId });
+      return response?.data?.data || {
+        outOfStock: [],
+        lowStock: [],
+        expired: [],
+        shortExpiry: [],
+        damagedBillItems: []
+      };
+    } catch (error) {
+      console.error("Error fetching stock reports:", error);
+      return null;
+    }
   }
 };

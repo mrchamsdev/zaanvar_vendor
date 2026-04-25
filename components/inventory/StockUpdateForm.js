@@ -359,7 +359,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                 <option value="">SELECT</option>
                                 {currentProduct?.variants?.map(v => (
                                     <option key={v.variantId} value={v.variantId}>
-                                        {v.variantType?.size || "UNIT"}
+                                        {v.variantType?.size ? `${v.variantType.size} ${v.variantType.packType || ""}` : (v.variantType?.packType || v.drugType || `UNIT - ${v.variantId}`)}
                                     </option>
                                 ))}
                             </select>

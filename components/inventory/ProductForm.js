@@ -372,8 +372,6 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           drugType: v.drugType || null,
           strength: v.strength || null,
           isActive: true,
-          variantMeasure: v.unitMeasure || v.strength || "",
-          sizeType: [v.unitType || ""],
           variantType: {
             flavor: v.flavor || "",
             size: (v.unitMeasure || v.strength) ? `${v.unitMeasure || v.strength}${v.unitType || ""}` : (v.size || ""),

@@ -1,15 +1,343 @@
-import React from "react";
+import React, { useState, useEffect } from "react"; // Force refresh
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import styles from "../../styles/inventory/stockStatus.module.css";
+import useStore from "../../components/state/useStore";
+import { productService } from "../../services/productService";
+import { toast } from "sonner";
 
-const StockStatus = () => {
+const IconSearch = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const IconDownload = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+);
+
+const IconRefresh = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+);
+
+const IconAlert = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <circle cx="12" cy="12" r="10" fill="#e74c3c" stroke="none" />
+        <line x1="12" y1="8" x2="12" y2="12" stroke="#fff" />
+        <line x1="12" y1="16" x2="12.01" y2="16" stroke="#fff" />
+    </svg>
+);
+
+const TABS = [
+  { id: "outOfStock", label: "Out of stock" },
+  { id: "lowStock", label: "Low Quantity Stock" },
+  { id: "expired", label: "Expired Stock" },
+  { id: "shortExpiry", label: "Short Expiry Stock" },
+  { id: "damaged", label: "Damaged" }
+];
+
+const StockStatusPage = () => {
+  const { jwtToken, userInfo } = useStore();
+  const [activeTab, setActiveTab] = useState("outOfStock");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    outOfStock: [],
+    lowStock: [],
+    expired: [],
+    shortExpiry: [],
+    damaged: []
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const branchId = userInfo?.branchId || 1;
+
+  useEffect(() => {
+    if (jwtToken) {
+      fetchReports();
+    }
+  }, [jwtToken, branchId]);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const res = await productService.getStockReports(jwtToken, branchId);
+      if (res) {
+        setData({
+          outOfStock: res.outOfStock || [],
+          lowStock: res.lowStock || [],
+          expired: res.expired || [],
+          shortExpiry: res.shortExpiry || [],
+          damaged: res.damagedBillItems || []
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to load reports");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  };
+
+  const currentList = data[activeTab] || [];
+  const filteredList = currentList.filter(item => {
+      const name = item.productDetails?.productName || item.productName || "";
+      return name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const renderTableHeaders = () => {
+    switch (activeTab) {
+      case "outOfStock":
+        return (
+          <tr>
+            <th rowSpan="2">Product Name</th>
+            <th rowSpan="2">Category</th>
+            <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
+            <th rowSpan="2">Last Stock Date</th>
+            <th rowSpan="2">Action</th>
+          </tr>
+        );
+      case "lowStock":
+        return (
+          <tr>
+            <th rowSpan="2">Product Name</th>
+            <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
+            <th rowSpan="2">Threshold Level</th>
+            <th rowSpan="2">Action</th>
+          </tr>
+        );
+      case "expired":
+      case "shortExpiry":
+        return (
+          <tr>
+            <th rowSpan="2">Product Name</th>
+            <th rowSpan="2">Expiry Date</th>
+            {activeTab === "shortExpiry" && <th rowSpan="2">Remaining Days</th>}
+            <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
+            <th rowSpan="2">Status</th>
+            <th rowSpan="2">Action</th>
+          </tr>
+        );
+      case "damaged":
+        return (
+          <tr>
+            <th rowSpan="2">Product Name</th>
+            <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
+            <th rowSpan="2">Status</th>
+            <th rowSpan="2">Action</th>
+          </tr>
+        );
+      default: return null;
+    }
+  };
+
+  const renderTableSubHeaders = () => {
+      if (activeTab === "outOfStock") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
+      if (activeTab === "lowStock") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
+      if (activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
+      return null;
+  };
+
+  const renderRows = () => {
+    if (loading) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>Loading data...</td></tr>;
+    if (filteredList.length === 0) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>No items found</td></tr>;
+
+    return filteredList.map((item, idx) => {
+      const details = item.productDetails || {};
+      const pName = details.productName || item.productName || "Unknown Product";
+      const vt = item.variantType || {};
+      const unit = (vt.size || vt.flavor) ? `${vt.size || ""} ${vt.flavor || ""}`.trim() : (vt.packCount || vt.packType ? `${vt.packCount || ""} ${vt.packType || ""}`.trim() : (item.variantMeasure || "STND"));
+      
+      // Determine quantity to show based on tab
+      let displayQty = item.totalQuantity || item.qty || 0;
+      if (activeTab === "damaged") displayQty = item.damagedQuantity || item.qty || 0;
+      
+      const qtyLabel = activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged" ? " UNITS" : "";
+      
+      return (
+        <tr key={idx}>
+          <td className={styles.productName}>{pName}</td>
+          
+          {activeTab === "outOfStock" && <td className={styles.category}>{details.category || "GENERAL"}</td>}
+          
+          {(activeTab === "expired" || activeTab === "shortExpiry") && (
+              <td>{formatDate(item.expiryDate)}</td>
+          )}
+
+          {activeTab === "shortExpiry" && (
+              <td style={{fontWeight: 700}}>
+                {Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))} DAYS
+              </td>
+          )}
+
+          <td>{unit}</td>
+          <td style={{fontWeight: 600}}>
+              {displayQty}{qtyLabel}
+          </td>
+
+          {activeTab === "outOfStock" && <td>{formatDate(item.lastStockDate || new Date())}</td>}
+          {activeTab === "lowStock" && <td style={{fontWeight: 700}}>{item.minStockAlert || 10}</td>}
+
+          {(activeTab === "expired" || activeTab === "damaged") && (
+              <td>
+                <span className={activeTab === "expired" ? styles.statusExpired : styles.statusDamaged}>
+                    <div className={styles.statusText}><IconAlert /> {activeTab === "expired" ? "Expired" : "Damaged"}</div>
+                </span>
+              </td>
+          )}
+
+          {activeTab === "shortExpiry" && (
+              <td><span className={styles.statusText} style={{color: '#f39c12'}}><IconAlert /> Approaching</span></td>
+          )}
+
+          <td>
+            <div style={{display: 'flex', gap: '8px'}}>
+                {activeTab === "outOfStock" || activeTab === "lowStock" ? (
+                    <button className={`${styles.actionBtn} ${styles.restockBtn}`}><IconRefresh /> Restock</button>
+                ) : activeTab === "expired" ? (
+                    <>
+                        <button className={`${styles.actionBtn} ${styles.removeBtn}`}>🗑 Remove</button>
+                        <button className={`${styles.actionBtn} ${styles.wasteBtn}`}>🏷 Mark Waste</button>
+                    </>
+                ) : activeTab === "shortExpiry" ? (
+                    <button className={`${styles.actionBtn} ${styles.flashSaleBtn}`}>+ Add to Flash Sale</button>
+                ) : (
+                    <>
+                         <button className={`${styles.actionBtn} ${styles.restockBtn}`}><IconRefresh /> Restore</button>
+                         <button className={`${styles.actionBtn} ${styles.wasteBtn}`}>🏷 Mark Waste</button>
+                    </>
+                )}
+            </div>
+          </td>
+        </tr>
+      );
+    });
+  };
+
   return (
     <DashboardLayout>
-      <div style={{ padding: 24 }}>
-        <h1>Stock Status</h1>
-        <p>This page is under development.</p>
+      <div className={styles.container}>
+        <div className={styles.tabBar}>
+          {TABS.map(t => (
+            <div 
+              key={t.id} 
+              className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ""}`}
+              onClick={() => setActiveTab(t.id)}
+            >
+              {t.label}
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.contentBody}>
+          <div className={styles.topActions}>
+            <div className={styles.searchBox}>
+              <span className={styles.searchIcon}><IconSearch /></span>
+              <input 
+                type="text" 
+                placeholder="Search products here" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button className={styles.exportBtn} onClick={() => {
+                if (filteredList.length === 0) {
+                    toast.error("No data to export");
+                    return;
+                }
+                
+                let csvRows = [];
+                let headers = [];
+                
+                // Define headers based on tab
+                if (activeTab === "outOfStock") headers = ["Product Name", "Category", "Unit", "Quantity", "Last Stock Date"];
+                else if (activeTab === "lowStock") headers = ["Product Name", "Unit", "Quantity", "Threshold Level"];
+                else if (activeTab === "expired" || activeTab === "shortExpiry") {
+                    headers = ["Product Name", "Expiry Date", "Unit", "Quantity", "Status"];
+                    if (activeTab === "shortExpiry") headers.splice(2, 0, "Remaining Days");
+                }
+                else if (activeTab === "damaged") headers = ["Product Name", "Unit", "Quantity", "Status"];
+                
+                csvRows.push(headers.join(","));
+                
+                filteredList.forEach(item => {
+                    const details = item.productDetails || {};
+                    const pName = `"${details.productName || item.productName || "Unknown"}"`;
+                    const unit = item.variantMeasure || "STND";
+                    let qty = item.totalQuantity || item.qty || 0;
+                    if (activeTab === "damaged") qty = item.damagedQuantity || item.qty || 0;
+                    
+                    let row = [];
+                    if (activeTab === "outOfStock") {
+                        row = [pName, details.category || "GENERAL", unit, qty, formatDate(item.lastStockDate || new Date())];
+                    } else if (activeTab === "lowStock") {
+                        row = [pName, unit, qty, item.minStockAlert || 10];
+                    } else if (activeTab === "expired" || activeTab === "shortExpiry") {
+                        const status = activeTab === "expired" ? "Expired" : "Approaching";
+                        row = [pName, formatDate(item.expiryDate), unit, qty, status];
+                        if (activeTab === "shortExpiry") {
+                            const days = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                            row.splice(2, 0, `${days} DAYS`);
+                        }
+                    } else if (activeTab === "damaged") {
+                        row = [pName, unit, qty, "Damaged"];
+                    }
+                    csvRows.push(row.join(","));
+                });
+                
+                const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', `${activeTab}_report_${new Date().toLocaleDateString()}.csv`);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }}>
+                <IconDownload /> Export CSV
+            </button>
+          </div>
+
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
+                {renderTableHeaders()}
+                {renderTableSubHeaders()}
+              </thead>
+              <tbody>
+                {renderRows()}
+              </tbody>
+            </table>
+          </div>
+
+          <div className={styles.pagination}>
+            <div className={styles.paginationLeft}>
+              <span>Rows per Page</span>
+              <select className={styles.rowsSelect}>
+                <option>10</option>
+                <option>20</option>
+                <option>50</option>
+              </select>
+              <span>1 - {filteredList.length} of {filteredList.length} Items</span>
+            </div>
+            <div className={styles.paginationRight}>
+                <button className={styles.pageBtn}>Previous</button>
+                <button className={`${styles.pageBtn} ${styles.pageBtnNext}`}>Next</button>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default StockStatus;
+export default StockStatusPage;

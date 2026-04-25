@@ -150,7 +150,12 @@ const ProductsPage = () => {
 
   const getUnitDisplay = (v) => {
     if (v.variantType && typeof v.variantType === 'object') {
-        return `${v.variantType.size || ''} ${v.variantType.flavor || ''}`.trim() || "-";
+        const vt = v.variantType;
+        let display = `${vt.size || ''} ${vt.flavor || ''}`.trim();
+        if (!display) {
+            display = `${vt.packCount || ''} ${vt.packType || ''}`.trim();
+        }
+        return display || "-";
     }
     return `${v.variantMeasure || ''} ${v.size || v.sizeType?.[0] || ''}`.trim() || "-";
   };
@@ -357,7 +362,7 @@ const ProductsPage = () => {
                         </td>
                         {/* Render first variant info in main row */}
                         <td>{getUnitDisplay(firstVariant)}</td>
-                        <td>{firstVariant.numberOfPieces || firstVariant.variantMeasure || "-"}</td>
+                        <td>{firstVariant.numberOfPieces  || "-"}</td>
                         <td>00</td>
                         <td>00</td>
                         <td 
