@@ -184,7 +184,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{l}</td>
                   <td>{h}</td>
                   <td>
-                    {v.variantType?.size || (v.variantMeasure ? `${v.variantMeasure} ${v.sizeType?.[0] || ""}` : "-")}
+                    {v.variantType?.size || "-"}
                   </td>
                   <td>{v.variantType?.radius || "-"}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>

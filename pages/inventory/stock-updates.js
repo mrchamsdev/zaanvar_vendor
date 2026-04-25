@@ -20,6 +20,8 @@ const StockUpdatesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
+  const [managerMode, setManagerMode] = useState("Add");
+  const [selectedStockId, setSelectedStockId] = useState(null);
 
   const branchId = userInfo?.branchId || 91;
 
@@ -68,7 +70,11 @@ const StockUpdatesPage = () => {
         </select>
       )}
       customTopbarRight={(
-        <button className={styles.updateStockBtn} onClick={() => setShowUpdateForm(true)}>
+        <button className={styles.updateStockBtn} onClick={() => { 
+          setManagerMode("Add"); 
+          setSelectedStockId(null);
+          setShowUpdateForm(true); 
+        }}>
           <IconPlus /> Update Stock
         </button>
       )}
@@ -76,6 +82,8 @@ const StockUpdatesPage = () => {
       <div className={styles.container}>
         {showUpdateForm && (
             <StockUpdateManager 
+                mode={managerMode}
+                stockId={selectedStockId}
                 onClose={() => {
                     setShowUpdateForm(false);
                     fetchStockUpdates();
@@ -124,12 +132,26 @@ const StockUpdatesPage = () => {
                   const value = update.totalValue || (update.add ? update.add * 100 : -(update.remove * 100));
                   
                   return (
-                    <tr key={update.stockUpdateId}>
+                    <tr 
+                      key={update.stockUpdateId} 
+                      onClick={() => {
+                        setSelectedStockId(update.stockUpdateId);
+                        setManagerMode("View");
+                        setShowUpdateForm(true);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td>{formatDate(update.createdDate)}</td>
                       <td style={{ fontWeight: 600, textTransform: 'uppercase' }}>
                         {update.product?.productName || "PRODUCT #" + update.productId}
                       </td>
-                      <td>{update.variant?.variantMeasure || "-"}</td>
+                      <td>
+                        {(update.variant?.variantType?.size || update.variant?.variantType?.flavor) 
+                          ? `${update.variant.variantType.size || ""} ${update.variant.variantType.flavor || ""}`.trim() 
+                          : (update.variant?.variantType?.packCount || update.variant?.variantType?.packType 
+                            ? `${update.variant.variantType.packCount || ""} ${update.variant.variantType.packType || ""}`.trim() 
+                            : (update.variant?.variantMeasure || "-"))}
+                      </td>
                       <td>{update.updatedQty}</td>
                       <td className={isAdd ? styles.totalValueGreen : styles.totalValueRed}>
                         {isAdd ? "+ ₹ " : "- ₹ "}{Math.abs(parseFloat(value)).toLocaleString()}
@@ -157,26 +179,30 @@ const StockUpdatesPage = () => {
             <span>{((currentPage - 1) * rowsPerPage) + 1}-{Math.min(currentPage * rowsPerPage, filteredUpdates.length)} of {filteredUpdates.length} Items</span>
           </div>
           <div className={styles.paginationRight}>
-            <button 
-              className={styles.pageBtn} 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => prev - 1)}
-            >
-              Previous
-            </button>
-            <button 
-              className={`${styles.pageBtn} ${styles.pageBtnActive}`}
-              onClick={() => {}}
-            >
-              {currentPage}
-            </button>
-            <button 
-              className={styles.pageBtn}
-              disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-            >
-              Next
-            </button>
+            {currentPage > 1 && (
+              <button 
+                className={styles.pageBtn} 
+                onClick={() => setCurrentPage(prev => prev - 1)}
+              >
+                Previous
+              </button>
+            )}
+            {totalPages > 0 && (
+              <button 
+                className={`${styles.pageBtn} ${styles.pageBtnActive}`}
+                onClick={() => {}}
+              >
+                {currentPage}
+              </button>
+            )}
+            {currentPage < totalPages && (
+              <button 
+                className={styles.pageBtn}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+              >
+                Next
+              </button>
+            )}
           </div>
         </div>
       </div>
