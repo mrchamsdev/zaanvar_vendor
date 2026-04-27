@@ -5,6 +5,9 @@ import { BACKEND_URL, SOCKET_SERVER_URL, WordpresBACKEND_URL, WordpresSlug_URL, 
 // Set global timeout for all Axios requests
 Axios.defaults.timeout = 10000; // 10 seconds
 
+// Global store for pending requests to prevent duplicates
+const pendingRequests = new Map();
+
 export class WebApimanager {
   constructor(jwtToken) {
     this.jwtToken = jwtToken;
@@ -108,42 +111,42 @@ throw error;
 //   }
 // }
 async get(url, qs) {
-  try {
-    let baseURL = BACKEND_URL;
-    let jwttoken =`${this.jwtToken}`;
-    let headers = {
-      Authorization: "Bearer " + jwttoken,
-      // jwtToken: jwttoken,
-      "Content-Type": "application/json",
-    };
-    return Axios.get(baseURL + url, { 
-      headers, 
-      params: qs,
-      timeout: 10000 
-    })
-      .then((res) => {
-        if (res.status >= 200 && res.status < 500) {
-          return res || [];
-        } else {
-          throw new Error(`Unexpected status code: ${res.status}`);
-        }
-      })
-      .catch((error) => {
-        if (error.response && error.response.status === 401) {
-          //Setting a Custom error message if authorization failed
-          error.customErrorMessage =
-            "Apologies! An error occurred. Please log in again to continue.";
-        }
-
-        throw error;
-      });
-  } catch (e) {
-    // swal(
-    //   Failure,
-    //   Something went wrong. Please try again after sometime.,
-    //   "error"
-    // );
+  const requestKey = `GET:${url}:${JSON.stringify(qs || {})}`;
+  if (pendingRequests.has(requestKey)) {
+    return pendingRequests.get(requestKey);
   }
+
+  const requestPromise = (async () => {
+    try {
+      let baseURL = BACKEND_URL;
+      let jwttoken =`${this.jwtToken}`;
+      let headers = {
+        Authorization: "Bearer " + jwttoken,
+        "Content-Type": "application/json",
+      };
+      const res = await Axios.get(baseURL + url, { 
+        headers, 
+        params: qs,
+        timeout: 10000 
+      });
+
+      if (res.status >= 200 && res.status < 500) {
+        return res || [];
+      } else {
+        throw new Error(`Unexpected status code: ${res.status}`);
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        error.customErrorMessage = "Apologies! An error occurred. Please log in again to continue.";
+      }
+      throw error;
+    } finally {
+      pendingRequests.delete(requestKey);
+    }
+  })();
+
+  pendingRequests.set(requestKey, requestPromise);
+  return requestPromise;
 }
 
 async getwordpressSlugData(url, data) {

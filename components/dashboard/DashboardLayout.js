@@ -132,6 +132,16 @@ const SERVICE_MAP = {
       { label: "Stock Updates", path: "/inventory/stock-updates" },
       { label: "Stock Status", path: "/inventory/stock-status" }
     ]
+  },
+  "Purchase Bills": {
+    label: "Purchase Bills",
+    path: "/purchase-bill",
+    icon: <IconPackage />,
+    subItems: [
+      { label: "Purchase Orders", path: "/purchase-bill/purchase-orders" },
+      { label: "Purchase Out", path: "/purchase-bill/purchase-out" },
+      { label: "Purchase Return", path: "/purchase-bill/purchase-return" }
+    ]
   }
 };
 
@@ -142,6 +152,7 @@ const BRANCH_SERVICE_MAP = {
   petShops:         "Pet Shop",
   petSales:         "Pet Sales",
   inventory:        "Inventory",
+  purchaseBills:    "Purchase Bills",
 };
 
 function buildMenuFromVendor(userInfo) {
@@ -155,6 +166,12 @@ function buildMenuFromVendor(userInfo) {
       path: "/inventory", 
       icon: <IconPackage />,
       subItems: SERVICE_MAP["Inventory"].subItems 
+    },
+    { 
+      label: "Purchase Bills", 
+      path: "/purchase-bill", 
+      icon: <IconPackage />,
+      subItems: SERVICE_MAP["Purchase Bills"].subItems 
     },
   ];
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import styles from "../../styles/inventory/stockUpdateForm.module.css";
+import styles from "../../styles/inventory/stock-update-form.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
-import ProductFormManager from "./ProductFormManager";
+import ProductFormManager from "./product-form-manager";
 
 const IconX = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

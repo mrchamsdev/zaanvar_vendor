@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"; // Force refresh
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import styles from "../../styles/inventory/stockStatus.module.css";
+import styles from "../../styles/inventory/stock-status.module.css";
 import useStore from "../../components/state/useStore";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
@@ -53,6 +53,8 @@ const StockStatusPage = () => {
     damaged: []
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const branchId = userInfo?.branchId || 1;
 
@@ -92,6 +94,9 @@ const StockStatusPage = () => {
       const name = item.productDetails?.productName || item.productName || "";
       return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  const totalPages = Math.ceil(filteredList.length / rowsPerPage);
+  const paginatedList = filteredList.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   const renderTableHeaders = () => {
     switch (activeTab) {
@@ -148,9 +153,9 @@ const StockStatusPage = () => {
 
   const renderRows = () => {
     if (loading) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>Loading data...</td></tr>;
-    if (filteredList.length === 0) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>No items found</td></tr>;
+    if (paginatedList.length === 0) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>No items found</td></tr>;
 
-    return filteredList.map((item, idx) => {
+    return paginatedList.map((item, idx) => {
       const details = item.productDetails || {};
       const pName = details.productName || item.productName || "Unknown Product";
       const vt = item.variantType || {};
@@ -322,16 +327,22 @@ const StockStatusPage = () => {
           <div className={styles.pagination}>
             <div className={styles.paginationLeft}>
               <span>Rows per Page</span>
-              <select className={styles.rowsSelect}>
-                <option>10</option>
-                <option>20</option>
-                <option>50</option>
+              <select 
+                className={styles.rowsSelect}
+                value={rowsPerPage}
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              >
+                {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              <span>1 - {filteredList.length} of {filteredList.length} Items</span>
+              <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredList.length)} - {Math.min(currentPage * rowsPerPage, filteredList.length)} of {filteredList.length} Items</span>
             </div>
             <div className={styles.paginationRight}>
-                <button className={styles.pageBtn}>Previous</button>
-                <button className={`${styles.pageBtn} ${styles.pageBtnNext}`}>Next</button>
+                {currentPage > 1 && (
+                    <button className={styles.pageBtn} onClick={() => setCurrentPage(prev => prev - 1)}>Previous</button>
+                )}
+                {currentPage < totalPages && (
+                    <button className={`${styles.pageBtn} ${styles.pageBtnNext}`} onClick={() => setCurrentPage(prev => prev + 1)}>Next</button>
+                )}
             </div>
           </div>
         </div>

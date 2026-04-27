@@ -3,8 +3,8 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/inventory/products.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
-import ProductFormManager from "../../components/inventory/ProductFormManager";
-import ConfirmationModal from "../../components/inventory/ConfirmationModal";
+import ProductFormManager from "../../components/inventory/product-form-manager";
+import ConfirmationModal from "../../components/inventory/confirmation-modal";
 import { IconSearch } from "../../components/dashboard/DashboardLayout"; 
 import { toast } from "sonner";
 
@@ -149,15 +149,28 @@ const ProductsPage = () => {
   };
 
   const getUnitDisplay = (v) => {
-    if (v.variantType && typeof v.variantType === 'object') {
-        const vt = v.variantType;
-        let display = `${vt.size || ''} ${vt.flavor || ''}`.trim();
-        if (!display) {
-            display = `${vt.packCount || ''} ${vt.packType || ''}`.trim();
-        }
-        return display || "-";
+    if (!v) return "-";
+
+    const vt = (v.variantType && typeof v.variantType === 'object') ? v.variantType : {};
+    
+    // 1. Get main measure (Strength for Medical, Size for Retail)
+    const strength = v.strength || "";
+    const size = (vt.size && vt.size !== "1" && vt.size !== 1) ? vt.size : (v.size && v.size !== "1" && v.size !== 1 ? v.size : "");
+    const flavor = vt.flavor || "";
+    
+    let detailInfo = `${strength || size} ${flavor}`.trim();
+    
+    // 2. Get packaging info
+    const count = v.numberOfPieces || vt.packCount || "";
+    const type = vt.packType || vt.type || "";
+    const packagingInfo = `${count} ${type}`.trim();
+    
+    // 3. Combine them
+    if (packagingInfo && detailInfo) {
+        return `${packagingInfo} (${detailInfo})`;
     }
-    return `${v.variantMeasure || ''} ${v.size || v.sizeType?.[0] || ''}`.trim() || "-";
+    
+    return (packagingInfo || detailInfo || "-");
   };
 
   const handleDelete = () => {
@@ -362,7 +375,7 @@ const ProductsPage = () => {
                         </td>
                         {/* Render first variant info in main row */}
                         <td>{getUnitDisplay(firstVariant)}</td>
-                        <td>{firstVariant.numberOfPieces  || "-"}</td>
+                        <td>{firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
                         <td>00</td>
                         <td>00</td>
                         <td 
@@ -380,7 +393,7 @@ const ProductsPage = () => {
                         <tr key={v.variantId} className={styles.variantRow}>
                           <td colSpan="5"></td>
                           <td>{getUnitDisplay(v)}</td>
-                          <td>{v.numberOfPieces || v.variantMeasure || "-"}</td>
+                          <td>{v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
                           <td>00</td>
                           <td>00</td>
                           <td style={{fontWeight: 600}}>₹{v.mrp}</td>

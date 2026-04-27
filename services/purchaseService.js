@@ -1,0 +1,80 @@
+import { WebApimanager } from "../components/utilities/WebApiManager";
+
+export const purchaseService = {
+  getPurchaseRequests: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/purchase-requests/branch/${branchId}`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching purchase requests:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
+  getSuppliers: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/suppliers/branch/${branchId}`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
+  createPurchaseOrder: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.post(`vendor/purchase-requests`, data);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error creating purchase order:", error);
+      return { status: "error" };
+    }
+  },
+
+  getPurchaseRequestSummary: async (jwt, requestId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.get(`vendor/purchase-requests/${requestId}/summary`);
+        return response?.data || { status: "error" };
+    } catch (error) {
+        console.error("Error fetching purchase request summary:", error);
+        return { status: "error" };
+    }
+  },
+
+  updatePurchaseOrder: async (jwt, requestId, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.put(`vendor/purchase-requests/${requestId}`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error updating purchase order:", error);
+        return { status: "error" };
+    }
+  },
+
+  receivePurchaseOrder: async (jwt, requestId, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.post(`vendor/purchase-requests/${requestId}/receive`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error receiving purchase order:", error);
+        return { status: "error" };
+    }
+  },
+
+  createBill: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.post(`vendor/bills`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error creating bill:", error);
+        return { status: "error" };
+    }
+  }
+};

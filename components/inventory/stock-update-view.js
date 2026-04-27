@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../styles/inventory/productView.module.css";
+import styles from "../../styles/inventory/product-view.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";

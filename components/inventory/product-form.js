@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import styles from "../../styles/inventory/productForm.module.css";
+import styles from "../../styles/inventory/product-form.module.css";
 // import BarcodeScanner from "./BarcodeScanner";
 import useStore from "../state/useStore";
 import { productService } from "../../services/productService";
-import ConfirmationModal from "./ConfirmationModal";
+import ConfirmationModal from "./confirmation-modal";
 import { toast } from "sonner";
 
 const IconPlus = () => (
@@ -348,37 +348,42 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
       const firstVariant = variants[0] || {};
       const payload = {
-        branchId: userInfo?.branchId || 1,
-        productName: productName,
+        branchId: userInfo?.branchId || 91,
         ProductCode: productCode,
+        productName: productName,
         brand: brand,
-        categoryId: { category: String(category || "").toLowerCase() },
-        subCategoryId: { subCategory: String(subCategory || "").toLowerCase() },
+        categoryId: { category: category }, 
+        subCategoryId: { subCategory: subCategory }, 
         productType: productType,
-        productPetType: formattedPetTypes,
+        productPetType: { petType: selectedPetTypes.join(" and ") }, 
+        taxGroupId: 3, 
         hsnCode: hsnCode,
-        description: firstVariant.variantDescription || "",
-        composition: firstVariant.composition || "",
+        extraAttributes: { 
+            prescriptionRequired: true, 
+            storageCondition: "Store below 25°C" 
+        },
+        createdBy: userId,
         variants: variants.map(v => ({
-          variantId: v.variantId || null,
-          productId: initialData?.productId || null,
-          description: v.variantDescription || "",
-          productComposition: v.composition || "",
           mrp: Number(v.mrp) || 0,
           sellingPrice: Number(v.sellingPrice) || 0,
-          minStockAlert: Number(v.minStock) || 0,
-          SKU: v.skuNumber || "",
+          productImgs: (v.images || []).map(img => img.preview).filter(p => p.startsWith('http')), 
           barcode: v.eanUpc || "",
-          drugType: v.drugType || null,
-          strength: v.strength || null,
-          isActive: true,
+          minStockAlert: Number(v.minStock) || 0,
           variantType: {
-            flavor: v.flavor || "",
-            size: (v.unitMeasure || v.strength) ? `${v.unitMeasure || v.strength}${v.unitType || ""}` : (v.size || ""),
-            packType: v.packType || "",
-            packCount: v.packCount || "",
-            dimensions: v.height ? `${v.height}${v.heightUnit}x${v.width}${v.widthUnit}x${v.length}${v.lengthUnit}` : ""
-          }
+              type: v.packType || "Strip"
+          },
+          SKU: v.skuNumber || "",
+          sizeType: {
+              type: "Count"
+          },
+          variantMeasure: Number(v.unitMeasure) || 0,
+          numberOfPieces: Number(v.packCount) || 1,
+          drugType: v.drugType || "Tablet",
+          strength: v.strength || "",
+          productComposition: v.composition || "",
+          description: v.variantDescription || "",
+          createdBy: userId,
+          isActive: true
         }))
       };
 
