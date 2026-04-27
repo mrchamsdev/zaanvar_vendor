@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../styles/inventory/productView.module.css";
+import styles from "../../styles/inventory/product-view.module.css";
 
 const IconChevronDown = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

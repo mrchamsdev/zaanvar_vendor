@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../styles/inventory/confirmationModal.module.css";
+import styles from "../../styles/inventory/confirmation-modal.module.css";
 
 const IconTrash = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

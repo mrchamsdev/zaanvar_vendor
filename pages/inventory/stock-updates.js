@@ -4,7 +4,7 @@ import styles from "../../styles/inventory/stockUpdates.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
-import StockUpdateManager from "../../components/inventory/StockUpdateManager";
+import StockUpdateManager from "../../components/inventory/stock-update-manager";
 
 const IconPlus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -146,11 +146,22 @@ const StockUpdatesPage = () => {
                         {update.product?.productName || "PRODUCT #" + update.productId}
                       </td>
                       <td>
-                        {(update.variant?.variantType?.size || update.variant?.variantType?.flavor) 
-                          ? `${update.variant.variantType.size || ""} ${update.variant.variantType.flavor || ""}`.trim() 
-                          : (update.variant?.variantType?.packCount || update.variant?.variantType?.packType 
-                            ? `${update.variant.variantType.packCount || ""} ${update.variant.variantType.packType || ""}`.trim() 
-                            : (update.variant?.variantMeasure || "-"))}
+                        {(() => {
+                          const v = update.variant;
+                          if (!v) return "-";
+                          const vt = v.variantType || {};
+                          const strength = v.strength || vt.mg || "";
+                          const size = (vt.size && vt.size !== "1") ? vt.size : (v.size && v.size !== "1" ? v.size : "");
+                          const flavor = vt.flavor || "";
+                          const detail = `${strength || size} ${flavor}`.trim();
+                          
+                          const count = v.numberOfPieces || vt.packCount || "";
+                          const type = vt.packType || vt.type || "";
+                          const pack = `${count} ${type}`.trim();
+                          
+                          if (pack && detail) return `${pack} (${detail})`;
+                          return pack || detail || v.variantMeasure || "-";
+                        })()}
                       </td>
                       <td>{update.updatedQty}</td>
                       <td className={isAdd ? styles.totalValueGreen : styles.totalValueRed}>
