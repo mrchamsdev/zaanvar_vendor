@@ -232,8 +232,8 @@ const PurchaseOrdersPage = () => {
                                         <td>{formatCurrency(item.totalCost)}</td>
                                         <td>
                                             <div className={styles.statusBadgeGroup}>
-                                                <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPending}>
-                                                    {item.orderStatus?.toLowerCase() === "received" ? "received" : "pending"}
+                                                <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPrimary}>
+                                                    {item.orderStatus || "Pending"}
                                                 </span>
                                                 <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
                                             </div>

@@ -92,6 +92,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     const minimizedTabs = tabs.filter(t => t.isMinimized);
 
     const renderForm = (tab, onBack) => {
+        if (!tab) return null;
         if (tab.mode === "View") {
             return (
                 <PurchaseOrderDetails 

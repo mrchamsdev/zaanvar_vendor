@@ -1,0 +1,309 @@
+import React, { useState, useEffect } from "react";
+import styles from "../../styles/purchase-bill/payment-details-popup.module.css";
+import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
+import { purchaseService } from "../../services/purchaseService";
+import useStore from "../../components/state/useStore";
+import { toast } from "sonner";
+
+const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
+    const { jwtToken, userInfo } = useStore();
+    const [loading, setLoading] = useState(false);
+    
+    // Global States
+    const [amountPaidDate, setAmountPaidDate] = useState(new Date().toISOString().split('T')[0]);
+    const [description, setDescription] = useState("");
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+
+    // Multi-payment state
+    const [payments, setPayments] = useState([{
+        amountPaid: "",
+        paymentType: "Cash",
+        id: Date.now()
+    }]);
+
+    // Calculated / Read-only values from props
+    const totalAmount = data.totalAmount || 0;
+    const previousPaidAmount = data.previousPaidAmount || 0;
+    
+    const currentTotalEntry = payments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
+    const initialBalance = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : totalAmount;
+    const balanceAmount = Math.max(0, initialBalance - currentTotalEntry);
+    const totalAmountPaid = previousPaidAmount + currentTotalEntry;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const handleAddPayment = () => {
+        setPayments([...payments, {
+            amountPaid: "",
+            paymentType: "Cash",
+            id: Date.now()
+        }]);
+    };
+
+    const handleRemovePayment = (id) => {
+        if (payments.length > 1) {
+            setPayments(payments.filter(p => p.id !== id));
+        }
+    };
+
+    const handlePaymentChange = (id, field, value) => {
+        if (field === "amountPaid") {
+            const numValue = Number(value);
+            const otherPayments = payments.filter(p => p.id !== id).reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
+            const maxAllowed = initialBalance > 0 ? initialBalance : totalAmount;
+            
+            if (numValue + otherPayments > maxAllowed) {
+                toast.error(`Total payment cannot exceed ${maxAllowed}`);
+                // Optional: set to max remaining? 
+                // setPayments(payments.map(p => p.id === id ? { ...p, [field]: maxAllowed - otherPayments } : p));
+                return;
+            }
+        }
+        setPayments(payments.map(p => p.id === id ? { ...p, [field]: value } : p));
+    };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSave = async () => {
+        const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
+        if (validPayments.length === 0) {
+            toast.error("Please enter at least one valid payment amount");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            let firstTransactionId = null;
+            for (const p of validPayments) {
+                const payload = {
+                    amount: Number(p.amountPaid),
+                    debitOrCredit: "Debit",
+                    paymentFrom: "payment out",
+                    paymentType: p.paymentType,
+                    userTransactionDate: new Date(amountPaidDate).toISOString(),
+                    supplierId: data.supplierId,
+                    branchId: data.branchId,
+                    createdBy: userInfo?.userId || 1,
+                    productsBillId: data.productsBillId,
+                    returnProductsId: null,
+                    supplierWalletTransactionId: null,
+                    transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
+                    transactionImg: "",
+                    balanceAmount: Math.max(0, initialBalance - validPayments.slice(0, validPayments.indexOf(p) + 1).reduce((acc, curr) => acc + Number(curr.amountPaid), 0))
+                };
+
+                const res = await purchaseService.createTransaction(jwtToken, payload);
+                if (res.status === "success" || res.status === "ok") {
+                    if (!firstTransactionId) firstTransactionId = res.data?.id;
+                }
+            }
+
+            if (selectedImage && firstTransactionId) {
+                const formData = new FormData();
+                formData.append("transactionImg", selectedImage);
+                formData.append("supplierId", data.supplierId);
+                formData.append("branchId", data.branchId);
+                formData.append("createdBy", userInfo?.userId || 1);
+                await purchaseService.uploadTransactionImage(jwtToken, firstTransactionId, formData);
+            }
+
+            toast.success("Payments recorded successfully");
+            if (onRefresh) onRefresh();
+            onClose();
+        } catch (error) {
+            console.error(error);
+            toast.error("An error occurred while saving");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className={styles.overlay}>
+            <div className={styles.modal}>
+                <div className={styles.header}>
+                    <h3>payment details</h3>
+                    <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
+                </div>
+
+                <div className={styles.content}>
+                    {/* Row 1: Date (Global) and first payment amount */}
+                    <div className={styles.row}>
+                        <div className={styles.field}>
+                            <label>Amount paid date</label>
+                            <div className={styles.inputWrapper}>
+                                <input 
+                                    type="date" 
+                                    value={amountPaidDate} 
+                                    max={today}
+                                    onChange={(e) => setAmountPaidDate(e.target.value)} 
+                                />
+                                <FiCalendar className={styles.icon} />
+                            </div>
+                        </div>
+                        <div className={styles.field}>
+                            <label>Amount Paid</label>
+                            <div className={styles.inputWrapper}>
+                                <span className={styles.prefix}>₹</span>
+                                <input 
+                                    type="number" 
+                                    placeholder="0" 
+                                    value={payments[0].amountPaid}
+                                    onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Global Summaries */}
+                    <div className={styles.row}>
+                        <div className={styles.field}>
+                            <label>Total Amount</label>
+                            <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
+                                <span className={styles.prefix}>₹</span>
+                                <input type="text" value={totalAmount.toLocaleString()} readOnly />
+                            </div>
+                        </div>
+                        <div className={styles.field}>
+                            <label>Balance Amount</label>
+                            <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
+                                <span className={styles.prefix}>₹</span>
+                                <input type="text" value={balanceAmount.toLocaleString()} readOnly />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Row 3: First Payment Type and Global Total Paid */}
+                    <div className={styles.row}>
+                        <div className={styles.field}>
+                            <label>Payment Type</label>
+                            <select 
+                                value={payments[0].paymentType} 
+                                onChange={(e) => handlePaymentChange(payments[0].id, "paymentType", e.target.value)}
+                            >
+                                {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className={styles.field}>
+                            <label>Total Amount Paid</label>
+                            <div className={styles.inputWrapper}>
+                                <span className={styles.prefix}>₹</span>
+                                <input 
+                                    type="text" 
+                                    value={totalAmountPaid.toLocaleString()} 
+                                    onChange={(e) => {
+                                        const newVal = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                        const maxAllowed = initialBalance > 0 ? initialBalance : totalAmount;
+                                        const targetTotal = Math.min(newVal, previousPaidAmount + maxAllowed);
+                                        
+                                        const diff = targetTotal - previousPaidAmount;
+                                        handlePaymentChange(payments[0].id, "amountPaid", diff > 0 ? diff : 0);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Additional Payments: Only Type and Amount */}
+                    {payments.slice(1).map((p, idx) => (
+                        <div key={p.id} className={styles.additionalPaymentEntry}>
+                            <div className={styles.row}>
+                                <div className={styles.field}>
+                                    <label>Payment Type #{idx + 2}</label>
+                                    <select 
+                                        value={p.paymentType} 
+                                        onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}
+                                    >
+                                        {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.field}>
+                                    <div className={styles.labelWithAction}>
+                                        <label>Amount Paid</label>
+                                        <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
+                                            <FiTrash2 />
+                                        </button>
+                                    </div>
+                                    <div className={styles.inputWrapper}>
+                                        <span className={styles.prefix}>₹</span>
+                                        <input 
+                                            type="number" 
+                                            placeholder="0" 
+                                            value={p.amountPaid}
+                                            onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className={styles.addPaymentLink} onClick={handleAddPayment}>
+                        +ADD ANOTHER PAYMENT
+                    </div>
+
+                    <div className={styles.field}>
+                        <label>Add Description</label>
+                        <textarea 
+                            placeholder="Lorem ipsum dolor sit..." 
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </div>
+
+                    <div className={styles.field}>
+                        <label>Add Image</label>
+                        <div className={styles.imageUpload}>
+                            <label htmlFor="transactionImage" className={styles.uploadTrigger}>
+                                Choose file
+                            </label>
+                            <input 
+                                id="transactionImage"
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleImageChange}
+                                style={{ display: 'none' }}
+                            />
+                            <span className={styles.fileName}>
+                                {selectedImage ? selectedImage.name : "No file Choosen"}
+                            </span>
+                        </div>
+                        {imagePreview && (
+                            <div className={styles.previewContainer}>
+                                <img src={imagePreview} alt="Preview" className={styles.preview} />
+                                <button className={styles.removeImg} onClick={() => {setSelectedImage(null); setImagePreview(null);}}>
+                                    <FiX />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className={styles.footer}>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                        {loading ? "Saving..." : "Save"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default PaymentDetailsPopup;
