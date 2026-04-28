@@ -76,5 +76,27 @@ export const purchaseService = {
         console.error("Error creating bill:", error);
         return { status: "error" };
     }
+  },
+
+  createTransaction: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.post(`vendor/transactions`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error creating transaction:", error);
+        return { status: "error" };
+    }
+  },
+
+  uploadTransactionImage: async (jwt, transactionId, formData) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.put(`vendor/transactions/${transactionId}`, formData);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error uploading transaction image:", error);
+        return { status: "error" };
+    }
   }
 };

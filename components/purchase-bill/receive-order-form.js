@@ -29,6 +29,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const [previousCredit, setPreviousCredit] = useState(0);
     const [paymentStatus, setPaymentStatus] = useState("Pending"); // Default to Pending matching ENUM
     const [paidAmount, setPaidAmount] = useState(0);
+    const [duedate, setDuedate] = useState("");
 
     useEffect(() => {
         if (jwtToken && requestId) {
@@ -81,6 +82,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     setPreviousCredit(receivedDetails.previousCredit || 0);
                     setPaymentStatus(receivedDetails.paymentStatus || "Pending");
                     setPaidAmount(receivedDetails.paidAmount || 0);
+                    setDuedate(receivedDetails.duedate || "");
                 }
             } else {
                 toast.error("Failed to fetch order details");
@@ -182,6 +184,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 receivedDate: receivedDate,
                 amountPaidToSupplier: Number(paidAmount),
                 paymentStatus: paymentStatus,
+                duedate: duedate,
                 returnsApplicable: damagedReturnedGoods,
                 createdBy: userId || 1,
                 additionalDetails: items[0]?.notes || "Purchase order received",
@@ -226,7 +229,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
     // IF ORDER IS RECEIVED, SHOW SUMMARY VIEW
     if (orderData.orderStatus === 'received' || isView) {
-        return <PurchaseOrderSummary data={orderData} onClose={onClose} />;
+        return <PurchaseOrderSummary data={orderData} onClose={onClose} onRefresh={fetchOrderDetails} />;
     }
 
     return (
@@ -281,6 +284,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                     type="date" 
                                                     className={styles.input} 
                                                     value={item.expDate ?? ""}
+                                                    min={new Date().toISOString().split('T')[0]}
                                                     onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
                                                 />
                                             </div>
@@ -560,6 +564,22 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
                                     setPaidAmount(val);
                                 }} />
+                            </div>
+                        </div>
+                    )}
+
+                    {paymentStatus === "PayLaterWithRemainder" && (
+                        <div className={styles.infoGroup}>
+                            <label className={styles.infoLabel}>Payment Due Date</label>
+                            <div className={styles.inputWrapper}>
+                                <input 
+                                    type="date" 
+                                    className={styles.input} 
+                                    value={duedate} 
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={(e) => setDuedate(e.target.value)} 
+                                />
+                                <FiCalendar className={styles.calendarIcon} />
                             </div>
                         </div>
                     )}

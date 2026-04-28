@@ -96,7 +96,7 @@
 .formWrapper {
     flex: 1;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
     background: #fff;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     display: flex;

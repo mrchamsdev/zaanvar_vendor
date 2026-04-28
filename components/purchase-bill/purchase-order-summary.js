@@ -1,8 +1,9 @@
 import React from "react";
 import styles from "../../styles/purchase-bill/purchase-order-summary.module.css";
 import { FiChevronDown, FiPrinter } from "react-icons/fi";
+import PaymentDetailsPopup from "./payment-details-popup";
 
-const PurchaseOrderSummary = ({ data, onClose }) => {
+const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     if (!data) return null;
 
     const { 
@@ -14,10 +15,16 @@ const PurchaseOrderSummary = ({ data, onClose }) => {
         branchName, 
         branchAddress, 
         items,
-        duedate // Field mentioned by user
+        duedate,
+        dueDate,
+        createdAt,
+        orderStatus,
+        productsBillId,
+        receivedDetails
     } = data;
 
     const [showBreakdown, setShowBreakdown] = React.useState(false);
+    const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return "-";
@@ -31,7 +38,15 @@ const PurchaseOrderSummary = ({ data, onClose }) => {
             case "Partial": return "Partial Payment";
             case "PayLaterWithRemainder": return "Payment Pending";
             case "Pending": return "Payment Pending";
-            default: return status || "Pending";
+            default: return "Payment Pending";
+        }
+    };
+
+    const getStatusClass = (status) => {
+        switch(status) {
+            case "Full": return styles.statusBadgePaid;
+            case "Partial": return styles.statusBadgePartial;
+            default: return styles.statusBadgePending;
         }
     };
 
@@ -74,6 +89,9 @@ const PurchaseOrderSummary = ({ data, onClose }) => {
                 <div className={styles.orderMainInfo}>
                     <div className={styles.orderNumber}>Purchase Order <span>#{String(purchaseRequestId || "").padStart(6, '0')}</span></div>
                     <div className={styles.orderDate}>{formatDate(orderDate)}</div>
+                    <div className={`${styles.orderStatusText} ${orderStatus?.toLowerCase() === 'received' ? styles.statusReceived : styles.statusDefault}`}>
+                        {orderStatus}
+                    </div>
                     
                     <div className={styles.addressSection}>
                         <div className={styles.addressGroup}>
@@ -98,16 +116,18 @@ const PurchaseOrderSummary = ({ data, onClose }) => {
                 <div className={styles.statusInfo}>
                     <div className={styles.statusGroup}>
                         <span className={styles.label}>Delivered on</span>
-                        <span className={styles.value}>{formatDate(receivedDate)}</span>
+                        <span className={styles.value}>{formatDate(createdAt || orderDate)}</span>
                     </div>
                     <div className={styles.statusGroup}>
-                        <span className={styles.label}>Purchase Order Status</span>
-                        <span className={styles.value}>{data.orderStatus?.toUpperCase()}</span>
+                        <span className={styles.label}>Purchase Order</span>
+                        <span className={styles.value}>#{String(purchaseRequestId || "").padStart(6, '0')}</span>
                     </div>
                     <div className={styles.statusGroup}>
-                        <div className={styles.statusBadge}>{getStatusLabel(paymentStatus)}</div>
-                        {(paymentStatus === "PayLaterWithRemainder" || paymentStatus === "Partial") && duedate && (
-                            <div className={styles.dueDate}>Due on {formatDate(duedate)}</div>
+                        <div className={`${styles.statusBadge} ${getStatusClass(paymentStatus)}`}>
+                            {getStatusLabel(paymentStatus)}
+                        </div>
+                        {paymentStatus !== "Full" && (duedate || dueDate || data.receivedDetails?.duedate || data.receivedDetails?.dueDate) && (
+                            <div className={styles.dueDate}>Due on {formatDate(duedate || dueDate || data.receivedDetails?.duedate || data.receivedDetails?.dueDate)}</div>
                         )}
                     </div>
                 </div>
@@ -211,8 +231,27 @@ const PurchaseOrderSummary = ({ data, onClose }) => {
 
             <div className={styles.footer}>
                 <button className={styles.printBtn} onClick={() => window.print()}>Print</button>
-                <button className={styles.markPaidBtn}>Mark as Paid</button>
+                {paymentStatus !== "Full" && (
+                    <button className={styles.markPaidBtn} onClick={() => setShowPaymentPopup(true)}>Mark as Paid</button>
+                )}
             </div>
+
+            {showPaymentPopup && (
+                <PaymentDetailsPopup 
+                    isOpen={showPaymentPopup}
+                    onClose={() => setShowPaymentPopup(false)}
+                    onRefresh={onRefresh || (() => window.location.reload())}
+                    data={{
+                        purchaseRequestId: purchaseRequestId,
+                        totalAmount: breakdown.finalAmount,
+                        previousPaidAmount: receivedDetails?.paidAmount || data?.amountPaidTosupplier || 0,
+                        supplierId: data?.supplier?.supplierId,
+                        branchId: data?.branchId,
+                        productsBillId: productsBillId || receivedDetails?.id || data?.id,
+                        balanceAmount: data?.balanceAmount || data?.outstandingAmount,
+                    }}
+                />
+            )}
         </div>
     );
 };
