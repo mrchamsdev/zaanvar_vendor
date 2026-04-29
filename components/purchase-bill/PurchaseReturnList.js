@@ -10,7 +10,7 @@ import ShareModal from "./ShareModal";
 import HistoryModal from "./HistoryModal";
 import useDashboardData from "../dashboard/useDashboardData";
 
-const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs }) => {
+const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
     const [selecting, setSelecting] = useState('start'); // 'start' or 'end'
 
@@ -62,7 +62,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
     };
 
     return (
-        <div className={styles.pickerContainer}>
+        <div className={`${styles.pickerContainer} ${isEmbedded ? styles.embedded : ''}`}>
             {showInputs && (
                 <div className={styles.pickerInputs}>
                     <div className={styles.pickerInput}>
@@ -255,6 +255,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
+                                isEmbedded={true}
                                 onSelect={(range) => {
                                     if (showCalendar === 'single') {
                                         setDates({ ...dates, single: range.startDate });
@@ -293,6 +294,7 @@ const PurchaseReturnList = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [selectedReturn, setSelectedReturn] = useState(null);
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const { branches, branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
     const [filterType, setFilterType] = useState("This Month");
@@ -486,16 +488,31 @@ const PurchaseReturnList = () => {
             <div className={styles.filters}>
                 <div className={styles.filterGroup}>
                     <span className={styles.filterLabel}>Filter by :</span>
-                    <select 
-                        className={styles.select} 
-                        style={{width: 'auto'}}
-                        value={filterType}
-                        onChange={(e) => handleFilterChange(e.target.value)}
-                    >
-                        {["This Month", "Last Month", "This Quarter", "This Year", "Custom"].map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                    </select>
+                    <div className={styles.customSelectWrapper}>
+                        <div 
+                            className={styles.customSelectHeader}
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                        >
+                            <span>{filterType}</span>
+                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                        </div>
+                        {showFilterDropdown && (
+                            <div className={styles.customSelectDropdown}>
+                                {["This Month", "Last Month", "This Quarter", "This Year", "Custom"].map(opt => (
+                                    <div 
+                                        key={opt} 
+                                        className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
+                                        onClick={() => {
+                                            handleFilterChange(opt);
+                                            setShowFilterDropdown(false);
+                                        }}
+                                    >
+                                        {opt}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className={styles.filterGroup} style={{position: 'relative'}}>
                     <div 
@@ -510,6 +527,7 @@ const PurchaseReturnList = () => {
                             <CustomDateRangePicker 
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
+                                isEmbedded={true}
                                 onSelect={(range) => {
                                     setDateRange(range);
                                 }}
