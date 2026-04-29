@@ -485,69 +485,97 @@
     gap: 16px;
 }
 
-.shareCard {
+.floatingShareCard {
+    position: absolute;
+    bottom: 120%;
+    right: 0;
     background: #fff;
-    padding: 20px;
     border-radius: 12px;
-    width: 320px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 5000;
+    width: 200px;
+    padding: 12px;
+    border: 1px solid #eee;
 }
 
-.shareHeader {
+.floatingShareCard::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    transform: translateY(-50%) rotate(45deg);
+    border-right: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+}
+
+.shareContent {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shareTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    margin-left: 4px;
+}
+
+.shareIconsRow {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-}
-
-.shareHeader h3 {
-    font-size: 18px;
-    font-weight: 700;
-    color: #333;
-}
-
-.shareIcons {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+    gap: 8px;
 }
 
 .shareIconItem {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.shareIconItem:hover {
-    transform: translateY(-4px);
+    flex: 1;
 }
 
 .iconCircle {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    font-size: 24px;
+    justify-content: center;
+    font-size: 18px;
+    transition: transform 0.2s;
 }
 
-.emailIcon {
-    border: 2px solid #E93E64;
-    color: #E93E64;
+.shareIconItem:hover .iconCircle {
+    transform: scale(1.1);
 }
 
-.whatsappIcon {
+.emailCircle {
+    background: #fff;
+    border: 1px solid #eee;
+    color: #EA4335;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.whatsappCircle {
     background: #25D366;
     color: #fff;
 }
 
-.smsIcon {
-    background: #FFB800;
+.smsCircle {
+    background: #FF9500;
     color: #fff;
+}
+
+.iconLabel {
+    font-size: 10px;
+    color: #888;
+    font-weight: 500;
 }
 
 .shareIconItem span {

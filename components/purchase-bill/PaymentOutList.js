@@ -329,7 +329,7 @@ const PaymentOutList = () => {
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -748,13 +748,22 @@ const PaymentOutList = () => {
                                 <td>{Number(t.amount).toLocaleString()}</td>
                                 <td>
                                     <div className={styles.actions}>
-                                        <FiShare2 
-                                            className={styles.actionIcon} 
-                                            onClick={() => {
-                                                setSelectedTransaction(t);
-                                                setIsShareModalOpen(true);
-                                            }}
-                                        />
+                                         <div style={{position: 'relative'}}>
+                                            <FiShare2 
+                                                className={styles.actionIcon} 
+                                                onClick={() => {
+                                                    setSelectedTransaction(t);
+                                                    setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
+                                                }}
+                                            />
+                                            {isShareModalOpen === `share-${idx}` && (
+                                                <ShareModal 
+                                                    isOpen={true}
+                                                    onClose={() => setIsShareModalOpen(false)}
+                                                    data={t}
+                                                />
+                                            )}
+                                        </div>
                                         <div style={{position: 'relative'}}>
                                             <FiMoreVertical 
                                                 className={styles.actionIcon} 
@@ -799,14 +808,6 @@ const PaymentOutList = () => {
                     isOpen={isAddModalOpen} 
                     onClose={handleCloseAddModal} 
                     onRefresh={fetchTransactions}
-                />
-            )}
-
-            {isShareModalOpen && (
-                <ShareModal 
-                    isOpen={isShareModalOpen} 
-                    onClose={() => setIsShareModalOpen(false)} 
-                    data={selectedTransaction}
                 />
             )}
 

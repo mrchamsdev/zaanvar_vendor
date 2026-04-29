@@ -44,7 +44,8 @@ const ShareModal = ({ isOpen, onClose, data }) => {
                 url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
                 break;
             case 'email':
-                url = `mailto:${email}?subject=Purchase Details&body=${encodeURIComponent(message)}`;
+                // Use Gmail web composer for better reliability
+                url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent("Purchase Details")}&body=${encodeURIComponent(message)}`;
                 break;
             case 'sms':
                 url = `sms:${phone}?body=${encodeURIComponent(message)}`;
@@ -52,34 +53,42 @@ const ShareModal = ({ isOpen, onClose, data }) => {
             default:
                 break;
         }
-        if (url) window.open(url, '_blank');
+        if (url) {
+            if (type === 'sms') {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = "_self";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+        }
     };
 
     return (
-        <div className={styles.overlay} style={{background: 'rgba(0,0,0,0.5)'}}>
-            <div className={styles.shareCard}>
-                <div className={styles.shareHeader}>
-                    <h3>Share</h3>
-                    <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
-                </div>
-                <div className={styles.shareIcons}>
+        <div className={styles.floatingShareCard} style={data?.position || {}}>
+            <div className={styles.shareContent}>
+                <span className={styles.shareTitle}>Share</span>
+                <div className={styles.shareIconsRow}>
                     <div className={styles.shareIconItem} onClick={() => handleShare('email')}>
-                        <div className={`${styles.iconCircle} ${styles.emailIcon}`}>
+                        <div className={`${styles.iconCircle} ${styles.emailCircle}`}>
                             <FiMail />
                         </div>
-                        <span>Email</span>
+                        <span className={styles.iconLabel}>Email</span>
                     </div>
                     <div className={styles.shareIconItem} onClick={() => handleShare('whatsapp')}>
-                        <div className={`${styles.iconCircle} ${styles.whatsappIcon}`}>
+                        <div className={`${styles.iconCircle} ${styles.whatsappCircle}`}>
                             <FaWhatsapp />
                         </div>
-                        <span>WhatsApp</span>
+                        <span className={styles.iconLabel}>WhatsApp</span>
                     </div>
                     <div className={styles.shareIconItem} onClick={() => handleShare('sms')}>
-                        <div className={`${styles.iconCircle} ${styles.smsIcon}`}>
+                        <div className={`${styles.iconCircle} ${styles.smsCircle}`}>
                             <FiMessageSquare />
                         </div>
-                        <span>SMS</span>
+                        <span className={styles.iconLabel}>SMS</span>
                     </div>
                 </div>
             </div>
