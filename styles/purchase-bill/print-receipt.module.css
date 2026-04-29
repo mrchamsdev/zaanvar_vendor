@@ -1,0 +1,141 @@
+.receiptContainer {
+    width: 210mm;
+    margin: 0 auto;
+    padding: 20mm;
+    background: #fff;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #4A5568;
+    margin-bottom: 20px;
+}
+
+.mainBox {
+    border: 1.5px solid #4A5568;
+    margin-bottom: 20px;
+}
+
+.companyHeader {
+    padding: 15px 20px;
+    border-bottom: 1px solid #4A5568;
+}
+
+.companyHeader h1 {
+    font-size: 32px;
+    margin: 0;
+    color: #2D3748;
+}
+
+.companyHeader p {
+    font-size: 14px;
+    margin: 5px 0 0 0;
+    color: #4A5568;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.infoCol {
+    border-right: 1px solid #4A5568;
+}
+
+.infoCol:last-child {
+    border-right: none;
+}
+
+.labelRow {
+    background: #F7FAFC;
+    padding: 8px 15px;
+    border-bottom: 1px solid #4A5568;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2D3748;
+}
+
+.valueRow {
+    padding: 10px 15px;
+    font-size: 15px;
+    color: #2D3748;
+}
+
+.valueRow p {
+    margin: 4px 0;
+}
+
+.amountRow {
+    border: 1.5px solid #4A5568;
+    display: grid;
+    grid-template-columns: 100px 20px 1fr;
+    padding: 10px 20px;
+    margin-bottom: 1px;
+    align-items: center;
+    font-size: 15px;
+    color: #2D3748;
+}
+
+.amountValue {
+    text-align: right;
+    font-weight: 700;
+}
+
+.wordsBox {
+    border: 1.5px solid #4A5568;
+    margin-bottom: 40px;
+}
+
+.wordsBox .labelRow {
+    background: #F7FAFC;
+    padding: 8px 15px;
+    border-bottom: 1px solid #4A5568;
+}
+
+.wordsBox .valueRow {
+    padding: 12px 15px;
+    font-size: 14px;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.signatureBox {
+    width: 350px;
+    border: 1.5px solid #4A5568;
+    text-align: center;
+}
+
+.signatureBox .labelRow {
+    text-align: left;
+}
+
+.signatureArea {
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+    font-size: 13px;
+    color: #4A5568;
+}
+
+@media print {
+    @page {
+        margin: 0;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    .receiptContainer {
+        width: 100%;
+        padding: 15mm; /* Add some padding back for content safety */
+    }
+}

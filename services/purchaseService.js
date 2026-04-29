@@ -23,6 +23,39 @@ export const purchaseService = {
     }
   },
 
+  getBranchTransactions: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/transactions/branch/${branchId}?limit=2000`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching branch transactions:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
+  getBranchReturns: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/returns/branch/${branchId}`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching branch returns:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
+  getSupplierTransactions: async (jwt, supplierId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/transactions/supplier/${supplierId}`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching supplier transactions:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
   createPurchaseOrder: async (jwt, data) => {
     const webApi = new WebApimanager(jwt);
     try {
@@ -92,10 +125,32 @@ export const purchaseService = {
   uploadTransactionImage: async (jwt, transactionId, formData) => {
     const webApi = new WebApimanager(jwt);
     try {
-        const response = await webApi.put(`vendor/transactions/${transactionId}`, formData);
+        const response = await webApi.imagePut(`vendor/transactions/${transactionId}`, formData);
         return response || { status: "error" };
     } catch (error) {
         console.error("Error uploading transaction image:", error);
+        return { status: "error" };
+    }
+  },
+
+  getTransactionById: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.get(`vendor/transactions/${id}`);
+        return response?.data || { status: "error" };
+    } catch (error) {
+        console.error("Error fetching transaction:", error);
+        return { status: "error" };
+    }
+  },
+
+  updateTransaction: async (jwt, id, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.put(`vendor/transactions/${id}`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error updating transaction:", error);
         return { status: "error" };
     }
   }

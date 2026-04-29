@@ -371,7 +371,7 @@ const DashboardLayout = ({
                       <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
                         {item.subItems.map((sub, i) => {
                           // Clean up paths for comparison since router.asPath includes queries
-                          const isSubActive = router.asPath === sub.path || (router.asPath === "/pet-sales" && i === 0);
+                          const isSubActive = router.asPath.split('?')[0] === sub.path.split('?')[0] || (router.asPath === "/pet-sales" && i === 0);
                           return (
                             <Link 
                               key={sub.path} 

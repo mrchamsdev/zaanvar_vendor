@@ -23,7 +23,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         receivedDetails
     } = data;
 
-    const [showBreakdown, setShowBreakdown] = React.useState(false);
+    const [showBreakdown, setShowBreakdown] = React.useState(true);
     const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
 
     const formatDate = (dateStr) => {
