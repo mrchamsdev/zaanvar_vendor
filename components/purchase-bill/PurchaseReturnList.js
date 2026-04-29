@@ -309,7 +309,7 @@ const PurchaseReturnList = () => {
     const [dateFilterMode, setDateFilterMode] = useState(null);
     const [dateFilterValues, setDateFilterValues] = useState(null);
 
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'supplierName', 'received', 'balance'
@@ -664,13 +664,22 @@ const PurchaseReturnList = () => {
                                 <td>{Number(r.balanceAmount || 0).toLocaleString()}</td>
                                 <td>
                                     <div className={styles.actions}>
-                                        <FiShare2 
-                                            className={styles.actionIcon} 
-                                            onClick={() => {
-                                                setSelectedReturn(r);
-                                                setIsShareModalOpen(true);
-                                            }}
-                                        />
+                                         <div style={{position: 'relative'}}>
+                                            <FiShare2 
+                                                className={styles.actionIcon} 
+                                                onClick={() => {
+                                                    setSelectedReturn(r);
+                                                    setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                }}
+                                            />
+                                            {isShareModalOpen === `share-${idx}` && (
+                                                <ShareModal 
+                                                    isOpen={true}
+                                                    onClose={() => setIsShareModalOpen(false)}
+                                                    data={r}
+                                                />
+                                            )}
+                                        </div>
                                         <div style={{position: 'relative'}}>
                                             <FiMoreVertical 
                                                 className={styles.actionIcon} 
@@ -710,14 +719,6 @@ const PurchaseReturnList = () => {
                     Balance : Rs {Number(totals?.totalBalance || 0).toFixed(2)}
                 </div>
             </div>
-
-            {isShareModalOpen && (
-                <ShareModal 
-                    isOpen={isShareModalOpen} 
-                    onClose={() => setIsShareModalOpen(false)} 
-                    data={selectedReturn}
-                />
-            )}
 
             {isHistoryModalOpen && (
                 <HistoryModal 

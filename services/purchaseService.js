@@ -147,7 +147,9 @@ export const purchaseService = {
   updateTransaction: async (jwt, id, data) => {
     const webApi = new WebApimanager(jwt);
     try {
-        const response = await webApi.put(`vendor/transactions/${id}`, data);
+        const response = (data instanceof FormData)
+            ? await webApi.imagePut(`vendor/transactions/${id}`, data)
+            : await webApi.put(`vendor/transactions/${id}`, data);
         return response || { status: "error" };
     } catch (error) {
         console.error("Error updating transaction:", error);

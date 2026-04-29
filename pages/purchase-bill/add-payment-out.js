@@ -6,6 +6,7 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { VENDOR_API_URL } from "../../components/utilities/Constants";
+import ShareModal from "../../components/purchase-bill/ShareModal";
 
 const PaymentOutFormPage = () => {
     const router = useRouter();
@@ -17,6 +18,8 @@ const PaymentOutFormPage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     
     // Form State
     const [supplierName, setSupplierName] = useState("");
@@ -83,25 +86,53 @@ const PaymentOutFormPage = () => {
         if (isView) return;
         setSaving(true);
         try {
-            const payload = {
-                amount: Number(paidAmount),
-                paymentType: payments[0].paymentType,
-                transactionInfo: description
-            };
-            const res = await purchaseService.updateTransaction(jwtToken, id, payload);
-            if (res.status === "success" || res.status === "ok" || res.suppliersTransactionId) {
+            const formData = new FormData();
+            formData.append("amount", Number(paidAmount));
+            formData.append("paymentType", payments[0].paymentType);
+            formData.append("transactionInfo", description);
+            if (selectedFile) {
+                formData.append("transactionImg", selectedFile);
+            }
+
+            const res = await purchaseService.updateTransaction(jwtToken, id, formData);
+            console.log("Update response:", res);
+            
+            if (res.status === 200 || res.data?.status === "success" || res.data?.status === "ok" || res.data?.suppliersTransactionId) {
                 toast.success("Transaction updated successfully");
                 setTimeout(() => {
-                    router.push("/purchase-bill/purchase-out");
-                }, 1000);
+                    const branchId = userInfo?.branchId || router.query.branchId || 91;
+                    const redirectUrl = `/purchase-bill/purchase-out?branchId=${branchId}`;
+                    router.push(redirectUrl).catch(() => {
+                        window.location.href = redirectUrl;
+                    });
+                }, 800);
             } else {
-                toast.error("Failed to update transaction");
+                toast.error(res.data?.message || res.message || "Failed to update transaction");
             }
         } catch (error) {
             console.error(error);
             toast.error("An error occurred while saving");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    const uploadImage = async (transactionId) => {
+        if (!selectedFile) return;
+        const formData = new FormData();
+        formData.append("transactionImg", selectedFile);
+        const res = await purchaseService.uploadTransactionImage(jwtToken, transactionId, formData);
+        if (res.status === "success") {
+            toast.success("Image uploaded successfully");
+        } else {
+            toast.error("Failed to upload image");
         }
     };
 
@@ -257,8 +288,24 @@ const PaymentOutFormPage = () => {
                 <div className={styles.field}>
                     <label>Add Image</label>
                     <div className={styles.imageUpload}>
-                        <label className={styles.uploadTrigger}>Choose file</label>
-                        <span style={{fontSize: '14px', color: '#666', marginLeft: '10px'}}>{data?.transactionImg ? "Image Attached" : "No file Choosen"}</span>
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            hidden 
+                            onChange={handleFileChange} 
+                            disabled={isView}
+                            accept="image/*"
+                        />
+                        <label 
+                            htmlFor="fileInput" 
+                            className={styles.uploadTrigger}
+                            style={{cursor: isView ? 'default' : 'pointer'}}
+                        >
+                            Choose file
+                        </label>
+                        <span style={{fontSize: '14px', color: '#666', marginLeft: '10px'}}>
+                            {selectedFile ? selectedFile.name : (data?.transactionImg ? "Image Attached" : "No file Chosen")}
+                        </span>
                     </div>
                     {data?.transactionImg && (
                         <div style={{marginTop: '12px'}}>
@@ -273,7 +320,22 @@ const PaymentOutFormPage = () => {
             </div>
 
             <div className={styles.formActions}>
-                <button className={styles.shareBtn}>Share</button>
+                <div style={{position: 'relative'}}>
+                    <button className={styles.shareBtn} onClick={() => setIsShareModalOpen(!isShareModalOpen)}>Share</button>
+                    {isShareModalOpen && (
+                        <ShareModal 
+                            isOpen={isShareModalOpen}
+                            onClose={() => setIsShareModalOpen(false)}
+                            data={{
+                                ...data,
+                                amount: paidAmount,
+                                suppliersTransactionId: id,
+                                transactionInfo: description,
+                                userTransactionDate: transactionDate
+                            }}
+                        />
+                    )}
+                </div>
                 {!isView && (
                     <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>
                         {saving ? "Saving..." : "Save"}
