@@ -139,10 +139,11 @@ const SERVICE_MAP = {
     icon: <IconPackage />,
     subItems: [
       { label: "Purchase Orders", path: "/purchase-bill/purchase-orders" },
-      { label: "Purchase Out", path: "/purchase-bill/purchase-out" },
+      { label: "Payment Out", path: "/purchase-bill/purchase-out" },
       { label: "Purchase Return", path: "/purchase-bill/purchase-return" }
     ]
-  }
+  },
+  Supplier: { label: "Supplier", path: "/suppliers", icon: <IconGrid /> }
 };
 
 const BRANCH_SERVICE_MAP = {
@@ -173,6 +174,7 @@ function buildMenuFromVendor(userInfo) {
       icon: <IconPackage />,
       subItems: SERVICE_MAP["Purchase Bills"].subItems 
     },
+    { label: "Supplier",          path: "/suppliers",      icon: <IconGrid />  },
   ];
 
   const serviceSet = new Set();

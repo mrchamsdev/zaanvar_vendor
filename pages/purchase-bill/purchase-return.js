@@ -4,6 +4,7 @@ import PurchaseReturnList from "../../components/purchase-bill/PurchaseReturnLis
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
+import AddPurchaseReturn from "../../components/purchase-bill/AddPurchaseReturn";
 
 const PurchaseReturnPage = () => {
     const router = useRouter();
@@ -83,6 +84,16 @@ const PurchaseReturnPage = () => {
             customTopbarRight={customRight}
         >
             <PurchaseReturnList />
+            
+            <AddPurchaseReturn 
+                isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}
+                mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
+                returnId={router.query.id}
+                onClose={() => router.push({ pathname: router.pathname, query: { branchId: currentBranchId } }, undefined, { shallow: true })}
+                onRefresh={() => {
+                    window.location.reload(); 
+                }}
+            />
         </DashboardLayout>
     );
 };

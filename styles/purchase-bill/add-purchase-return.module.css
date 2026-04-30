@@ -1,0 +1,284 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.modalHeader {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.modalHeader h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.modalContent {
+    padding: 32px 40px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Top Information Grid */
+.topGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    column-gap: 40px;
+    row-gap: 24px;
+    margin-bottom: 50px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+}
+
+.input, .select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #f8f9fa;
+    border-radius: 8px;
+    background: #fcfcfc;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input::placeholder {
+    color: #aaa;
+}
+
+.input:focus, .select:focus {
+    border-color: #eee;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.dateWrapper {
+    position: relative;
+}
+
+.calendarIcon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    pointer-events: none;
+    font-size: 14px;
+}
+
+/* Table Styles */
+.tableContainer {
+    margin-top: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: #f4f5f7;
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    border: none;
+}
+
+.table td {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #333;
+    vertical-align: middle;
+}
+
+.table tr:hover {
+    background: #fafafa;
+}
+
+.snoCol { width: 60px; text-align: center; }
+.productCol { width: auto; min-width: 400px; }
+.qtyCol { width: 150px; text-align: center; }
+.priceCol { width: 180px; text-align: center; }
+.taxCol { width: 220px; text-align: center; }
+.amountCol { width: 180px; text-align: right; }
+
+.subHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.priceHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.taxHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.taxSubHeaders {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    border-top: 1px solid #ddd;
+    padding-top: 4px;
+    margin-top: 4px;
+}
+
+.addBtn {
+    color: #E93E64;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 16px;
+    text-transform: uppercase;
+}
+
+.footer {
+    padding: 24px 40px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    background: #fff;
+}
+
+.shareBtn {
+    padding: 10px 32px;
+    border: 1.5px solid #333;
+    background: #fff;
+    color: #333;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.saveBtn {
+    padding: 10px 48px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.totalRow {
+    font-weight: 700;
+    background: #fff !important;
+}
+
+.totalLabel {
+    text-align: center;
+    font-size: 12px;
+}
+
+.totalValue {
+    font-size: 13px;
+}
+
+/* Product Dropdown in Table */
+.productSelectBox {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    color: #333;
+}
+
+.dropdownOverlay {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 500px;
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    z-index: 100;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #eee;
+}
+
+.dropdownTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dropdownTable th {
+    font-size: 10px;
+    color: #999;
+    text-align: left;
+    padding: 8px;
+    border: none;
+    background: none;
+}
+
+.dropdownTable td {
+    font-size: 12px;
+    padding: 8px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.dropdownTable tr:hover {
+    background: #f9f9f9;
+}
