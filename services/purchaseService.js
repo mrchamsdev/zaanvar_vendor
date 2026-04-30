@@ -155,5 +155,93 @@ export const purchaseService = {
         console.error("Error updating transaction:", error);
         return { status: "error" };
     }
+  },
+  
+  getBillById: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.get(`vendor/bills/${id}`);
+        return response?.data || { status: "error" };
+    } catch (error) {
+        console.error("Error fetching bill:", error);
+        return { status: "error" };
+    }
+  },
+
+  createReturn: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.post(`vendor/returns`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error creating return:", error);
+        return { status: "error" };
+    }
+  },
+
+  getReturnById: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.get(`vendor/returns/${id}`);
+        return response?.data || { status: "error" };
+    } catch (error) {
+        console.error("Error fetching return details:", error);
+        return { status: "error" };
+    }
+  },
+
+  updateReturn: async (jwt, id, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+        const response = await webApi.put(`vendor/returns/${id}`, data);
+        return response || { status: "error" };
+    } catch (error) {
+        console.error("Error updating return:", error);
+        return { status: "error" };
+    }
+  },
+
+  createSupplier: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.post(`vendor/suppliers`, data);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error creating supplier:", error);
+      return { status: "error" };
+    }
+  },
+
+  updateSupplier: async (jwt, id, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.put(`vendor/suppliers/${id}`, data);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      return { status: "error" };
+    }
+  },
+
+  deleteSupplier: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.delete(`vendor/suppliers/${id}`);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      return { status: "error" };
+    }
+  },
+
+  getSupplierById: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/suppliers/${id}`);
+      return response?.data || { status: "error" };
+    } catch (error) {
+      console.error("Error fetching supplier details:", error);
+      return { status: "error" };
+    }
   }
 };

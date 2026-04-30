@@ -340,8 +340,10 @@ const PurchaseReturnList = () => {
                 if (res.totals) {
                     setTotals(Array.isArray(res.totals) ? res.totals[0] : res.totals);
                 } else {
-                    const total = data.reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
-                    setTotals({ totalReceived: total, totalBalance: 0 });
+                    const totalAmt = data.reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
+                    const totalRec = data.reduce((acc, curr) => acc + Number(curr.received || 0), 0);
+                    const totalBal = data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
+                    setTotals({ totalAmount: totalAmt, totalReceived: totalRec, totalBalance: totalBal });
                 }
             }
         } catch (error) {
@@ -658,10 +660,10 @@ const PurchaseReturnList = () => {
                         {filteredReturns.map((r, idx) => (
                             <tr key={idx}>
                                 <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
-                                <td>{r.returnProductsId || '000'}</td>
+                                <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
                                 <td>{r.supplierName || "N/A"}</td>
-                                <td>{Number(r.totalAmount || 0).toLocaleString()}</td>
-                                <td>{Number(r.balanceAmount || 0).toLocaleString()}</td>
+                                <td style={{ fontWeight: '600' }}>{Number(r.received || 0).toLocaleString()}</td>
+                                <td>{Number(r.balance || 0).toLocaleString()}</td>
                                 <td>
                                     <div className={styles.actions}>
                                          <div style={{position: 'relative'}}>
@@ -688,6 +690,14 @@ const PurchaseReturnList = () => {
                                              {activeDropdown === idx && (
                                                 <div className={styles.dropdownMenu}>
                                                     <div className={styles.dropdownItem} onClick={() => {
+                                                        router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
+                                                        setActiveDropdown(null);
+                                                    }}>View</div>
+                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                        router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
+                                                        setActiveDropdown(null);
+                                                    }}>Edit</div>
+                                                    <div className={styles.dropdownItem} onClick={() => {
                                                         window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}`, '_blank');
                                                         setActiveDropdown(null);
                                                     }}>Open PDF</div>
@@ -713,10 +723,13 @@ const PurchaseReturnList = () => {
 
             <div className={styles.bottomSummary}>
                 <div className={styles.summaryItem}>
-                    Total Amount : Rs {Number(totals?.totalReceived || 0).toFixed(2)}
+                    Total Amount : Rs {Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
                 <div className={styles.summaryItem}>
-                    Balance : Rs {Number(totals?.totalBalance || 0).toFixed(2)}
+                    Received : Rs {Number(totals?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <div className={styles.summaryItem}>
+                    Balance : Rs {Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
             </div>
 
