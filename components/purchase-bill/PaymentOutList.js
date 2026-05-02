@@ -336,11 +336,11 @@ const PaymentOutList = () => {
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const { branches, branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
-    const [filterType, setFilterType] = useState("This Month");
+    const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0]
+        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
     });
 
     // New multi-modal date filter state
@@ -411,9 +411,13 @@ const PaymentOutList = () => {
         let start, end;
 
         switch (type) {
+            case "All":
+                start = new Date(2000, 0, 1);
+                end = new Date(2100, 11, 31);
+                break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
-                end = now;
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
                 break;
             case "Last Month":
                 start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -422,11 +426,11 @@ const PaymentOutList = () => {
             case "This Quarter":
                 const quarter = Math.floor(now.getMonth() / 3);
                 start = new Date(now.getFullYear(), quarter * 3, 1);
-                end = now;
+                end = new Date(now.getFullYear(), quarter * 3 + 3, 0);
                 break;
             case "This Year":
                 start = new Date(now.getFullYear(), 0, 1);
-                end = now;
+                end = new Date(now.getFullYear(), 11, 31);
                 break;
             case "Custom":
                 setShowCustomPicker(true);
@@ -490,7 +494,7 @@ const PaymentOutList = () => {
             if (col === 'refNo') targetVal = t.suppliersTransactionId?.toString() || "";
             if (col === 'partyName') targetVal = t.transactionInfo?.toLowerCase() || "";
             if (col === 'paymentType') targetVal = t.paymentType || "";
-            if (col === 'total') targetVal = totals?.supplierTotalAmount?.toString() || "";
+            if (col === 'total') targetVal = t.relatedBill?.amountPaidToSupplier?.toString() || "0";
             if (col === 'paid') targetVal = t.amount?.toString() || "";
 
             if (filter.mode === 'Contains') {
@@ -512,7 +516,7 @@ const PaymentOutList = () => {
             `"${t.suppliersTransactionId}"`,
             `"${(t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
             `"${t.paymentType || "N/A"}"`,
-            `"${totals?.supplierTotalAmount || 0}"`,
+            `"${t.relatedBill?.amountPaidToSupplier || 0}"`,
             `"${t.amount}"`
         ]);
 
@@ -549,7 +553,7 @@ const PaymentOutList = () => {
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
-                                {["This Month", "Last Month", "This Quarter", "This Year", "Custom"].map(opt => (
+                                {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
                                     <div 
                                         key={opt} 
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
@@ -744,7 +748,7 @@ const PaymentOutList = () => {
                                 <td>{t.suppliersTransactionId}</td>
                                 <td>{t.transactionInfo || "N/A"}</td>
                                 <td>{t.paymentType || "N/A"}</td>
-                                <td>{Number(totals?.supplierTotalAmount || 0).toLocaleString()}</td>
+                                <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString()}</td>
                                 <td>{Number(t.amount).toLocaleString()}</td>
                                 <td>
                                     <div className={styles.actions}>

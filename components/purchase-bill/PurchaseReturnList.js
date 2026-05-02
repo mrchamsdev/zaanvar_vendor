@@ -297,11 +297,11 @@ const PurchaseReturnList = () => {
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const { branches, branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
-    const [filterType, setFilterType] = useState("This Month");
+    const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0]
+        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
     });
 
     // New multi-modal date filter state
@@ -365,9 +365,13 @@ const PurchaseReturnList = () => {
         let start, end;
 
         switch (type) {
+            case "All":
+                start = new Date(2000, 0, 1);
+                end = new Date(2100, 11, 31);
+                break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
-                end = now;
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
                 break;
             case "Last Month":
                 start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -376,11 +380,11 @@ const PurchaseReturnList = () => {
             case "This Quarter":
                 const quarter = Math.floor(now.getMonth() / 3);
                 start = new Date(now.getFullYear(), quarter * 3, 1);
-                end = now;
+                end = new Date(now.getFullYear(), quarter * 3 + 3, 0);
                 break;
             case "This Year":
                 start = new Date(now.getFullYear(), 0, 1);
-                end = now;
+                end = new Date(now.getFullYear(), 11, 31);
                 break;
             case "Custom":
                 setShowCustomPicker(true);
@@ -444,8 +448,8 @@ const PurchaseReturnList = () => {
             let targetVal = "";
             if (col === 'refNo') targetVal = r.returnProductsId?.toString() || "";
             if (col === 'supplierName') targetVal = r.supplierName?.toLowerCase() || "";
-            if (col === 'received') targetVal = r.totalAmount?.toString() || "";
-            if (col === 'balance') targetVal = "0"; // Balance is currently fixed at 0 in view
+            if (col === 'received') targetVal = r.received?.toString() || "";
+            if (col === 'balance') targetVal = r.balance?.toString() || "";
 
             if (filter.mode === 'Contains') {
                 if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
@@ -500,7 +504,7 @@ const PurchaseReturnList = () => {
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
-                                {["This Month", "Last Month", "This Quarter", "This Year", "Custom"].map(opt => (
+                                {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
                                     <div 
                                         key={opt} 
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
