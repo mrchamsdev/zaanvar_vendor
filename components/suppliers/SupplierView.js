@@ -104,10 +104,10 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 <td style={{ padding: '14px', fontSize: '13px' }}>
                                     {new Date(t.modifiedDate || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
                                 </td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amount || t.totalAmount || "0000000"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["previouspaid amount"] || "0000000"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["paid amount"] || t.received || "0000000"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["balance amount"] || t.balance || "0000000"}</td>
+                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
+                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["previouspaid amount"] || "0.00"}</td>
+                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["paid amount"] || t.received || t.amount || "0.00"}</td>
+                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00"}</td>
                             </tr>
                         ))
                     )}
