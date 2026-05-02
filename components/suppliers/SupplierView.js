@@ -3,6 +3,7 @@ import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
+import PayNowModal from "../purchase-bill/PayNowModal";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
     const { jwtToken } = useStore();
@@ -11,6 +12,9 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     const [activeTab, setActiveTab] = useState("Purchase Orders");
     const [purchaseOrders, setPurchaseOrders] = useState([]);
     const [paymentHistory, setPaymentHistory] = useState([]);
+    const [isPayNowModalOpen, setIsPayNowModalOpen] = useState(false);
+    const [selectedBillIdForPayment, setSelectedBillIdForPayment] = useState(null);
+    const [selectedBillData, setSelectedBillData] = useState(null);
 
     const supplierId = data?.supplierId;
 
@@ -50,6 +54,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total Value (₹)</th>
                         <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Order Received date</th>
                         <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Invoice</th>
+                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>ACTION</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -72,6 +77,20 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <span style={{ color: t.paymentStatus === 'Full' || t.paymentStatus === 'Paid' ? '#27AE60' : t.paymentStatus === 'Partial' ? '#F5790C' : '#E9315D', fontWeight: '600' }}>
                                         {t.paymentStatus === 'Full' ? 'Paid' : (t.paymentStatus || "pending")}
                                     </span>
+                                </td>
+                                <td style={{ padding: '14px', fontSize: '13px' }}>
+                                    {(t.paymentStatus !== 'Full' && t.paymentStatus !== 'Paid') && (
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedBillIdForPayment(t.productsBillId || t.productsPurchaseRqstID);
+                                                setSelectedBillData(t);
+                                                setIsPayNowModalOpen(true);
+                                            }}
+                                            style={{ color: '#E9315D', background: 'none', border: '1px solid #E9315D', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                                        >
+                                            PAY
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))
@@ -202,12 +221,34 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     <div style={{ background: '#fff', padding: isSplit ? '15px' : '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h3 style={{ fontSize: '16px', fontWeight: '700' }}>{activeTab}</h3>
-                            <button style={{ color: '#E9315D', border: '1px solid #E9315D', background: '#fff', padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                            <button 
+                                onClick={() => {
+                                    const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
+                                    if (pendingBill) {
+                                        setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
+                                        setSelectedBillData(pendingBill);
+                                        setIsPayNowModalOpen(true);
+                                    } else {
+                                        toast.info("No pending payments found");
+                                    }
+                                }}
+                                style={{ color: '#E9315D', border: '1px solid #E9315D', background: '#fff', padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+                            >
                                 PAY NOW
                             </button>
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>
+                    
+                    <PayNowModal 
+                        isOpen={isPayNowModalOpen}
+                        onClose={() => setIsPayNowModalOpen(false)}
+                        onRefresh={fetchData}
+                        billId={selectedBillIdForPayment}
+                        supplierData={supplier}
+                        initialBillData={selectedBillData}
+                        allOrders={purchaseOrders}
+                    />
                 </>
             )}
         </div>
