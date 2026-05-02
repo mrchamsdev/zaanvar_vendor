@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import styles from "../../styles/purchase-bill/purchase-out.module.css";
+import styles from "../../styles/purchase-bill/add-payment-out.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
@@ -36,8 +36,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 console.error("Error fetching suppliers:", error);
             }
         };
-        fetchSuppliers();
-    }, []);
+        if (isOpen) fetchSuppliers();
+    }, [isOpen]);
 
     const handleSupplierChange = async (supplierId) => {
         setSelectedSupplierId(supplierId);
@@ -75,18 +75,6 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
         setPayments(payments.map(p => p.id === id ? { ...p, [field]: value } : p));
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     const handleSave = async () => {
         if (!selectedSupplierId) {
             toast.error("Please select a supplier");
@@ -112,7 +100,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     userTransactionDate: transactionDate,
                     transactionInfo: description || "Payment Out recorded",
                     createdBy: userInfo?.userId || 1,
-                    productsBillId: null, // As per generic payment out
+                    productsBillId: null,
                     refNo: p.refNo || null
                 };
 
@@ -149,7 +137,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 </div>
 
                 <div className={styles.modalContent}>
-                    <div className={styles.gridRow}>
+                    {/* Row 1: Name and Date */}
+                    <div className={styles.topRow}>
                         <div className={styles.field}>
                             <label>Name / Phone number</label>
                             <select 
@@ -176,6 +165,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         </div>
                     </div>
 
+                    {/* Row 2: Balance and Paid Amount */}
                     <div className={styles.gridRow}>
                         <div className={styles.field}>
                             <label>Total Balance Amount</label>
@@ -190,16 +180,16 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <label>Paid Amount</label>
                             <input 
                                 type="text" 
-                                className={styles.input}
-                                value={editablePaidAmount}
-                                placeholder="0"
-                                onChange={(e) => setEditablePaidAmount(e.target.value)}
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={editablePaidAmount || "000"}
+                                readOnly
                             />
                         </div>
                     </div>
 
+                    {/* Dynamic Payment Entries */}
                     {payments.map((p, idx) => (
-                        <div key={p.id} className={styles.paymentEntry} style={{borderBottom: '1px solid #eee', paddingBottom: '24px', marginBottom: '24px'}}>
+                        <div key={p.id} className={styles.paymentEntry}>
                             <div className={styles.gridRow}>
                                 <div className={styles.field}>
                                     <label>Payment Type</label>
@@ -215,17 +205,16 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 </div>
                                 <div className={styles.field}>
                                     <label>Amount Paid</label>
-                                    <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+                                    <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
                                         <input 
                                             type="number" 
                                             className={styles.input}
-                                            placeholder="0"
+                                            placeholder="₹ 25000"
                                             value={p.amountPaid}
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
-                                            style={{flex: 1}}
                                         />
                                         {payments.length > 1 && (
-                                            <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)} style={{border: '1px solid #ddd', padding: '8px', borderRadius: '4px', background: '#fff'}}>
+                                            <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
                                                 <FiTrash2 />
                                             </button>
                                         )}
@@ -233,9 +222,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 </div>
                             </div>
 
-                            {/* Conditional Ref No */}
+                            {/* Reference Number */}
                             {(p.paymentType === 'Cheque' || p.paymentType === 'UPI') && (
-                                <div className={styles.field} style={{marginTop: '12px'}}>
+                                <div className={styles.field} style={{marginBottom: '24px'}}>
                                     <label>{p.paymentType === 'Cheque' ? 'CHECK NUMBER' : 'REFERENCE NUMBER'}</label>
                                     <input 
                                         type="text" 
@@ -253,17 +242,19 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         +ADD ANOTHER PAYMENT
                     </div>
 
-                    <div className={styles.field} style={{marginBottom: '24px'}}>
+                    {/* Description */}
+                    <div className={styles.field} style={{marginBottom: '32px'}}>
                         <label>Add Description</label>
                         <textarea 
                             className={styles.textarea}
                             placeholder="Lorem ipsum dolor sit..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            rows={3}
+                            rows={1}
                         />
                     </div>
 
+                    {/* Image Upload */}
                     <div className={styles.field}>
                         <label>Add Image</label>
                         <div className={styles.imageUpload}>
@@ -275,13 +266,15 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 onChange={(e) => setSelectedImage(e.target.files[0])}
                                 accept="image/*"
                             />
-                            <span style={{fontSize: '14px', color: '#666'}}>{selectedImage ? selectedImage.name : "No file Choosen"}</span>
+                            <span style={{fontSize: '14px', color: '#999', marginLeft: '12px'}}>
+                                {selectedImage ? selectedImage.name : "No file Choosen"}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div className={styles.modalFooter}>
-                    <button className={styles.shareBtn}>Share</button>
+                    <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
                         {loading ? "Saving..." : "Save"}
                     </button>
