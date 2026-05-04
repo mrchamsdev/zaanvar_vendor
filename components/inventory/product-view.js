@@ -15,6 +15,9 @@ const ProductView = ({ data, onBack, isSplit }) => {
 
   // Flatten the category for display
   const renderList = (arr) => {
+    if (arr && typeof arr === 'object' && !Array.isArray(arr)) {
+      return arr.petType || "-";
+    }
     if (!Array.isArray(arr)) return arr || "-";
     return arr.join(" | ") || "-";
   };

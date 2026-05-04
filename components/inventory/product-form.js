@@ -91,9 +91,15 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     return raw || "";
   });
   const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
+    const reverseMap = { "Dog": "Dog", "Cat": "Cat", "Birds": "Bird", "Fishes": "Fish", "SmallPets": "Small pets" };
     if (initialData?.productPetType && Array.isArray(initialData.productPetType)) {
-        const reverseMap = { "Dog": "Dog", "Cat": "Cat", "Birds": "Bird", "Fishes": "Fish", "SmallPets": "Small pets" };
         return initialData.productPetType.map(t => reverseMap[t] || t);
+    }
+    if (initialData?.productPetType && typeof initialData.productPetType === 'object') {
+        const petStr = initialData.productPetType.petType || "";
+        if (petStr) {
+            return petStr.split(" and ").map(t => reverseMap[t] || t);
+        }
     }
     return [];
   });

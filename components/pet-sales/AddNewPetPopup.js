@@ -290,7 +290,7 @@ const AddNewPetPopup = ({
       setFormData({
         petName: petData.petName || "",
         petAge: petData.petAge || "",
-        petType: petData.petType || "",
+        petType: typeof petData.petType === 'object' ? petData.petType?.petType : (petData.petType || ""),
         color: petData.color || "",
         breed: petData.breed || "",
         additionalInfo: petData.additionalInfo || petData.description || "",
@@ -798,7 +798,7 @@ const AddNewPetPopup = ({
             <div style={{ width: isMobile ? "100%" : "48%" }}>
               <p>Pet Type <span style={{ color: "red" }}>*</span></p>
               <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
-                {formData.petType}
+                {typeof formData.petType === 'object' ? formData.petType?.petType : formData.petType}
               </div>
             </div>
           ) : (

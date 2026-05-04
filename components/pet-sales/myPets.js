@@ -31,6 +31,11 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     return styles.statusDefault;
   };
 
+  const renderPetType = (type) => {
+    if (type && typeof type === 'object') return type.petType || "—";
+    return type || "—";
+  };
+
   const handleDeleteClick = (pet) => {
     setSelectedPet(pet);
     setShowChangeStatus(true);
@@ -130,7 +135,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
               </span>
 
               <span className={`${styles.cell} ${styles.colType}`}>
-                {pet.petType || "—"}
+                {renderPetType(pet.petType)}
               </span>
 
               <span className={`${styles.cell} ${styles.colBreed}`}>
@@ -191,7 +196,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
                 </div>
                 <div className={styles.mobileCardBody}>
                   <p className={styles.mobilePetName}>{pet.breed || "—"}</p>
-                  <p className={styles.mobilePetSub}>{pet.petType || "—"} , {pet.petGender || "—"}</p>
+                  <p className={styles.mobilePetSub}>{renderPetType(pet.petType)} , {pet.petGender || "—"}</p>
                   <p className={styles.mobilePetSub}>{pet.petAge || "—"}</p>
                 </div>
                 <div className={styles.mobileCardRight}>
