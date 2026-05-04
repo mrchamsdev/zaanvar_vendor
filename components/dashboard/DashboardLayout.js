@@ -143,7 +143,17 @@ const SERVICE_MAP = {
       { label: "Purchase Return", path: "/purchase-bill/purchase-return" }
     ]
   },
-  Supplier: { label: "Supplier", path: "/suppliers", icon: <IconGrid /> }
+  Supplier: { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
+  Sale: {
+    label: "Sale",
+    path: "/sale",
+    icon: <IconShop />,
+    subItems: [
+      { label: "Sales Invoice", path: "/sale/sales-invoice" },
+      { label: "Payment In", path: "/sale/payment-in" },
+      { label: "Sales Return", path: "/sale/sales-return" }
+    ]
+  }
 };
 
 const BRANCH_SERVICE_MAP = {
@@ -154,6 +164,7 @@ const BRANCH_SERVICE_MAP = {
   petSales:         "Pet Sales",
   inventory:        "Inventory",
   purchaseBills:    "Purchase Bills",
+  sale:             "Sale",
 };
 
 function buildMenuFromVendor(userInfo) {
@@ -173,6 +184,12 @@ function buildMenuFromVendor(userInfo) {
       path: "/purchase-bill", 
       icon: <IconPackage />,
       subItems: SERVICE_MAP["Purchase Bills"].subItems 
+    },
+    { 
+      label: "Sale", 
+      path: "/sale", 
+      icon: <IconShop />,
+      subItems: SERVICE_MAP["Sale"].subItems 
     },
     { label: "Supplier",          path: "/suppliers",      icon: <IconGrid />  },
   ];
