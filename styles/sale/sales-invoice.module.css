@@ -1,0 +1,471 @@
+
+.container {
+    padding: 24px;
+    background: #fff;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filterLabel {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.customSelectWrapper {
+    position: relative;
+    width: 140px;
+}
+
+.customSelectHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.customSelectDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 100;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.customSelectOption {
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.customSelectOption:hover {
+    background: #f5f5f5;
+}
+
+.customSelectOption.active {
+    background: #E93E64;
+    color: #fff;
+}
+
+.dateDisplay {
+    background: #f9f9f9;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.customPickerWrapper {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 8px;
+    width: 320px;
+}
+
+.searchBar {
+    position: relative;
+    width: 320px;
+    margin-bottom: 24px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background: #f9f9f9;
+    font-size: 14px;
+}
+
+.summaryCard {
+    background: #FCF8FF;
+    padding: 24px 32px;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 320px;
+    margin-bottom: 40px;
+    border: none;
+}
+
+.summaryTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.summaryInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summaryLabel {
+    font-size: 13px;
+    color: #888;
+    font-weight: 500;
+}
+
+.summaryValue {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.summaryTrend {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.trendValue {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.trendIcon {
+    font-weight: 400;
+}
+
+.trendLabel {
+    font-size: 11px;
+    color: #aaa;
+}
+
+.summaryLine {
+    height: 1px;
+    background: rgba(0,0,0,0.03);
+    width: 100%;
+}
+
+.summaryBottom {
+    display: flex;
+    gap: 40px;
+    padding-top: 4px;
+}
+
+.summaryRowItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rowLabel {
+    font-size: 14px;
+    color: #888;
+}
+
+.rowValue {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+.transactionsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.transactionsTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+}
+
+.iconBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+}
+
+.tableContainer {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: visible;
+    padding-bottom: 150px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: #f4f4f4;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+}
+
+.filterIcon {
+    font-size: 10px;
+    color: #999;
+    margin-left: 4px;
+    cursor: pointer;
+}
+
+.actions {
+    display: flex;
+    gap: 16px;
+    color: #666;
+    align-items: center;
+}
+
+.actionIcon {
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.dropdownMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    width: 140px;
+    padding: 4px 0;
+    margin-top: 4px;
+}
+
+.dropdownItem {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+}
+
+.dropdownItem:hover {
+    background: #f5f5f5;
+}
+
+/* Custom Date Picker Styles (reusing from reference) */
+.pickerContainer {
+    background: #fff;
+}
+
+.calendarHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.calendarDay {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.calendarDay:hover {
+    background: #f0f0f0;
+}
+
+.selectedDay {
+    background: #E93E64 !important;
+    color: #fff;
+}
+
+.inRangeDay {
+    background: #FFF0F3;
+}
+
+.weekday {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+    padding-bottom: 4px;
+}
+
+/* Date Filter Modal (from reference) */
+.dateFilterModal {
+    position: absolute;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    padding: 12px;
+    width: 220px;
+}
+
+.modalLabel {
+    display: block;
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.categorySelect {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.dateInputWrapper {
+    position: relative;
+    cursor: pointer;
+}
+
+.dateInput {
+    padding: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    font-size: 12px;
+    min-height: 32px;
+}
+
+.calendarIconOverlay {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.clearBtn, .applyBtn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+}
+
+.clearBtn {
+    background: #f0f0f0;
+    color: #666;
+    font-weight: 500;
+}
+
+.applyBtn {
+    background: #E93E64;
+    color: #fff;
+    font-weight: 500;
+}
+
+.optionsList {
+    display: flex;
+    flex-direction: column;
+}
+
+.optionItem {
+    padding: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.optionItem:hover {
+    background: #f5f5f5;
+}
+
+.optionItem.active {
+    color: #E93E64;
+    font-weight: 600;
+}
