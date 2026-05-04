@@ -49,6 +49,11 @@ const MyPuppies = ({
     return styles.statusDefault;
   };
 
+  const renderPetType = (type) => {
+    if (type && typeof type === 'object') return type.petType || "—";
+    return type || "—";
+  };
+
   const handleDeleteClick = (pet) => {
     setSelectedPet(pet);
     setShowChangeStatus(true);
@@ -184,7 +189,7 @@ const handleAddEditSuccess = (savedPet) => {
               </span>
 
               <span className={`${styles.cell} ${styles.colType}`}>
-                {pet.petType || "—"}
+                {renderPetType(pet.petType)}
               </span>
 
               <span className={`${styles.cell} ${styles.colBreed}`}>
@@ -254,7 +259,7 @@ const handleAddEditSuccess = (savedPet) => {
                 <div className={styles.mobileCardBody}>
                   <p className={styles.mobilePetName}>{pet.breed || "—"}</p>
                   <p className={styles.mobilePetSub}>
-                    {pet.petType || "—"} , {pet.petGender || "—"}
+                    {renderPetType(pet.petType)} , {pet.petGender || "—"}
                   </p>
                   <p className={styles.mobilePetSub}>
                     {pet.petAge || "—"}
