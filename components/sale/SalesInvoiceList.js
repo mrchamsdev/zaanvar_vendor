@@ -268,7 +268,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     );
 };
 
-const SalesInvoiceList = () => {
+import EmptyState from "../utilities/EmptyState";
+
+const SalesInvoiceList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken } = useStore();
     const [invoices, setInvoices] = useState([]);
@@ -564,153 +566,164 @@ const SalesInvoiceList = () => {
                 </div>
             </div>
 
-            <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={{position: 'relative'}}>
-                                DATE 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                                />
-                                {isDateFilterOpen && (
-                                    <DateFilterModal 
-                                        currentMode={dateFilterMode}
-                                        currentDate={dateFilterValues}
-                                        onClose={() => setIsDateFilterOpen(false)}
-                                        onApply={(mode, values) => {
-                                            setDateFilterMode(mode);
-                                            setDateFilterValues(values);
-                                        }}
-                                    />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                INVOICE NO 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo')}
-                                />
-                                {openFilterCol === 'invoiceNo' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Invoice No"
-                                        currentMode={columnFilters.invoiceNo.mode}
-                                        currentValue={columnFilters.invoiceNo.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, invoiceNo: {mode, value: val}})}
-                                    />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                PARTY NAME 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName')}
-                                />
-                                {openFilterCol === 'partyName' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Party Name"
-                                        currentMode={columnFilters.partyName.mode}
-                                        currentValue={columnFilters.partyName.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
-                                    />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                AMOUNT 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount')}
-                                />
-                                {openFilterCol === 'amount' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Amount"
-                                        currentMode={columnFilters.amount.mode}
-                                        currentValue={columnFilters.amount.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, amount: {mode, value: val}})}
-                                    />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                PAID 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid')}
-                                />
-                                {openFilterCol === 'paid' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Paid"
-                                        currentMode={columnFilters.paid.mode}
-                                        currentValue={columnFilters.paid.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
-                                    />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                BALANCE 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance')}
-                                />
-                                {openFilterCol === 'balance' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Balance"
-                                        currentMode={columnFilters.balance.mode}
-                                        currentValue={columnFilters.balance.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
-                                    />
-                                )}
-                            </th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
+            {loading ? (
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <tbody>
                             <tr><td colSpan="7" style={{textAlign: 'center'}}>Loading...</td></tr>
-                        ) : filteredInvoices.length === 0 ? (
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>No invoices found</td></tr>
-                        ) : filteredInvoices.map((inv, idx) => {
-                            const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
-                            return (
-                                <tr key={inv.userOrderId || idx}>
-                                    <td>{new Date(inv.createdDate).toLocaleDateString('en-GB')}</td>
-                                    <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
-                                    <td>{partyName}</td>
-                                    <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
-                                    <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
-                                    <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                            <FiShare2 className={styles.actionIcon} />
-                                            <div style={{position: 'relative'}}>
-                                                <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId, print: 'true' } }); }}>Print</div>
-                                                    </div>
-                                                )}
+                        </tbody>
+                    </table>
+                </div>
+            ) : filteredInvoices.length === 0 ? (
+                <EmptyState 
+                    buttonText="Add Sale Invoice"
+                    onAddClick={onAddClick}
+                />
+            ) : (
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={{position: 'relative'}}>
+                                    DATE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                                    />
+                                    {isDateFilterOpen && (
+                                        <DateFilterModal 
+                                            currentMode={dateFilterMode}
+                                            currentDate={dateFilterValues}
+                                            onClose={() => setIsDateFilterOpen(false)}
+                                            onApply={(mode, values) => {
+                                                setDateFilterMode(mode);
+                                                setDateFilterValues(values);
+                                            }}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    INVOICE NO 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo')}
+                                    />
+                                    {openFilterCol === 'invoiceNo' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Invoice No"
+                                            currentMode={columnFilters.invoiceNo.mode}
+                                            currentValue={columnFilters.invoiceNo.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, invoiceNo: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PARTY NAME 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName')}
+                                    />
+                                    {openFilterCol === 'partyName' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Party Name"
+                                            currentMode={columnFilters.partyName.mode}
+                                            currentValue={columnFilters.partyName.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    AMOUNT 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount')}
+                                    />
+                                    {openFilterCol === 'amount' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Amount"
+                                            currentMode={columnFilters.amount.mode}
+                                            currentValue={columnFilters.amount.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, amount: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PAID 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid')}
+                                    />
+                                    {openFilterCol === 'paid' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Paid"
+                                            currentMode={columnFilters.paid.mode}
+                                            currentValue={columnFilters.paid.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    BALANCE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance')}
+                                    />
+                                    {openFilterCol === 'balance' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Balance"
+                                            currentMode={columnFilters.balance.mode}
+                                            currentValue={columnFilters.balance.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredInvoices.map((inv, idx) => {
+                                const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
+                                return (
+                                    <tr key={inv.userOrderId || idx}>
+                                        <td>{new Date(inv.createdDate).toLocaleDateString('en-GB')}</td>
+                                        <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
+                                        <td>{partyName}</td>
+                                        <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
+                                        <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
+                                        <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
+                                        <td>
+                                            <div className={styles.actions}>
+                                                <FiShare2 className={styles.actionIcon} />
+                                                <div style={{position: 'relative'}}>
+                                                    <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                    {activeDropdown === idx && (
+                                                        <div className={styles.dropdownMenu}>
+                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
+                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
+                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>Open PDF</div>
+                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId, print: 'true' } }); }}>Print</div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };

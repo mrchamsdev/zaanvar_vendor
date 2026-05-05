@@ -6,6 +6,7 @@ import { purchaseService } from "../../services/purchaseService";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
+import EmptyState from "../../components/utilities/EmptyState";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -204,26 +205,35 @@ const PurchaseOrdersPage = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>ORDER DATE</th>
-                                <th>ORDER NO</th>
-                                <th>SUPPLIER NAME</th>
-                                <th>TO</th>
-                                <th>Order Value (₹)</th>
-                                <th>Purchase Order</th>
-                                <th>Invoice</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
+                {loading ? (
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <tbody>
                                 <tr><td colSpan="7" style={{textAlign: 'center', padding: 40}}>Loading...</td></tr>
-                            ) : paginatedData.length === 0 ? (
-                                <tr><td colSpan="7" style={{textAlign: 'center', padding: 40}}>No data found</td></tr>
-                            ) : (
-                                paginatedData.map((item) => (
+                            </tbody>
+                        </table>
+                    </div>
+                ) : filteredData.length === 0 ? (
+                    <EmptyState 
+                        buttonText="Add Purchase Order"
+                        onAddClick={() => openOrder(null, "Add")}
+                    />
+                ) : (
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>ORDER DATE</th>
+                                    <th>ORDER NO</th>
+                                    <th>SUPPLIER NAME</th>
+                                    <th>TO</th>
+                                    <th>Order Value (₹)</th>
+                                    <th>Purchase Order</th>
+                                    <th>Invoice</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedData.map((item) => (
                                     <tr key={item.productsPurchaseRqstID} onClick={() => openOrder(item.productsPurchaseRqstID, "View")} style={{cursor: 'pointer'}}>
                                         <td>{formatDate(item.createdDate)}</td>
                                         <td>{`PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`}</td>
@@ -250,50 +260,52 @@ const PurchaseOrdersPage = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Footer/Pagination */}
-                <div className={styles.pagination}>
-                    <div className={styles.paginationLeft}>
-                        <div className={styles.rowsPerPage}>
-                            Rows per Page
-                            <select 
-                                value={rowsPerPage} 
-                                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                            >
-                                {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                            <span>
-                                {filteredData.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0} - {Math.min(currentPage * rowsPerPage, filteredData.length)} of {filteredData.length} Items
-                            </span>
+                {filteredData.length > 0 && (
+                    <div className={styles.pagination}>
+                        <div className={styles.paginationLeft}>
+                            <div className={styles.rowsPerPage}>
+                                Rows per Page
+                                <select 
+                                    value={rowsPerPage} 
+                                    onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                >
+                                    {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                                <span>
+                                    {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, filteredData.length)} of {filteredData.length} Items
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className={styles.paginationRight}>
-                        <div style={{display: 'flex', gap: 12}}>
-                            {currentPage > 1 && (
-                                <button 
-                                    className={styles.pageBtn} 
-                                    onClick={() => setCurrentPage(prev => prev - 1)}
-                                >
-                                    Previous
-                                </button>
-                            )}
-                            {currentPage < totalPages && (
-                                <button 
-                                    className={`${styles.pageBtn} ${styles.nextBtn}`} 
-                                    onClick={() => setCurrentPage(prev => prev + 1)}
-                                >
-                                    Next
-                                </button>
-                            )}
+                        <div className={styles.paginationRight}>
+                            <div style={{display: 'flex', gap: 12}}>
+                                {currentPage > 1 && (
+                                    <button 
+                                        className={styles.pageBtn} 
+                                        onClick={() => setCurrentPage(prev => prev - 1)}
+                                    >
+                                        Previous
+                                    </button>
+                                )}
+                                {currentPage < totalPages && (
+                                    <button 
+                                        className={`${styles.pageBtn} ${styles.nextBtn}`} 
+                                        onClick={() => setCurrentPage(prev => prev + 1)}
+                                    >
+                                        Next
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </DashboardLayout>
     );

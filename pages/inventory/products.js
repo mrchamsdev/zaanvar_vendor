@@ -7,6 +7,7 @@ import ProductFormManager from "../../components/inventory/product-form-manager"
 import ConfirmationModal from "../../components/inventory/confirmation-modal";
 import { IconSearch } from "../../components/dashboard/DashboardLayout"; 
 import { toast } from "sonner";
+import EmptyState from "../../components/utilities/EmptyState";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -273,13 +274,15 @@ const ProductsPage = () => {
         <div className={styles.topSection}>
           {/* Status & Tabs Row */}
           <div className={styles.statusTabsRow}>
-            <div className={styles.statusGroup}>
-              <span className={styles.statusLabel}>Overall Status :</span>
-              <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
-              <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
-              <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
-              <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
-            </div>
+            {products.length > 0 && (
+                <div className={styles.statusGroup}>
+                  <span className={styles.statusLabel}>Overall Status :</span>
+                  <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
+                  <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
+                  <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
+                  <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
+                </div>
+            )}
 
             <div className={styles.tabs}>
               <button 
@@ -313,194 +316,205 @@ const ProductsPage = () => {
           </div>
         </div>
 
-        {/* Product Table */}
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th style={{width: 40}}>
-                  <input 
-                    type="checkbox" 
-                    onChange={selectAll} 
-                    checked={products.length > 0 && products.every(p => selectedIds.includes(p.productId))} 
-                  />
-                </th>
-                <th>Product Code</th>
-                <th>Product Name</th>
-                <th>Brand</th>
-                <th>Category Type</th>
-                {/* Variant specific columns start here */}
-                <th>Unit</th>
-                <th>Quantity</th>
-                <th>Open Stock Qty</th>
-                <th>Hold Qty</th>
-                <th>MRP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {loading ? (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <tbody>
                 <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>Loading products...</td></tr>
-              ) : (searchTerm ? products.filter(p => 
-                  p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
-                ) : products).length === 0 ? (
-                <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products found</td></tr>
-              ) : (
-                (searchTerm ? products.filter(p => 
-                  p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
-                ) : products).map((product) => {
-                  const isExpanded = expandedRows.includes(product.productId);
-                  const firstVariant = product.variants?.[0] || {};
-                  const otherVariants = product.variants?.slice(1) || [];
-                  const hasMultipleVariants = product.variants?.length > 1;
-
-                  return (
-                    <React.Fragment key={product.productId}>
-                      <tr>
-                        <td>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedIds.includes(product.productId)}
-                            onChange={() => toggleSelection(product.productId)}
-                          />
-                        </td>
-                        <td>{product.ProductCode || "-"}</td>
-                        <td>{product.productName}</td>
-                        <td>{product.brand?.name || product.brand || "-"}</td>
-                        <td>
-                          {Array.isArray(product.categoryId) 
-                            ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
-                            : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
-                        </td>
-                        {/* Render first variant info in main row */}
-                        <td>{getUnitDisplay(firstVariant)}</td>
-                        <td>{firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
-                        <td>00</td>
-                        <td>00</td>
-                        <td 
-                          style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
-                          onClick={() => hasMultipleVariants && toggleRowExpansion(product.productId)}
-                        >
-                          ₹{firstVariant.mrp || "-"} 
-                          {hasMultipleVariants && (
-                            isExpanded ? <IconChevronUp /> : <IconChevronDown />
-                          )}
-                        </td>
-                      </tr>
-                      {/* Render Other Variants if expanded */}
-                      {isExpanded && otherVariants.map((v) => (
-                        <tr key={v.variantId} className={styles.variantRow}>
-                          <td colSpan="5"></td>
-                          <td>{getUnitDisplay(v)}</td>
-                          <td>{v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
+              </tbody>
+            </table>
+          </div>
+        ) : products.length === 0 ? (
+          <EmptyState 
+            buttonText="Add Product"
+            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
+          />
+        ) : (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{width: 40}}>
+                    <input 
+                      type="checkbox" 
+                      onChange={selectAll} 
+                      checked={products.length > 0 && products.every(p => selectedIds.includes(p.productId))} 
+                    />
+                  </th>
+                  <th>Product Code</th>
+                  <th>Product Name</th>
+                  <th>Brand</th>
+                  <th>Category Type</th>
+                  <th>Unit</th>
+                  <th>Quantity</th>
+                  <th>Open Stock Qty</th>
+                  <th>Hold Qty</th>
+                  <th>MRP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(searchTerm ? products.filter(p => 
+                    p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                  ) : products).length === 0 ? (
+                  <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products matching search</td></tr>
+                ) : (
+                  (searchTerm ? products.filter(p => 
+                    p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                  ) : products).map((product) => {
+                    const isExpanded = expandedRows.includes(product.productId);
+                    const firstVariant = product.variants?.[0] || {};
+                    const otherVariants = product.variants?.slice(1) || [];
+                    const hasMultipleVariants = product.variants?.length > 1;
+  
+                    return (
+                      <React.Fragment key={product.productId}>
+                        <tr>
+                          <td>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedIds.includes(product.productId)}
+                              onChange={() => toggleSelection(product.productId)}
+                            />
+                          </td>
+                          <td>{product.ProductCode || "-"}</td>
+                          <td>{product.productName}</td>
+                          <td>{product.brand?.name || product.brand || "-"}</td>
+                          <td>
+                            {Array.isArray(product.categoryId) 
+                              ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
+                              : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
+                          </td>
+                          <td>{getUnitDisplay(firstVariant)}</td>
+                          <td>{firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
                           <td>00</td>
                           <td>00</td>
-                          <td style={{fontWeight: 600}}>₹{v.mrp}</td>
+                          <td 
+                            style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
+                            onClick={() => hasMultipleVariants && toggleRowExpansion(product.productId)}
+                          >
+                            ₹{firstVariant.mrp || "-"} 
+                            {hasMultipleVariants && (
+                              isExpanded ? <IconChevronUp /> : <IconChevronDown />
+                            )}
+                          </td>
                         </tr>
-                      ))}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        {isExpanded && otherVariants.map((v) => (
+                          <tr key={v.variantId} className={styles.variantRow}>
+                            <td colSpan="5"></td>
+                            <td>{getUnitDisplay(v)}</td>
+                            <td>{v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
+                            <td>00</td>
+                            <td>00</td>
+                            <td style={{fontWeight: 600}}>₹{v.mrp}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Footer/Pagination */}
-        <div className={styles.pagination}>
-          <div className={styles.paginationLeft}>
-            <div className={styles.rowsPerPage}>
-              Rows per Page
-              <select 
-                value={rowsPerPage} 
-                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              >
-                {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <span>
-                {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, totalProducts)} of {totalProducts} Items
-              </span>
-            </div>
-          </div>
-
-          <div className={styles.paginationCenter}>
-            {selectedIds.length > 0 && (
-              <div className={styles.bulkActionsInline}>
-                <span 
-                  className={styles.bulkCount} 
-                  onClick={() => setSelectedIds([])}
-                  style={{cursor: 'pointer'}}
-                  title="Unselect All"
-                >
-                  ✕ {selectedIds.length} Items Selected
-                </span>
-                <div className={styles.bulkDivider} />
-                <div 
-                  className={styles.actionItem} 
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const fullProducts = [];
-                      for (const id of selectedIds) {
-                        const res = await productService.getProductById(jwtToken, id);
-                        if (res?.data?.data) {
-                          fullProducts.push(res.data.data);
-                        } else if (res?.data) {
-                          fullProducts.push(res.data);
-                        }
-                      }
-                      setEditProductData(fullProducts);
-                      setFormMode("View");
-                      setIsAddingProduct(true);
-                    } catch (e) {
-                      console.error("Error fetching full product details:", e);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                >
-                  <IconEye /> View
-                </div>
-                <div 
-                  className={styles.actionItem} 
-                  onClick={() => { 
-                    const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
-                    setEditProductData(productsToEdit);
-                    setFormMode("Edit"); 
-                    setIsAddingProduct(true); 
-                  }}
-                >
-                  <IconEdit /> Edit
-                </div>
-                <div className={styles.actionItem} onClick={handleDelete}>
-                  <IconTrash /> Delete
+        {products.length > 0 && (
+            <div className={styles.pagination}>
+              <div className={styles.paginationLeft}>
+                <div className={styles.rowsPerPage}>
+                  Rows per Page
+                  <select 
+                    value={rowsPerPage} 
+                    onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  >
+                    {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span>
+                    {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, totalProducts)} of {totalProducts} Items
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className={styles.paginationRight}>
-            <div style={{display: 'flex', gap: 12}}>
-                {currentPage > 1 && (
-                  <button 
-                    className={styles.pageBtn} 
-                    onClick={() => handlePageChange("prev")}
-                  >
-                    Previous
-                  </button>
+    
+              <div className={styles.paginationCenter}>
+                {selectedIds.length > 0 && (
+                  <div className={styles.bulkActionsInline}>
+                    <span 
+                      className={styles.bulkCount} 
+                      onClick={() => setSelectedIds([])}
+                      style={{cursor: 'pointer'}}
+                      title="Unselect All"
+                    >
+                      ✕ {selectedIds.length} Items Selected
+                    </span>
+                    <div className={styles.bulkDivider} />
+                    <div 
+                      className={styles.actionItem} 
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const fullProducts = [];
+                          for (const id of selectedIds) {
+                            const res = await productService.getProductById(jwtToken, id);
+                            if (res?.data?.data) {
+                              fullProducts.push(res.data.data);
+                            } else if (res?.data) {
+                              fullProducts.push(res.data);
+                            }
+                          }
+                          setEditProductData(fullProducts);
+                          setFormMode("View");
+                          setIsAddingProduct(true);
+                        } catch (e) {
+                          console.error("Error fetching full product details:", e);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      <IconEye /> View
+                    </div>
+                    <div 
+                      className={styles.actionItem} 
+                      onClick={() => { 
+                        const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
+                        setEditProductData(productsToEdit);
+                        setFormMode("Edit"); 
+                        setIsAddingProduct(true); 
+                      }}
+                    >
+                      <IconEdit /> Edit
+                    </div>
+                    <div className={styles.actionItem} onClick={handleDelete}>
+                      <IconTrash /> Delete
+                    </div>
+                  </div>
                 )}
-                {currentPage * rowsPerPage < totalProducts && (
-                  <button 
-                    className={`${styles.pageBtn} ${styles.nextBtn}`} 
-                    onClick={() => handlePageChange("next")}
-                  >
-                    Next
-                  </button>
-                )}
+              </div>
+    
+              <div className={styles.paginationRight}>
+                <div style={{display: 'flex', gap: 12}}>
+                    {currentPage > 1 && (
+                      <button 
+                        className={styles.pageBtn} 
+                        onClick={() => handlePageChange("prev")}
+                      >
+                        Previous
+                      </button>
+                    )}
+                    {currentPage * rowsPerPage < totalProducts && (
+                      <button 
+                        className={`${styles.pageBtn} ${styles.nextBtn}`} 
+                        onClick={() => handlePageChange("next")}
+                      >
+                        Next
+                      </button>
+                    )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+        )}
 
         {/* Confirmation Modal */}
         <ConfirmationModal 

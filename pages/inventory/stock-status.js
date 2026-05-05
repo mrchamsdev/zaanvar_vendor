@@ -4,6 +4,7 @@ import styles from "../../styles/inventory/stock-status.module.css";
 import useStore from "../../components/state/useStore";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
+import EmptyState from "../../components/utilities/EmptyState";
 
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -153,8 +154,6 @@ const StockStatusPage = () => {
 
   const renderRows = () => {
     if (loading) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>Loading data...</td></tr>;
-    if (paginatedList.length === 0) return <tr><td colSpan="10" style={{padding: 40, textAlign: 'center'}}>No items found</td></tr>;
-
     return paginatedList.map((item, idx) => {
       const details = item.productDetails || {};
       const pName = details.productName || item.productName || "Unknown Product";
@@ -312,39 +311,48 @@ const StockStatusPage = () => {
             </button>
           </div>
 
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                {renderTableHeaders()}
-                {renderTableSubHeaders()}
-              </thead>
-              <tbody>
-                {renderRows()}
-              </tbody>
-            </table>
-          </div>
+          {!loading && currentList.length === 0 ? (
+            <EmptyState 
+              buttonText="Add Product"
+              onAddClick={() => window.location.href = "/inventory/products?add=true"}
+            />
+          ) : (
+            <>
+              <div className={styles.tableContainer}>
+                <table className={styles.table}>
+                  <thead>
+                    {renderTableHeaders()}
+                    {renderTableSubHeaders()}
+                  </thead>
+                  <tbody>
+                    {renderRows()}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className={styles.pagination}>
-            <div className={styles.paginationLeft}>
-              <span>Rows per Page</span>
-              <select 
-                className={styles.rowsSelect}
-                value={rowsPerPage}
-                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              >
-                {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredList.length)} - {Math.min(currentPage * rowsPerPage, filteredList.length)} of {filteredList.length} Items</span>
-            </div>
-            <div className={styles.paginationRight}>
-                {currentPage > 1 && (
-                    <button className={styles.pageBtn} onClick={() => setCurrentPage(prev => prev - 1)}>Previous</button>
-                )}
-                {currentPage < totalPages && (
-                    <button className={`${styles.pageBtn} ${styles.pageBtnNext}`} onClick={() => setCurrentPage(prev => prev + 1)}>Next</button>
-                )}
-            </div>
-          </div>
+              <div className={styles.pagination}>
+                <div className={styles.paginationLeft}>
+                  <span>Rows per Page</span>
+                  <select 
+                    className={styles.rowsSelect}
+                    value={rowsPerPage}
+                    onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  >
+                    {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredList.length)} - {Math.min(currentPage * rowsPerPage, filteredList.length)} of {filteredList.length} Items</span>
+                </div>
+                <div className={styles.paginationRight}>
+                    {currentPage > 1 && (
+                        <button className={styles.pageBtn} onClick={() => setCurrentPage(prev => prev - 1)}>Previous</button>
+                    )}
+                    {currentPage < totalPages && (
+                        <button className={`${styles.pageBtn} ${styles.pageBtnNext}`} onClick={() => setCurrentPage(prev => prev + 1)}>Next</button>
+                    )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </DashboardLayout>

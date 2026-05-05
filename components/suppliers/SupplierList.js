@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "../../styles/suppliers/suppliers.module.css";
+import EmptyState from "../utilities/EmptyState";
 
 const IconEye = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -28,7 +29,8 @@ const SupplierList = ({
   onView, 
   onEdit, 
   onDelete,
-  onBulkDelete
+  onBulkDelete,
+  onAddClick
 }) => {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -40,34 +42,43 @@ const SupplierList = ({
 
   return (
     <>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}>
-                <input 
-                  type="checkbox" 
-                  checked={suppliers.length > 0 && selectedIds.length === suppliers.length}
-                  onChange={() => onSelectAll(suppliers.map(s => s.supplierId))}
-                />
-              </th>
-              <th>Supplier ID</th>
-              <th>Supplier Type</th>
-              <th>Supplier Name</th>
-              <th>Branch Assigned</th>
-              <th>Order QTY</th>
-              <th>Received QTY</th>
-              <th>Return QTY</th>
-              <th>Total Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      {loading ? (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <tbody>
               <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40 }}>Loading suppliers...</td></tr>
-            ) : suppliers.length === 0 ? (
-              <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40 }}>No suppliers found</td></tr>
-            ) : (
-              paginatedSuppliers.map((s) => (
+            </tbody>
+          </table>
+        </div>
+      ) : suppliers.length === 0 ? (
+        <EmptyState 
+          buttonText="Add Supplier"
+          onAddClick={onAddClick}
+        />
+      ) : (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ width: 40 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={suppliers.length > 0 && selectedIds.length === suppliers.length}
+                    onChange={() => onSelectAll(suppliers.map(s => s.supplierId))}
+                  />
+                </th>
+                <th>Supplier ID</th>
+                <th>Supplier Type</th>
+                <th>Supplier Name</th>
+                <th>Branch Assigned</th>
+                <th>Order QTY</th>
+                <th>Received QTY</th>
+                <th>Return QTY</th>
+                <th>Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedSuppliers.map((s) => (
                 <tr key={s.supplierId}>
                   <td>
                     <input 
@@ -85,69 +96,71 @@ const SupplierList = ({
                   <td>000</td>
                   <td style={{ color: '#27AE60', fontWeight: 600 }}>₹000</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={styles.pagination}>
-        <div className={styles.paginationLeft}>
-          <div className={styles.rowsPerPage}>
-            Rows per Page
-            <select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
-              {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <span>
-              {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, suppliers.length)} of {suppliers.length} Items
-            </span>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
+      )}
 
-        <div className={styles.paginationCenter}>
-          {selectedIds.length > 0 && (
-            <div className={styles.bulkActionsInline}>
-              <span 
-                className={styles.bulkCount} 
-                onClick={() => onSelectAll([])}
-                style={{ cursor: 'pointer' }}
-                title="Unselect All"
-              >
-                ✕ {selectedIds.length} Items Selected
+      {suppliers.length > 0 && (
+        <div className={styles.pagination}>
+          <div className={styles.paginationLeft}>
+            <div className={styles.rowsPerPage}>
+              Rows per Page
+              <select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
+                {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <span>
+                {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, suppliers.length)} of {suppliers.length} Items
               </span>
-              <div className={styles.bulkDivider} />
-              <div className={styles.actionItem} onClick={() => onView(selectedIds[0])}>
-                <IconEye /> View
-              </div>
-              <div className={styles.actionItem} onClick={() => onEdit(selectedIds[0])}>
-                <IconEdit /> Edit
-              </div>
-              <div className={styles.actionItem} onClick={onBulkDelete}>
-                <IconTrash /> Delete
-              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className={styles.paginationRight}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button 
-              className={styles.pageBtn} 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => prev - 1)}
-            >
-              Previous
-            </button>
-            <button 
-              className={`${styles.pageBtn} ${styles.nextBtn}`}
-              disabled={currentPage * rowsPerPage >= suppliers.length}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-            >
-              Next
-            </button>
+          <div className={styles.paginationCenter}>
+            {selectedIds.length > 0 && (
+              <div className={styles.bulkActionsInline}>
+                <span 
+                  className={styles.bulkCount} 
+                  onClick={() => onSelectAll([])}
+                  style={{ cursor: 'pointer' }}
+                  title="Unselect All"
+                >
+                  ✕ {selectedIds.length} Items Selected
+                </span>
+                <div className={styles.bulkDivider} />
+                <div className={styles.actionItem} onClick={() => onView(selectedIds[0])}>
+                  <IconEye /> View
+                </div>
+                <div className={styles.actionItem} onClick={() => onEdit(selectedIds[0])}>
+                  <IconEdit /> Edit
+                </div>
+                <div className={styles.actionItem} onClick={onBulkDelete}>
+                  <IconTrash /> Delete
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.paginationRight}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                className={styles.pageBtn} 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+              >
+                Previous
+              </button>
+              <button 
+                className={`${styles.pageBtn} ${styles.nextBtn}`}
+                disabled={currentPage * rowsPerPage >= suppliers.length}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };

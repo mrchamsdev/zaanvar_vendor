@@ -83,7 +83,9 @@ const PurchaseReturnPage = () => {
             customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
-            <PurchaseReturnList />
+            <PurchaseReturnList 
+                onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+            />
             
             <AddPurchaseReturn 
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}

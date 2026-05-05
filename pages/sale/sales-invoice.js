@@ -84,7 +84,9 @@ const SalesInvoicePage = () => {
             customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
-            <SalesInvoiceList />
+            <SalesInvoiceList 
+                onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+            />
             
             <AddSaleInvoice 
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}

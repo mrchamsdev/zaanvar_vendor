@@ -83,7 +83,9 @@ const PaymentInPage = () => {
             customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
-            <PaymentInList />
+            <PaymentInList 
+                onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+            />
             
             <AddPaymentIn 
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}

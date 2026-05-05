@@ -10,6 +10,7 @@ import ShareModal from "./ShareModal";
 import HistoryModal from "./HistoryModal";
 import { VENDOR_API_URL } from "../../components/utilities/Constants";
 import useDashboardData from "../dashboard/useDashboardData";
+import EmptyState from "../utilities/EmptyState";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
@@ -321,7 +322,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     );
 };
 
-const PaymentOutList = () => {
+const PaymentOutList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [transactions, setTransactions] = useState([]);
@@ -594,30 +595,32 @@ const PaymentOutList = () => {
             </div>
 
 
-            <div className={styles.summarySection}>
-                <div className={styles.mainSummaryCard}>
-                    <div className={styles.summaryTop}>
-                        <div className={styles.summaryItem}>
-                            <span className={styles.summaryLabel}>Total Amount</span>
-                            <span className={styles.summaryValue}>₹{Number(totals?.supplierTotalAmount || 0).toLocaleString()}</span>
+            {transactions.length > 0 && (
+                <div className={styles.summarySection}>
+                    <div className={styles.mainSummaryCard}>
+                        <div className={styles.summaryTop}>
+                            <div className={styles.summaryItem}>
+                                <span className={styles.summaryLabel}>Total Amount</span>
+                                <span className={styles.summaryValue}>₹{Number(totals?.supplierTotalAmount || 0).toLocaleString()}</span>
+                            </div>
+                            <div className={styles.summaryStats}>
+                                <span className={styles.percentText}>0% <FiArrowUpRight /></span>
+                                <span className={styles.vsText}>vs Last month</span>
+                            </div>
                         </div>
-                        <div className={styles.summaryStats}>
-                            <span className={styles.percentText}>0% <FiArrowUpRight /></span>
-                            <span className={styles.vsText}>vs Last month</span>
-                        </div>
-                    </div>
-                    <div className={styles.summaryBottom}>
-                        <div className={styles.bottomItem}>
-                            <span className={styles.paidLabel}>Paid : </span>
-                            <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString()}</span>
-                        </div>
-                        <div className={styles.bottomItem} style={{marginLeft: 'auto'}}>
-                            <span className={styles.paidLabel}>Balance : </span>
-                            <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString()}</span>
+                        <div className={styles.summaryBottom}>
+                            <div className={styles.bottomItem}>
+                                <span className={styles.paidLabel}>Paid : </span>
+                                <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString()}</span>
+                            </div>
+                            <div className={styles.bottomItem} style={{marginLeft: 'auto'}}>
+                                <span className={styles.paidLabel}>Balance : </span>
+                                <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className={styles.transactionsHeader}>
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
@@ -631,181 +634,196 @@ const PaymentOutList = () => {
                 </div>
             </div>
 
-            <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={{position: 'relative'}}>
-                                DATE 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                                />
-                                {isDateFilterOpen && (
-                                    <DateFilterModal 
-                                        currentMode={dateFilterMode}
-                                        currentDate={dateFilterValues}
-                                        onClose={() => setIsDateFilterOpen(false)}
-                                        onApply={(mode, values) => {
-                                            setDateFilterMode(mode);
-                                            setDateFilterValues(values);
-                                        }}
+            {loading ? (
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <tbody>
+                            <tr><td colSpan="7" style={{textAlign: 'center', padding: 40}}>Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            ) : filteredTransactions.length === 0 ? (
+                <EmptyState 
+                    buttonText="Add Payment Out"
+                    onAddClick={onAddClick}
+                />
+            ) : (
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={{position: 'relative'}}>
+                                    DATE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
                                     />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                REF NO 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo')}
-                                />
-                                {openFilterCol === 'refNo' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Ref no"
-                                        currentMode={columnFilters.refNo.mode}
-                                        currentValue={columnFilters.refNo.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                    {isDateFilterOpen && (
+                                        <DateFilterModal 
+                                            currentMode={dateFilterMode}
+                                            currentDate={dateFilterValues}
+                                            onClose={() => setIsDateFilterOpen(false)}
+                                            onApply={(mode, values) => {
+                                                setDateFilterMode(mode);
+                                                setDateFilterValues(values);
+                                            }}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    REF NO 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo')}
                                     />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                PARTY NAME 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName')}
-                                />
-                                {openFilterCol === 'partyName' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Party Name"
-                                        currentMode={columnFilters.partyName.mode}
-                                        currentValue={columnFilters.partyName.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                    {openFilterCol === 'refNo' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Ref no"
+                                            currentMode={columnFilters.refNo.mode}
+                                            currentValue={columnFilters.refNo.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PARTY NAME 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName')}
                                     />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                PAYMENT TYPE 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType')}
-                                />
-                                {openFilterCol === 'paymentType' && (
-                                    <GeneralFilterModal 
-                                        type="paymentType"
-                                        label="Payment Type"
-                                        currentMode={columnFilters.paymentType.mode}
-                                        currentValue={columnFilters.paymentType.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, paymentType: {mode, value: val}})}
+                                    {openFilterCol === 'partyName' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Party Name"
+                                            currentMode={columnFilters.partyName.mode}
+                                            currentValue={columnFilters.partyName.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PAYMENT TYPE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType')}
                                     />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                TOTAL 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'total' ? null : 'total')}
-                                />
-                                {openFilterCol === 'total' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Total Amount"
-                                        currentMode={columnFilters.total.mode}
-                                        currentValue={columnFilters.total.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, total: {mode, value: val}})}
+                                    {openFilterCol === 'paymentType' && (
+                                        <GeneralFilterModal 
+                                            type="paymentType"
+                                            label="Payment Type"
+                                            currentMode={columnFilters.paymentType.mode}
+                                            currentValue={columnFilters.paymentType.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paymentType: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    TOTAL 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'total' ? null : 'total')}
                                     />
-                                )}
-                            </th>
-                            <th style={{position: 'relative'}}>
-                                PAID 
-                                <FiFilter 
-                                    className={styles.filterIcon} 
-                                    onClick={() => setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid')}
-                                />
-                                {openFilterCol === 'paid' && (
-                                    <GeneralFilterModal 
-                                        type="text"
-                                        label="Paid"
-                                        currentMode={columnFilters.paid.mode}
-                                        currentValue={columnFilters.paid.value}
-                                        onClose={() => setOpenFilterCol(null)}
-                                        onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                    {openFilterCol === 'total' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Total Amount"
+                                            currentMode={columnFilters.total.mode}
+                                            currentValue={columnFilters.total.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, total: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PAID 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid')}
                                     />
-                                )}
-                            </th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredTransactions.map((t, idx) => (
-                            <tr key={idx}>
-                                <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
-                                <td>{t.suppliersTransactionId}</td>
-                                <td>{t.transactionInfo || "N/A"}</td>
-                                <td>{t.paymentType || "N/A"}</td>
-                                <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString()}</td>
-                                <td>{Number(t.amount).toLocaleString()}</td>
-                                <td>
-                                    <div className={styles.actions}>
-                                         <div style={{position: 'relative'}}>
-                                            <FiShare2 
-                                                className={styles.actionIcon} 
-                                                onClick={() => {
-                                                    setSelectedTransaction(t);
-                                                    setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
-                                                }}
-                                            />
-                                            {isShareModalOpen === `share-${idx}` && (
-                                                <ShareModal 
-                                                    isOpen={true}
-                                                    onClose={() => setIsShareModalOpen(false)}
-                                                    data={t}
-                                                />
-                                            )}
-                                        </div>
-                                        <div style={{position: 'relative'}}>
-                                            <FiMoreVertical 
-                                                className={styles.actionIcon} 
-                                                onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
-                                            />
-                                            {activeDropdown === idx && (
-                                                <div className={styles.dropdownMenu}>
-                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
-                                                        setActiveDropdown(null);
-                                                     }}>View</div>
-                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
-                                                        setActiveDropdown(null);
-                                                     }}>Edit</div>
-                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
-                                                        setActiveDropdown(null);
-                                                    }}>Open PDF</div>
-                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
-                                                        setActiveDropdown(null);
-                                                    }}>Print</div>
-                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                        setSelectedTransaction(t);
-                                                        setIsHistoryModalOpen(true);
-                                                        setActiveDropdown(null);
-                                                    }}>View History</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
+                                    {openFilterCol === 'paid' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Paid"
+                                            currentMode={columnFilters.paid.mode}
+                                            currentValue={columnFilters.paid.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th>ACTIONS</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {filteredTransactions.map((t, idx) => (
+                                <tr key={idx}>
+                                    <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
+                                    <td>{t.suppliersTransactionId}</td>
+                                    <td>{t.transactionInfo || "N/A"}</td>
+                                    <td>{t.paymentType || "N/A"}</td>
+                                    <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString()}</td>
+                                    <td>{Number(t.amount).toLocaleString()}</td>
+                                    <td>
+                                        <div className={styles.actions}>
+                                             <div style={{position: 'relative'}}>
+                                                <FiShare2 
+                                                    className={styles.actionIcon} 
+                                                    onClick={() => {
+                                                        setSelectedTransaction(t);
+                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
+                                                    }}
+                                                />
+                                                {isShareModalOpen === `share-${idx}` && (
+                                                    <ShareModal 
+                                                        isOpen={true}
+                                                        onClose={() => setIsShareModalOpen(false)}
+                                                        data={t}
+                                                    />
+                                                )}
+                                            </div>
+                                            <div style={{position: 'relative'}}>
+                                                <FiMoreVertical 
+                                                    className={styles.actionIcon} 
+                                                    onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
+                                                />
+                                                {activeDropdown === idx && (
+                                                    <div className={styles.dropdownMenu}>
+                                                         <div className={styles.dropdownItem} onClick={() => {
+                                                            router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
+                                                            setActiveDropdown(null);
+                                                         }}>View</div>
+                                                         <div className={styles.dropdownItem} onClick={() => {
+                                                            router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
+                                                            setActiveDropdown(null);
+                                                         }}>Edit</div>
+                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                            window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
+                                                            setActiveDropdown(null);
+                                                        }}>Open PDF</div>
+                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                            window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
+                                                            setActiveDropdown(null);
+                                                        }}>Print</div>
+                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                            setSelectedTransaction(t);
+                                                            setIsHistoryModalOpen(true);
+                                                            setActiveDropdown(null);
+                                                        }}>View History</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             {isAddModalOpen && (
                 <AddPaymentOut 
