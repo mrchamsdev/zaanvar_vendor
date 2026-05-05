@@ -34,7 +34,8 @@ function normaliseTiming(timings) {
 /* ═══════════════════════════════════════════════════════════
  * Hook
  * ═══════════════════════════════════════════════════════════ */
-export default function useDashboardData() {
+export default function useDashboardData(options = {}) {
+  const { skipReviews = false } = options;
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated } = useStore();
 
@@ -65,7 +66,7 @@ export default function useDashboardData() {
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken || !branchId || skipReviews) return;
 
     const webApi = new WebApimanager(jwtToken);
     setReviewsLoading(true);

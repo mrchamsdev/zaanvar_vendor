@@ -48,7 +48,8 @@ const IconEdit = () => (
 
 const ProductsPage = () => {
   const router = useRouter();
-  const { jwtToken, userInfo, branches } = useDashboardData();
+  const { userInfo, jwtToken, _hasHydrated: isHydrated } = useStore();
+  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [stats, setStats] = useState({ total: 0, expired: 10, damaged: 10, saleReturn: 10 });
@@ -75,7 +76,7 @@ const ProductsPage = () => {
   }, [searchTerm]);
 
   // Dynamic branchId from query or user info
-  const branchId = router.query.branchId || userInfo?.branchId || (branches && branches[0]?.id);
+  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
 
   const handleBranchChange = (e) => {
     router.push({
@@ -85,20 +86,21 @@ const ProductsPage = () => {
   };
 
   useEffect(() => {
-    if (branchId && jwtToken) {
-      fetchStats();
-    }
-  }, [branchId, jwtToken]);
+    if (!router.isReady) return;
 
-  useEffect(() => {
-    if (branchId && jwtToken) {
+    const bid = router.query.branchId || hookBranchId || userInfo?.branchId || 91;
+    
+    if (jwtToken && bid) {
+      console.log("Initiating data fetch for branch:", bid);
+      fetchStats();
       fetchProducts();
     }
-  }, [productType, debouncedSearchTerm, currentPage, rowsPerPage, branchId, jwtToken]);
+  }, [router.isReady, router.query.branchId, hookBranchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage]);
 
   const fetchStats = async () => {
     try {
-      const data = await productService.getDamagedExpiredReports(jwtToken, branchId);
+      const bid = branchId || 91;
+      const data = await productService.getDamagedExpiredReports(jwtToken, bid);
       if (data && data.counts) {
         setStats({
           total: data.totalProducts || 0,
@@ -115,11 +117,14 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      const bid = branchId || 91;
       const result = await productService.getProducts(
         jwtToken, 
-        branchId, 
+        bid, 
         productType, 
-        debouncedSearchTerm
+        debouncedSearchTerm,
+        currentPage,
+        rowsPerPage
       );
       setProducts(result.products);
       setTotalProducts(result.total);
@@ -166,7 +171,23 @@ const ProductsPage = () => {
     
     // 1. Get main measure (Strength for Medical, Size for Retail)
     const strength = v.strength || "";
-    const size = (vt.size && vt.size !== "1" && vt.size !== 1) ? vt.size : (v.size && v.size !== "1" && v.size !== 1 ? v.size : "");
+    let size = (vt.size && vt.size !== "1" && vt.size !== 1) ? vt.size : (v.size && v.size !== "1" && v.size !== 1 ? v.size : "");
+    
+    // Pretty-print JSON dimensions if present
+    if (typeof size === 'string' && size.startsWith('{')) {
+      try {
+        const dim = JSON.parse(size);
+        const parts = [];
+        if (dim.height) parts.push(`H:${dim.height}${dim.heightUnit || 'mm'}`);
+        if (dim.width) parts.push(`W:${dim.width}${dim.widthUnit || 'mm'}`);
+        if (dim.length) parts.push(`L:${dim.length}${dim.lengthUnit || 'mm'}`);
+        if (dim.radius) parts.push(`R:${dim.radius}${dim.radiusUnit || 'mm'}`);
+        size = parts.join(" x ");
+      } catch (e) {
+        console.warn("Failed to parse dimension JSON for display", e);
+      }
+    }
+
     const flavor = vt.flavor || "";
     
     let detailInfo = `${strength || size} ${flavor}`.trim();
@@ -347,13 +368,22 @@ const ProductsPage = () => {
         </div>
 
         {loading ? (
-          <EmptyState loading={true} />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '3px solid #f5790c', 
+              borderTopColor: 'transparent', 
+              borderRadius: '50%', 
+              animation: 'spin 0.8s linear infinite' 
+            }} />
+            <p style={{ color: '#666', fontSize: '14px' }}>Loading products...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         ) : products.length === 0 ? (
           <EmptyState 
-            buttons={[
-              { text: "Add Product", onClick: () => { setFormMode("Add"); setIsAddingProduct(true); } },
-              { text: "Add Bulk Product", onClick: () => { /* Handle bulk add */ } }
-            ]}
+            buttonText="Add Product"
+            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
           />
         ) : (
           <div className={styles.tableWrapper}>
@@ -380,32 +410,33 @@ const ProductsPage = () => {
               </thead>
               <tbody>
                 {(searchTerm ? products.filter(p => 
-                    p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                    (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
                   ) : products).length === 0 ? (
                   <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products matching search</td></tr>
                 ) : (
                   (searchTerm ? products.filter(p => 
-                    p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.ProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+                    (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
                   ) : products).map((product) => {
                     const isExpanded = expandedRows.includes(product.productId);
                     const firstVariant = product.variants?.[0] || {};
                     const otherVariants = product.variants?.slice(1) || [];
                     const hasMultipleVariants = product.variants?.length > 1;
   
+                    const productId = product.productId || product.id || product.ID;
                     return (
-                      <React.Fragment key={product.productId}>
+                      <React.Fragment key={productId}>
                         <tr>
                           <td>
                             <input 
                               type="checkbox" 
-                              checked={selectedIds.includes(product.productId)}
-                              onChange={() => toggleSelection(product.productId)}
+                              checked={selectedIds.includes(productId)}
+                              onChange={() => toggleSelection(productId)}
                             />
                           </td>
-                          <td>{product.ProductCode || "-"}</td>
-                          <td>{product.productName}</td>
+                          <td>{product.ProductCode || product.productCode || "-"}</td>
+                          <td>{product.productName || product.name || "-"}</td>
                           <td>{product.brand?.name || product.brand || "-"}</td>
                           <td>
                             {Array.isArray(product.categoryId) 
@@ -418,15 +449,15 @@ const ProductsPage = () => {
                           <td>00</td>
                           <td 
                             style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
-                            onClick={() => hasMultipleVariants && toggleRowExpansion(product.productId)}
+                            onClick={() => hasMultipleVariants && toggleRowExpansion(productId)}
                           >
                             ₹{firstVariant.mrp || "-"} 
                             {hasMultipleVariants && (
-                              isExpanded ? <IconChevronUp /> : <IconChevronDown />
+                              expandedRows.includes(productId) ? <IconChevronUp /> : <IconChevronDown />
                             )}
                           </td>
                         </tr>
-                        {isExpanded && otherVariants.map((v) => (
+                        {expandedRows.includes(productId) && otherVariants.map((v) => (
                           <tr key={v.variantId} className={styles.variantRow}>
                             <td colSpan="5"></td>
                             <td>{getUnitDisplay(v)}</td>

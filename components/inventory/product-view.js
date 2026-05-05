@@ -182,14 +182,63 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{v.SKU || v.variantId || "-"}</td>
                   <td>{v.barcode || v.eanUpcNumber || "-"}</td>
                   <td>{v.packType || "-"}</td>
-                  <td>{v.variantType?.size || v.size || "-"}</td>
-                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
-                  <td>{l}</td>
-                  <td>{h}</td>
                   <td>
-                    {v.variantType?.size || "-"}
+                    {(() => {
+                      const size = v.variantType?.size || v.size || "";
+                      if (typeof size === 'string' && size.startsWith('{')) {
+                        try {
+                          const dim = JSON.parse(size);
+                          const parts = [];
+                          if (dim.height) parts.push(`H:${dim.height}${dim.heightUnit || 'mm'}`);
+                          if (dim.width) parts.push(`W:${dim.width}${dim.widthUnit || 'mm'}`);
+                          if (dim.length) parts.push(`L:${dim.length}${dim.lengthUnit || 'mm'}`);
+                          if (dim.radius) parts.push(`R:${dim.radius}${dim.radiusUnit || 'mm'}`);
+                          return parts.join(" x ") || "-";
+                        } catch (e) { return size; }
+                      }
+                      return size || "-";
+                    })()}
                   </td>
-                  <td>{v.variantType?.radius || "-"}</td>
+                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
+                  <td>
+                    {(() => {
+                      const size = v.variantType?.size || v.size || "";
+                      if (typeof size === 'string' && size.startsWith('{')) {
+                        try { return JSON.parse(size).length || "-"; } catch (e) {}
+                      }
+                      return "-";
+                    })()}
+                  </td>
+                  <td>
+                    {(() => {
+                      const size = v.variantType?.size || v.size || "";
+                      if (typeof size === 'string' && size.startsWith('{')) {
+                        try { return JSON.parse(size).height || "-"; } catch (e) {}
+                      }
+                      return "-";
+                    })()}
+                  </td>
+                  <td>
+                    {(() => {
+                      const size = v.variantType?.size || v.size || "";
+                      if (typeof size === 'string' && size.startsWith('{')) {
+                        try {
+                          const dim = JSON.parse(size);
+                          return `${dim.width || ""}${dim.widthUnit || "mm"}`;
+                        } catch (e) {}
+                      }
+                      return v.variantType?.size || "-";
+                    })()}
+                  </td>
+                  <td>
+                    {(() => {
+                      const size = v.variantType?.size || v.size || "";
+                      if (typeof size === 'string' && size.startsWith('{')) {
+                        try { return JSON.parse(size).radius || "-"; } catch (e) {}
+                      }
+                      return v.variantType?.radius || "-";
+                    })()}
+                  </td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>
