@@ -5,6 +5,8 @@ import useStore from "../../components/state/useStore";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
+import useDashboardData from "../../components/dashboard/useDashboardData";
+import { useRouter } from "next/router";
 
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -43,7 +45,8 @@ const TABS = [
 ];
 
 const StockStatusPage = () => {
-  const { jwtToken, userInfo } = useStore();
+  const router = useRouter();
+  const { jwtToken, userInfo, branches } = useDashboardData();
   const [activeTab, setActiveTab] = useState("outOfStock");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -57,7 +60,15 @@ const StockStatusPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const branchId = userInfo?.branchId || 1;
+  // Dynamic branchId from query or user info
+  const branchId = router.query.branchId || userInfo?.branchId || (branches && branches[0]?.id);
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
 
   useEffect(() => {
     if (jwtToken) {
@@ -227,7 +238,34 @@ const StockStatusPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      customTopbarLeft={(
+        <div style={{ marginLeft: '20px' }}>
+          <select 
+            className={styles.branchSelect}
+            value={branchId || ""}
+            onChange={handleBranchChange}
+            style={{ 
+              border: '1px solid #eee', 
+              background: '#f8f9fa', 
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '14px', 
+              fontWeight: 500, 
+              color: '#666',
+              cursor: 'pointer',
+              outline: 'none',
+              minWidth: '200px'
+            }}
+          >
+            {branches?.length > 1 && <option value="">All Firms</option>}
+            {branches?.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+    >
       <div className={styles.container}>
         <div className={styles.tabBar}>
           {TABS.map(t => (
@@ -311,11 +349,10 @@ const StockStatusPage = () => {
             </button>
           </div>
 
-          {!loading && currentList.length === 0 ? (
-            <EmptyState 
-              buttonText="Add Product"
-              onAddClick={() => window.location.href = "/inventory/products?add=true"}
-            />
+          {loading ? (
+            <EmptyState loading={true} />
+          ) : currentList.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
               <div className={styles.tableContainer}>

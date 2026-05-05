@@ -4,20 +4,23 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: 40px 20px;
     text-align: center;
     background: #fff;
     border-radius: 12px;
-    margin: 20px 0;
+    margin: 10px 0;
+    flex: 1;
 }
 
 .emptyImage {
-    width: 100%;
-    max-width: 400px;
+    width: auto;
+    max-width: 250px;
+    max-height: 35vh;
     height: auto;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    object-fit: contain;
     opacity: 0.9;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.05));
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
     transition: transform 0.3s ease;
 }
 
@@ -30,7 +33,7 @@
     align-items: center;
     gap: 8px;
     padding: 12px 28px;
-    background: #5d5fef;
+    background: #E93E64;
     color: white;
     border: none;
     border-radius: 8px;
@@ -38,13 +41,13 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(93, 95, 239, 0.25);
+    box-shadow: 0 4px 12px rgba(233, 62, 100, 0.25);
 }
 
 .addButton:hover {
-    background: #4a4cd9;
+    background: #d82d53;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(93, 95, 239, 0.35);
+    box-shadow: 0 6px 16px rgba(233, 62, 100, 0.35);
 }
 
 .addButton:active {
