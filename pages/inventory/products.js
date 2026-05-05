@@ -8,6 +8,8 @@ import ConfirmationModal from "../../components/inventory/confirmation-modal";
 import { IconSearch } from "../../components/dashboard/DashboardLayout"; 
 import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
+import useDashboardData from "../../components/dashboard/useDashboardData";
+import { useRouter } from "next/router";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -45,7 +47,8 @@ const IconEdit = () => (
 );
 
 const ProductsPage = () => {
-  const { jwtToken, userInfo } = useStore();
+  const router = useRouter();
+  const { jwtToken, userInfo, branches } = useDashboardData();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [stats, setStats] = useState({ total: 0, expired: 10, damaged: 10, saleReturn: 10 });
@@ -71,8 +74,15 @@ const ProductsPage = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Dynamic branchId from sub-vendor info
-  const branchId = userInfo?.branchId;
+  // Dynamic branchId from query or user info
+  const branchId = router.query.branchId || userInfo?.branchId || (branches && branches[0]?.id);
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
 
   useEffect(() => {
     if (branchId && jwtToken) {
@@ -230,10 +240,30 @@ const ProductsPage = () => {
   return (
     <DashboardLayout
       customTopbarLeft={(
-        <select className={styles.branchSelect}>
-          <option>Select Branch</option>
-          <option selected>Main Branch</option>
-        </select>
+        <div style={{ marginLeft: '20px' }}>
+          <select 
+            className={styles.branchSelect}
+            value={branchId || ""}
+            onChange={handleBranchChange}
+            style={{ 
+              border: '1px solid #eee', 
+              background: '#f8f9fa', 
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '14px', 
+              fontWeight: 500, 
+              color: '#666',
+              cursor: 'pointer',
+              outline: 'none',
+              minWidth: '200px'
+            }}
+          >
+            {branches?.length > 1 && <option value="">All Firms</option>}
+            {branches?.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       )}
       customTopbarRight={(
         <div className={styles.addBtnWrapper}>
@@ -317,17 +347,13 @@ const ProductsPage = () => {
         </div>
 
         {loading ? (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <tbody>
-                <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>Loading products...</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <EmptyState loading={true} />
         ) : products.length === 0 ? (
           <EmptyState 
-            buttonText="Add Product"
-            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
+            buttons={[
+              { text: "Add Product", onClick: () => { setFormMode("Add"); setIsAddingProduct(true); } },
+              { text: "Add Bulk Product", onClick: () => { /* Handle bulk add */ } }
+            ]}
           />
         ) : (
           <div className={styles.tableWrapper}>

@@ -6,6 +6,8 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
 import StockUpdateManager from "../../components/inventory/stock-update-manager";
+import useDashboardData from "../../components/dashboard/useDashboardData";
+import { useRouter } from "next/router";
 
 const IconPlus = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -14,7 +16,8 @@ const IconPlus = () => (
 );
 
 const StockUpdatesPage = () => {
-  const { jwtToken, userInfo } = useStore();
+  const router = useRouter();
+  const { jwtToken, userInfo, branches } = useDashboardData();
   const [stockUpdates, setStockUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,7 +27,15 @@ const StockUpdatesPage = () => {
   const [managerMode, setManagerMode] = useState("Add");
   const [selectedStockId, setSelectedStockId] = useState(null);
 
-  const branchId = userInfo?.branchId || 91;
+  // Dynamic branchId from query or user info
+  const branchId = router.query.branchId || userInfo?.branchId || (branches && branches[0]?.id);
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
 
   useEffect(() => {
     if (jwtToken && branchId) {
@@ -62,13 +73,30 @@ const StockUpdatesPage = () => {
   return (
     <DashboardLayout
       customTopbarLeft={(
-        <select className={styles.branchSelect} style={{
-          padding: '8px 16px', border: '1px solid #eee', borderRadius: '8px', 
-          background: '#f1f1f1', minWidth: '240px', fontSize: '14px', outline: 'none'
-        }}>
-          <option>Select Branch</option>
-          <option selected>Main Branch</option>
-        </select>
+        <div style={{ marginLeft: '20px' }}>
+          <select 
+            className={styles.branchSelect}
+            value={branchId || ""}
+            onChange={handleBranchChange}
+            style={{ 
+              border: '1px solid #eee', 
+              background: '#f8f9fa', 
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '14px', 
+              fontWeight: 500, 
+              color: '#666',
+              cursor: 'pointer',
+              outline: 'none',
+              minWidth: '200px'
+            }}
+          >
+            {branches?.length > 1 && <option value="">All Firms</option>}
+            {branches?.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       )}
       customTopbarRight={(
         <button className={styles.updateStockBtn} onClick={() => { 
@@ -109,13 +137,7 @@ const StockUpdatesPage = () => {
         </div>
 
         {loading ? (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <tbody>
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}>Loading data...</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <EmptyState loading={true} />
         ) : stockUpdates.length === 0 ? (
           <EmptyState 
             buttonText="Update Stock"
