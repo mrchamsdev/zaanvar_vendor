@@ -77,14 +77,25 @@ export const productService = {
       
       const response = await webApi.get(`vendor/products`, params);
       
-      // Standardize response based on provided JSON sample
-      if (response?.data?.data) {
-        return {
-          products: response.data.data,
-          total: response.data.total || response.data.data.length // fallback
-        };
+      const body = response?.data || response;
+      let productsList = [];
+      let total = 0;
+
+      if (Array.isArray(body)) {
+        productsList = body;
+        total = body.length;
+      } else if (body?.data && Array.isArray(body.data)) {
+        productsList = body.data;
+        total = body.total || body.data.length;
+      } else if (body?.products && Array.isArray(body.products)) {
+        productsList = body.products;
+        total = body.total || body.products.length;
       }
-      return { products: [], total: 0 };
+
+      return {
+        products: productsList,
+        total: total || productsList.length
+      };
     } catch (error) {
       console.error("Error fetching products:", error);
       return { products: [], total: 0 };

@@ -123,11 +123,20 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         let unit = "";
         const sizeStr = String(v.variantType?.size || "");
         
+        let dimData = {};
+        if (sizeStr.startsWith("{")) {
+            try {
+                dimData = JSON.parse(sizeStr);
+            } catch (e) {
+                console.warn("Failed to parse size JSON", e);
+            }
+        }
+
         // Clean up "undefined" strings if they leaked into the DB
         const cleanSizeStr = sizeStr.replace(/undefined/g, '');
         const match = cleanSizeStr.match(/^(\d+(?:\.\d+)?)(.*)$/);
         
-        if (match) {
+        if (match && !sizeStr.startsWith("{")) {
           measure = match[1];
           unit = match[2];
         }
@@ -136,12 +145,22 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           ...v,
           _key: v.variantId || `key_${Math.random().toString(36).substr(2, 9)}`,
           variantId: v.variantId,
-          packType: v.variantType?.packType || "",
-          packCount: v.variantType?.packCount || "",
+          packType: v.variantType?.packType || v.packType || "",
+          packCount: v.variantType?.packCount || v.numberOfPieces || "",
           flavor: v.variantType?.flavor || "",
-          size: cleanSizeStr || "",
+          size: sizeStr.startsWith("{") ? "" : (cleanSizeStr || ""),
           unitMeasure: measure || v.variantMeasure || "",
           unitType: unit || v.sizeType?.[0] || "",
+          // Dimensional fields from JSON
+          height: dimData.height || "",
+          heightUnit: dimData.heightUnit || "mm",
+          width: dimData.width || "",
+          widthUnit: dimData.widthUnit || "mm",
+          length: dimData.length || "",
+          lengthUnit: dimData.lengthUnit || "mm",
+          radius: dimData.radius || "",
+          radiusUnit: dimData.radiusUnit || "mm",
+          
           drugType: v.drugType || "",
           strength: v.strength || "",
           variantDescription: v.description || v.variantDescription || "",
@@ -376,13 +395,29 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           barcode: v.eanUpc || "",
           minStockAlert: Number(v.minStock) || 0,
           variantType: {
-              type: v.packType || "Strip"
+            size: (() => {
+              if (productType === "Medical") {
+                return `${v.strength || ""}${v.unitType || ""}`;
+              }
+              if (v.packType === "DIMENSIONS (Dim)") {
+                return JSON.stringify({
+                  height: v.height || "",
+                  width: v.width || "",
+                  length: v.length || "",
+                  radius: v.radius || "",
+                  heightUnit: v.heightUnit || "mm",
+                  widthUnit: v.widthUnit || "mm",
+                  lengthUnit: v.lengthUnit || "mm",
+                  radiusUnit: v.radiusUnit || "mm"
+                });
+              }
+              return (v.size || `${v.unitMeasure || ""}${v.unitType || ""}`);
+            })()
           },
           SKU: v.skuNumber || "",
           sizeType: {
               type: "Count"
           },
-          variantMeasure: Number(v.unitMeasure) || 0,
           numberOfPieces: Number(v.packCount) || 1,
           drugType: v.drugType || "Tablet",
           strength: v.strength || "",
