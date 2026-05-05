@@ -149,6 +149,7 @@ const SuppliersPage = () => {
             setShowDeleteConfirm(true);
           }}
           onBulkDelete={() => setShowDeleteConfirm(true)}
+          onAddClick={() => openManager("Add", null)}
         />
 
         {managerConfig && (

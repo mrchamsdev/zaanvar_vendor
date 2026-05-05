@@ -4,6 +4,7 @@ import styles from "../../styles/inventory/stockUpdates.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
+import EmptyState from "../../components/utilities/EmptyState";
 import StockUpdateManager from "../../components/inventory/stock-update-manager";
 
 const IconPlus = () => (
@@ -107,115 +108,130 @@ const StockUpdatesPage = () => {
           </div>
         </div>
 
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th rowSpan="2">UP-DATED DATE</th>
-                <th rowSpan="2">PRODUCT NAME</th>
-                <th colSpan="2" style={{ textAlign: 'center' }}>VARIANT</th>
-                <th rowSpan="2">TOTAL VALUE ( ₹ )</th>
-              </tr>
-              <tr>
-                <th className={styles.subTh}>UNIT</th>
-                <th className={styles.subTh}>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {loading ? (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <tbody>
                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}>Loading data...</td></tr>
-              ) : currentData.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}>No stock updates found</td></tr>
-              ) : (
-                currentData.map((update) => {
-                  const isAdd = (update.add || 0) > 0;
-                  const value = update.totalValue || (update.add ? update.add * 100 : -(update.remove * 100));
-                  
-                  return (
-                    <tr 
-                      key={update.stockUpdateId} 
-                      onClick={() => {
-                        setSelectedStockId(update.stockUpdateId);
-                        setManagerMode("View");
-                        setShowUpdateForm(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td>{formatDate(update.createdDate)}</td>
-                      <td style={{ fontWeight: 600, textTransform: 'uppercase' }}>
-                        {update.product?.productName || "PRODUCT #" + update.productId}
-                      </td>
-                      <td>
-                        {(() => {
-                          const v = update.variant;
-                          if (!v) return "-";
-                          const vt = v.variantType || {};
-                          const strength = v.strength || vt.mg || "";
-                          const size = (vt.size && vt.size !== "1") ? vt.size : (v.size && v.size !== "1" ? v.size : "");
-                          const flavor = vt.flavor || "";
-                          const detail = `${strength || size} ${flavor}`.trim();
-                          
-                          const count = v.numberOfPieces || vt.packCount || "";
-                          const type = vt.packType || vt.type || "";
-                          const pack = `${count} ${type}`.trim();
-                          
-                          if (pack && detail) return `${pack} (${detail})`;
-                          return pack || detail || v.variantMeasure || "-";
-                        })()}
-                      </td>
-                      <td>{update.updatedQty}</td>
-                      <td className={isAdd ? styles.totalValueGreen : styles.totalValueRed}>
-                        {isAdd ? "+ ₹ " : "- ₹ "}{Math.abs(parseFloat(value)).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        ) : stockUpdates.length === 0 ? (
+          <EmptyState 
+            buttonText="Update Stock"
+            onAddClick={() => { setManagerMode("Add"); setSelectedStockId(null); setShowUpdateForm(true); }}
+          />
+        ) : (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th rowSpan="2">UP-DATED DATE</th>
+                  <th rowSpan="2">PRODUCT NAME</th>
+                  <th colSpan="2" style={{ textAlign: 'center' }}>VARIANT</th>
+                  <th rowSpan="2">TOTAL VALUE ( ₹ )</th>
+                </tr>
+                <tr>
+                  <th className={styles.subTh}>UNIT</th>
+                  <th className={styles.subTh}>Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentData.length === 0 ? (
+                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: 40 }}>No stock updates matching search</td></tr>
+                ) : (
+                  currentData.map((update) => {
+                    const isAdd = (update.add || 0) > 0;
+                    const value = update.totalValue || (update.add ? update.add * 100 : -(update.remove * 100));
+                    
+                    return (
+                      <tr 
+                        key={update.stockUpdateId} 
+                        onClick={() => {
+                          setSelectedStockId(update.stockUpdateId);
+                          setManagerMode("View");
+                          setShowUpdateForm(true);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td>{formatDate(update.createdDate)}</td>
+                        <td style={{ fontWeight: 600, textTransform: 'uppercase' }}>
+                          {update.product?.productName || "PRODUCT #" + update.productId}
+                        </td>
+                        <td>
+                          {(() => {
+                            const v = update.variant;
+                            if (!v) return "-";
+                            const vt = v.variantType || {};
+                            const strength = v.strength || vt.mg || "";
+                            const size = (vt.size && vt.size !== "1") ? vt.size : (v.size && v.size !== "1" ? v.size : "");
+                            const flavor = vt.flavor || "";
+                            const detail = `${strength || size} ${flavor}`.trim();
+                            
+                            const count = v.numberOfPieces || vt.packCount || "";
+                            const type = vt.packType || vt.type || "";
+                            const pack = `${count} ${type}`.trim();
+                            
+                            if (pack && detail) return `${pack} (${detail})`;
+                            return pack || detail || v.variantMeasure || "-";
+                          })()}
+                        </td>
+                        <td>{update.updatedQty}</td>
+                        <td className={isAdd ? styles.totalValueGreen : styles.totalValueRed}>
+                          {isAdd ? "+ ₹ " : "- ₹ "}{Math.abs(parseFloat(value)).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        <div className={styles.pagination}>
-          <div className={styles.paginationLeft}>
-            Rows per Page: 
-            <select 
-              className={styles.rowsSelect}
-              value={rowsPerPage}
-              onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-            <span>{((currentPage - 1) * rowsPerPage) + 1}-{Math.min(currentPage * rowsPerPage, filteredUpdates.length)} of {filteredUpdates.length} Items</span>
-          </div>
-          <div className={styles.paginationRight}>
-            {currentPage > 1 && (
-              <button 
-                className={styles.pageBtn} 
-                onClick={() => setCurrentPage(prev => prev - 1)}
-              >
-                Previous
-              </button>
-            )}
-            {totalPages > 0 && (
-              <button 
-                className={`${styles.pageBtn} ${styles.pageBtnActive}`}
-                onClick={() => {}}
-              >
-                {currentPage}
-              </button>
-            )}
-            {currentPage < totalPages && (
-              <button 
-                className={styles.pageBtn}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                Next
-              </button>
-            )}
-          </div>
-        </div>
+        {stockUpdates.length > 0 && (
+            <div className={styles.pagination}>
+              <div className={styles.paginationLeft}>
+                Rows per Page: 
+                <select 
+                  className={styles.rowsSelect}
+                  value={rowsPerPage}
+                  onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span>{((currentPage - 1) * rowsPerPage) + 1}-{Math.min(currentPage * rowsPerPage, filteredUpdates.length)} of {filteredUpdates.length} Items</span>
+              </div>
+              <div className={styles.paginationRight}>
+                {currentPage > 1 && (
+                  <button 
+                    className={styles.pageBtn} 
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >
+                    Previous
+                  </button>
+                )}
+                {totalPages > 0 && (
+                  <button 
+                    className={`${styles.pageBtn} ${styles.pageBtnActive}`}
+                    onClick={() => {}}
+                  >
+                    {currentPage}
+                  </button>
+                )}
+                {currentPage < totalPages && (
+                  <button 
+                    className={styles.pageBtn}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+        )}
       </div>
     </DashboardLayout>
   );

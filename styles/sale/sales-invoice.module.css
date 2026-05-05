@@ -253,7 +253,8 @@
 .tableContainer {
     border: 1px solid #eee;
     border-radius: 8px;
-    overflow: visible;
+    overflow-y: auto;
+    max-height: 550px;
     padding-bottom: 150px;
 }
 

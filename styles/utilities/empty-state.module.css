@@ -1,0 +1,56 @@
+
+.emptyStateContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.emptyImage {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    margin-bottom: 24px;
+    opacity: 0.9;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.05));
+    transition: transform 0.3s ease;
+}
+
+.emptyImage:hover {
+    transform: translateY(-5px);
+}
+
+.addButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: #5d5fef;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(93, 95, 239, 0.25);
+}
+
+.addButton:hover {
+    background: #4a4cd9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(93, 95, 239, 0.35);
+}
+
+.addButton:active {
+    transform: translateY(0);
+}
+
+.addButton svg {
+    font-size: 18px;
+}
