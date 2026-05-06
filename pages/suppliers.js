@@ -8,6 +8,9 @@ import SupplierList from "../components/suppliers/SupplierList";
 import SupplierFormManager from "../components/suppliers/SupplierFormManager";
 import ConfirmationModal from "../components/inventory/confirmation-modal";
 
+import useDashboardData from "../components/dashboard/useDashboardData";
+import { useRouter } from "next/router";
+
 const IconPlus = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -15,7 +18,9 @@ const IconPlus = () => (
 );
 
 const SuppliersPage = () => {
-  const { jwtToken, userInfo } = useStore();
+  const router = useRouter();
+  const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
+  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,13 +28,30 @@ const SuppliersPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const branchId = userInfo?.branchId || 91;
+  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
 
   useEffect(() => {
+    if (router.isReady && router.query.action === 'add') {
+      openManager("Add", {});
+      // Clear query param
+      const { action, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.isReady, router.query.action]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
     if (branchId && jwtToken) {
       fetchSuppliers();
     }
-  }, [branchId, jwtToken]);
+  }, [router.isReady, branchId, jwtToken]);
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
 
   const fetchSuppliers = async () => {
     setLoading(true);
@@ -75,8 +97,18 @@ const SuppliersPage = () => {
   return (
     <DashboardLayout
       customTopbarLeft={(
-        <select className={styles.branchSelect}>
-          <option value={branchId}>Main Branch</option>
+        <select 
+          className={styles.branchSelect}
+          value={branchId}
+          onChange={handleBranchChange}
+        >
+          {branches.length > 0 ? (
+            branches.map(br => (
+              <option key={br.id} value={br.id}>{br.branchName || br.name || "Unnamed Branch"}</option>
+            ))
+          ) : (
+            <option value={branchId}>Main Branch</option>
+          )}
         </select>
       )}
       customTopbarRight={(

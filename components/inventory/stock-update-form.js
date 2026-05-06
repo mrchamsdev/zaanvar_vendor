@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/inventory/stock-update-form.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
+import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import ProductFormManager from "./product-form-manager";
 
@@ -98,6 +99,7 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
 
 const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   const { jwtToken, userInfo } = useStore();
+  const { branches } = useDashboardData({ skipReviews: true });
   const [branchId, setBranchId] = useState(userInfo?.branchId || 91);
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
   const [products, setProducts] = useState([]);
@@ -117,7 +119,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
 
   const loadProducts = async () => {
     const data = await productService.getAllProductsBrief(jwtToken, branchId);
-    setProducts(data);
+    setProducts(Array.isArray(data) ? data : []);
   };
 
   const addRow = () => {
@@ -125,6 +127,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   };
 
   const handleVariantChange = (index, variantId) => {
+    if (!Array.isArray(products)) return;
     const product = products.find(p => p.productId === rows[index].productId);
     if (!product) return;
 
@@ -133,7 +136,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
 
     const newRows = [...rows];
     newRows[index].variantId = variant.variantId;
-    newRows[index].currentQty = variant.stockQty || 0;
+    newRows[index].currentQty = variant.currentQty || variant.stockQty || 0;
     newRows[index].costPrice = variant.costPrice || 0;
     newRows[index].expiryDate = variant.expiryDate?.split('T')[0] || "";
     
@@ -148,6 +151,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   };
 
   const handleProductChange = (index, prodId) => {
+    if (!Array.isArray(products)) return;
     const product = products.find(p => p.productId === parseInt(prodId));
     if (!product) return;
 
@@ -160,7 +164,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
     if (product.variants?.length > 0) {
         const v = product.variants[0];
         newRows[index].variantId = v.variantId;
-        newRows[index].currentQty = v.stockQty || 0;
+        newRows[index].currentQty = v.currentQty || v.stockQty || 0;
         newRows[index].costPrice = v.costPrice || 0;
         newRows[index].expiryDate = v.expiryDate?.split('T')[0] || "";
     }
@@ -293,8 +297,16 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
             <div className={styles.inputField}>
               <label>Select Branch <span>*</span></label>
               <select className={styles.topInput} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-                <option value="91">Main Branch</option>
-                <option value="92">Secondary Branch</option>
+                {branches && branches.length > 0 ? (
+                  branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="91">Main Branch</option>
+                    <option value="92">Secondary Branch</option>
+                  </>
+                )}
               </select>
             </div>
             <div className={styles.inputField}>
@@ -330,7 +342,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
               </thead>
               <tbody>
                 {rows.map((row, index) => {
-                  const currentProduct = products.find(p => p.productId === row.productId);
+                  const currentProduct = Array.isArray(products) ? products.find(p => p.productId === row.productId) : null;
                   return (
                     <tr key={row.id}>
                         <td>

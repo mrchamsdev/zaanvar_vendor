@@ -57,7 +57,7 @@ export default function DashboardHomePage() {
   const {
     vendor, company, branches, timings,
     reviews, ratings, reviewsLoading,
-  } = useDashboardData();
+  } = useDashboardData({ skipReviews: false });
 
   const topbarButtons = useMemo(() => [
     // { label: "+ Add Rooms",    color: "purple", action: "addRooms" },

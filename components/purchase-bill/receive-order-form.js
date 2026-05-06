@@ -3,7 +3,7 @@ import styles from "../../styles/purchase-bill/receive-order-form.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
-import { FiChevronDown, FiCheckCircle, FiCalendar } from "react-icons/fi";
+import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import PurchaseOrderSummary from "./purchase-order-summary";
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
@@ -114,12 +114,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         if (!items.length) return { totalCost: 0, discountableAmount: 0, shortfallAmount: 0, damagedAmount: 0 };
         let totalCost = 0;
         let discountableAmount = 0;
+        let itemDiscountTotal = 0;
+        let itemTaxTotal = 0;
         let shortfallAmount = 0;
         let damagedAmount = 0;
 
         items.forEach(item => {
-            // Check if user has entered critical fields (Cost Price and Received Qty)
-            // We use costPrice as a string check to see if user has interacted with it
             const isEntered = item.costPrice !== "" && item.receivedQty !== "";
             if (!isEntered) return;
 
@@ -127,8 +127,16 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             const ordered = Number(item.qty) || 0;
             const received = Number(item.receivedQty) || 0;
             const damaged = Number(item.damagedQty) || 0;
+            const itemDiscount = Number(item.discount) || 0;
+            const itemTax = Number(item.tax) || 0;
             
             totalCost += (ordered * cost);
+            
+            let rowBase = payBasedOnOrdered ? (ordered * cost) : (received * cost);
+            const itemDiscountPercent = Number(item.discount) || 0;
+            const itemDiscountAmount = (rowBase * itemDiscountPercent / 100);
+            
+            itemDiscountTotal += itemDiscountAmount;
             
             if (ordered > received) {
                 shortfallAmount += (ordered - received) * cost;
@@ -136,18 +144,19 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             
             damagedAmount += (damaged * cost);
             
-            if (payBasedOnOrdered) {
-                discountableAmount += (ordered * cost);
-            } else {
-                discountableAmount += (received * cost);
-            }
+            let rowAfterDiscount = rowBase - itemDiscountAmount;
+            let rowTax = (rowAfterDiscount * itemTax / 100);
+            let rowFinal = rowAfterDiscount + rowTax;
+            
+            itemTaxTotal += rowTax;
+            discountableAmount += rowFinal;
         });
         
         if (damagedReturnedGoods) {
             discountableAmount -= damagedAmount;
         }
 
-        return { totalCost, discountableAmount, shortfallAmount, damagedAmount };
+        return { totalCost, discountableAmount, shortfallAmount, damagedAmount, itemDiscountTotal, itemTaxTotal };
     }, [items, payBasedOnOrdered, damagedReturnedGoods]);
 
     const breakdown = useMemo(() => {
@@ -172,8 +181,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             
             console.log("Entered Items count:", enteredItems.length);
             
-            if (enteredItems.length === 0) {
-                toast.error("Please enter details for at least one item");
+            const invalidItems = enteredItems.filter(item => !item.expDate);
+            const invalidPrices = enteredItems.filter(item => Number(item.costPrice) > Number(item.mrp));
+
+            if (invalidItems.length > 0) {
+                toast.error("Expiry date is required for all received items");
+                setLoading(false);
+                return;
+            }
+
+            if (invalidPrices.length > 0) {
+                toast.error("Cost Price cannot be greater than MRP");
                 setLoading(false);
                 return;
             }
@@ -189,6 +207,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 createdBy: userId || 1,
                 additionalDetails: items[0]?.notes || "Purchase order received",
                 taxGroupId: 1,
+                overallTax: overallTax,
+                overallDiscount: overallDiscount,
+                previousCredit: Number(previousCredit),
+                totalAmount: Number(breakdown.finalAmount),
                 items: enteredItems.map(item => ({
                     productId: item.productId,
                     variantId: item.variantId,
@@ -198,7 +220,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     receivedQuantity: Number(item.receivedQty),
                     damagedQuantity: Number(item.damagedQty),
                     discount: Number(item.discount),
-                    taxGroupId: 1,
+                    taxGroupId: Number(item.tax) || 0, // Sending direct tax value as requested
                     expiryDate: item.expDate,
                     batchNumber: item.batchNumber
                 }))
@@ -241,8 +263,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                 <div className={styles.itemList}>
                     {items.map((item, index) => {
-                        const rowTotal = (Number(item.costPrice) * Number(item.receivedQty)) || 0;
-                        const rowOrdered = (Number(item.costPrice) * Number(item.qty)) || 0;
+                        const baseValue = (Number(item.costPrice) * Number(item.receivedQty)) || 0;
+                        const discPercent = Number(item.discount) || 0;
+                        const discAmount = (baseValue * discPercent / 100);
+                        const afterDiscount = baseValue - discAmount;
+                        const taxPercent = Number(item.tax) || 0;
+                        const rowTotal = afterDiscount + (afterDiscount * (taxPercent / 100));
+                        
+                        const orderedBase = (Number(item.costPrice) * Number(item.qty)) || 0;
+                        const orderedDiscAmount = (orderedBase * discPercent / 100);
+                        const orderedAfterDisc = orderedBase - orderedDiscAmount;
+                        const rowOrdered = orderedAfterDisc + (orderedAfterDisc * (taxPercent / 100));
                         
                         return (
                             <div key={index} className={`${styles.productCard} ${expandedItem === index ? styles.productCardActive : ""}`}>
@@ -254,8 +285,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                         </div>
                                         <div className={styles.headerStatsLine}>
                                             <span>Ordered : {item.qty}</span>
-                                            <span>Received : {item.receivedQty}</span>
-                                            <span>Damaged : {item.damagedQty}</span>
+                                            <span>Received : {item.receivedQty || 0}</span>
+                                            <span>Damaged : {item.damagedQty || 0}</span>
+                                            <span>Shortfall : {Math.max(0, (Number(item.qty) || 0) - (Number(item.receivedQty) || 0))}</span>
                                         </div>
                                     </div>
                                     <div className={styles.headerRight}>
@@ -279,23 +311,34 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Expire Date</label>
+                                                <div className={styles.labelRow}>
+                                                    <label className={styles.fieldLabel}>Expire Date</label>
+                                                    {(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) && (
+                                                        <span className={styles.errorLabel}>* Expiry required</span>
+                                                    )}
+                                                </div>
                                                 <input 
                                                     type="date" 
-                                                    className={styles.input} 
+                                                    className={`${styles.input} ${(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) ? styles.inputError : ""}`} 
                                                     value={item.expDate ?? ""}
                                                     min={new Date().toISOString().split('T')[0]}
+                                                    max="9999-12-31"
                                                     onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
                                                 />
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Cost Price</label>
+                                                <div className={styles.labelRow}>
+                                                    <label className={styles.fieldLabel}>Cost Price</label>
+                                                    {(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) && (
+                                                        <span className={styles.errorLabel}>* cost price can not be greater than mrp</span>
+                                                    )}
+                                                </div>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
                                                     <input 
                                                         type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                        className={`${styles.input} ${styles.inputWithSymbol} ${(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ? styles.inputError : ""}`} 
                                                         value={item.costPrice ?? ""}
                                                         onChange={(e) => handleItemChange(index, "costPrice", e.target.value)}
                                                     />
@@ -326,7 +369,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Damaged Items</label>
+                                                <div className={styles.labelWithInfo}>
+                                                    <label className={styles.fieldLabel}>Damaged Items</label>
+                                                    <div className={styles.infoTooltip}>
+                                                        <FiInfo className={styles.infoIcon} title="damage quanty will count from recived quantity" />
+                                                    </div>
+                                                </div>
                                                 <input 
                                                     type="number" 
                                                     className={styles.input} 
@@ -349,9 +397,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Discount</label>
+                                                <label className={styles.fieldLabel}>Discount (%)</label>
                                                 <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>₹</span>
+                                                    <span className={styles.currencySymbol}>%</span>
                                                     <input 
                                                         type="number" 
                                                         className={`${styles.input} ${styles.inputWithSymbol}`} 
@@ -426,8 +474,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         <div className={styles.infoGroup}>
                             <span className={styles.infoLabel}>Received date</span>
                             <div className={styles.inputWrapper}>
-                                <input type="date" className={styles.input} value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} />
-                                <FiCalendar className={styles.calendarIcon} />
+                                <input 
+                                    type="date" 
+                                    className={styles.input} 
+                                    value={receivedDate} 
+                                    max={new Date().toISOString().split('T')[0]} 
+                                    onChange={(e) => setReceivedDate(e.target.value)} 
+                                />
                             </div>
                         </div>
                     </div>
@@ -524,14 +577,15 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toLocaleString()}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span>₹ {totals.discountableAmount.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Credit Amount (Prev. Purchase)</span><span>₹ 0</span></div>
+                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toLocaleString()}</span></div>
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span>Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Tax</span><span>₹ 0.00</span></div>
+                                {Number(previousCredit) > 0 && (
+                                    <div className={styles.breakdownRow}><span>Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
+                                )}
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>₹ {breakdown.finalAmount.toFixed(2)}</span></div>
                             </div>
                         )}
@@ -544,7 +598,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 { label: "Full Payment", value: "Full" },
                                 { label: "Pay Later", value: "PayLaterWithRemainder" },
                                 { label: "Partial", value: "Partial" },
-                                { label: "Pending", value: "Pending" }
+                                { label: "Not Paid", value: "Pending" }
                             ].map(status => (
                                 <div key={status.value} className={`${styles.statusBadge} ${paymentStatus === status.value ? styles.statusBadgeActive : ""}`} onClick={() => setPaymentStatus(status.value)}>
                                     <div className={styles.radioCircle} />
@@ -577,20 +631,27 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     className={styles.input} 
                                     value={duedate} 
                                     min={new Date().toISOString().split('T')[0]}
+                                    max="9999-12-31"
                                     onChange={(e) => setDuedate(e.target.value)} 
                                 />
-                                <FiCalendar className={styles.calendarIcon} />
                             </div>
                         </div>
                     )}
 
-                    <div className={styles.infoGroup}>
-                        <label className={styles.infoLabel}>Select date</label>
-                        <div className={styles.inputWrapper}>
-                            <input type="date" className={styles.input} value={receivedDate} />
-                            <FiCalendar className={styles.calendarIcon} />
+                    {paymentStatus !== "PayLaterWithRemainder" && (
+                        <div className={styles.infoGroup}>
+                            <label className={styles.infoLabel}>Select date</label>
+                            <div className={styles.inputWrapper}>
+                                <input 
+                                    type="date" 
+                                    className={styles.input} 
+                                    value={receivedDate} 
+                                    max={new Date().toISOString().split('T')[0]} 
+                                    onChange={(e) => setReceivedDate(e.target.value)} 
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className={styles.sidebarActions}>
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>Save</button>

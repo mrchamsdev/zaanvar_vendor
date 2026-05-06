@@ -79,7 +79,11 @@ const PurchaseOrdersPage = () => {
 
     // Filter and Paginate Data
     const filteredData = useMemo(() => {
-        let data = purchaseRequests;
+        let data = [...purchaseRequests];
+        
+        // Sort by createdDate descending (recent first)
+        data.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
             data = data.filter(item => 
@@ -249,15 +253,19 @@ const PurchaseOrdersPage = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            <div className={styles.statusBadgeGroup}>
-                                                <span className={
-                                                    item.paymentStatus === "Full" || item.paymentStatus === "Paid" ? styles.statusPaid : 
-                                                    (item.paymentStatus === "Partial" ? styles.statusPending : styles.statusPending)
-                                                }>
-                                                    {(item.paymentStatus === "Full" || item.paymentStatus === "Paid") ? "Paid" : (item.paymentStatus || "Pending")}
-                                                </span>
-                                                <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
-                                            </div>
+                                            {["order placed", "cancel order", "cancel"].includes(item.orderStatus?.toLowerCase()) ? (
+                                                <div style={{textAlign: 'center', color: '#ccc', fontWeight: '700', fontSize: '14px'}}>---</div>
+                                            ) : (
+                                                <div className={styles.statusBadgeGroup}>
+                                                    <span className={
+                                                        item.paymentStatus === "Full" || item.paymentStatus === "Paid" ? styles.statusPaid : 
+                                                        (item.paymentStatus === "Partial" ? styles.statusPending : styles.statusPending)
+                                                    }>
+                                                        {(item.paymentStatus === "Full" || item.paymentStatus === "Paid") ? "Paid" : (item.paymentStatus || "Pending")}
+                                                    </span>
+                                                    <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

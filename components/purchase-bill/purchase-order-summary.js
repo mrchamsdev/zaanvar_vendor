@@ -20,8 +20,16 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         createdAt,
         orderStatus,
         productsBillId,
-        receivedDetails
+        overallTax: rootOverallTax,
+        overallDiscount: rootOverallDiscount,
+        previousCredit: rootPreviousCredit,
+        receivedDetails = {}
     } = data;
+
+    // Use root properties if available, fallback to receivedDetails
+    const finalOverallTax = rootOverallTax || receivedDetails.overallTax || { value: 0, type: '%' };
+    const finalOverallDiscount = rootOverallDiscount || receivedDetails.overallDiscount || { value: 0, type: '₹' };
+    const finalPreviousCredit = rootPreviousCredit ?? receivedDetails.previousCredit ?? 0;
 
     const [showBreakdown, setShowBreakdown] = React.useState(true);
     const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
@@ -51,37 +59,71 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     };
 
     const breakdown = React.useMemo(() => {
-        const receivedDetails = data?.receivedDetails || {};
         const itemsList = items || [];
+        const toggles = receivedDetails.toggles || {};
+        const payBasedOnOrdered = toggles.payBasedOnOrdered || false;
+        const damagedReturnedGoods = toggles.damagedReturnedGoods || false;
         
-        const totalCost = itemsList.reduce((acc, item) => acc + (Number(item.qty || 0) * Number(item.costPrice || 0)), 0);
-        const discountableAmount = itemsList.reduce((acc, item) => acc + (Number(item.receivedQty || 0) * Number(item.costPrice || 0)), 0);
-        
-        // Handle overall tax and discount
-        let discountVal = Number(receivedDetails.overallDiscount?.value) || 0;
-        if (receivedDetails.overallDiscount?.type === '%') {
-            discountVal = (discountableAmount * (discountVal / 100));
+        let totalCost = 0;
+        let discountableAmount = 0;
+        let itemDiscountTotal = 0;
+        let itemTaxTotal = 0;
+        let damagedAmount = 0;
+
+        itemsList.forEach(item => {
+            const cost = Number(item.costPrice) || 0;
+            const ordered = Number(item.qty || item.orderQuantity) || 0;
+            const received = Number(item.receivedQty) || 0;
+            const itemDiscountPercent = Number(item.discount) || 0;
+            const itemTax = Number(item.taxGroupId) || 0; 
+            const damaged = Number(item.damagedQty) || 0;
+            
+            totalCost += (ordered * cost);
+            
+            let rowBase = payBasedOnOrdered ? (ordered * cost) : (received * cost);
+            const itemDiscountAmount = (rowBase * itemDiscountPercent / 100);
+            
+            itemDiscountTotal += itemDiscountAmount;
+            damagedAmount += (damaged * cost);
+            
+            let rowAfterDiscount = rowBase - itemDiscountAmount;
+            let rowTax = (rowAfterDiscount * itemTax / 100);
+            let rowFinal = rowAfterDiscount + rowTax;
+            
+            itemTaxTotal += rowTax;
+            discountableAmount += rowFinal;
+        });
+
+        if (damagedReturnedGoods) {
+            discountableAmount -= damagedAmount;
         }
         
-        let taxVal = Number(receivedDetails.overallTax?.value) || 0;
-        if (receivedDetails.overallTax?.type === '%') {
-            taxVal = ((discountableAmount - discountVal) * (taxVal / 100));
+        let overallDiscountVal = Number(finalOverallDiscount.value) || 0;
+        if (finalOverallDiscount.type === '%') {
+            overallDiscountVal = (discountableAmount * (overallDiscountVal / 100));
         }
         
-        const previousCredit = Number(receivedDetails.previousCredit) || 0;
-        const subtotal = discountableAmount - discountVal;
-        const finalAmount = subtotal + taxVal - previousCredit;
+        let overallTaxVal = Number(finalOverallTax.value) || 0;
+        if (finalOverallTax.type === '%') {
+            overallTaxVal = ((discountableAmount - overallDiscountVal) * (overallTaxVal / 100));
+        }
+        
+        const previousCredit = Number(finalPreviousCredit) || 0;
+        const subtotal = discountableAmount - overallDiscountVal + overallTaxVal;
+        const finalAmount = subtotal - previousCredit;
         
         return { 
             totalCost, 
             discountableAmount, 
-            discountVal, 
-            taxVal, 
+            itemDiscountTotal,
+            itemTaxTotal,
+            overallDiscountVal, 
+            overallTaxVal, 
             subtotal, 
             finalAmount,
             previousCredit 
         };
-    }, [items, data]);
+    }, [items, data, finalOverallTax, finalOverallDiscount, finalPreviousCredit]);
 
     return (
         <div className={styles.container}>
@@ -89,9 +131,6 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                 <div className={styles.orderMainInfo}>
                     <div className={styles.orderNumber}>Purchase Order <span>#{String(purchaseRequestId || "").padStart(6, '0')}</span></div>
                     <div className={styles.orderDate}>{formatDate(orderDate)}</div>
-                    <div className={`${styles.orderStatusText} ${orderStatus?.toLowerCase() === 'received' ? styles.statusReceived : styles.statusDefault}`}>
-                        {orderStatus}
-                    </div>
                     
                     <div className={styles.addressSection}>
                         <div className={styles.addressGroup}>
@@ -142,11 +181,12 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>PRODUCT CODE</th>
                             <th>VRIANT</th>
                             <th>RECEIVED QTY</th>
+                            <th>SHORTFALL QTY</th>
                             <th>DAMAGED GOODS</th>
                             <th>COST PRICE (₹)</th>
-                            <th>Total Order Value (₹)</th>
                             <th>TAX (%)</th>
-                            <th>DIS (%)</th>
+                            <th>Discount (%)</th>
+                            <th>Total Order Value (₹)</th>
                             <th>Total Received Value (₹)</th>
                         </tr>
                     </thead>
@@ -161,9 +201,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                     <td>
                                         <div className={styles.productCell}>
                                             <span className={styles.productName}>{item.productName}</span>
-                                            <span className={styles.productSubtext}>
-                                                GST ({item.taxGroupId || 0}%) - ₹ {item.tax || 0} - Discount - ₹ {item.discount || 0}
-                                            </span>
+                                           
                                         </div>
                                     </td>
                                     <td>{item.productCode || "--"}</td>
@@ -171,19 +209,44 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                     <td>
                                         <div className={styles.qtyCell}>
                                             <span className={styles.value}>{item.receivedQty}</span>
-                                            <span className={styles.orderedQtySub}>Ordered Qty - {item.qty}</span>
+                                            <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span>
                                         </div>
                                     </td>
+                                    <td>{Math.max(0, (Number(item.qty || 0) - Number(item.receivedQty || 0)))}</td>
                                     <td>{item.damagedQty || 0}</td>
-                                    <td className={styles.costCell}>{Number(item.costPrice).toLocaleString()}</td>
-                                    <td>{orderVal.toLocaleString()}</td>
-                                    <td>{String(item.taxGroupId || 0).padStart(2, '0')}%</td>
-                                    <td>{String(item.discount || 0).padStart(2, '0')}%</td>
-                                    <td className={styles.costCell}>{receivedVal.toLocaleString()}</td>
+                                    <td className={styles.costCell}>{item.costPrice ? Number(item.costPrice).toLocaleString() : "-"}</td>
+                                    <td>{item.taxGroupId || 0}%</td>
+                                    <td>{item.discount || 0}%</td>
+                                    <td className={styles.costCell}>
+                                        ₹ {(() => {
+                                            const base = (Number(item.qty || item.orderQuantity) || 0) * (Number(item.costPrice) || 0);
+                                            const discPercent = Number(item.discount) || 0;
+                                            const discAmount = (base * discPercent / 100);
+                                            const afterDisc = base - discAmount;
+                                            const tax = (afterDisc * (Number(item.taxGroupId) || 0) / 100);
+                                            return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        })()}
+                                    </td>
+                                    <td className={styles.costCell}>
+                                        ₹ {(() => {
+                                            const base = (Number(item.receivedQty) || 0) * (Number(item.costPrice) || 0);
+                                            const discPercent = Number(item.discount) || 0;
+                                            const discAmount = (base * discPercent / 100);
+                                            const afterDisc = base - discAmount;
+                                            const tax = (afterDisc * (Number(item.taxGroupId) || 0) / 100);
+                                            return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        })()}
+                                    </td>
                                 </tr>
                             );
                         })}
                     </tbody>
+                    <tfoot>
+                        <tr className={styles.tableFooter}>
+                            <td colSpan={11} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
+                            <td className={styles.totalValueCell}>₹ {breakdown.finalAmount.toLocaleString()}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
@@ -196,38 +259,49 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     {showBreakdown && (
                         <div className={styles.breakdownContent}>
                             <div className={styles.breakdownRow}>
-                                <span>Total Cost</span>
+                                <span>Total Ordered Cost</span>
                                 <span>₹ {breakdown.totalCost.toLocaleString()}</span>
                             </div>
                             <div className={styles.breakdownRow}>
-                                <span>Discountable Amount</span>
-                                <span>₹ {breakdown.discountableAmount.toLocaleString()}</span>
+                                <span>Item Discount</span>
+                                <span>- ₹ {breakdown.itemDiscountTotal.toLocaleString()}</span>
                             </div>
                             <div className={styles.breakdownRow}>
-                                <span>Total Discount</span>
-                                <span>₹ -{breakdown.discountVal.toLocaleString()}</span>
+                                <span>Item Tax</span>
+                                <span>₹ {breakdown.itemTaxTotal.toLocaleString()}</span>
                             </div>
-                            <div className={styles.breakdownRow}>
-                                <span>Credit Note</span>
-                                <span>₹ -{breakdown.previousCredit.toLocaleString()}</span>
-                            </div>
+                            <div className={styles.breakdownDivider} />
                             <div className={styles.breakdownRow}>
                                 <span>Subtotal</span>
-                                <span>₹ {breakdown.subtotal.toLocaleString()}</span>
+                                <span>₹ {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.breakdownRow}>
-                                <strong>Taxable Amount</strong>
-                                <strong>₹ {breakdown.taxVal.toLocaleString()}</strong>
+                                <span>Overall Tax {finalOverallTax.type === '%' ? `(${finalOverallTax.value}%)` : ""}</span>
+                                <span>₹ {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className={styles.breakdownRow}>
+                                <span>Overall Discount {finalOverallDiscount.type === '%' ? `(${finalOverallDiscount.value}%)` : ""}</span>
+                                <span>- ₹ {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            {breakdown.previousCredit > 0 && (
+                                <div className={styles.breakdownRow}>
+                                    <span>Credit Note</span>
+                                    <span>- ₹ {breakdown.previousCredit.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div className={styles.breakdownRowTotal}>
+                                <span>TOTAL</span>
+                                <span>₹ {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className={styles.totalSection}>
+            {/* <div className={styles.totalSection}>
                 <span className={styles.totalLabel}>TOTAL :</span>
                 <span className={styles.totalValue}>₹ {breakdown.finalAmount.toLocaleString()}</span>
-            </div>
+            </div> */}
 
             <div className={styles.footer}>
                 <button className={styles.printBtn} onClick={() => window.print()}>Print</button>

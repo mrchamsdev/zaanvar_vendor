@@ -19,6 +19,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [payments, setPayments] = useState([{
         amountPaid: "",
         paymentType: "Cash",
+        referenceNumber: "",
         id: Date.now()
     }]);
 
@@ -37,6 +38,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
         setPayments([...payments, {
             amountPaid: "",
             paymentType: "Cash",
+            referenceNumber: "",
             id: Date.now()
         }]);
     };
@@ -91,6 +93,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     debitOrCredit: "Debit",
                     paymentFrom: "payment out",
                     paymentType: p.paymentType,
+                    referenceNumber: p.referenceNumber || "",
                     userTransactionDate: new Date(amountPaidDate).toISOString(),
                     supplierId: data.supplierId,
                     branchId: data.branchId,
@@ -100,6 +103,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     supplierWalletTransactionId: null,
                     transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
                     transactionImg: "",
+                    totalAmount: Number(totalAmount),
                     balanceAmount: Math.max(0, initialBalance - validPayments.slice(0, validPayments.indexOf(p) + 1).reduce((acc, curr) => acc + Number(curr.amountPaid), 0))
                 };
 
@@ -129,6 +133,12 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
         }
     };
 
+    const getReferenceLabel = (type) => {
+        if (type === "Cheque") return "Cheque Number";
+        if (["Card", "UPI", "Bank"].includes(type)) return "Reference Number";
+        return null;
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -145,14 +155,13 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Amount paid date</label>
                             <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    value={amountPaidDate} 
-                                    max={today}
-                                    onChange={(e) => setAmountPaidDate(e.target.value)} 
-                                />
-                                <FiCalendar className={styles.icon} />
-                            </div>
+                                    <input 
+                                        type="date" 
+                                        value={amountPaidDate} 
+                                        max={today}
+                                        onChange={(e) => setAmountPaidDate(e.target.value)} 
+                                    />
+                                </div>
                         </div>
                         <div className={styles.field}>
                             <label>Amount Paid</label>
@@ -218,6 +227,23 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Reference Field Row - Below Payment Type */}
+                    {getReferenceLabel(payments[0].paymentType) && (
+                        <div className={styles.row}>
+                            <div className={styles.field}>
+                                <label>{getReferenceLabel(payments[0].paymentType)}</label>
+                                <div className={styles.inputWrapper}>
+                                    <input 
+                                        type="text" 
+                                        placeholder={`Enter ${getReferenceLabel(payments[0].paymentType).toLowerCase()}`}
+                                        value={payments[0].referenceNumber}
+                                        onChange={(e) => handlePaymentChange(payments[0].id, "referenceNumber", e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Additional Payments: Only Type and Amount */}
                     {payments.slice(1).map((p, idx) => (

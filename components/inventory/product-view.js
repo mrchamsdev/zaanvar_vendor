@@ -57,12 +57,11 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <label>Sub-Category</label>
               <strong>{renderCategory(data.subCategory || data.subCategoryId)}</strong>
             </div>
-            <div className={styles.infoGridItem}></div>
           </div>
           <div className={styles.infoGridRow}>
             <div className={styles.infoGridItem}>
-              <label>Pet Type</label>
-              <strong>{renderList(data.productPetType)}</strong>
+              <label>Product Code</label>
+              <strong>{data.ProductCode || data.productCode || "-"}</strong>
             </div>
             <div className={styles.infoGridItem}>
               <label>HSN Code</label>
@@ -70,10 +69,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
             </div>
             <div className={styles.infoGridItem}>
               <label>GST(%)</label>
-              <strong>{data.gst || "-"}%</strong>
+              <strong>{data.taxGroupId || data.gst || "-"}%</strong>
             </div>
-            <div className={styles.infoGridItem}></div>
-            <div className={styles.infoGridItem}></div>
+            <div className={styles.infoGridItem}>
+              <label>Pet Type</label>
+              <strong>{renderList(data.productPetType)}</strong>
+            </div>
           </div>
         </div>
 
@@ -170,75 +171,52 @@ const ProductView = ({ data, onBack, isSplit }) => {
           </thead>
           <tbody>
             {(allVariants || []).map((v) => {
+              const packTypeStr = v.variantType?.packType || v.packType || "-";
+              const packTypeLow = packTypeStr.toLowerCase();
+              const catStr = (renderCategory(data.category) || "").toLowerCase();
+              const subCatStr = (renderCategory(data.subCategory) || "").toLowerCase();
+              const isClothing = catStr.includes('cloth') || subCatStr.includes('cloth');
+              
+              const rawSize = v.variantType?.size || v.size || "";
+              let parsedSize = null;
+              if (typeof rawSize === 'string' && rawSize.trim().startsWith('{')) {
+                  try { parsedSize = JSON.parse(rawSize); } catch (e) {}
+              }
+
+              // Dimension Logic
               const dimensions = v.variantType?.dimensions || "";
-              // Dimensions format typically HxWxL
               const dimParts = dimensions.split('x');
-              const h = dimParts[0] || "-";
-              const w = dimParts[1] || "-";
-              const l = dimParts[2] || "-";
+              
+              const displayHeight = parsedSize?.height || dimParts[0] || "-";
+              const displayLength = parsedSize?.length || dimParts[2] || "-";
+              const displayRadius = parsedSize?.radius || "-";
+              const displayWeight = parsedSize?.weight ? `${parsedSize.weight}${parsedSize.weightUnit || 'g'}` : "-";
+
+              // Size Column
+              let displaySize = "-";
+              if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
+                  displaySize = packTypeStr;
+              } else if (isClothing && !rawSize.startsWith('{')) {
+                  displaySize = rawSize || "-";
+              }
+
+              // Weight / Unit Column
+              let weightUnitVal = displayWeight;
+              if (weightUnitVal === "-" && !isClothing && !parsedSize && rawSize && !rawSize.startsWith('{')) {
+                  weightUnitVal = rawSize;
+              }
 
               return (
                 <tr key={v.variantId}>
                   <td>{v.SKU || v.variantId || "-"}</td>
                   <td>{v.barcode || v.eanUpcNumber || "-"}</td>
-                  <td>{v.packType || "-"}</td>
-                  <td>
-                    {(() => {
-                      const size = v.variantType?.size || v.size || "";
-                      if (typeof size === 'string' && size.startsWith('{')) {
-                        try {
-                          const dim = JSON.parse(size);
-                          const parts = [];
-                          if (dim.height) parts.push(`H:${dim.height}${dim.heightUnit || 'mm'}`);
-                          if (dim.width) parts.push(`W:${dim.width}${dim.widthUnit || 'mm'}`);
-                          if (dim.length) parts.push(`L:${dim.length}${dim.lengthUnit || 'mm'}`);
-                          if (dim.radius) parts.push(`R:${dim.radius}${dim.radiusUnit || 'mm'}`);
-                          return parts.join(" x ") || "-";
-                        } catch (e) { return size; }
-                      }
-                      return size || "-";
-                    })()}
-                  </td>
+                  <td>{packTypeStr}</td>
+                  <td>{displaySize}</td>
                   <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
-                  <td>
-                    {(() => {
-                      const size = v.variantType?.size || v.size || "";
-                      if (typeof size === 'string' && size.startsWith('{')) {
-                        try { return JSON.parse(size).length || "-"; } catch (e) {}
-                      }
-                      return "-";
-                    })()}
-                  </td>
-                  <td>
-                    {(() => {
-                      const size = v.variantType?.size || v.size || "";
-                      if (typeof size === 'string' && size.startsWith('{')) {
-                        try { return JSON.parse(size).height || "-"; } catch (e) {}
-                      }
-                      return "-";
-                    })()}
-                  </td>
-                  <td>
-                    {(() => {
-                      const size = v.variantType?.size || v.size || "";
-                      if (typeof size === 'string' && size.startsWith('{')) {
-                        try {
-                          const dim = JSON.parse(size);
-                          return `${dim.width || ""}${dim.widthUnit || "mm"}`;
-                        } catch (e) {}
-                      }
-                      return v.variantType?.size || "-";
-                    })()}
-                  </td>
-                  <td>
-                    {(() => {
-                      const size = v.variantType?.size || v.size || "";
-                      if (typeof size === 'string' && size.startsWith('{')) {
-                        try { return JSON.parse(size).radius || "-"; } catch (e) {}
-                      }
-                      return v.variantType?.radius || "-";
-                    })()}
-                  </td>
+                  <td>{displayLength}</td>
+                  <td>{displayHeight}</td>
+                  <td>{weightUnitVal}</td>
+                  <td>{displayRadius}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>
