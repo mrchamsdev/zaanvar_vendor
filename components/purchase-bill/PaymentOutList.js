@@ -450,6 +450,56 @@ const PaymentOutList = ({ onAddClick }) => {
         setDateFilterValues(null);
     };
 
+    const filteredTransactions = transactions.filter(t => {
+        const transDate = new Date(t.userTransactionDate);
+        const start = new Date(dateRange.startDate);
+        const end = new Date(dateRange.endDate);
+        start.setHours(0,0,0,0);
+        end.setHours(23,59,59,999);
+
+        let matchesDate = transDate >= start && transDate <= end;
+
+        if (dateFilterMode && dateFilterValues) {
+            const single = new Date(dateFilterValues.single);
+            const from = new Date(dateFilterValues.from);
+            const to = new Date(dateFilterValues.to);
+            single.setHours(0,0,0,0);
+            from.setHours(0,0,0,0);
+            to.setHours(23,59,59,999);
+            const checkDate = new Date(t.userTransactionDate);
+            checkDate.setHours(0,0,0,0);
+
+            if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
+            else if (dateFilterMode === 'Less than') matchesDate = checkDate < single;
+            else if (dateFilterMode === 'Greater than') matchesDate = checkDate > single;
+            else if (dateFilterMode === 'Range') matchesDate = checkDate >= from && checkDate <= to;
+        }
+
+        const matchesSearch = !searchTerm || 
+            (t.transactionInfo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (String(t.suppliersTransactionId)).toLowerCase().includes(searchTerm.toLowerCase());
+
+        let matchesColFilters = true;
+        Object.keys(columnFilters).forEach(key => {
+            const filter = columnFilters[key];
+            if (!filter.value || (Array.isArray(filter.value) && filter.value.length === 0)) return;
+
+            let targetValue = "";
+            if (key === 'refNo') targetValue = String(t.suppliersTransactionId);
+            else if (key === 'partyName') targetValue = String(t.transactionInfo || "");
+            else if (key === 'paymentType') targetValue = String(t.paymentType || "");
+            else if (key === 'total') targetValue = String(t.relatedBill?.amountPaidToSupplier || 0);
+            else if (key === 'paid') targetValue = String(t.amount || 0);
+
+            if (filter.mode === 'Checklist') {
+                if (!filter.value.includes(targetValue)) matchesColFilters = false;
+            } else if (filter.mode === 'Exact Match') {
+                if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            } else {
+                if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+            }
+        });
+
         return matchesDate && matchesSearch && matchesColFilters;
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
