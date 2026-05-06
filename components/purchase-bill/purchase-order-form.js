@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import styles from "../../styles/purchase-bill/purchase-order-form.module.css";
 import { purchaseService } from "../../services/purchaseService";
@@ -29,13 +29,39 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
     const [supplierPhone, setSupplierPhone] = useState(initialData?.supplierPhone || "");
     const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState(initialData?.items || [
-        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0 }
+        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: 0 }
     ]);
+
+    const [formErrors, setFormErrors] = useState({});
 
     // Search and Dropdown states
     const [searchQuery, setSearchQuery] = useState("");
     const [focusedItemIndex, setFocusedItemIndex] = useState(null);
     const [focusedVariantIndex, setFocusedVariantIndex] = useState(null);
+    const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+    const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
+
+    const tableRef = useRef(null);
+    const supplierRef = useRef(null);
+    
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            const isSearchClick = event.target.closest(`.${styles.productSearchWrapper}`);
+            const isVariantClick = event.target.closest(`.${styles.variantCell}`);
+            const isSupplierClick = supplierRef.current && supplierRef.current.contains(event.target);
+            
+            if (!isSearchClick && !isVariantClick) {
+                setFocusedItemIndex(null);
+                setFocusedVariantIndex(null);
+            }
+            
+            if (!isSupplierClick) {
+                setIsSupplierDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (jwtToken && branchId) {
@@ -63,10 +89,16 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         setSupplierId(id);
         const supplier = suppliers.find(s => String(s.supplierId) === String(id));
         setSupplierPhone(supplier ? supplier.phone : "");
+        
+        if (formErrors.supplierId) {
+            const newErrors = { ...formErrors };
+            delete newErrors.supplierId;
+            setFormErrors(newErrors);
+        }
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0 }]);
+        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: 0 }]);
     };
 
     const removeItem = (id) => {
@@ -79,6 +111,17 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         const newItems = [...items];
         newItems[index][field] = value;
         setItems(newItems);
+
+        if (formErrors.items?.[index]?.[field]) {
+            const newErrors = { ...formErrors };
+            if (newErrors.items?.[index]) {
+                delete newErrors.items[index][field];
+                if (Object.keys(newErrors.items[index]).length === 0) {
+                    newErrors.items[index] = null;
+                }
+            }
+            setFormErrors(newErrors);
+        }
     };
 
     const selectProduct = (index, product) => {
@@ -102,6 +145,12 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         };
         setItems(newItems);
         setFocusedItemIndex(null);
+
+        if (formErrors.items?.[index]) {
+            const newErrors = { ...formErrors };
+            newErrors.items[index] = null;
+            setFormErrors(newErrors);
+        }
     };
 
     const selectVariant = (itemIndex, variant) => {
@@ -119,13 +168,40 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         };
         setItems(newItems);
         setFocusedVariantIndex(null);
+
+        if (formErrors.items?.[itemIndex]?.variant) {
+            const newErrors = { ...formErrors };
+            delete newErrors.items[itemIndex].variant;
+            if (Object.keys(newErrors.items[itemIndex]).length === 0) {
+                newErrors.items[itemIndex] = null;
+            }
+            setFormErrors(newErrors);
+        }
     };
 
     const handleSubmit = async (type) => {
-        if (!branchId || !supplierId || !orderDate) {
-            toast.error("Please fill all shipment details");
+        const errors = {};
+        if (!supplierId) errors.supplierId = "Supplier is required";
+        if (!orderDate) errors.orderDate = "Order date is required";
+
+        const itemErrors = items.map((item) => {
+            const errs = {};
+            if (!item.productId) errs.productId = "Product is required";
+            if (!item.variant || item.variant === "--") errs.variant = "Variant is required";
+            if (!item.orderQty || item.orderQty <= 0) errs.orderQty = "Qty > 0";
+            return Object.keys(errs).length > 0 ? errs : null;
+        });
+
+        if (itemErrors.some(e => e !== null)) {
+            errors.items = itemErrors;
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            toast.error("Please fill all required fields");
             return;
         }
+        setFormErrors({});
 
         // Date validation: No future dates
         const todayStr = new Date().toISOString().split("T")[0];
@@ -134,16 +210,11 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
             return;
         }
 
-        const validItems = items.filter(i => i.productId && i.orderQty > 0);
-        if (validItems.length === 0) {
-            toast.error("Add at least one product with order quantity");
-            return;
-        }
-
         setLoading(true);
         try {
             // Updated status values: "draft" | "order placed" | "received" | "cancel order"
             const statusValue = type === "Drafted" ? "draft" : "order placed";
+            const validItems = items.filter(i => i.productId && i.variantId);
 
             const payload = {
                 branchId: parseInt(branchId),
@@ -200,12 +271,55 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                             {branches.map(br => <option key={br.id} value={br.id}>{br.name}</option>)}
                         </select>
                     </div>
-                    <div className={styles.fieldGroup}>
+                    <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>
-                        <select className={styles.select} value={supplierId} onChange={handleSupplierChange}>
-                            <option value="">Name Supplier</option>
-                            {suppliers.map(s => <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>)}
-                        </select>
+                        <div 
+                            className={`${styles.supplierSearchWrapper} ${formErrors.supplierId ? styles.errorField : ""}`} 
+                            onClick={() => setIsSupplierDropdownOpen(!isSupplierDropdownOpen)}
+                        >
+                            <input 
+                                className={styles.input} 
+                                type="text" 
+                                placeholder="Name Supplier" 
+                                value={supplierSearchQuery || (suppliers.find(s => String(s.supplierId) === String(supplierId))?.supplierName || "")}
+                                onChange={(e) => {
+                                    setSupplierSearchQuery(e.target.value);
+                                    setIsSupplierDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsSupplierDropdownOpen(true)}
+                                style={{ border: 'none', background: 'transparent' }}
+                            />
+                            <div className={styles.dropdownIcon}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                            </div>
+                        </div>
+                        {formErrors.supplierId && <div className={styles.errorMessage}>{formErrors.supplierId}</div>}
+                        {isSupplierDropdownOpen && (
+                            <div className={styles.productDropdown} style={{ width: '100%', minWidth: 'unset' }}>
+                                {suppliers
+                                    .filter(s => !supplierSearchQuery || s.supplierName.toLowerCase().includes(supplierSearchQuery.toLowerCase()))
+                                    .map(s => (
+                                        <div 
+                                            key={s.supplierId} 
+                                            className={styles.productOption} 
+                                            onClick={() => {
+                                                handleSupplierChange({ target: { value: s.supplierId } });
+                                                setSupplierSearchQuery(s.supplierName);
+                                                setIsSupplierDropdownOpen(false);
+                                            }}
+                                        >
+                                            <span className={styles.productOptionName}>{s.supplierName}</span>
+                                        </div>
+                                    ))}
+                                <div 
+                                    className={styles.productOption} 
+                                    style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
+                                    onClick={() => router.push('/suppliers?action=add')}
+                                >
+                                    + ADD SUPPLIER
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Supplier Phone Number</label>
@@ -214,18 +328,26 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Date of Order</label>
                         <input 
-                            className={styles.input} 
+                            className={`${styles.input} ${formErrors.orderDate ? styles.errorField : ""}`} 
                             type="date" 
                             value={orderDate} 
                             max={new Date().toISOString().split("T")[0]}
-                            onChange={(e) => setOrderDate(e.target.value)} 
+                            onChange={(e) => {
+                                setOrderDate(e.target.value);
+                                if (formErrors.orderDate) {
+                                    const newErrors = { ...formErrors };
+                                    delete newErrors.orderDate;
+                                    setFormErrors(newErrors);
+                                }
+                            }} 
                         />
+                        {formErrors.orderDate && <div className={styles.errorMessage}>{formErrors.orderDate}</div>}
                     </div>
                 </div>
             </div>
 
             <div className={styles.tableWrapper}>
-                <table className={styles.table}>
+                <table className={styles.table} ref={tableRef}>
                     <thead>
                         <tr>
                             <th style={{textAlign: 'center'}}>S.NO</th>
@@ -234,6 +356,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                             <th style={{textAlign: 'center'}}>VARIANT</th>
                             <th style={{textAlign: 'center'}}>CURRENT STOCK</th>
                             <th style={{textAlign: 'center'}}>Order QTY</th>
+                            <th style={{textAlign: 'center'}}>COST PRICE</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -265,6 +388,13 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                                         <span className={styles.productOptionCode}>{p.ProductCode}</span>
                                                     </div>
                                                 ))}
+                                            <div 
+                                                className={styles.productOption} 
+                                                style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
+                                                onClick={() => router.push('/inventory/products?action=add')}
+                                            >
+                                                + ADD PRODUCT
+                                            </div>
                                         </div>
                                     )}
                                 </td>
@@ -278,8 +408,20 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                         readOnly
                                     />
                                 </td>
-                                <td style={{textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer'}} onClick={() => setFocusedVariantIndex(index)}>
+                                <td 
+                                    className={`${styles.variantCell} ${formErrors.items?.[index]?.variant ? styles.errorField : ""}`} 
+                                    style={{textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer'}} 
+                                    onClick={() => setFocusedVariantIndex(index)}
+                                >
                                     {item.variant || "--"}
+                                    {item.allVariants?.length > 1 && (
+                                        <div style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4}}>
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                                        </div>
+                                    )}
+                                    {formErrors.items?.[index]?.variant && (
+                                        <div className={styles.errorMessage} style={{position: 'absolute', bottom: '2px', left: 0, width: '100%', textAlign: 'center'}}>Required</div>
+                                    )}
                                     {focusedVariantIndex === index && item.allVariants?.length > 1 && (
                                         <div className={styles.productDropdown}>
                                             {item.allVariants.map((v, i) => {
@@ -298,10 +440,22 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                 <td style={{textAlign: 'center', fontWeight: '700'}}>{item.currentStock || 0}</td>
                                 <td>
                                     <input 
-                                        className={styles.qtyInput} 
+                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.orderQty ? styles.errorField : ""}`} 
                                         type="number" 
                                         value={item.orderQty} 
                                         onChange={(e) => updateItem(index, "orderQty", e.target.value)}
+                                    />
+                                    {formErrors.items?.[index]?.orderQty && (
+                                        <div className={styles.errorMessage} style={{textAlign: 'center'}}>Required</div>
+                                    )}
+                                </td>
+                                <td>
+                                    <input 
+                                        className={styles.qtyInput}
+                                        type="number"
+                                        step="0.01"
+                                        value={item.costPrice} 
+                                        onChange={(e) => updateItem(index, "costPrice", e.target.value)}
                                     />
                                 </td>
                                 <td style={{width: '60px', textAlign: 'center'}}>

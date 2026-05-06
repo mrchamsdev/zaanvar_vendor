@@ -35,7 +35,7 @@ function normaliseTiming(timings) {
  * Hook
  * ═══════════════════════════════════════════════════════════ */
 export default function useDashboardData(options = {}) {
-  const { skipReviews = false } = options;
+  const { skipReviews = true } = options;
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated } = useStore();
 

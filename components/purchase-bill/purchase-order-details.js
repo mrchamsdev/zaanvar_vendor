@@ -165,10 +165,10 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                                 <td style={{textAlign: 'center', color: '#666'}}>
                                     {[item.variantType?.packType, item.variantType?.size, item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
                                 </td>
-                                <td style={{textAlign: 'center'}}>₹ {item.costPrice}</td>
+                                <td style={{textAlign: 'center'}}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
                                 <td style={{textAlign: 'center'}}>
                                     <div style={{fontWeight: '700'}}>{item.qty}</div>
-                                    <div style={{fontSize: '11px', color: '#999'}}>Ordered Qty - {item.qty}</div>
+                                    <div style={{fontSize: '11px', color: '#999'}}>Current Qty - {item.currentQty || 0}</div>
                                 </td>
                             </tr>
                         ))}

@@ -46,7 +46,8 @@ const TABS = [
 
 const StockStatusPage = () => {
   const router = useRouter();
-  const { jwtToken, userInfo, branches } = useDashboardData();
+  const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
+  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
   const [activeTab, setActiveTab] = useState("outOfStock");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -61,7 +62,7 @@ const StockStatusPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Dynamic branchId from query or user info
-  const branchId = router.query.branchId || userInfo?.branchId || (branches && branches[0]?.id);
+  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
 
   const handleBranchChange = (e) => {
     router.push({
@@ -71,10 +72,13 @@ const StockStatusPage = () => {
   };
 
   useEffect(() => {
-    if (jwtToken) {
+    if (!isHydrated) return;
+    if (jwtToken && branchId) {
       fetchReports();
+    } else if (isHydrated && !jwtToken) {
+      setLoading(false);
     }
-  }, [jwtToken, branchId]);
+  }, [jwtToken, branchId, isHydrated]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -350,7 +354,18 @@ const StockStatusPage = () => {
           </div>
 
           {loading ? (
-            <EmptyState loading={true} />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                border: '3px solid #f5790c', 
+                borderTopColor: 'transparent', 
+                borderRadius: '50%', 
+                animation: 'spin 0.8s linear infinite' 
+              }} />
+              <p style={{ color: '#666', fontSize: '14px' }}>Loading reports...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
           ) : currentList.length === 0 ? (
             <EmptyState />
           ) : (

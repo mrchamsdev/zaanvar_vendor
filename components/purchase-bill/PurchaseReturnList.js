@@ -404,63 +404,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
         setDateFilterValues(null);
     };
 
-    const filteredReturns = returns.filter(r => {
-        const transDate = new Date(r.createdDate);
-        transDate.setHours(0,0,0,0);
-        
-        let matchesDate = true;
-        
-        if (dateFilterMode) {
-            if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = transDate.getTime() === target.getTime();
-            } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = transDate.getTime() < target.getTime();
-            } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = transDate.getTime() > target.getTime();
-            } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
-                const start = new Date(dateFilterValues.from);
-                const end = new Date(dateFilterValues.to);
-                start.setHours(0,0,0,0);
-                end.setHours(23,59,59,999);
-                matchesDate = transDate >= start && transDate <= end;
-            }
-        } else {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
-            matchesDate = transDate >= start && transDate <= end;
-        }
-
-        const matchesSearch = (r.supplierName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             r.returnProductsId?.toString().includes(searchTerm) ||
-                             r.productsBillId?.toString().includes(searchTerm);
-        
-        let matchesColFilters = true;
-        Object.keys(columnFilters).forEach(col => {
-            const filter = columnFilters[col];
-            if (!filter.value) return;
-
-            let targetVal = "";
-            if (col === 'refNo') targetVal = r.returnProductsId?.toString() || "";
-            if (col === 'supplierName') targetVal = r.supplierName?.toLowerCase() || "";
-            if (col === 'received') targetVal = r.received?.toString() || "";
-            if (col === 'balance') targetVal = r.balance?.toString() || "";
-
-            if (filter.mode === 'Contains') {
-                if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
-            } else if (filter.mode === 'Exact Match') {
-                if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
-            }
-        });
-
         return matchesDate && matchesSearch && matchesColFilters;
-    });
+    }).sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
 
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "RECEIVED", "BALANCE"];

@@ -106,7 +106,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   const [isPetDropdownOpen, setIsPetDropdownOpen] = useState(false);
   const petDropdownRef = useRef(null);
   const [productCode, setProductCode] = useState(initialData?.ProductCode || "");
-  const [gst, setGst] = useState(initialData?.gst || "");
+  const [gst, setGst] = useState(initialData?.taxGroupId || initialData?.gst || "");
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
   const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] = useState(false);
   const [variantToDeleteIndex, setVariantToDeleteIndex] = useState(null);
@@ -295,8 +295,16 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     // alert("Save button clicked");
     // Detailed Validations
     let validationErrors = {};
-    if (!productName) validationErrors.productName = "Product Name is required";
-    if (!category) validationErrors.category = "Category is required";
+    // Basic Info Validations
+    if (!productName.trim()) {
+        validationErrors.productName = "Product Name is required";
+    }
+    if (!category) {
+        validationErrors.category = "Category is required";
+    }
+    if (selectedPetTypes.length === 0) {
+        validationErrors.petType = "Select at least one pet type";
+    }
     
     // Length & Format Validations
     if (!productCode) {
@@ -318,16 +326,21 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             validationErrors[`${index}_packType`] = "Pack Type is required";
         }
         
+        if ((DIRECT_MEASURE_TYPES.includes(v.packType) || (PACKAGING_TYPES.includes(v.packType) && v.packType !== "PACKS (Pac)")) && (!v.unitMeasure || !v.unitType)) {
+            validationErrors[`${index}_unitMeasure`] = "Unit Measure and Unit Type are required";
+        }
+        
         if (v.minStock === "" || v.minStock === undefined) {
             validationErrors[`${index}_minStock`] = "Min Stock Alert is required";
         }
         
-        // Remove mandatory check for variantDescription if it's optional, 
-        // or ensure user knows it's required. Providing a fallback to avoid blocking.
-        
         if (!v.mrp) validationErrors[`${index}_mrp`] = "MRP is required";
         if (!v.sellingPrice) validationErrors[`${index}_sellingPrice`] = "Selling Price is required";
         
+        if (!v.images || v.images.length === 0) {
+            validationErrors[`${index}_images`] = "At least one image is required";
+        }
+
         const sp = parseFloat(v.sellingPrice) || 0;
         const mrp = parseFloat(v.mrp) || 0;
         if (sp > mrp) {
@@ -381,7 +394,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         subCategoryId: { subCategory: subCategory }, 
         productType: productType,
         productPetType: { petType: selectedPetTypes.join(" and ") }, 
-        taxGroupId: 3, 
+        taxGroupId: parseInt(gst) || 0, 
         hsnCode: hsnCode,
         extraAttributes: { 
             prescriptionRequired: true, 
@@ -395,6 +408,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           barcode: v.eanUpc || "",
           minStockAlert: Number(v.minStock) || 0,
           variantType: {
+            packType: v.packType,
             size: (() => {
               if (productType === "Medical") {
                 return `${v.strength || ""}${v.unitType || ""}`;
@@ -662,7 +676,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         <div className={styles.inputField}>
           <label>Pet Type <span>*</span></label>
           <div 
-            className={styles.multiSelectContainer} 
+            className={`${styles.multiSelectContainer} ${formErrors.petType ? styles.errorField : ""}`} 
             ref={petDropdownRef}
             onClick={() => setIsPetDropdownOpen(!isPetDropdownOpen)}
           >
@@ -696,6 +710,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
               </div>
             )}
           </div>
+          {formErrors.petType && <div className={styles.errorMessage}>{formErrors.petType}</div>}
         </div>
         <div className={styles.inputField}>
           <label>Product Code <span>*</span></label>
@@ -801,12 +816,14 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <div className={styles.inputField}>
                   <label>Pack Type <span>*</span> <InfoIcon text="Outer packing type of the product." /></label>
                   <select 
+                    className={`${!variant.packType ? styles.placeholderSelect : ""} ${formErrors[`${index}_packType`] ? styles.errorField : ""}`}
                     value={variant.packType || ""} 
                     onChange={(e) => updateVariant(index, 'packType', e.target.value)}
                   >
                     <option value="">Select Pack Type</option>
                     {PACK_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
+                  {formErrors[`${index}_packType`] && <div className={styles.errorMessage}>{formErrors[`${index}_packType`]}</div>}
                 </div>
 
                 {isPackaged && (
@@ -913,7 +930,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
               {(isDirect || (isPackaged && variant.packType !== "PACKS (Pac)")) && (
                 <div className={styles.inputField}>
                   <label>Unit Measure <span>*</span> <InfoIcon text="Measurement value of one piece/item inside the pack." /></label>
-                  <div className={styles.dimInputGroup}>
+                  <div className={`${styles.dimInputGroup} ${formErrors[`${index}_unitMeasure`] ? styles.errorField : ""}`}>
                     <input 
                       type="text" 
                       placeholder="Enter here" 
@@ -925,6 +942,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                         {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
+                  {formErrors[`${index}_unitMeasure`] && <div className={styles.errorMessage}>{formErrors[`${index}_unitMeasure`]}</div>}
                 </div>
               )}
 
@@ -976,26 +994,37 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <input 
                     type="text" 
                     placeholder="Enter MRP here" 
+                    className={formErrors[`${index}_mrp`] ? styles.errorField : ""}
                     value={variant.mrp || ""}
                     onChange={(e) => handlePriceInput(index, 'mrp', e.target.value)}
                 />
+                {formErrors[`${index}_mrp`] && <div className={styles.errorMessage}>MRP is required</div>}
               </div>
               <div className={styles.inputField}>
                 <label>Selling Price <span>*</span></label>
                 <input 
                     type="text" 
                     placeholder="Enter selling price here" 
+                    className={(formErrors[`${index}_sellingPrice`] || priceErrors[index]) ? styles.errorField : ""}
                     value={variant.sellingPrice || ""}
                     onChange={(e) => {
                       handlePriceInput(index, 'sellingPrice', e.target.value);
-                      if (priceErrors[index]) {
-                        const newErrors = { ...priceErrors };
-                        delete newErrors[index];
-                        setPriceErrors(newErrors);
+                      if (priceErrors[index] || formErrors[`${index}_sellingPrice`]) {
+                        const newPriceErrors = { ...priceErrors };
+                        delete newPriceErrors[index];
+                        setPriceErrors(newPriceErrors);
+                        
+                        const newFormErrors = { ...formErrors };
+                        delete newFormErrors[`${index}_sellingPrice`];
+                        setFormErrors(newFormErrors);
                       }
                     }}
                 />
-                {priceErrors[index] && <div className={styles.errorMessage}>{priceErrors[index]}</div>}
+                {(formErrors[`${index}_sellingPrice`] || priceErrors[index]) && (
+                    <div className={styles.errorMessage}>
+                        {formErrors[`${index}_sellingPrice`] || priceErrors[index]}
+                    </div>
+                )}
               </div>
             </div>
             {/* Per-Variant Additional Information Section */}
@@ -1064,6 +1093,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                       </div>
                     ))}
                   </div>
+                  {formErrors[`${index}_images`] && <div className={styles.errorMessage} style={{marginTop: 8}}>{formErrors[`${index}_images`]}</div>}
                 </div>
               </div>
             </div>

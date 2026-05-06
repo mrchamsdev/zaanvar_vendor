@@ -376,3 +376,33 @@
     color: #333;
     font-size: 13px;
 }
+
+.variantCell {
+    /* Marker class for click detection */
+}
+
+.errorField {
+    border-color: #E9315D !important;
+    background-color: #FFF5F7 !important;
+}
+
+.errorMessage {
+    color: #E9315D;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.supplierSearchWrapper {
+    position: relative;
+    cursor: pointer;
+}
+
+.dropdownIcon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.4;
+}

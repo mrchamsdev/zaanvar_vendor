@@ -274,15 +274,37 @@
     color: #666;
 }
 
-.breakdownRow strong {
-    color: #333;
-    font-size: 15px;
-    font-weight: 700;
-}
-
 .breakdownRow span:last-child {
     font-weight: 600;
     color: #333;
+}
+
+.breakdownDivider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 0;
+}
+
+.breakdownRowTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 2px solid #000;
+}
+
+.breakdownRowTotal span:first-child {
+    font-size: 14px;
+    font-weight: 800;
+    color: #000;
+    letter-spacing: 1px;
+}
+
+.breakdownRowTotal span:last-child {
+    font-size: 18px;
+    font-weight: 800;
+    color: #000;
 }
 
 .footer {

@@ -355,3 +355,8 @@
   font-weight: 500;
   margin-top: 4px;
 }
+
+.errorField {
+  border-color: #fb3b3b !important;
+  background-color: #fff9f9 !important;
+}

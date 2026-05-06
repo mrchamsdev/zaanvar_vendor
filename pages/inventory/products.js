@@ -86,6 +86,16 @@ const ProductsPage = () => {
   };
 
   useEffect(() => {
+    if (router.isReady && router.query.action === 'add') {
+      setIsAddingProduct(true);
+      setFormMode("Add");
+      // Clear query param
+      const { action, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.isReady, router.query.action]);
+
+  useEffect(() => {
     if (!router.isReady) return;
 
     const bid = router.query.branchId || hookBranchId || userInfo?.branchId || 91;

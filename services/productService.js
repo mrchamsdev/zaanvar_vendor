@@ -163,7 +163,7 @@ export const productService = {
     const webApi = new WebApimanager(jwt);
     try {
       const response = await webApi.get(`vendor/stock-updates/branch/${branchId}`);
-      return response?.data?.data || [];
+      return response?.data || [];
     } catch (error) {
       console.error("Error fetching stock updates:", error);
       return [];
@@ -174,7 +174,7 @@ export const productService = {
     const webApi = new WebApimanager(jwt);
     try {
       const response = await webApi.get(`vendor/products`, { branchId});
-      return response?.data?.data || [];
+      return response?.data || [];
     } catch (error) {
       console.error("Error fetching project brief:", error);
       return [];

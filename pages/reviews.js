@@ -44,7 +44,7 @@ export default function ReviewsPage() {
   const {
     company, reviews, ratings,
     reviewsLoading, reviewsError,
-  } = useDashboardData();
+  } = useDashboardData({ skipReviews: false });
 
   const topbarButtons = [
     // { label: "+ Add Rooms",    color: "purple", action: "addRooms" },
