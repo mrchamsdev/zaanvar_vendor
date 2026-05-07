@@ -5,12 +5,13 @@ import { FiX, FiCalendar, FiChevronDown, FiTrash2 } from "react-icons/fi";
 import { saleService } from "../../services/saleService";
 import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
-    const branchId = userInfo?.branchId || 91;
+    const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
     const [loading, setLoading] = useState(false);

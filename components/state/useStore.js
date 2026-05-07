@@ -165,6 +165,7 @@ const useStore = create(
       lng: null,
 
       sellerLogos: [],
+      selectedBranchId: null,
       // Settings UI state
       activeTab: "Notifications",
       showMobSettings: true,
@@ -216,6 +217,7 @@ const useStore = create(
         set({ selectedLocation: locationLabel }),
       // ✅ Add setter for findMatchesStoredId
       setFindMatchesStoredId: (id) => set({ findMatchesStoredId: id }),
+      setSelectedBranchId: (id) => set({ selectedBranchId: id }),
       setSellerLogos: (logos) => set({ sellerLogos: logos }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setShowMobSettings: (show) => set({ showMobSettings: show }),
@@ -224,6 +226,7 @@ const useStore = create(
       setBreedFilter: (filter) => set({ breedFilter: filter }),
       getBreedFilter: () => get().breedFilter,
       getSelectedPet: () => get().selectedPet,
+      getSelectedBranchId: () => get().selectedBranchId,
 
       // PetGenie setters/getters - now supports page-specific filters
       setGenieFilters: (filters) =>
@@ -303,6 +306,7 @@ const useStore = create(
           isNotificationOpen: false,
           isSettingsDetailOpen: false,
           genieFilters: { petname: "", gender: "", Theme: "", letters: [] },
+          selectedBranchId: null,
         }),
 
     }),
@@ -335,6 +339,7 @@ const useStore = create(
         sellerLogos: state.sellerLogos,
         // settings UI state is not persisted (session-only)
         genieFilters: state.genieFilters,
+        selectedBranchId: state.selectedBranchId,
       }),
     }
   )

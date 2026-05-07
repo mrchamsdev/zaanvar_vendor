@@ -24,9 +24,8 @@ const PurchaseOrdersPage = () => {
     const router = useRouter();
 
     const { jwtToken } = useStore();
-    const { branches, branchId: defaultBranchId } = useDashboardData();
+    const { branches, branchId } = useDashboardData();
 
-    const [selectedBranch, setSelectedBranch] = useState("");
     const [loading, setLoading] = useState(false);
     const [purchaseRequests, setPurchaseRequests] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -34,30 +33,19 @@ const PurchaseOrdersPage = () => {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [managerConfig, setManagerConfig] = useState(null); // { mode: 'Add'|'View', id: null }
 
-    const openOrder = (id = null, mode = "View") => {
-        setManagerConfig({ mode, id });
-    };
-
-    // Initialize selected branch
-    useEffect(() => {
-        if (defaultBranchId && !selectedBranch) {
-            setSelectedBranch(defaultBranchId);
-        }
-    }, [defaultBranchId]);
-
     const [summary, setSummary] = useState(null);
 
     // Fetch Purchase Requests
     useEffect(() => {
-        if (jwtToken && selectedBranch) {
+        if (jwtToken && branchId) {
             fetchOrders();
         }
-    }, [jwtToken, selectedBranch]);
+    }, [jwtToken, branchId]);
 
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            const response = await purchaseService.getPurchaseRequests(jwtToken, selectedBranch);
+            const response = await purchaseService.getPurchaseRequests(jwtToken, branchId);
             if (response.status === "success") {
                 // If data contains both summary and list, or just a list
                 const data = response.data || [];
@@ -120,9 +108,8 @@ const PurchaseOrdersPage = () => {
         return filteredData.slice(start, start + rowsPerPage);
     }, [filteredData, currentPage, rowsPerPage]);
 
-    const handleBranchChange = (e) => {
-        setSelectedBranch(e.target.value);
-        setCurrentPage(1);
+    const openOrder = (id = null, mode = "View") => {
+        setManagerConfig({ mode, id });
     };
 
     const formatDate = (dateString) => {
@@ -145,18 +132,6 @@ const PurchaseOrdersPage = () => {
 
     return (
         <DashboardLayout
-            customTopbarLeft={(
-                <select 
-                    className={styles.branchSelect} 
-                    value={selectedBranch}
-                    onChange={handleBranchChange}
-                >
-                    <option value="">Select Branch</option>
-                    {branches.map(br => (
-                        <option key={br.id} value={br.id}>{br.name}</option>
-                    ))}
-                </select>
-            )}
             customTopbarRight={(
                 <div className={styles.addBtnWrapper}>
                     <button className={styles.addBtn} onClick={() => openOrder(null, "Add")}>

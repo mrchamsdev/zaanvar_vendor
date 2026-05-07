@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/inventory/product-form.module.css";
 // import BarcodeScanner from "./BarcodeScanner";
 import useStore from "../state/useStore";
+import useDashboardData from "../dashboard/useDashboardData";
 import { productService } from "../../services/productService";
 import ConfirmationModal from "./confirmation-modal";
 import { toast } from "sonner";
@@ -67,6 +68,11 @@ const SUB_CATEGORY_MAP = {
 
 const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => {
   const { jwtToken, userInfo } = useStore();
+  const { selectedBranchId } = useDashboardData({ skipReviews: true });
+
+  const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
+  const branchId = selectedBranchId || userInfo?.branchId || 91;
+
   // console.log("ProductForm component rendering", { initialData, propType });
 
   // Main Form State
@@ -386,7 +392,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
       const firstVariant = variants[0] || {};
       const payload = {
-        branchId: userInfo?.branchId || 91,
+        branchId: branchId,
         ProductCode: productCode,
         productName: productName,
         brand: brand,
@@ -402,10 +408,12 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         },
         createdBy: userId,
         variants: variants.map(v => ({
+          variantId: v.variantId, // Ensure ID is sent for updates
           mrp: Number(v.mrp) || 0,
           sellingPrice: Number(v.sellingPrice) || 0,
           productImgs: (v.images || []).map(img => img.preview).filter(p => p.startsWith('http')), 
           barcode: v.eanUpc || "",
+          eanUpcNumber: v.eanUpc || "", // Added as requested
           minStockAlert: Number(v.minStock) || 0,
           variantType: {
             packType: v.packType,
@@ -444,18 +452,78 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
       let response;
       if (initialData?.productId) {
-        response = await productService.updateProduct(jwtToken, initialData.productId, payload, false);
+        // Separate existing and new variants for granular updates
+        const existingVariants = payload.variants.filter(v => v.variantId);
+        const newVariants = variants.filter(v => !v.variantId);
+
+        // 1. Update product metadata and existing variants
+        const updatePayload = { ...payload, variants: existingVariants };
+        response = await productService.updateProduct(jwtToken, initialData.productId, updatePayload, false);
+        
+        // 2. Create new variants individually using the specific endpoint
+        if (newVariants.length > 0) {
+            console.log(`Creating ${newVariants.length} new variants individually...`);
+            for (const v of newVariants) {
+                const variantPayload = {
+                    productId: initialData.productId,
+                    mrp: Number(v.mrp) || 0,
+                    sellingPrice: Number(v.sellingPrice) || 0,
+                    minStockAlert: Number(v.minStock) || 0,
+                    variantType: {
+                        packType: v.packType,
+                        size: (() => {
+                            if (productType === "Medical") return `${v.strength || ""}${v.unitType || ""}`;
+                            if (v.packType === "DIMENSIONS (Dim)") {
+                                return JSON.stringify({
+                                    height: v.height || "", width: v.width || "", length: v.length || "", radius: v.radius || "",
+                                    heightUnit: v.heightUnit || "mm", widthUnit: v.widthUnit || "mm", lengthUnit: v.lengthUnit || "mm", radiusUnit: v.radiusUnit || "mm"
+                                });
+                            }
+                            return (v.size || `${v.unitMeasure || ""}${v.unitType || ""}`);
+                        })()
+                    },
+                    barcode: v.eanUpc || "",
+                    SKU: v.skuNumber || "",
+                    productComposition: v.composition || "",
+                    variantMeasure: 1, // Default as per example
+                    strength: v.strength || "N/A",
+                    numberOfPieces: Number(v.packCount) || 1,
+                    eanUpcNumber: v.eanUpc || "", // Providing both as per example
+                    drugType: v.drugType || (productType === "Medical" ? "Medical" : "Non-Medical"),
+                    description: v.variantDescription || "",
+                    createdBy: userId
+                };
+                
+                try {
+                    const vResp = await productService.createVariant(jwtToken, variantPayload);
+                    console.log("Variant creation response:", vResp);
+                    // Add the new variant ID to our list for image upload
+                    if (vResp?.data?.data) {
+                        if (!response.data) response.data = {};
+                        if (!response.data.variants) response.data.variants = [];
+                        response.data.variants.push(vResp.data.data);
+                    }
+                } catch (vErr) {
+                    console.error("Failed to create individual variant:", vErr);
+                    toast.error("Failed to add a new variant");
+                }
+            }
+        }
       } else {
         response = await productService.createProduct(jwtToken, payload, false);
       }
       
-      console.log("Metadata save response body:", response);
-
+      console.log("Final Save/Update response:", response);
       if (response) {
-        const responseVariants = response.data?.data?.variants || response.data?.variants || response.variants || [];
+        // Handle different response structures for variants
+        const responseData = response.data || response;
+        const responseVariants = responseData?.variants || responseData?.data?.variants || response?.variants || [];
         
+        console.log("Extracted response variants:", responseVariants);
         console.log(`Starting per-variant image upload for ${variants.length} variants...`);
         
+        let uploadPromises = [];
+
         for (let i = 0; i < variants.length; i++) {
           const formVariant = variants[i];
           const backendVariant = responseVariants[i];
@@ -467,19 +535,30 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           if (imageFiles.length > 0 && targetId) {
             console.log(`Uploading ${imageFiles.length} new images for Variant ID: ${targetId}`);
             const formData = new FormData();
-            // Append all files to the same FormData key to send as an array/multiple
             imageFiles.forEach(file => formData.append("productImgs", file));
             
-            try {
-              const upResp = await productService.uploadProductImages(jwtToken, targetId, formData);
-              console.log(`Batch image upload successful for variant ${targetId}:`, upResp);
-            } catch (uploadError) {
-              console.error(`Failed to upload images for variant ${targetId}:`, uploadError);
-            }
+            const uploadPromise = productService.uploadProductImages(jwtToken, targetId, formData)
+              .then(upResp => {
+                console.log(`Batch image upload successful for variant ${targetId}:`, upResp);
+                return upResp;
+              })
+              .catch(uploadError => {
+                console.error(`Failed to upload images for variant ${targetId}:`, uploadError);
+                toast.error(`Failed to upload images for variant ${i + 1}`);
+                throw uploadError;
+              });
+            
+            uploadPromises.push(uploadPromise);
+          } else {
+            console.log(`Skipping image upload for variant ${i}: imageFiles=${imageFiles.length}, targetId=${targetId}`);
           }
         }
         
-        console.log("All variant image uploads processed.");
+        if (uploadPromises.length > 0) {
+          await Promise.all(uploadPromises);
+          console.log("All variant image uploads completed.");
+        }
+        
         toast.success(initialData?.productId ? "Product updated successfully" : "Product created successfully", { id: toastId });
         if (onSave) onSave();
       } else {
@@ -490,6 +569,12 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       toast.error(error?.response?.data?.msg || "Failed to save product. Please try again.", { id: toastId });
     }
   };
+
+  useEffect(() => {
+    const handleGlobalSave = () => handleSave();
+    window.addEventListener('triggerProductSave', handleGlobalSave);
+    return () => window.removeEventListener('triggerProductSave', handleGlobalSave);
+  }, [handleSave]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -597,6 +682,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       </div>
 
       <div className={styles.sectionTitle}>Product Details</div>
+
       <div className={styles.inputGrid}>
         <div className={styles.inputField}>
           <label>Product Name <span>*</span></label>

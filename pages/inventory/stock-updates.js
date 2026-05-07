@@ -18,7 +18,7 @@ const IconSearch = () => (
 const StockUpdatesPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [stockUpdates, setStockUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,16 +28,6 @@ const StockUpdatesPage = () => {
   const [managerMode, setManagerMode] = useState("Add");
   const [selectedStockId, setSelectedStockId] = useState(null);
   const [activeToggle, setActiveToggle] = useState("Update Stock");
-
-  // Dynamic branchId from query or user info
-  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
-
-  const handleBranchChange = (e) => {
-    router.push({
-      pathname: router.pathname,
-      query: { ...router.query, branchId: e.target.value }
-    }, undefined, { shallow: true });
-  };
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -80,30 +70,6 @@ const StockUpdatesPage = () => {
 
   return (
     <DashboardLayout
-      customTopbarLeft={(
-        <div style={{ marginLeft: '20px' }}>
-          <select 
-            value={branchId || ""}
-            onChange={handleBranchChange}
-            style={{ 
-              border: '1px solid #eee', 
-              background: '#f8f9fa', 
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '14px', 
-              fontWeight: 500, 
-              color: '#666',
-              cursor: 'pointer',
-              outline: 'none',
-              minWidth: '200px'
-            }}
-          >
-            {branches?.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
       customTopbarRight={(
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <button 
@@ -229,10 +195,15 @@ const StockUpdatesPage = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>UP-DATED DATE</th>
-                  <th>SUPPLIER NAME</th>
-                  <th>PRODUCT NAME</th>
-                  <th style={{ textAlign: 'right' }}>TOTAL VALUE (₹)</th>
+                  <th rowSpan="2">UP-DATED DATE</th>
+                  <th rowSpan="2">SUPPLIER NAME</th>
+                  <th rowSpan="2">PRODUCT NAME</th>
+                  <th colSpan="2" className={styles.variantHeader}>VARIANT</th>
+                  <th rowSpan="2" style={{ textAlign: 'right' }}>TOTAL VALUE (₹)</th>
+                </tr>
+                <tr className={styles.subHeaderRow}>
+                  <th>UNIT</th>
+                  <th>Quantity</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,6 +211,10 @@ const StockUpdatesPage = () => {
                   const val = parseFloat(update.totalValue || 0);
                   const isNegative = update.remove > 0 || (update.reason?.toLowerCase().includes('damaged') || update.reason?.toLowerCase().includes('onhold'));
                   
+                  const vt = update.variantType || update.product?.variantType || {};
+                  const unit = (vt.size || vt.flavor) ? `${vt.size || ""} ${vt.flavor || ""}`.trim() : (vt.packCount || vt.packType ? `${vt.packCount || ""} ${vt.packType || ""}`.trim() : (update.variantMeasure || update.unit || "STND"));
+                  const quantity = update.qty || update.quantity || update.add || update.remove || 0;
+
                   return (
                     <tr key={update.stockUpdateId} onClick={() => {
                         setSelectedStockId(update.stockUpdateId);
@@ -249,6 +224,8 @@ const StockUpdatesPage = () => {
                       <td>{formatDate(update.createdDate)}</td>
                       <td>{update.supplierName || "APPOLO"}</td>
                       <td>{update.itemName || update.product?.productName}</td>
+                      <td>{unit}</td>
+                      <td>{quantity}</td>
                       <td style={{ textAlign: 'right' }} className={isNegative ? styles.totalValueRed : styles.totalValueGreen}>
                         {isNegative ? `- ₹ ${Math.abs(val).toLocaleString()}` : `₹ ${val.toLocaleString()}`}
                       </td>

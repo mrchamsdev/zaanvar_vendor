@@ -7,6 +7,25 @@ import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi
 import PurchaseOrderSummary from "./purchase-order-summary";
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
+
     // FORCE EDIT MODE FOR DEBUGGING
     const isView = mode === "view";
     const { jwtToken, userId } = useStore();
@@ -316,7 +335,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     <div className={styles.headerInfo}>
                                         <div className={styles.headerTitleLine}>
                                             <span className={styles.index}>{String(index + 1).padStart(2, '0')}</span>
-                                            <span className={styles.productName}>{item.productName} - {[item.variantType?.size, item.variantType?.variantName, item.variantType?.packType].filter(Boolean).join(" ")}</span>
+                                            <span className={styles.productName}>{item.productName} - {[formatVariantSize(item.variantType?.size), item.variantType?.variantName, item.variantType?.packType].filter(Boolean).join(" ")}</span>
                                         </div>
                                         <div className={styles.headerStatsLine}>
                                             <span>Ordered : {item.qty}</span>
@@ -672,7 +691,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         </div>
                     )}
 
-                    {paymentStatus === "PayLaterWithRemainder" && (
+                    {(paymentStatus === "PayLaterWithRemainder" || paymentStatus === "Partial" || paymentStatus === "Pending") && (
                         <div className={styles.infoGroup}>
                             <label className={styles.infoLabel}>Payment Due Date</label>
                             <div className={styles.inputWrapper}>
@@ -683,21 +702,6 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     min={new Date().toISOString().split('T')[0]}
                                     max="9999-12-31"
                                     onChange={(e) => setDuedate(e.target.value)} 
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {paymentStatus !== "PayLaterWithRemainder" && (
-                        <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Select date</label>
-                            <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
-                                    value={receivedDate} 
-                                    max={new Date().toISOString().split('T')[0]} 
-                                    onChange={(e) => setReceivedDate(e.target.value)} 
                                 />
                             </div>
                         </div>

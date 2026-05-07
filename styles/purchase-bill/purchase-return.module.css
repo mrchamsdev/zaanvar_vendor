@@ -359,10 +359,15 @@
 }
 
 .filterIcon {
-    font-size: 12px;
-    color: #999;
-    margin-left: 4px;
+    font-size: 13px;
+    color: #9ca3af;
     cursor: pointer;
+    float: right;
+    margin-top: -1px;
+}
+
+.filterIcon:hover {
+    color: #6b7280;
 }
 
 .tableContainer {
@@ -376,20 +381,33 @@
 }
 
 .table th {
-    background: #f4f4f4;
-    padding: 12px 16px;
+    background: #f9fafb;
+    padding: 14px 16px;
     text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    color: #666;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
     text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
 }
 
 .table td {
     padding: 16px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f3f4f6;
+    border-right: 1px solid #f3f4f6;
     font-size: 14px;
     color: #333;
+}
+
+.table tr th:last-child,
+.table tr td:last-child {
+    border-right: none;
 }
 
 .actions {

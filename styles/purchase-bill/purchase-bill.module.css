@@ -114,24 +114,33 @@
 }
 
 .table th {
-  background: #f9f9f9;
+  background: #f9fafb;
   padding: 14px 16px;
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #888;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
   text-transform: uppercase;
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 0 #eee;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
 }
 
 .table td {
   padding: 14px 16px;
-  border-top: 1px solid #eee;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
   font-size: 14px;
   color: #333;
+}
+
+.table tr th:last-child,
+.table tr td:last-child {
+  border-right: none;
 }
 
 .pagination {

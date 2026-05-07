@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
 import { FiX, FiCalendar, FiChevronDown, FiPlus, FiTrash2 } from "react-icons/fi";
 import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 import { saleService } from "../../services/saleService";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
@@ -10,7 +11,7 @@ import { useRouter } from "next/router";
 const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
-    const branchId = userInfo?.branchId || 91;
+    const { branchId } = useDashboardData({ skipReviews: true });
 
     const [loading, setLoading] = useState(false);
     const [customers, setCustomers] = useState([]);

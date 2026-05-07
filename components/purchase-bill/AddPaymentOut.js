@@ -3,10 +3,12 @@ import styles from "../../styles/purchase-bill/add-payment-out.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 
 const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const { jwtToken, userInfo } = useStore();
+    const { branchId } = useDashboardData({ skipReviews: true });
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -28,7 +30,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     useEffect(() => {
         const fetchSuppliers = async () => {
             try {
-                const res = await purchaseService.getSuppliers(jwtToken, userInfo?.branchId || 91);
+                const res = await purchaseService.getSuppliers(jwtToken, branchId);
                 if (res.status === "success") {
                     setSuppliers(res.data || []);
                 }
@@ -95,7 +97,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     debitOrCredit: "Debit",
                     paymentFrom: "payment out",
                     paymentType: p.paymentType,
-                    branchId: userInfo?.branchId || 91,
+                    branchId: branchId,
                     supplierId: Number(selectedSupplierId),
                     userTransactionDate: transactionDate,
                     transactionInfo: description || "Payment Out recorded",

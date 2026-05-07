@@ -682,6 +682,42 @@
   gap: 5px;
 }
 
+.errorField {
+  border: 1.5px solid #ff4d4f !important;
+  border-radius: 4px;
+  background: rgba(255, 77, 79, 0.05) !important;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.1);
+}
+
+.branchSwitcherContainer {
+  margin-left: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.branchSwitcher {
+  padding: 8px 16px;
+  border: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 200px;
+}
+
+.branchSwitcher:hover {
+  background: #f1f3f5;
+  border-color: #ddd;
+}
+
+.branchSwitcher:focus {
+  border-color: #ccc;
+}
+
 .sliderDot {
   width: 8px;
   height: 8px;

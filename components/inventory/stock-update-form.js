@@ -20,6 +20,25 @@ const IconChevronDown = () => (
 
 const REASONS = ["Miscount", "Damage", "Internal purpose", "Theft", "Expired", "Onhold", "Open Stock"];
 
+const formatVariantSize = (size) => {
+    if (!size) return "";
+    if (typeof size === 'string' && size.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(size);
+            const parts = [];
+            if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+            if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+            if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+            if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+            if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+            return parts.length > 0 ? parts.join(" x ") : size;
+        } catch (e) {
+            return size;
+        }
+    }
+    return size;
+};
+
 // Searchable Product Dropdown component
 const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -99,12 +118,11 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
 
 const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   const { jwtToken, userInfo } = useStore();
-  const { branches } = useDashboardData({ skipReviews: true });
-  const [branchId, setBranchId] = useState(userInfo?.branchId || 91);
+  const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
   const [products, setProducts] = useState([]);
   const [rows, setRows] = useState([
-    { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }
+    { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", sourceStatus: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }
   ]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -123,7 +141,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   };
 
   const addRow = () => {
-    setRows([...rows, { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }]);
+    setRows([...rows, { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", sourceStatus: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }]);
   };
 
   const handleVariantChange = (index, variantId) => {
@@ -136,7 +154,11 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
 
     const newRows = [...rows];
     newRows[index].variantId = variant.variantId;
-    newRows[index].currentQty = variant.currentQty || variant.stockQty || 0;
+    
+    // Default source status to empty
+    newRows[index].sourceStatus = "";
+    newRows[index].currentQty = 0;
+    
     newRows[index].costPrice = variant.costPrice || 0;
     newRows[index].expiryDate = variant.expiryDate?.split('T')[0] || "";
     
@@ -185,6 +207,32 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
     if (field === 'remove' && value > 0) newRows[index].add = 0;
     
     newRows[index][field] = value;
+
+    // Handle source status change to update current qty
+    if (field === 'sourceStatus') {
+        const product = products.find(p => p.productId === newRows[index].productId);
+        const variant = product?.variants?.find(v => v.variantId === parseInt(newRows[index].variantId));
+        if (variant) {
+            const stockData = variant.stockUpdates || {};
+            if (value === "Open Stock") {
+                newRows[index].currentQty = stockData.openStockQuantity || 0;
+            } else if (value === "Hold Qty") {
+                newRows[index].currentQty = stockData.onHoldQuantity || 0;
+            } else {
+                newRows[index].currentQty = 0;
+            }
+        }
+    }
+
+    // Handle reason change: Clear invalid fields
+    if (field === 'reason') {
+        if (value === "Open Stock") {
+            newRows[index].remove = 0;
+        } else if (value && value !== "Miscount") {
+            // It's a removal reason
+            newRows[index].add = 0;
+        }
+    }
     
     // Clear error for this field
     const newErrors = { ...errors };
@@ -276,6 +324,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
 
   const grandTotal = rows.reduce((sum, row) => sum + (row.total || 0), 0);
 
+  // Dynamic Column Visibility Logic
+  const anyMiscount = rows.some(r => r.reason === "Miscount");
+  const anyOpenStock = rows.some(r => r.reason === "Open Stock");
+  const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired", "Onhold"].includes(r.reason));
+  const anyEmptyReason = rows.some(r => !r.reason);
+
+  const showAddColumn = anyEmptyReason || anyMiscount || anyOpenStock;
+  const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval;
+
   return (
     <>
       <div className={isEmbedded ? styles.embeddedContainer : styles.modal}>
@@ -329,11 +386,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                   <th style={{ minWidth: 120, textAlign: 'center' }}>Product Code</th>
                   <th style={{ minWidth: 100, textAlign: 'center' }}>Batch No</th>
                   <th style={{ minWidth: 100, textAlign: 'center' }}>Variants</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Current Qty</th>
-                  <th style={{ minWidth: 70, textAlign: 'center' }}>Add</th>
-                  <th style={{ minWidth: 70, textAlign: 'center' }}>Remove</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Updated Qty</th>
+                  <th style={{ minWidth: 130, textAlign: 'center' }}>Source Status</th>
+                  <th style={{ minWidth: 100, textAlign: 'center' }}>Quantity</th>
                   <th style={{ minWidth: 150, textAlign: 'center' }}>Reason</th>
+                  {showAddColumn && <th style={{ minWidth: 70, textAlign: 'center' }}>Add</th>}
+                  {showRemoveColumn && <th style={{ minWidth: 70, textAlign: 'center' }}>Remove</th>}
+                  <th style={{ minWidth: 100, textAlign: 'center' }}>Updated Qty</th>
                   <th style={{ minWidth: 100, textAlign: 'center' }}>Exp. Date</th>
                   <th style={{ minWidth: 100, textAlign: 'center' }}>Cost Price</th>
                   <th style={{ minWidth: 120, textAlign: 'right' }}>Total (₹)</th>
@@ -371,21 +429,68 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                 <option value="">SELECT</option>
                                 {currentProduct?.variants?.map(v => (
                                     <option key={v.variantId} value={v.variantId}>
-                                        {v.variantType?.size ? `${v.variantType.size} ${v.variantType.packType || ""}` : (v.variantType?.packType || v.drugType || `UNIT - ${v.variantId}`)}
+                                        {v.variantType?.size ? `${formatVariantSize(v.variantType.size)} ${v.variantType.packType || ""}` : (v.variantType?.packType || v.drugType || `UNIT - ${v.variantId}`)}
                                     </option>
                                 ))}
                             </select>
                         </td>
-                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.currentQty} /></td>
-                        <td><input id={`field_${index}_add`} className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`} type="number" value={row.add || ""} onChange={(e) => updateRowField(index, 'add', e.target.value)} placeholder="0" /></td>
-                        <td><input id={`field_${index}_remove`} className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`} type="number" value={row.remove || ""} onChange={(e) => updateRowField(index, 'remove', e.target.value)} placeholder="0" /></td>
-                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.updatedQty} /></td>
                         <td>
-                        <select id={`field_${index}_reason`} className={`${styles.tableSelect} ${errors[`${index}_reason`] ? styles.errorField : ""}`} value={row.reason} onChange={(e) => updateRowField(index, 'reason', e.target.value)}>
-                            <option value="">SELECT REASON</option>
-                            {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
+                            <select 
+                                className={styles.tableSelect} 
+                                value={row.sourceStatus} 
+                                onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
+                            >
+                                <option value="">SELECT SOURCE</option>
+                                <option value="Open Stock">Open Stock</option>
+                                {(() => {
+                                    const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                                    if (variant?.stockUpdates?.onHoldQuantity > 0) {
+                                        return <option value="Hold Qty">Hold Qty</option>;
+                                    }
+                                    return null;
+                                })()}
+                            </select>
                         </td>
+                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.currentQty} /></td>
+                        <td>
+                            <select id={`field_${index}_reason`} className={`${styles.tableSelect} ${errors[`${index}_reason`] ? styles.errorField : ""}`} value={row.reason} onChange={(e) => updateRowField(index, 'reason', e.target.value)}>
+                                <option value="">SELECT REASON</option>
+                                {REASONS.filter(r => {
+                                    if (row.sourceStatus === "Open Stock" && r === "Open Stock") return false;
+                                    if (row.sourceStatus === "Hold Qty" && r === "Onhold") return false;
+                                    return true;
+                                }).map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
+                        </td>
+                        {showAddColumn && (
+                            <td>
+                                {(row.reason === "Open Stock" || row.reason === "Miscount" || !row.reason) ? (
+                                    <input 
+                                        id={`field_${index}_add`} 
+                                        className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`} 
+                                        type="number" 
+                                        value={row.add || ""} 
+                                        onChange={(e) => updateRowField(index, 'add', e.target.value)} 
+                                        placeholder="0" 
+                                    />
+                                ) : <div className={styles.disabledPlaceholder}>--</div>}
+                            </td>
+                        )}
+                        {showRemoveColumn && (
+                            <td>
+                                {(row.reason !== "Open Stock" || !row.reason) ? (
+                                    <input 
+                                        id={`field_${index}_remove`} 
+                                        className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`} 
+                                        type="number" 
+                                        value={row.remove || ""} 
+                                        onChange={(e) => updateRowField(index, 'remove', e.target.value)} 
+                                        placeholder="0" 
+                                    />
+                                ) : <div className={styles.disabledPlaceholder}>--</div>}
+                            </td>
+                        )}
+                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.updatedQty} /></td>
                         <td><input className={styles.tableInput} readOnly value={row.expiryDate} placeholder="------" /></td>
                         <td><input className={styles.tableInput} readOnly value={`₹${row.costPrice}`} /></td>
                         <td style={{ color: row.total >= 0 ? '#27ae60' : '#ff4d4f', fontWeight: 600, textAlign: 'right' }}>

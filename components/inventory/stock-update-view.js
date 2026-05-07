@@ -11,6 +11,24 @@ const IconX = () => (
 );
 
 const StockUpdateView = ({ stockId, onClose }) => {
+  const formatVariantSize = (size) => {
+    if (!size) return "";
+    if (typeof size === 'string' && size.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(size);
+            const parts = [];
+            if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+            if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+            if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+            if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+            if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+            return parts.length > 0 ? parts.join(" x ") : size;
+        } catch (e) {
+            return size;
+        }
+    }
+    return size;
+  };
   const { jwtToken } = useStore();
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -96,7 +114,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <td>{data.product?.ProductCode || "-"}</td>
               <td>
                 {(data.variant?.variantType?.size || data.variant?.variantType?.flavor) 
-                  ? `${data.variant.variantType.size || ""} ${data.variant.variantType.flavor || ""}`.trim() 
+                  ? `${formatVariantSize(data.variant.variantType.size) || ""} ${data.variant.variantType.flavor || ""}`.trim() 
                   : (data.variant?.variantType?.packCount || data.variant?.variantType?.packType 
                     ? `${data.variant.variantType.packCount || ""} ${data.variant.variantType.packType || ""}`.trim() 
                     : (data.variant?.variantMeasure || "STND"))}
