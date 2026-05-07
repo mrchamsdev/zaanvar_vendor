@@ -15,6 +15,25 @@ const IconTrash = () => (
 );
 
 const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branches, branchId: currentBranchId } = useDashboardData();
@@ -43,6 +62,13 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
 
     const tableRef = useRef(null);
     const supplierRef = useRef(null);
+    
+    // Sync branchId with global store when in Add mode
+    useEffect(() => {
+        if (!requestId && !initialData?.branchId && currentBranchId) {
+            setBranchId(currentBranchId);
+        }
+    }, [currentBranchId, requestId, initialData]);
     
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -128,7 +154,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         const variants = product.variants || [];
         const variant = variants[0] || {};
         const vt = variant.variantType || {};
-        const variantDisplay = [vt.packType, vt.size, vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
+        const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
         
         const newItems = [...items];
         newItems[index] = {
@@ -155,7 +181,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
 
     const selectVariant = (itemIndex, variant) => {
         const vt = variant.variantType || {};
-        const variantDisplay = [vt.packType, vt.size, vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
+        const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
         
         const newItems = [...items];
         newItems[itemIndex] = {
@@ -265,11 +291,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                 <div className={styles.sectionTitle}>Shipment Details</div>
                 <div className={styles.grid}>
                     <div className={styles.fieldGroup}>
-                        <label className={styles.label}>Select Branch</label>
-                        <select className={styles.select} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-                            <option value="">Branch Name</option>
-                            {branches.map(br => <option key={br.id} value={br.id}>{br.name}</option>)}
-                        </select>
+                        <label className={styles.label}>Selected Branch</label>
+                        <div className={styles.select} style={{ background: '#f5f5f5', cursor: 'not-allowed', display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+                            {branches.find(b => b.id == branchId)?.name || "N/A"}
+                        </div>
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>
@@ -426,7 +451,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                         <div className={styles.productDropdown}>
                                             {item.allVariants.map((v, i) => {
                                                 const vvt = v.variantType || {};
-                                                const vDisplay = [vvt.packType, vvt.size, vvt.flavor].filter(Boolean).join(" - ") || v.variantMeasure || "--";
+                                                const vDisplay = [vvt.packType, formatVariantSize(vvt.size), vvt.flavor].filter(Boolean).join(" - ") || v.variantMeasure || "--";
                                                 return (
                                                     <div key={v.variantId} className={styles.productOption} onClick={(e) => { e.stopPropagation(); selectVariant(index, v); }}>
                                                         <span className={styles.productOptionName}>{vDisplay}</span>

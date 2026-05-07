@@ -37,7 +37,7 @@ function normaliseTiming(timings) {
 export default function useDashboardData(options = {}) {
   const { skipReviews = true } = options;
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId } = useStore();
 
   /* ── supplementary state ── */
   const [reviews,        setReviews]        = useState([]);
@@ -58,10 +58,19 @@ export default function useDashboardData(options = {}) {
   const companies  = vendor?.vendorCompanies || [];
   const company    = companies[0] || null;
   const branches   = company?.branches || [];
-  const branch     = branches[0] || null;
+  
+  // Set default branch if none selected
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranchId) {
+        setSelectedBranchId(branches[0].id);
+    }
+  }, [branches, selectedBranchId, setSelectedBranchId]);
+
+  const currentBranchId = selectedBranchId || branches[0]?.id || vendor?.branchId || null;
+  const branch     = branches.find(b => b.id === currentBranchId) || branches[0] || null;
   const timings    = normaliseTiming(branch?.timings);
 
-  const branchId   = vendor?.branchId || branch?.id || null;
+  const branchId   = currentBranchId;
   const companyId  = company?.compId  || null;
 
   /* ── fetch reviews & ratings when branch is known ── */
@@ -87,7 +96,7 @@ export default function useDashboardData(options = {}) {
         setReviewsError(err?.message || "Failed");
       })
       .finally(() => setReviewsLoading(false));
-  }, [jwtToken, branchId]);
+  }, [jwtToken, branchId, skipReviews]);
 
   return {
     /* ── auth / hydration ── */
@@ -102,6 +111,8 @@ export default function useDashboardData(options = {}) {
     branches,
     timings,
     branchId,
+    selectedBranchId: branchId,
+    setSelectedBranchId,
     companyId,
 
     /* ── supplementary (API) ── */

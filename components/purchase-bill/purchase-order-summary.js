@@ -4,6 +4,24 @@ import { FiChevronDown, FiPrinter } from "react-icons/fi";
 import PaymentDetailsPopup from "./payment-details-popup";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
     if (!data) return null;
 
     const { 
@@ -220,7 +238,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                         </div>
                                     </td>
                                     <td>{item.productCode || "--"}</td>
-                                    <td>{[item.variantType?.size, item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}</td>
+                                    <td>{[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}</td>
                                     <td>
                                         <div className={styles.qtyCell}>
                                             <span className={styles.value}>{item.receivedQty}</span>

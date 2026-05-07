@@ -49,7 +49,7 @@ const IconEdit = () => (
 const ProductsPage = () => {
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [stats, setStats] = useState({ total: 0, expired: 10, damaged: 10, saleReturn: 10 });
@@ -75,16 +75,6 @@ const ProductsPage = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Dynamic branchId from query or user info
-  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
-
-  const handleBranchChange = (e) => {
-    router.push({
-      pathname: router.pathname,
-      query: { ...router.query, branchId: e.target.value }
-    }, undefined, { shallow: true });
-  };
-
   useEffect(() => {
     if (router.isReady && router.query.action === 'add') {
       setIsAddingProduct(true);
@@ -96,16 +86,11 @@ const ProductsPage = () => {
   }, [router.isReady, router.query.action]);
 
   useEffect(() => {
-    if (!router.isReady) return;
-
-    const bid = router.query.branchId || hookBranchId || userInfo?.branchId || 91;
-    
-    if (jwtToken && bid) {
-      console.log("Initiating data fetch for branch:", bid);
+    if (router.isReady) {
       fetchStats();
       fetchProducts();
     }
-  }, [router.isReady, router.query.branchId, hookBranchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage]);
+  }, [router.isReady, branchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage]);
 
   const fetchStats = async () => {
     try {
@@ -179,12 +164,17 @@ const ProductsPage = () => {
 
     const vt = (v.variantType && typeof v.variantType === 'object') ? v.variantType : {};
     
-    // 1. Get main measure (Strength for Medical, Size for Retail)
-    const strength = v.strength || "";
-    let size = (vt.size && vt.size !== "1" && vt.size !== 1) ? vt.size : (v.size && v.size !== "1" && v.size !== 1 ? v.size : "");
+    // 1. Get main measure
+    // Clean strength: ignore "N/A", "undefined", or empty strings
+    const rawStrength = v.strength || "";
+    const strength = (rawStrength && rawStrength.toUpperCase() !== "N/A" && rawStrength !== "undefined") ? rawStrength : "";
+    
+    // Clean size: ignore "1", 1, "undefined", or empty strings
+    let size = (vt.size && vt.size !== "1" && vt.size !== 1 && vt.size !== "undefined") ? vt.size : 
+               (v.size && v.size !== "1" && v.size !== 1 && v.size !== "undefined" ? v.size : "");
     
     // Pretty-print JSON dimensions if present
-    if (typeof size === 'string' && size.startsWith('{')) {
+    if (typeof size === 'string' && size.trim().startsWith('{')) {
       try {
         const dim = JSON.parse(size);
         const parts = [];
@@ -200,7 +190,9 @@ const ProductsPage = () => {
 
     const flavor = vt.flavor || "";
     
-    let detailInfo = `${strength || size} ${flavor}`.trim();
+    // Prioritize strength if it's medical-style, otherwise use size
+    let detailInfo = (strength || size || "").toString().trim();
+    if (flavor) detailInfo = `${detailInfo} ${flavor}`.trim();
     
     // 2. Get packaging info
     const count = v.numberOfPieces || vt.packCount || "";
@@ -270,32 +262,6 @@ const ProductsPage = () => {
 
   return (
     <DashboardLayout
-      customTopbarLeft={(
-        <div style={{ marginLeft: '20px' }}>
-          <select 
-            className={styles.branchSelect}
-            value={branchId || ""}
-            onChange={handleBranchChange}
-            style={{ 
-              border: '1px solid #eee', 
-              background: '#f8f9fa', 
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '14px', 
-              fontWeight: 500, 
-              color: '#666',
-              cursor: 'pointer',
-              outline: 'none',
-              minWidth: '200px'
-            }}
-          >
-            {branches?.length > 1 && <option value="">All Firms</option>}
-            {branches?.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
       customTopbarRight={(
         <div className={styles.addBtnWrapper}>
           <button 
@@ -400,17 +366,20 @@ const ProductsPage = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{width: 40}}>
+                  <th rowSpan="2" style={{width: 40}}>
                     <input 
                       type="checkbox" 
                       onChange={selectAll} 
                       checked={products.length > 0 && products.every(p => selectedIds.includes(p.productId))} 
                     />
                   </th>
-                  <th>Product Code</th>
-                  <th>Product Name</th>
-                  <th>Brand</th>
-                  <th>Category Type</th>
+                  <th rowSpan="2">Product Code</th>
+                  <th rowSpan="2">Product Name</th>
+                  <th rowSpan="2">Brand</th>
+                  <th rowSpan="2">Category Type</th>
+                  <th colSpan="5" className={styles.variantsHeader}>VARIANTS</th>
+                </tr>
+                <tr className={styles.subHeaderRow}>
                   <th>Unit</th>
                   <th>Quantity</th>
                   <th>Open Stock Qty</th>
@@ -454,9 +423,9 @@ const ProductsPage = () => {
                               : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
                           </td>
                           <td>{getUnitDisplay(firstVariant)}</td>
-                          <td>{firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
-                          <td>00</td>
-                          <td>00</td>
+                          <td>{firstVariant.stockUpdates?.totalQuantity ?? firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
+                          <td>{firstVariant.stockUpdates?.openStockQuantity ?? "0"}</td>
+                          <td>{firstVariant.stockUpdates?.onHoldQuantity ?? "0"}</td>
                           <td 
                             style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
                             onClick={() => hasMultipleVariants && toggleRowExpansion(productId)}
@@ -471,9 +440,9 @@ const ProductsPage = () => {
                           <tr key={v.variantId} className={styles.variantRow}>
                             <td colSpan="5"></td>
                             <td>{getUnitDisplay(v)}</td>
-                            <td>{v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
-                            <td>00</td>
-                            <td>00</td>
+                            <td>{v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
+                            <td>{v.stockUpdates?.openStockQuantity ?? "0"}</td>
+                            <td>{v.stockUpdates?.onHoldQuantity ?? "0"}</td>
                             <td style={{fontWeight: 600}}>₹{v.mrp}</td>
                           </tr>
                         ))}

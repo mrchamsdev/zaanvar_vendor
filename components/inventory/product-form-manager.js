@@ -115,27 +115,29 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
   const minimizedTabs = tabs.filter(t => t.isMinimized);
 
   return (
-    <div className={styles.taskManager} style={{ paddingBottom: minimizedTabs.length > 0 ? '60px' : '0' }}>
-      {/* Tab Bar */}
-      <div className={styles.tabBar}>
-        {visibleTabs.map(tab => (
-          <div 
-            key={tab.id} 
-            className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
-            onClick={() => setActiveTabId(tab.id)}
-          >
-            <span>{tab.title}</span>
-            <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
-          </div>
-        ))}
-        {mode === "Add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
+    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""}`} style={{ paddingBottom: minimizedTabs.length > 0 ? '60px' : '0' }}>
+      {/* Tab Bar - Only show when a tab is actively being worked on */}
+      {isAnyVisible && (
+        <div className={styles.tabBar}>
+          {visibleTabs.map(tab => (
+            <div 
+              key={tab.id} 
+              className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
+              onClick={() => setActiveTabId(tab.id)}
+            >
+              <span>{tab.title}</span>
+              <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
+            </div>
+          ))}
+          {mode === "Add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
 
-        <div className={styles.windowActions}>
-          <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-          <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-          <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
+          <div className={styles.windowActions}>
+            <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
+            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+            <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
+          </div>
         </div>
-      </div>
+      )}
 
       {isAnyVisible && activeTab && !activeTab.isMinimized && (
         <>

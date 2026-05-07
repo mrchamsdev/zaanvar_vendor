@@ -3,13 +3,14 @@ import styles from "../../styles/purchase-bill/add-purchase-return.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2, FiChevronDown } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
 
 const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
-    const branchId = userInfo?.branchId || 91;
+    const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
     const [loading, setLoading] = useState(false);

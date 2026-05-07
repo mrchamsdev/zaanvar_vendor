@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useDashboardData from "./useDashboardData";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -81,12 +82,6 @@ const IconChevronLeft = () => (
 const IconChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-const IconSearch = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
   </svg>
 );
 const IconMenu = () => (
@@ -265,6 +260,7 @@ const DashboardLayout = ({
 }) => {
   const router  = useRouter();
   const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
+  const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
 
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -458,12 +454,24 @@ const DashboardLayout = ({
 
         {/* Desktop topbar */}
         <header className={styles.topbar}>
-          {customTopbarLeft ? customTopbarLeft : (
-            <div className={styles.searchBox}>
-              <input type="text" placeholder="Search here" />
-              <IconSearch />
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+            {customTopbarLeft}
+
+            {branches && branches.length > 0 && (
+                <div className={styles.branchSwitcherContainer}>
+                    <select 
+                        className={styles.branchSwitcher}
+                        value={selectedBranchId || ""} 
+                        onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
+                    >
+                        {branches.length > 1 && <option value="">All Firms</option>}
+                        {branches.map(b => (
+                            <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+          </div>
 
           <div className={styles.topbarActions}>
             {customTopbarRight}

@@ -47,7 +47,7 @@ const TABS = [
 const StockStatusPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [activeTab, setActiveTab] = useState("outOfStock");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -60,16 +60,6 @@ const StockStatusPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Dynamic branchId from query or user info
-  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
-
-  const handleBranchChange = (e) => {
-    router.push({
-      pathname: router.pathname,
-      query: { ...router.query, branchId: e.target.value }
-    }, undefined, { shallow: true });
-  };
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -242,34 +232,7 @@ const StockStatusPage = () => {
   };
 
   return (
-    <DashboardLayout
-      customTopbarLeft={(
-        <div style={{ marginLeft: '20px' }}>
-          <select 
-            className={styles.branchSelect}
-            value={branchId || ""}
-            onChange={handleBranchChange}
-            style={{ 
-              border: '1px solid #eee', 
-              background: '#f8f9fa', 
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '14px', 
-              fontWeight: 500, 
-              color: '#666',
-              cursor: 'pointer',
-              outline: 'none',
-              minWidth: '200px'
-            }}
-          >
-            {branches?.length > 1 && <option value="">All Firms</option>}
-            {branches?.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-    >
+    <DashboardLayout>
       <div className={styles.container}>
         <div className={styles.tabBar}>
           {TABS.map(t => (

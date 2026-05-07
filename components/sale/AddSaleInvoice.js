@@ -6,12 +6,13 @@ import { saleService } from "../../services/saleService";
 import { productService } from "../../services/productService";
 import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 
 const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
-    const branchId = userInfo?.branchId || 91;
+    const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
     const [loading, setLoading] = useState(false);

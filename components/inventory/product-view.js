@@ -33,7 +33,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
   const allVariants = data.variants || data.productVariants || [];
 
   // Calculate total stock across all variants
-  const totalStock = allVariants.reduce((sum, v) => sum + (Number(v.stockQty) || 0), 0);
+  const totalStock = allVariants.reduce((sum, v) => sum + (Number(v.stockUpdates?.totalQuantity || v.stockQty || 0)), 0);
 
   return (
     <div className={`${styles.viewContainer} ${isSplit ? styles.splitView : ""}`}>
@@ -156,28 +156,28 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <th>Pack Type</th>
               <th>Size</th>
               <th>Min Stock</th>
-              <th>Length</th>
-              <th>Height</th>
               <th>Weight/Unit</th>
-              <th>Radius</th>
               <th>Pack Count</th>
               <th>MRP</th>
               <th>Selling Price</th>
-              <th>Available Products</th>
-              <th>Soldout Products</th>
+              <th>Total Stock</th>
+              <th>Opening Stock</th>
+              <th>Hold Qty</th>
+              <th>Sold Products</th>
               <th>Damaged Products</th>
-              <th>Open Stock Products</th>
             </tr>
           </thead>
           <tbody>
             {(allVariants || []).map((v) => {
-              const packTypeStr = v.variantType?.packType || v.packType || "-";
+              const rawPackType = v.variantType?.packType || v.packType || "-";
+              const packTypeStr = (rawPackType && rawPackType.toUpperCase() !== "N/A" && rawPackType !== "undefined") ? rawPackType : "-";
               const packTypeLow = packTypeStr.toLowerCase();
               const catStr = (renderCategory(data.category) || "").toLowerCase();
               const subCatStr = (renderCategory(data.subCategory) || "").toLowerCase();
               const isClothing = catStr.includes('cloth') || subCatStr.includes('cloth');
               
-              const rawSize = v.variantType?.size || v.size || "";
+              const rawSizeVal = v.variantType?.size || v.size || "";
+              const rawSize = (rawSizeVal && rawSizeVal.toString().toUpperCase() !== "N/A" && rawSizeVal !== "undefined") ? rawSizeVal : "";
               let parsedSize = null;
               if (typeof rawSize === 'string' && rawSize.trim().startsWith('{')) {
                   try { parsedSize = JSON.parse(rawSize); } catch (e) {}
@@ -187,9 +187,10 @@ const ProductView = ({ data, onBack, isSplit }) => {
               const dimensions = v.variantType?.dimensions || "";
               const dimParts = dimensions.split('x');
               
-              const displayHeight = parsedSize?.height || dimParts[0] || "-";
-              const displayLength = parsedSize?.length || dimParts[2] || "-";
-              const displayRadius = parsedSize?.radius || "-";
+              const displayHeight = parsedSize?.height ? `${parsedSize.height}${parsedSize.heightUnit || 'mm'}` : (dimParts[0] || "-");
+              const displayWidth = parsedSize?.width ? `${parsedSize.width}${parsedSize.widthUnit || 'mm'}` : (dimParts[1] || "-");
+              const displayLength = parsedSize?.length ? `${parsedSize.length}${parsedSize.lengthUnit || 'mm'}` : (dimParts[2] || "-");
+              const displayRadius = parsedSize?.radius ? `${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}` : "-";
               const displayWeight = parsedSize?.weight ? `${parsedSize.weight}${parsedSize.weightUnit || 'g'}` : "-";
 
               // Size Column
@@ -198,17 +199,25 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   displaySize = rawSize;
               } else if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
                   displaySize = packTypeStr;
+              } else if (parsedSize) {
+                  const parts = [];
+                  if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
+                  if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
+                  if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
+                  displaySize = parts.length > 0 ? parts.join(" x ") : "-";
               }
 
               // Weight / Unit Column
               let weightUnitVal = displayWeight;
-              if (weightUnitVal === "-" && !isClothing && !parsedSize && rawSize && !rawSize.toString().startsWith('{')) {
-                  // If it's a simple number without units, and we already put it in displaySize, 
-                  // we only show it here if displaySize is still "-" or if it looks like a weight
-                  const units = ['kg', 'g', 'ml', 'l', 'lb', 'oz'];
-                  const hasUnit = typeof rawSize === 'string' && units.some(u => rawSize.toLowerCase().includes(u));
-                  if (hasUnit || displaySize === "-") {
-                      weightUnitVal = rawSize;
+              if (weightUnitVal === "-") {
+                  if (v.unitMeasure) {
+                      weightUnitVal = `${v.unitMeasure}${v.unitType || v.sizeType?.[0] || ""}`;
+                  } else if (!isClothing && !parsedSize && rawSize && !rawSize.toString().startsWith('{')) {
+                      const units = ['kg', 'g', 'ml', 'l', 'lb', 'oz'];
+                      const hasUnit = typeof rawSize === 'string' && units.some(u => rawSize.toLowerCase().includes(u));
+                      if (hasUnit || displaySize === "-") {
+                          weightUnitVal = rawSize;
+                      }
                   }
               }
 
@@ -219,17 +228,15 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{packTypeStr}</td>
                   <td>{displaySize}</td>
                   <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
-                  <td>{displayLength}</td>
-                  <td>{displayHeight}</td>
                   <td>{weightUnitVal}</td>
-                  <td>{displayRadius}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>
-                  <td>{v.stockQty ?? 0}</td> 
+                  <td>{v.stockUpdates?.totalQuantity || v.stockQty || 0}</td> 
+                  <td>{v.stockUpdates?.openStockQuantity || v.openingStock || 0}</td> 
+                  <td>{v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0}</td> 
                   <td>{v.soldQty ?? 0}</td> 
                   <td>{v.damagedQty ?? 0}</td>  
-                  <td>{v.openingStock ?? 0}</td> 
                 </tr>
               );
             })}

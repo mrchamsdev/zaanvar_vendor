@@ -79,31 +79,43 @@ const ProductTable = ({
           </thead>
           <tbody>
             {paginatedProducts.length > 0 ? (
-              paginatedProducts.map((product) => (
-                <tr key={product.id}>
-                  <td>
-                    <input 
-                      type="checkbox" 
-                      className={styles.checkbox}
-                      checked={selectedIds.includes(product.id)}
-                      onChange={() => toggleSelectOne(product.id)}
-                    />
-                  </td>
-                  <td>{product.productCode || "-"}</td>
-                  <td 
-                    className={styles.clickableName} 
-                    onClick={() => onView(product)}
-                  >
-                    {product.productName}
-                  </td>
-                  <td>{product.brandName || "-"}</td>
-                  <td>{product.category?.category || product.category?.name || product.categoryId?.category || product.categoryId?.name || "Product"}</td>
-                  <td>{product.totalQuantity || "00"}</td>
-                  <td>{product.openingStock || "00"}</td>
-                  <td>{product.holdQuantity || "00"}</td>
-                  <td className={styles.mrp}>₹{product.mrp || "0"}</td>
-                </tr>
-              ))
+              paginatedProducts.map((product) => {
+                const variants = product.variants || [];
+                const firstVariant = variants[0] || {};
+                
+                // Calculate totals across variants
+                const totalQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.totalQuantity || 0), 0) || product.totalQuantity || "0";
+                const openQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.openStockQuantity || 0), 0) || product.openingStock || "0";
+                const holdQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.onHoldQuantity || 0), 0) || product.holdQuantity || "0";
+                const displayMRP = firstVariant.mrp || product.mrp || "0";
+                const displayCode = product.productCode || product.ProductCode || "-";
+
+                return (
+                  <tr key={product.id || product.productId}>
+                    <td>
+                      <input 
+                        type="checkbox" 
+                        className={styles.checkbox}
+                        checked={selectedIds.includes(product.id || product.productId)}
+                        onChange={() => toggleSelectOne(product.id || product.productId)}
+                      />
+                    </td>
+                    <td>{displayCode}</td>
+                    <td 
+                      className={styles.clickableName} 
+                      onClick={() => onView(product)}
+                    >
+                      {product.productName}
+                    </td>
+                    <td>{product.brandName || product.brand || "-"}</td>
+                    <td>{product.category?.category || product.category?.name || product.categoryId?.category || product.categoryId?.name || "Product"}</td>
+                    <td>{totalQty}</td>
+                    <td>{openQty}</td>
+                    <td>{holdQty}</td>
+                    <td className={styles.mrp}>₹{displayMRP}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan="9" style={{ textAlign: "center", padding: "40px" }}>

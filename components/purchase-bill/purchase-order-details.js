@@ -8,6 +8,24 @@ import PurchaseOrderForm from "./purchase-order-form";
 import ReceiveOrderForm from "./receive-order-form";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(true);
@@ -72,7 +90,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                 productId: item.productId,
                 productName: item.productName,
                 productCode: item.productCode,
-                variant: item.variantType ? `${item.variantType.size || ""} ${item.variantType.flavor || ""}`.trim() : (item.variantMeasure || "--"),
+                variant: item.variantType ? `${item.variantType.packType || ""} ${formatVariantSize(item.variantType.size) || ""} ${item.variantType.flavor || ""}`.trim() : (item.variantMeasure || "--"),
                 currentStock: item.currentQty || 0,
                 orderQty: item.qty,
                 variantId: item.variantId,
@@ -163,7 +181,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                                 <td style={{fontWeight: '500'}}>{item.productName}</td>
                                 <td style={{textAlign: 'center'}}>{item.productCode || "--"}</td>
                                 <td style={{textAlign: 'center', color: '#666'}}>
-                                    {[item.variantType?.packType, item.variantType?.size, item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
+                                    {[item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
                                 </td>
                                 <td style={{textAlign: 'center'}}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
                                 <td style={{textAlign: 'center'}}>

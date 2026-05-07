@@ -81,11 +81,11 @@ return response.data;
 } else {
 throw new Error(`Unexpected status code: ${response.status}`);
 }
-} catch (error) {
-   // swal("Failure", "Something went wrong. Please try again later.", "error");
-throw error;
-}
-}
+    } catch (error) {
+      console.error("imagePost error:", error);
+      throw error;
+    }
+  }
 
 // async get(url) {
 //   try {
@@ -373,11 +373,8 @@ async imagePut(url, data) {
           throw error;
         });
     } catch (e) {
-      // swal(
-      //   'Failure',
-      //   Something went wrong. Please try again after sometime.,
-      //   "error"
-      // );
+      console.error("imagePut error:", e);
+      throw e;
     }
   }
   async imagePost(url, data) {
@@ -399,11 +396,11 @@ if (response.status >= 200 && response.status < 500) {
 } else {
   throw new Error(`Unexpected status code: ${response.status}`);
 }
-} catch (error) {
-   // swal("Failure", "Something went wrong. Please try again later.", "error");
-throw error;
-}
-}
+    } catch (error) {
+      console.error("imagePost error:", error);
+      throw error;
+    }
+  }
 //   async imagePost(url, data) {
 //     try {
 //       let baseURL = BACKEND_URL;
