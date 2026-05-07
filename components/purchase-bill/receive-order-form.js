@@ -111,62 +111,84 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     };
 
     const totals = useMemo(() => {
-        if (!items.length) return { totalCost: 0, discountableAmount: 0, shortfallAmount: 0, damagedAmount: 0 };
-        let totalCost = 0;
-        let discountableAmount = 0;
-        let itemDiscountTotal = 0;
-        let itemTaxTotal = 0;
+        if (!items.length) return { totalCost: 0, subtotal: 0, shortfallAmount: 0, damagedAmount: 0, itemDiscountTotal: 0, itemTaxTotal: 0, grandTotal: 0, discountableAmount: 0 };
+        
+        let totalOrderValue = 0;
+        let grandTotal = 0;
         let shortfallAmount = 0;
         let damagedAmount = 0;
+        let itemDiscountTotal = 0;
+        let itemTaxTotal = 0;
+        let discountableAmountSum = 0;
 
         items.forEach(item => {
             const isEntered = item.costPrice !== "" && item.receivedQty !== "";
             if (!isEntered) return;
 
-            const cost = Number(item.costPrice) || 0;
-            const ordered = Number(item.qty) || 0;
-            const received = Number(item.receivedQty) || 0;
-            const damaged = Number(item.damagedQty) || 0;
-            const itemDiscount = Number(item.discount) || 0;
-            const itemTax = Number(item.tax) || 0;
-            
-            totalCost += (ordered * cost);
-            
-            let rowBase = payBasedOnOrdered ? (ordered * cost) : (received * cost);
-            const itemDiscountPercent = Number(item.discount) || 0;
-            const itemDiscountAmount = (rowBase * itemDiscountPercent / 100);
-            
-            itemDiscountTotal += itemDiscountAmount;
-            
+            const cost = parseFloat(item.costPrice) || 0;
+            const ordered = parseFloat(item.qty) || 0;
+            const received = parseFloat(item.receivedQty) || 0;
+            const damaged = parseFloat(item.damagedQty) || 0;
+            const discountPercent = parseFloat(item.discount) || 0;
+            const taxPercent = parseFloat(item.tax) || 0;
+
+            // 1. Total Order Value = Order Qty × Cost Price
+            totalOrderValue += (ordered * cost);
+
+            // 2. Shortfall Amount = (Order Qty - Received Qty) × Cost Price
             if (ordered > received) {
                 shortfallAmount += (ordered - received) * cost;
             }
-            
-            damagedAmount += (damaged * cost);
-            
-            let rowAfterDiscount = rowBase - itemDiscountAmount;
-            let rowTax = (rowAfterDiscount * itemTax / 100);
-            let rowFinal = rowAfterDiscount + rowTax;
-            
-            itemTaxTotal += rowTax;
-            discountableAmount += rowFinal;
-        });
-        
-        if (damagedReturnedGoods) {
-            discountableAmount -= damagedAmount;
-        }
 
-        return { totalCost, discountableAmount, shortfallAmount, damagedAmount, itemDiscountTotal, itemTaxTotal };
+            // 3. Damage Amount = Damaged Qty × Cost Price
+            damagedAmount += (damaged * cost);
+
+            // 4. Effective Billing Qty based on toggles
+            // If payBasedOnOrdered is true, we start with ordered quantity. Otherwise, received quantity.
+            const baseQty = payBasedOnOrdered ? ordered : received;
+            // If damagedReturnedGoods is true, we deduct damaged quantity. Otherwise, we don't.
+            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+
+            // 5. Billable Subtotal = Effective Billing Qty × Cost Price
+            const billableSubtotal = billingQty * cost;
+            discountableAmountSum += billableSubtotal;
+
+            // 6. Discount Amount = Billable Subtotal × Discount %
+            const discountAmount = (billableSubtotal * discountPercent / 100);
+            itemDiscountTotal += discountAmount;
+
+            // 7. Amount After Discount = Billable Subtotal - Discount Amount
+            const amountAfterDiscount = billableSubtotal - discountAmount;
+
+            // 8. Tax Amount = Amount After Discount × Tax %
+            const taxAmount = (amountAfterDiscount * taxPercent / 100);
+            itemTaxTotal += taxAmount;
+
+            // 9. Final Product Amount = Amount After Discount + Tax Amount
+            const finalProductAmount = amountAfterDiscount + taxAmount;
+            grandTotal += finalProductAmount;
+        });
+
+        return { 
+            totalCost: totalOrderValue, 
+            shortfallAmount, 
+            damagedAmount, 
+            itemDiscountTotal, 
+            itemTaxTotal, 
+            grandTotal,
+            discountableAmount: discountableAmountSum
+        };
     }, [items, payBasedOnOrdered, damagedReturnedGoods]);
 
     const breakdown = useMemo(() => {
-        const { discountableAmount } = totals;
+        const { grandTotal } = totals;
         let discountVal = Number(overallDiscount.value) || 0;
-        if (overallDiscount.type === '%') discountVal = (discountableAmount * (overallDiscount.value / 100));
-        let taxVal = Number(overallTax.value) || 0;
-        if (overallTax.type === '%') taxVal = ((discountableAmount - discountVal) * (overallTax.value / 100));
+        if (overallDiscount.type === '%') discountVal = (grandTotal * (overallDiscount.value / 100));
         
-        const subtotal = discountableAmount - discountVal + taxVal;
+        let taxVal = Number(overallTax.value) || 0;
+        if (overallTax.type === '%') taxVal = ((grandTotal - discountVal) * (overallTax.value / 100));
+        
+        const subtotal = grandTotal - discountVal + taxVal;
         const finalAmount = subtotal - previousCredit;
         
         return { discountVal, taxVal, subtotal, finalAmount };
@@ -211,6 +233,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 overallDiscount: overallDiscount,
                 previousCredit: Number(previousCredit),
                 totalAmount: Number(breakdown.finalAmount),
+                toggles: {
+                    payBasedOnOrdered: payBasedOnOrdered,
+                    damagedReturnedGoods: damagedReturnedGoods,
+                    addToCreditNote: addToCreditNote
+                },
                 items: enteredItems.map(item => ({
                     productId: item.productId,
                     variantId: item.variantId,
@@ -263,14 +290,22 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                 <div className={styles.itemList}>
                     {items.map((item, index) => {
-                        const baseValue = (Number(item.costPrice) * Number(item.receivedQty)) || 0;
-                        const discPercent = Number(item.discount) || 0;
-                        const discAmount = (baseValue * discPercent / 100);
-                        const afterDiscount = baseValue - discAmount;
-                        const taxPercent = Number(item.tax) || 0;
+                        const cost = parseFloat(item.costPrice) || 0;
+                        const ordered = parseFloat(item.qty) || 0;
+                        const received = parseFloat(item.receivedQty) || 0;
+                        const damaged = parseFloat(item.damagedQty) || 0;
+                        
+                        const baseQty = payBasedOnOrdered ? ordered : received;
+                        const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+                        
+                        const billableSubtotal = billingQty * cost;
+                        const discPercent = parseFloat(item.discount) || 0;
+                        const discAmount = (billableSubtotal * discPercent / 100);
+                        const afterDiscount = billableSubtotal - discAmount;
+                        const taxPercent = parseFloat(item.tax) || 0;
                         const rowTotal = afterDiscount + (afterDiscount * (taxPercent / 100));
                         
-                        const orderedBase = (Number(item.costPrice) * Number(item.qty)) || 0;
+                        const orderedBase = (parseFloat(item.qty) || 0) * cost;
                         const orderedDiscAmount = (orderedBase * discPercent / 100);
                         const orderedAfterDisc = orderedBase - orderedDiscAmount;
                         const rowOrdered = orderedAfterDisc + (orderedAfterDisc * (taxPercent / 100));
@@ -381,6 +416,19 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                     value={item.damagedQty ?? ""}
                                                     onChange={(e) => handleItemChange(index, "damagedQty", e.target.value)}
                                                 />
+                                            </div>
+
+                                            <div className={styles.fieldGroup}>
+                                                <label className={styles.fieldLabel}>Discountable Amount</label>
+                                                <div className={styles.inputWrapper}>
+                                                    <span className={styles.currencySymbol}>₹</span>
+                                                    <input 
+                                                        type="text" 
+                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                        value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        readOnly
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className={styles.fieldGroup}>
@@ -576,6 +624,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
                                     <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toLocaleString()}</span></div>
                                 )}
+
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{fontWeight: '700', color: '#000'}}>₹ {totals.discountableAmount.toLocaleString()}</span></div>
 
                                 <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toLocaleString()}</span></div>
                                 <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toLocaleString()}</span></div>

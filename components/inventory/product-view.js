@@ -194,16 +194,22 @@ const ProductView = ({ data, onBack, isSplit }) => {
 
               // Size Column
               let displaySize = "-";
-              if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
+              if (rawSize && !rawSize.toString().startsWith('{')) {
+                  displaySize = rawSize;
+              } else if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
                   displaySize = packTypeStr;
-              } else if (isClothing && !rawSize.startsWith('{')) {
-                  displaySize = rawSize || "-";
               }
 
               // Weight / Unit Column
               let weightUnitVal = displayWeight;
-              if (weightUnitVal === "-" && !isClothing && !parsedSize && rawSize && !rawSize.startsWith('{')) {
-                  weightUnitVal = rawSize;
+              if (weightUnitVal === "-" && !isClothing && !parsedSize && rawSize && !rawSize.toString().startsWith('{')) {
+                  // If it's a simple number without units, and we already put it in displaySize, 
+                  // we only show it here if displaySize is still "-" or if it looks like a weight
+                  const units = ['kg', 'g', 'ml', 'l', 'lb', 'oz'];
+                  const hasUnit = typeof rawSize === 'string' && units.some(u => rawSize.toLowerCase().includes(u));
+                  if (hasUnit || displaySize === "-") {
+                      weightUnitVal = rawSize;
+                  }
               }
 
               return (

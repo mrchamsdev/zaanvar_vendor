@@ -70,6 +70,16 @@ function AuthGuard({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (document.activeElement && document.activeElement.type === 'number') {
+        document.activeElement.blur();
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
   return (
     <>
       <Head>
