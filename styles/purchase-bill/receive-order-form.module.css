@@ -130,9 +130,9 @@
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 10px 0 20px 0;
+    padding: 10px 0 25px 0;
     scrollbar-width: thin;
-    gap: 20px;
+    gap: 32px;
 }
 
 .fieldGrid::-webkit-scrollbar {
@@ -146,8 +146,7 @@
 
 .fieldGroup {
     flex-shrink: 0;
-    min-width: 180px;
-    /* margin-right: 32px; */
+    min-width: 210px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -231,11 +230,13 @@
     width: 100%;
     padding: 12px 16px;
     border: none;
-    background: #f9f9f9;
+    background: #f8f9fa;
+    border: 1px solid #f1f1f1;
     border-radius: 8px;
     font-size: 14px;
     outline: none;
     transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .inputWithSymbol {

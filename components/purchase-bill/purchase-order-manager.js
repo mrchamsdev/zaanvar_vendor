@@ -96,6 +96,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
         if (tab.mode === "View") {
             return (
                 <PurchaseOrderDetails 
+                    key={tab.id}
                     requestId={tab.id}
                     onSave={onSave}
                     onClose={onBack}
@@ -108,6 +109,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
         if (tab.mode === "Receive") {
             return (
                 <ReceiveOrderForm 
+                    key={tab.id}
                     requestId={tab.id}
                     onSave={() => {
                         if (onSave) onSave();
@@ -119,6 +121,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
         }
         return (
             <PurchaseOrderForm 
+                key={tab.id}
                 initialData={tab.data}
                 onSave={() => {
                     if (onSave) onSave();
@@ -151,23 +154,28 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
                 </div>
             </div>
 
-            {isAnyVisible && activeTab && !activeTab.isMinimized && (
+            {isAnyVisible && (
                 <>
                     <div className={styles.managerHeader}>Purchase Order Details</div>
                     <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-                        {!splitMode ? (
+                        {tabs.map(tab => {
+                            const isVisible = splitMode ? splitTabIds.includes(tab.id) : activeTabId === tab.id;
+                            const isMinimized = tab.isMinimized;
+                            
+                            return (
+                                <div 
+                                    key={tab.id} 
+                                    className={styles.formWrapper} 
+                                    style={{ display: (isVisible && !isMinimized) ? 'flex' : 'none' }}
+                                >
+                                    {renderForm(tab, () => closeTab(tab.id))}
+                                </div>
+                            );
+                        })}
+                        {splitMode && splitTabIds.some(id => id === null) && (
                             <div className={styles.formWrapper}>
-                                {activeTab ? renderForm(activeTab, () => closeTab(activeTabId)) : <div style={{padding: '40px', textAlign: 'center'}}>Select a task to continue</div>}
+                                <div className={styles.placeholder}>Select PO from Tabs</div>
                             </div>
-                        ) : (
-                            <>
-                                <div className={styles.formWrapper}>
-                                    {splitTabIds[0] ? renderForm(tabs.find(t => t.id === splitTabIds[0]), () => setSplitTabIds([null, splitTabIds[1]])) : <div className={styles.placeholder}>Select PO</div>}
-                                </div>
-                                <div className={styles.formWrapper}>
-                                    {splitTabIds[1] ? renderForm(tabs.find(t => t.id === splitTabIds[1]), () => setSplitTabIds([splitTabIds[0], null])) : <div className={styles.placeholder}>Select PO</div>}
-                                </div>
-                            </>
                         )}
                     </div>
                 </>

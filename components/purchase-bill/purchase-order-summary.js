@@ -64,66 +64,73 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         const payBasedOnOrdered = toggles.payBasedOnOrdered || false;
         const damagedReturnedGoods = toggles.damagedReturnedGoods || false;
         
-        let totalCost = 0;
-        let discountableAmount = 0;
+        let totalOrderValue = 0;
+        let grandTotal = 0;
         let itemDiscountTotal = 0;
         let itemTaxTotal = 0;
-        let damagedAmount = 0;
+        let damagedAmountTotal = 0;
+        let shortfallAmountTotal = 0;
 
         itemsList.forEach(item => {
-            const cost = Number(item.costPrice) || 0;
-            const ordered = Number(item.qty || item.orderQuantity) || 0;
-            const received = Number(item.receivedQty) || 0;
-            const itemDiscountPercent = Number(item.discount) || 0;
-            const itemTax = Number(item.taxGroupId) || 0; 
-            const damaged = Number(item.damagedQty) || 0;
-            
-            totalCost += (ordered * cost);
-            
-            let rowBase = payBasedOnOrdered ? (ordered * cost) : (received * cost);
-            const itemDiscountAmount = (rowBase * itemDiscountPercent / 100);
-            
-            itemDiscountTotal += itemDiscountAmount;
-            damagedAmount += (damaged * cost);
-            
-            let rowAfterDiscount = rowBase - itemDiscountAmount;
-            let rowTax = (rowAfterDiscount * itemTax / 100);
-            let rowFinal = rowAfterDiscount + rowTax;
-            
-            itemTaxTotal += rowTax;
-            discountableAmount += rowFinal;
-        });
+            const cost = parseFloat(item.costPrice) || 0;
+            const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
+            const received = parseFloat(item.receivedQty) || 0;
+            const damaged = parseFloat(item.damagedQty) || 0;
+            const discountPercent = parseFloat(item.discount) || 0;
+            const taxPercent = parseFloat(item.taxGroupId) || parseFloat(item.tax) || 0; 
 
-        if (damagedReturnedGoods) {
-            discountableAmount -= damagedAmount;
-        }
+            totalOrderValue += (ordered * cost);
+            
+            if (ordered > received) {
+                shortfallAmountTotal += (ordered - received) * cost;
+            }
+            damagedAmountTotal += (damaged * cost);
+
+            const baseQty = payBasedOnOrdered ? ordered : received;
+            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+
+            const billableSubtotal = billingQty * cost;
+            const discAmount = (billableSubtotal * discountPercent / 100);
+            const afterDiscount = billableSubtotal - discAmount;
+            const taxAmount = (afterDiscount * taxPercent / 100);
+            const finalProductAmount = afterDiscount + taxAmount;
+
+            itemDiscountTotal += discAmount;
+            itemTaxTotal += taxAmount;
+            grandTotal += finalProductAmount;
+        });
         
         let overallDiscountVal = Number(finalOverallDiscount.value) || 0;
         if (finalOverallDiscount.type === '%') {
-            overallDiscountVal = (discountableAmount * (overallDiscountVal / 100));
+            overallDiscountVal = (grandTotal * (overallDiscountVal / 100));
         }
         
         let overallTaxVal = Number(finalOverallTax.value) || 0;
         if (finalOverallTax.type === '%') {
-            overallTaxVal = ((discountableAmount - overallDiscountVal) * (overallTaxVal / 100));
+            overallTaxVal = ((grandTotal - overallDiscountVal) * (overallTaxVal / 100));
         }
         
         const previousCredit = Number(finalPreviousCredit) || 0;
-        const subtotal = discountableAmount - overallDiscountVal + overallTaxVal;
+        const subtotal = grandTotal - overallDiscountVal + overallTaxVal;
         const finalAmount = subtotal - previousCredit;
         
         return { 
-            totalCost, 
-            discountableAmount, 
+            totalCost: totalOrderValue, 
+            shortfallAmountTotal,
+            damagedAmountTotal,
+            discountableAmount: grandTotal, 
+            discountableBase: (grandTotal - itemTaxTotal + itemDiscountTotal),
             itemDiscountTotal,
             itemTaxTotal,
             overallDiscountVal, 
             overallTaxVal, 
             subtotal, 
             finalAmount,
-            previousCredit 
+            previousCredit,
+            payBasedOnOrdered,
+            damagedReturnedGoods
         };
-    }, [items, data, finalOverallTax, finalOverallDiscount, finalPreviousCredit]);
+    }, [items, data, finalOverallTax, finalOverallDiscount, finalPreviousCredit, receivedDetails]);
 
     return (
         <div className={styles.container}>
@@ -184,6 +191,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>SHORTFALL QTY</th>
                             <th>DAMAGED GOODS</th>
                             <th>COST PRICE (₹)</th>
+                            <th>DISCOUNTABLE AMOUNT (₹)</th>
                             <th>TAX (%)</th>
                             <th>Discount (%)</th>
                             <th>Total Order Value (₹)</th>
@@ -192,9 +200,16 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     </thead>
                     <tbody>
                         {items.map((item, idx) => {
-                            const orderVal = (Number(item.qty || 0) * Number(item.costPrice || 0));
-                            const receivedVal = (Number(item.receivedQty || 0) * Number(item.costPrice || 0));
+                            const cost = parseFloat(item.costPrice) || 0;
+                            const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
+                            const received = parseFloat(item.receivedQty) || 0;
+                            const damaged = parseFloat(item.damagedQty) || 0;
+
+                            const baseQty = breakdown.payBasedOnOrdered ? ordered : received;
+                            const billingQty = breakdown.damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
                             
+                            const billableSubtotal = billingQty * cost;
+
                             return (
                                 <tr key={idx}>
                                     <td className={styles.sno}>{String(idx + 1).padStart(2, '0')}</td>
@@ -212,28 +227,28 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                             <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span>
                                         </div>
                                     </td>
-                                    <td>{Math.max(0, (Number(item.qty || 0) - Number(item.receivedQty || 0)))}</td>
-                                    <td>{item.damagedQty || 0}</td>
-                                    <td className={styles.costCell}>{item.costPrice ? Number(item.costPrice).toLocaleString() : "-"}</td>
-                                    <td>{item.taxGroupId || 0}%</td>
-                                    <td>{item.discount || 0}%</td>
+                                    <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>
+                                    <td>{damaged}</td>
+                                    <td className={styles.costCell}>{cost.toLocaleString()}</td>
+                                    <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>{parseFloat(item.taxGroupId || item.tax || 0)}%</td>
+                                    <td>{parseFloat(item.discount || 0)}%</td>
                                     <td className={styles.costCell}>
                                         ₹ {(() => {
-                                            const base = (Number(item.qty || item.orderQuantity) || 0) * (Number(item.costPrice) || 0);
-                                            const discPercent = Number(item.discount) || 0;
+                                            const base = (parseFloat(item.qty || item.orderQuantity) || 0) * cost;
+                                            const discPercent = parseFloat(item.discount) || 0;
                                             const discAmount = (base * discPercent / 100);
                                             const afterDisc = base - discAmount;
-                                            const tax = (afterDisc * (Number(item.taxGroupId) || 0) / 100);
+                                            const tax = (afterDisc * (parseFloat(item.taxGroupId || item.tax) || 0) / 100);
                                             return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                         })()}
                                     </td>
                                     <td className={styles.costCell}>
                                         ₹ {(() => {
-                                            const base = (Number(item.receivedQty) || 0) * (Number(item.costPrice) || 0);
-                                            const discPercent = Number(item.discount) || 0;
-                                            const discAmount = (base * discPercent / 100);
-                                            const afterDisc = base - discAmount;
-                                            const tax = (afterDisc * (Number(item.taxGroupId) || 0) / 100);
+                                            const discPercent = parseFloat(item.discount) || 0;
+                                            const discAmount = (billableSubtotal * discPercent / 100);
+                                            const afterDisc = billableSubtotal - discAmount;
+                                            const tax = (afterDisc * (parseFloat(item.taxGroupId || item.tax) || 0) / 100);
                                             return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                         })()}
                                     </td>
@@ -261,6 +276,22 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <div className={styles.breakdownRow}>
                                 <span>Total Ordered Cost</span>
                                 <span>₹ {breakdown.totalCost.toLocaleString()}</span>
+                            </div>
+                            {!breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
+                                <div className={styles.breakdownRow}>
+                                    <span>Shortfall Amount</span>
+                                    <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+                            {breakdown.damagedReturnedGoods && breakdown.damagedAmountTotal > 0 && (
+                                <div className={styles.breakdownRow}>
+                                    <span>Damaged Amount</span>
+                                    <span>- ₹ {breakdown.damagedAmountTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div className={styles.breakdownRow}>
+                                <span>Discountable Amount</span>
+                                <span style={{fontWeight: '700', color: '#000'}}>₹ {breakdown.discountableBase.toLocaleString()}</span>
                             </div>
                             <div className={styles.breakdownRow}>
                                 <span>Item Discount</span>
