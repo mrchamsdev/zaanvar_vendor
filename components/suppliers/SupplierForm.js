@@ -4,6 +4,7 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
+import { FiChevronDown } from "react-icons/fi";
 
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     const { jwtToken, userInfo } = useStore();
@@ -11,17 +12,26 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
 
     // Form states
     const [supplierName, setSupplierName] = useState("");
+    const [supplierNameError, setSupplierNameError] = useState("");
     const [supplierType, setSupplierType] = useState([]);
+    const [supplierTypeError, setSupplierTypeError] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [phoneError, setPhoneError] = useState("");
+    const [pinCodeError, setPinCodeError] = useState("");
     const [street, setStreet] = useState("");
     const [landmark, setLandmark] = useState("");
     const [state, setState] = useState("");
+    const [stateError, setStateError] = useState("");
     const [city, setCity] = useState("");
+    const [cityError, setCityError] = useState("");
     const [locality, setLocality] = useState("");
     const [areaPinCode, setAreaPinCode] = useState("");
-    const [country, setCountry] = useState("India");
+    const [country, setCountry] = useState("");
+    const [countryError, setCountryError] = useState("");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
+    const [branchError, setBranchError] = useState("");
 
     const supplierId = initialData?.supplierId;
 
@@ -37,7 +47,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
             setCity(initialData.city || "");
             setLocality(initialData.locality || "");
             setAreaPinCode(initialData.areaPinCode || "");
-            setCountry(initialData.country || "India");
+            setCountry(initialData.country || "");
             setSelectedBranchIds(initialData.branches?.map(b => b.id) || []);
         }
     }, [initialData]);
@@ -57,10 +67,46 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     );
 
     const handleSave = async () => {
-        if (!supplierName || !phone || selectedBranchIds.length === 0) {
-            toast.error("Please fill required fields (Name, Phone, Branch)");
-            return;
+        let hasError = false;
+
+        if (!supplierName) { setSupplierNameError("Supplier name is required"); hasError = true; } else setSupplierNameError("");
+        if (selectedBranchIds.length === 0) { setBranchError("Branch is required"); hasError = true; } else setBranchError("");
+        if (supplierType.length === 0) { setSupplierTypeError("Supplier type is required"); hasError = true; } else setSupplierTypeError("");
+        if (!country) { setCountryError("Country is required"); hasError = true; } else setCountryError("");
+        if (!state) { setStateError("State is required"); hasError = true; } else setStateError("");
+        if (!city) { setCityError("City is required"); hasError = true; } else setCityError("");
+
+        if (!phone) {
+            setPhoneError("Phone number is required");
+            hasError = true;
+        } else if (phone.length !== 10) {
+            setPhoneError("Phone number must be exactly 10 digits");
+            hasError = true;
+        } else {
+            setPhoneError("");
         }
+
+        if (!email) {
+            setEmailError("Email ID is required");
+            hasError = true;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setEmailError("Please enter a valid email address");
+            hasError = true;
+        } else {
+            setEmailError("");
+        }
+
+        if (!areaPinCode) {
+            setPinCodeError("Pin Code is required");
+            hasError = true;
+        } else if (String(areaPinCode).length !== 6) {
+            setPinCodeError("Pin Code must be exactly 6 digits");
+            hasError = true;
+        } else {
+            setPinCodeError("");
+        }
+
+        if (hasError) return;
 
         const payload = {
             supplierName,
@@ -102,10 +148,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     };
 
     return (
-        <div style={{ width: '100%', background: '#fff', padding: '48px', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
-            {/* Section 1: Supplier Information */}
+        <div style={{ boxSizing: 'border-box', width: '100%', background: '#fff', padding: '48px', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
             <div style={{ marginBottom: '48px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#E9315D', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px' }}>Supplier Information</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#000', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px' }}>Supplier Information</h3>
                 <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
@@ -113,9 +158,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                                 Supplier name <span style={{color: '#FF4D4F'}}>*</span>
                             </label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Supplier Name"
-                                value={supplierName} onChange={(e) => setSupplierName(e.target.value)}
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Supplier Name"
+                                value={supplierName} onChange={(e) => { setSupplierName(e.target.value); if(supplierNameError) setSupplierNameError(""); }}
                             />
+                            {supplierNameError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{supplierNameError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
@@ -124,10 +170,11 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             <MultiSelectDropdown 
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
-                                setSelectedIds={setSelectedBranchIds}
+                                setSelectedIds={(ids) => { setSelectedBranchIds(ids); if(branchError) setBranchError(""); }}
                                 placeholder="Select Branch Name here"
-                                customStyles={{ background: '#F8F9FA', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
+                                customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
                             />
+                            {branchError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{branchError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
@@ -136,26 +183,41 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             <MultiSelectDropdown 
                                 listItems={supplierTypes}
                                 selectedIds={supplierType}
-                                setSelectedIds={setSupplierType}
+                                setSelectedIds={(ids) => { setSupplierType(ids); if(supplierTypeError) setSupplierTypeError(""); }}
                                 placeholder="Select Supplier Type here"
-                                customStyles={{ background: '#F8F9FA', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
+                                customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
                             />
+                            {supplierTypeError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{supplierTypeError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
                                 Phone Number <span style={{color: '#FF4D4F'}}>*</span>
                             </label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Phone Number"
-                                value={phone} onChange={(e) => setPhone(e.target.value)}
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Phone Number"
+                                value={phone} 
+                                maxLength={10}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    if (val.length <= 10) {
+                                        setPhone(val);
+                                        if (phoneError) setPhoneError("");
+                                    }
+                                }}
                             />
+                            {phoneError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{phoneError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID <span style={{color: '#FF4D4F'}}>*</span></label>
                             <input 
-                                type="email" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Email ID here"
-                                value={email} onChange={(e) => setEmail(e.target.value)}
+                                type="email" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Email ID here"
+                                value={email} 
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (emailError) setEmailError("");
+                                }}
                             />
+                            {emailError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{emailError}</span>}
                         </div>
                     </div>
                 </div>
@@ -163,50 +225,66 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
 
             {/* Section 2: Address Information */}
             <div style={{ marginBottom: '48px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#E9315D', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px' }}>Address Information</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#000', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px' }}>Address Information</h3>
                 <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country</label>
-                            <select style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#777', appearance: 'none' }} value={country} onChange={(e) => setCountry(e.target.value)}>
-                                <option value="India">Select country here</option>
-                                <option value="USA">USA</option>
-                            </select>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <div style={{ position: 'relative' }}>
+                                <select style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#777', appearance: 'none', outline: 'none' }} value={country} onChange={(e) => { setCountry(e.target.value); if(countryError) setCountryError(""); }}>
+                                    <option value="">Select country here</option>
+                                    <option value="India">India</option>
+                                    <option value="USA">USA</option>
+                                </select>
+                                <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
+                            </div>
+                            {countryError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{countryError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>state</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State <span style={{color: '#FF4D4F'}}>*</span></label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Select State here"
-                                value={state} onChange={(e) => setState(e.target.value)}
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select State here"
+                                value={state} onChange={(e) => { setState(e.target.value); if(stateError) setStateError(""); }}
                             />
+                            {stateError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{stateError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City <span style={{color: '#FF4D4F'}}>*</span></label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Select City here"
-                                value={city} onChange={(e) => setCity(e.target.value)}
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select City here"
+                                value={city} onChange={(e) => { setCity(e.target.value); if(cityError) setCityError(""); }}
                             />
+                            {cityError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{cityError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Area Name</label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Area Name"
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Area Name"
                                 value={locality} onChange={(e) => setLocality(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Landmark</label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Landmark here"
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Landmark here"
                                 value={landmark} onChange={(e) => setLandmark(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code <span style={{color: '#FF4D4F'}}>*</span></label>
                             <input 
-                                type="text" style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F8F9FA', fontSize: '14px', color: '#333' }} placeholder="Enter Pin Code here"
-                                value={areaPinCode} onChange={(e) => setAreaPinCode(e.target.value)}
+                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Pin Code here"
+                                value={areaPinCode} 
+                                maxLength={6}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    if (val.length <= 6) {
+                                        setAreaPinCode(val);
+                                        if (pinCodeError) setPinCodeError("");
+                                    }
+                                }}
                             />
+                            {pinCodeError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{pinCodeError}</span>}
                         </div>
                     </div>
                 </div>
@@ -220,7 +298,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                     Cancel
                 </button>
                 <button 
-                    style={{ padding: '12px 48px', borderRadius: '8px', border: 'none', background: '#E9315D', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 12px rgba(233, 49, 93, 0.2)' }}
+                    style={{ padding: '12px 48px', borderRadius: '8px', border: 'none', background: '#000', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}
                     onClick={handleSave}
                     disabled={loading}
                 >

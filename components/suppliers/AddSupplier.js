@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css"; // Reuse modal styles
-import { FiX } from "react-icons/fi";
+import { FiX, FiChevronDown } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
@@ -125,7 +125,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 </div>
 
                 <div className={styles.modalContent}>
-                    <h4 style={{ marginBottom: '20px', color: '#555' }}>Supplier Information</h4>
+                    <h4 style={{ marginBottom: '20px', color: '#000' }}>Supplier Information</h4>
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field}>
                             <label>Supplier name <span style={{color: 'red'}}>*</span></label>
@@ -168,14 +168,17 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                         </div>
                     </div>
 
-                    <h4 style={{ margin: '30px 0 20px', color: '#555' }}>Supplier Information</h4>
+                    <h4 style={{ margin: '30px 0 20px', color: '#000' }}>Address Information</h4>
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field}>
                             <label>Country</label>
-                            <select className={styles.select} value={country} onChange={(e) => setCountry(e.target.value)}>
-                                <option value="India">India</option>
-                                <option value="USA">USA</option>
-                            </select>
+                            <div style={{ position: 'relative' }}>
+                                <select className={styles.select} style={{ appearance: 'none', width: '100%' }} value={country} onChange={(e) => setCountry(e.target.value)}>
+                                    <option value="India">India</option>
+                                    <option value="USA">USA</option>
+                                </select>
+                                <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }} />
+                            </div>
                         </div>
                         <div className={styles.field}>
                             <label>state</label>

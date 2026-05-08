@@ -189,12 +189,15 @@
   color: #4b5563 !important;
   background: #f3f4f6 !important;
   font-weight: 700 !important;
+  border-bottom: 1px solid #e5e7eb !important;
 }
 
 .subHeaderRow th {
-  top: 38px !important; /* Precisely matches the height of the first row (12+12+11*1.2 + borders) */
+  top: 38px !important; 
   background: #f9fafb !important;
   color: #6b7280 !important;
+  border-top: none !important;
+  border-right: 1px solid #e5e7eb !important;
 }
 
 /* Center text for variant-related columns */
@@ -206,7 +209,7 @@
 .table td {
   padding: 14px 16px;
   border-top: 1px solid #eee;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid #eee !important;
   font-size: 14px;
   color: #333;
 }
@@ -219,7 +222,8 @@
 .variantRow td {
   background: #fff;
   border-top: 1px dashed #eee;
-  font-size: 13px;
+  border-bottom: 1px dashed #eee;
+  font-size: 14px;
 }
 
 .variantRow td:nth-child(n+2) {

@@ -292,7 +292,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                 <div className={styles.grid}>
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Selected Branch</label>
-                        <div className={styles.select} style={{ background: '#f5f5f5', cursor: 'not-allowed', display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+                        <div className={styles.select} style={{ background: '#fcfcfc', cursor: 'not-allowed' }}>
                             {branches.find(b => b.id == branchId)?.name || "N/A"}
                         </div>
                     </div>
@@ -312,7 +312,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                     setIsSupplierDropdownOpen(true);
                                 }}
                                 onFocus={() => setIsSupplierDropdownOpen(true)}
-                                style={{ border: 'none', background: 'transparent' }}
+                                style={{ border: 'none', background: 'transparent', width: '100%', height: '100%' }}
                             />
                             <div className={styles.dropdownIcon}>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>

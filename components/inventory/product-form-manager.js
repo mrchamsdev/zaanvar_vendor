@@ -39,17 +39,18 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
     if (Array.isArray(initialData) && initialData.length > 0) {
       return initialData.map((prod, idx) => ({
         id: String(idx + 1),
-        title: prod.productName || `Edit Product ${idx + 1}`,
+        title: prod.productName || `Product ${idx + 1}`,
+        shortTitle: prod.productName ? prod.productName.substring(0, 3) : `P${idx + 1}`,
         isMinimized: false,
         data: prod,
-        mode: mode // Standardize to the manager's mode
+        mode: mode
       }));
     }
-    // Default single tab for Add mode or fallback
     return [
       { 
         id: '1', 
         title: initialData?.productName || (mode === "Add" ? 'Product 1' : 'Edit Product'), 
+        shortTitle: initialData?.productName ? initialData.productName.substring(0, 3) : (mode === "Add" ? 'P1' : 'Edit'),
         isMinimized: false, 
         data: initialData || {},
         mode: mode
@@ -63,7 +64,15 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
 
   const addTab = () => {
     const newId = String(Date.now());
-    const newTab = { id: newId, title: `Product #${tabs.length + 1}`, isMinimized: false, data: {}, mode: "Add" };
+    const nextNum = tabs.length + 1;
+    const newTab = { 
+        id: newId, 
+        title: `Product ${nextNum}`, 
+        shortTitle: `P${nextNum}`,
+        isMinimized: false, 
+        data: {}, 
+        mode: "Add" 
+    };
     setTabs([...tabs, newTab]);
     setActiveTabId(newId);
     if (splitMode && !splitTabIds[1]) {
@@ -73,31 +82,64 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
 
   const closeTab = (id, e) => {
     e?.stopPropagation();
+    const tabToClose = tabs.find(t => t.id === id);
+    if (!tabToClose) return;
+
     const newTabs = tabs.filter(t => t.id !== id);
     if (newTabs.length === 0) {
         onClose();
         return;
     }
+    
     setTabs(newTabs);
-    if (activeTabId === id) setActiveTabId(newTabs[0].id);
+
+    // If closing active tab, pick a new one
+    if (activeTabId === id) {
+        const nextVisible = newTabs.find(t => !t.isMinimized);
+        setActiveTabId(nextVisible ? nextVisible.id : newTabs[0].id);
+    }
+
+    // Handle split mode cleanup
     if (splitTabIds.includes(id)) {
-        setSplitTabIds(splitTabIds.map(sid => sid === id ? null : sid));
+        const nextSplitIds = splitTabIds.map(sid => sid === id ? null : sid);
+        setSplitTabIds(nextSplitIds);
+        
+        // If we no longer have 2 tabs in split, exit split mode to show the remaining one as full
+        if (nextSplitIds.filter(sid => sid !== null).length < 2) {
+            setSplitMode(false);
+        }
     }
   };
 
   const toggleMinimize = (id) => {
-    setActiveTabId(id);
-    setTabs(prev => prev.map(t => t.id === id ? { ...t, isMinimized: !t.isMinimized } : t));
+    const tab = tabs.find(t => t.id === id);
+    if (!tab) return;
     
-    // If minimizing the active one, pick a new visible one
-    setTabs(prev => {
-        const target = prev.find(t => t.id === id);
-        if (target?.isMinimized && activeTabId === id) {
-             const next = prev.find(t => !t.isMinimized);
-             if (next) setActiveTabId(next.id);
+    const isNowMinimized = !tab.isMinimized;
+    
+    setTabs(prev => prev.map(t => t.id === id ? { ...t, isMinimized: isNowMinimized } : t));
+    
+    if (isNowMinimized) {
+        // If minimizing, find a new active tab if this was the one
+        if (activeTabId === id) {
+            const nextVisible = tabs.find(t => t.id !== id && !t.isMinimized);
+            if (nextVisible) setActiveTabId(nextVisible.id);
         }
-        return prev;
-    });
+
+        // If in split mode and this tab was one of the split views
+        if (splitMode && splitTabIds.includes(id)) {
+            const nextSplitIds = splitTabIds.map(sid => sid === id ? null : sid);
+            setSplitTabIds(nextSplitIds);
+            
+            // If only one non-minimized tab left in split, go back to full screen
+            if (nextSplitIds.filter(sid => sid !== null).length < 2) {
+                setSplitMode(false);
+            }
+        }
+    } else {
+        // If maximizing, make it active
+        setActiveTabId(id);
+    }
   };
 
   const toggleSplit = () => {
@@ -125,16 +167,19 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
               className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
               onClick={() => setActiveTabId(tab.id)}
             >
-              <span>{tab.title}</span>
+              <span className={styles.tabText}>
+                <span className={styles.fullTitle}>{tab.title}</span>
+                <span className={styles.shortTitle}>{tab.shortTitle}</span>
+              </span>
               <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
             </div>
           ))}
-          {mode === "Add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
+          {mode === "Add" && tabs.length < 15 && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
 
           <div className={styles.windowActions}>
             <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
             <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-            <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
+            <span className={styles.windowActionIcon} onClick={(e) => closeTab(activeTabId, e)} title="Close Tab"><IconX /></span>
           </div>
         </div>
       )}
@@ -151,12 +196,14 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
             {tabs.find(t => t.id === activeTabId) && (
               tabs.find(t => t.id === activeTabId).mode === "View" ? (
                 <ProductView 
+                  key={activeTabId}
                   data={tabs.find(t => t.id === activeTabId).data}
                   onBack={() => closeTab(activeTabId)}
                   isSplit={splitMode}
                 />
               ) : (
                 <ProductForm 
+                  key={activeTabId}
                   initialData={tabs.find(t => t.id === activeTabId).data} 
                   onSave={() => closeTab(activeTabId)}
                   onBack={() => closeTab(activeTabId)}
@@ -175,12 +222,14 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
                       <div className={styles.formLabel}>{tab.title}</div>
                       {tab.mode === "View" ? (
                         <ProductView 
+                          key={tab.id}
                           data={tab.data}
                           onBack={() => setSplitTabIds([null, splitTabIds[1]])}
                           isSplit={splitMode}
                         />
                       ) : (
                         <ProductForm 
+                          key={tab.id}
                           initialData={tab.data}
                           onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([null, splitTabIds[1]])}
@@ -200,12 +249,14 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
                       <div className={styles.formLabel}>{tab.title}</div>
                       {tab.mode === "View" ? (
                         <ProductView 
+                          key={tab.id}
                           data={tab.data}
                           onBack={() => setSplitTabIds([splitTabIds[0], null])}
                           isSplit={splitMode}
                         />
                       ) : (
                         <ProductForm 
+                          key={tab.id}
                           initialData={tab.data}
                           onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([splitTabIds[0], null])}

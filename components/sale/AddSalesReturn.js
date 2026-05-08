@@ -18,7 +18,28 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [orders, setOrders] = useState([]);
     const [selectedOrder, setSelectedOrder] = useState(null);
-    const [products, setProducts] = useState([]);
+    const [cartDetails, setCartDetails] = useState(null);
+    const [availableItems, setAvailableItems] = useState([]);
+
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`${parsed.radius}${parsed.radiusUnit || 'mm'}R`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
+    
     const [formData, setFormData] = useState({
         receiptNo: "",
         returnNo: `SR-${Date.now().toString().slice(-6)}`,
@@ -30,7 +51,6 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     });
 
     const [items, setItems] = useState([]);
-    const [availableItems, setAvailableItems] = useState([]);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // stores index
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showReceiptDropdown, setShowReceiptDropdown] = useState(false);
@@ -85,17 +105,23 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 let availableItemsList = [];
                 if (orderRes.status === "success" && orderRes.data) {
                     setSelectedOrder(orderRes.data);
-                    availableItemsList = (orderRes.data.cartItems || []).map(item => ({
-                        userOrderItemsID: item.userOrderItemsID,
-                        productName: item.product?.productName || "Product",
-                        productId: item.productId,
-                        variantId: item.variantId,
-                        quantity: item.quantity, // original order qty
-                        unit: item.variant?.variantType?.type || "Unit",
-                        price: parseFloat(item.sellingPrice) || 0,
-                        taxPercentage: parseFloat(item.taxPercentage) || 0,
-                        discountPercentage: parseFloat(item.discountPercentage) || 0,
-                    }));
+                    availableItemsList = (orderRes.data.cartItems || []).map(item => {
+                        const vType = item.variant?.variantType || {};
+                        const unitParts = [formatVariantSize(vType.size), vType.type].filter(Boolean);
+                        const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
+
+                        return {
+                            userOrderItemsID: item.userOrderItemsID,
+                            productName: item.product?.productName || "Product",
+                            productId: item.productId,
+                            variantId: item.variantId,
+                            quantity: item.quantity, // original order qty
+                            unit: unitVal,
+                            price: parseFloat(item.sellingPrice) || 0,
+                            taxPercentage: parseFloat(item.taxPercentage) || 0,
+                            discountPercentage: parseFloat(item.discountPercentage) || 0,
+                        };
+                    });
                     setAvailableItems(availableItemsList);
                 }
 
@@ -147,17 +173,23 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         if (res.status === "success" && res.data) {
             setSelectedOrder(res.data);
             const cartItems = res.data.cartItems || [];
-            setAvailableItems(cartItems.map(item => ({
-                userOrderItemsID: item.userOrderItemsID,
-                productName: item.product?.productName || "Product",
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                unit: item.variant?.variantType?.type || "Unit",
-                price: parseFloat(item.sellingPrice) || 0,
-                taxPercentage: parseFloat(item.taxPercentage) || 0,
-                discountPercentage: parseFloat(item.discountPercentage) || 0,
-            })));
+            setAvailableItems(cartItems.map(item => {
+                const vType = item.variant?.variantType || {};
+                const unitParts = [formatVariantSize(vType.size), vType.type].filter(Boolean);
+                const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
+
+                return {
+                    userOrderItemsID: item.userOrderItemsID,
+                    productName: item.product?.productName || "Product",
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    quantity: item.quantity,
+                    unit: unitVal,
+                    price: parseFloat(item.sellingPrice) || 0,
+                    taxPercentage: parseFloat(item.taxPercentage) || 0,
+                    discountPercentage: parseFloat(item.discountPercentage) || 0,
+                };
+            }));
             
             // Match Purchase Return behavior: Add an initial empty row
             if (cartItems.length > 0) {

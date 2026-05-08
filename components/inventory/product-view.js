@@ -15,18 +15,28 @@ const ProductView = ({ data, onBack, isSplit }) => {
 
   // Flatten the category for display
   const renderList = (arr) => {
-    if (arr && typeof arr === 'object' && !Array.isArray(arr)) {
-      return arr.petType || "-";
+    if (!arr) return "-";
+    if (typeof arr === 'object' && !Array.isArray(arr)) {
+      const val = arr.petType || arr.name || arr;
+      return typeof val === 'object' ? JSON.stringify(val) : String(val);
     }
-    if (!Array.isArray(arr)) return arr || "-";
-    return arr.join(" | ") || "-";
+    if (!Array.isArray(arr)) return String(arr);
+    return arr.map(item => {
+        if (typeof item === 'object' && item !== null) return item.petType || item.name || JSON.stringify(item);
+        return item;
+    }).join(" | ") || "-";
   };
   const renderCategory = (cat) => {
-    if (Array.isArray(cat)) return cat.join(", ");
-    if (typeof cat === 'object' && cat !== null) {
-        return cat.subCategory || cat.category || cat.name || "-";
+    if (!cat) return "-";
+    if (Array.isArray(cat)) return cat.map(c => renderCategory(c)).join(", ");
+    if (typeof cat === 'object') {
+        const val = cat.subCategory || cat.category || cat.name || cat.categoryName || "-";
+        if (typeof val === 'object' && val !== null) {
+            return val.subCategory || val.category || val.name || JSON.stringify(val);
+        }
+        return String(val);
     }
-    return cat || "-";
+    return String(cat);
   };
 
   // Ensure we get variants from any potential data key
@@ -155,8 +165,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <th>EAN/UPC Number</th>
               <th>Pack Type</th>
               <th>Size</th>
+              <th>Unit</th>
               <th>Min Stock</th>
-              <th>Weight/Unit</th>
               <th>Pack Count</th>
               <th>MRP</th>
               <th>Selling Price</th>
@@ -204,6 +214,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
                   if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
                   if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
+                  if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
                   displaySize = parts.length > 0 ? parts.join(" x ") : "-";
               }
 
@@ -227,8 +238,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{v.barcode || v.eanUpcNumber || "-"}</td>
                   <td>{packTypeStr}</td>
                   <td>{displaySize}</td>
-                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
                   <td>{weightUnitVal}</td>
+                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>

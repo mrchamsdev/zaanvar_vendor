@@ -38,9 +38,10 @@
   color: #fb3b3b;
 }
 
-.inputField input, .inputField select, .inputField textarea {
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
+.inputField input, .inputField select {
+  padding: 0 16px;
+  height: 44px;
+  border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
   background: #fcfcfc;
@@ -48,19 +49,77 @@
   transition: border 0.2s;
   box-sizing: border-box;
   width: 100%;
+  font-family: inherit;
+  color: #333;
+}
+
+.inputField select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px !important;
+  cursor: pointer;
+}
+
+.inputField textarea {
+  padding: 12px 16px;
+  min-height: 100px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fcfcfc;
+  outline: none;
+  transition: border 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: inherit;
+  color: #333;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .inputField input:focus, .inputField select:focus {
   border-color: #E9315D;
 }
 
-.placeholderSelect {
-  color: #999 !important;
+.selectWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.selectWrapper select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px !important;
+}
+
+.selectIcon {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  color: #888;
+}
+
+.inputField input::placeholder, .inputField textarea::placeholder {
+  color: #888;
+  opacity: 1; /* Firefox fix */
+}
+
+.placeholderSelect, .placeholderText {
+  color: #888 !important;
 }
 
 .dimensionalGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Adaptive columns */
   gap: 16px;
   background: #f8f9fa;
   padding: 16px;
@@ -68,11 +127,12 @@
   border: 1px solid #eee;
   margin-top: 8px;
   box-sizing: border-box;
+  width: 100%;
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 600px) {
   .dimensionalGrid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr; /* Single column on very small screens */
   }
 }
 
@@ -107,13 +167,19 @@
 .dimInputGroup select {
   border: none !important;
   background: #eee;
-  padding: 0 8px;
+  padding: 0 24px 0 8px;
   font-size: 13px;
   border-left: 1px solid #ddd !important;
   cursor: pointer;
-  width: 80px;
+  width: 90px; /* Increased to accommodate arrow */
   flex-shrink: 0;
   height: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
 }
 
 .variantBox {
@@ -144,7 +210,7 @@
   justify-content: center;
   width: 14px;
   height: 14px;
-  background: #eee;
+  /* background: #eee; */
   color: #999;
   font-size: 10px;
   border-radius: 50%;
@@ -277,17 +343,33 @@
 
 .multiSelectContainer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center; /* Vertically middle */
+  align-items: center; 
+  justify-content: space-between;
   gap: 8px;
-  padding: 8px 16px; /* Back to original vertical padding */
-  border: 1px solid #e0e0e0;
+  padding-left: 16px; 
+  padding-right: 20px; /* Moved further from edge as requested */
+  border: 1px solid #ddd;
   border-radius: 8px;
   background: #fcfcfc;
-  min-height: 44px; /* Same as others */
+  height: 44px;
   cursor: pointer;
   position: relative;
   box-sizing: border-box;
+  font-family: inherit;
+}
+
+.multiSelectValues {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.placeholderText {
+  color: #999;
+  font-size: 14px;
+  line-height: 44px; /* Align with container height */
 }
 
 .multiSelectContainer:focus-within {

@@ -18,6 +18,25 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     const [loading, setLoading] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [products, setProducts] = useState([]);
+
+    const formatVariantSize = (size) => {
+        if (!size) return "";
+        if (typeof size === 'string' && size.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(size);
+                const parts = [];
+                if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+                if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+                if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+                if (parsed.radius) parts.push(`${parsed.radius}${parsed.radiusUnit || 'mm'}R`);
+                if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+                return parts.length > 0 ? parts.join(" x ") : size;
+            } catch (e) {
+                return size;
+            }
+        }
+        return size;
+    };
     
     const [formData, setFormData] = useState({
         partyName: "",
@@ -146,7 +165,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 const mappedItems = (data.cartItems || []).map(it => {
                     const variant = it.variant || it.Variant || {};
                     const vType = variant.variantType || {};
-                    const unitLabel = vType.size || vType.type || "Unit";
+                    const unitLabel = formatVariantSize(vType.size) || vType.type || "Unit";
                     
                     return {
                         productId: it.productId,
@@ -211,11 +230,15 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const qty = 1;
         const taxAmount = (price * qty * tax) / 100;
 
+        const vType = selectedVariant?.variantType || {};
+        const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
+        const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
+
         newItems[index] = {
             productId: prod.productId,
             variantId: selectedVariant?.variantId || "",
             productName: prod.productName,
-            unit: selectedVariant ? (selectedVariant.variantType?.size || selectedVariant.variantType?.type || "Unit") : "Unit",
+            unit: unitVal,
             qty: qty,
             price: price,
             taxPercent: tax,
@@ -236,10 +259,14 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         if (v) {
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
             const taxAmount = (price * it.qty * it.taxPercent) / 100;
+            const vType = v.variantType || {};
+            const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
+            const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
+
             newItems[index] = {
                 ...it,
                 variantId: v.variantId,
-                unit: v.variantType?.size || v.variantType?.type || "Unit",
+                unit: unitVal,
                 price: price,
                 taxAmount: taxAmount,
                 amount: (price * it.qty) + taxAmount,
@@ -478,7 +505,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                 >
                                                     {it.availableVariants.map(v => (
                                                         <option key={v.variantId} value={v.variantId}>
-                                                            {v.variantType?.size || v.variantType?.type || "Unit"}
+                                                            {formatVariantSize(v.variantType?.size) || v.variantType?.type || "Unit"}
                                                         </option>
                                                     ))}
                                                 </select>

@@ -95,6 +95,25 @@ const StockStatusPage = () => {
     return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
   };
 
+  const formatVariantSize = (size) => {
+    if (!size) return "";
+    if (typeof size === 'string' && size.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(size);
+            const parts = [];
+            if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+            if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+            if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+            if (parsed.radius) parts.push(`${parsed.radius}${parsed.radiusUnit || 'mm'}R`);
+            if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+            return parts.length > 0 ? parts.join(" x ") : size;
+        } catch (e) {
+            return size;
+        }
+    }
+    return size;
+  };
+
   const currentList = data[activeTab] || [];
   const filteredList = currentList.filter(item => {
       const name = item.productDetails?.productName || item.productName || "";
@@ -163,7 +182,15 @@ const StockStatusPage = () => {
       const details = item.productDetails || {};
       const pName = details.productName || item.productName || "Unknown Product";
       const vt = item.variantType || {};
-      const unit = (vt.size || vt.flavor) ? `${vt.size || ""} ${vt.flavor || ""}`.trim() : (vt.packCount || vt.packType ? `${vt.packCount || ""} ${vt.packType || ""}`.trim() : (item.variantMeasure || "STND"));
+      const formattedSize = formatVariantSize(vt.size);
+      const unitParts = [];
+      if (formattedSize) unitParts.push(formattedSize);
+      if (vt.flavor) unitParts.push(vt.flavor);
+      if (vt.packType) unitParts.push(vt.packType);
+      
+      const unit = unitParts.length > 0 
+        ? unitParts.join(" ") 
+        : (vt.packCount ? `${vt.packCount} UNIT` : (item.variantMeasure || "STND"));
       
       // Determine quantity to show based on tab
       let displayQty = item.totalQuantity || item.qty || 0;
