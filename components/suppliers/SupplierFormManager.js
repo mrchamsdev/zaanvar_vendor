@@ -45,7 +45,7 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
     return [
       { 
         id: '1', 
-        title: initialData?.supplierName || (mode === "Add" ? 'New Supplier' : 'Edit Supplier'), 
+        title: initialData?.supplierName || (mode === "Add" ? 'Supplier 1' : 'Edit Supplier'), 
         isMinimized: false, 
         data: initialData || {},
         mode: mode
@@ -59,7 +59,7 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
 
   const addTab = () => {
     const newId = String(Date.now());
-    const newTab = { id: newId, title: `Supplier #${tabs.length + 1}`, isMinimized: false, data: {}, mode: "Add" };
+    const newTab = { id: newId, title: `Supplier ${tabs.length + 1}`, isMinimized: false, data: {}, mode: "Add" };
     setTabs([...tabs, newTab]);
     setActiveTabId(newId);
     if (splitMode && !splitTabIds[1]) setSplitTabIds([splitTabIds[0], newId]);
@@ -125,9 +125,9 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
             {!splitMode ? (
               <div className={styles.formWrapper}>
                 {activeTab.mode === "View" ? (
-                  <SupplierView data={activeTab.data} onBack={() => closeTab(activeTab.id)} isSplit={splitMode} />
+                  <SupplierView key={`view-${activeTab.id}`} data={activeTab.data} onBack={() => closeTab(activeTab.id)} isSplit={splitMode} />
                 ) : (
-                  <SupplierForm initialData={activeTab.data} onSave={() => closeTab(activeTab.id)} onBack={() => closeTab(activeTab.id)} />
+                  <SupplierForm key={`form-${activeTab.id}`} initialData={activeTab.data} onSave={() => closeTab(activeTab.id)} onBack={() => closeTab(activeTab.id)} />
                 )}
               </div>
             ) : (
@@ -141,9 +141,9 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
                           <>
                             <div className={styles.formLabel}>{tab.title}</div>
                             {tab.mode === "View" ? (
-                              <SupplierView data={tab.data} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} isSplit={splitMode} />
+                              <SupplierView key={`view-${tab.id}`} data={tab.data} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} isSplit={splitMode} />
                             ) : (
-                              <SupplierForm initialData={tab.data} onSave={() => closeTab(tab.id)} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} />
+                              <SupplierForm key={`form-${tab.id}`} initialData={tab.data} onSave={() => closeTab(tab.id)} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} />
                             )}
                           </>
                         );

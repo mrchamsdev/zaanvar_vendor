@@ -29,6 +29,11 @@ const IconTrash = () => (
       <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
     </svg>
 );
+const IconChevron = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
 
 const RETAIL_CATEGORIES = ["Food", "Cloths", "Accessories", "Grooming"];
 const MEDICAL_CATEGORIES = ["Medicines"];
@@ -98,17 +103,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   });
   const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
     const reverseMap = { "Dog": "Dog", "Cat": "Cat", "Birds": "Bird", "Fishes": "Fish", "SmallPets": "Small pets" };
-    if (initialData?.productPetType && Array.isArray(initialData.productPetType)) {
-        return initialData.productPetType.map(t => reverseMap[t] || t);
-    }
-    if (initialData?.productPetType && typeof initialData.productPetType === 'object') {
-        const petStr = initialData.productPetType.petType || "";
-        if (petStr) {
-            return petStr.split(" and ").map(t => reverseMap[t] || t);
-        }
+    const raw = initialData?.productPetType?.petType || "";
+    if (raw) {
+        return raw.split(" and ").map(t => reverseMap[t] || t);
     }
     return [];
   });
+  const [isSaving, setIsSaving] = useState(false);
   const [isPetDropdownOpen, setIsPetDropdownOpen] = useState(false);
   const petDropdownRef = useRef(null);
   const [productCode, setProductCode] = useState(initialData?.ProductCode || "");
@@ -284,7 +285,17 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     // Allow digits and at most one decimal point
     let val = value.replace(/[^\d.]/g, '');
     const parts = val.split('.');
-    if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+    
+    if (parts.length > 2) {
+      val = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Restrict to 2 decimal places if there is a decimal point
+    const cleanParts = val.split('.');
+    if (cleanParts.length === 2 && cleanParts[1].length > 2) {
+      val = cleanParts[0] + '.' + cleanParts[1].substring(0, 2);
+    }
+
     updateVariant(index, field, val);
     
     // Clear sellingPrice/mrp error specifically
@@ -297,6 +308,8 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    if (isSaving) return;
+    
     console.log("handleSave function triggered");
     // alert("Save button clicked");
     // Detailed Validations
@@ -373,6 +386,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         return;
     }
 
+    setIsSaving(true);
     const toastId = toast.loading(initialData?.productId ? "Updating product..." : "Creating product...");
 
     try {
@@ -559,14 +573,16 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           console.log("All variant image uploads completed.");
         }
         
-        toast.success(initialData?.productId ? "Product updated successfully" : "Product created successfully", { id: toastId });
-        if (onSave) onSave();
-      } else {
-        toast.error("Failed to save product. No response from server.", { id: toastId });
-      }
+      toast.success(initialData?.productId ? "Product updated successfully" : "Product created successfully", { id: toastId });
+      if (onSave) onSave();
+    } else {
+      toast.error("Failed to save product. No response from server.", { id: toastId });
+    }
     } catch (error) {
       console.error("Save error:", error);
       toast.error(error?.response?.data?.msg || "Failed to save product. Please try again.", { id: toastId });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -706,7 +722,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <label>Brand Name</label>
           <input 
             type="text" 
-            placeholder="Enter Brand name" 
+            placeholder="Enter Brand Name" 
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
           />
@@ -715,8 +731,29 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <label>Category <span>*</span></label>
           {productType === "Retail" ? (
             <>
+              <div className={styles.selectWrapper}>
+                <select 
+                    className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
+                  value={category} 
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    if (formErrors.category) {
+                      const newErrors = { ...formErrors };
+                      delete newErrors.category;
+                      setFormErrors(newErrors);
+                    }
+                  }}
+                >
+                  <option value="">Select Category</option>
+                  {RETAIL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <div className={styles.selectIcon}><IconChevron /></div>
+              </div>
+              {formErrors.category && <div className={styles.errorMessage}>{formErrors.category}</div>}
+            </>
+          ) : (
               <select 
-                  className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
+                className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
                 value={category} 
                 onChange={(e) => {
                   setCategory(e.target.value);
@@ -727,27 +764,9 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                   }
                 }}
               >
-                <option value="">Select Category here</option>
-                {RETAIL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">Select Category</option>
+                {MEDICAL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              {formErrors.category && <div className={styles.errorMessage}>{formErrors.category}</div>}
-            </>
-          ) : (
-            <select 
-              className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
-              value={category} 
-              onChange={(e) => {
-                setCategory(e.target.value);
-                if (formErrors.category) {
-                  const newErrors = { ...formErrors };
-                  delete newErrors.category;
-                  setFormErrors(newErrors);
-                }
-              }}
-            >
-              <option value="">Select Category here</option>
-              {MEDICAL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
           )}
         </div>
         <div className={styles.inputField}>
@@ -766,18 +785,21 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             ref={petDropdownRef}
             onClick={() => setIsPetDropdownOpen(!isPetDropdownOpen)}
           >
-            {selectedPetTypes.length === 0 && <span style={{color: '#999', fontSize: 13}}>Select Pet Types...</span>}
-            {selectedPetTypes.map(t => (
-              <div key={t} className={styles.tag}>
-                {t}
-                <span 
-                  className={styles.removeTag} 
-                  onClick={(e) => { e.stopPropagation(); handlePetTypeToggle(t); }}
-                >
-                  ✕
-                </span>
-              </div>
-            ))}
+            <div className={styles.multiSelectValues}>
+              {selectedPetTypes.length === 0 && <span className={styles.placeholderText}>Select Pet Types</span>}
+              {selectedPetTypes.map(t => (
+                <div key={t} className={styles.tag}>
+                  {t}
+                  <span 
+                    className={styles.removeTag} 
+                    onClick={(e) => { e.stopPropagation(); handlePetTypeToggle(t); }}
+                  >
+                    ✕
+                  </span>
+                </div>
+              ))}
+            </div>
+            <IconChevron />
             
             {isPetDropdownOpen && (
               <div className={styles.optionsDropdown} onClick={(e) => e.stopPropagation()}>
@@ -803,7 +825,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <div style={{display: 'flex', gap: 8}}>
             <input 
               type="text" 
-              placeholder="Enter product code" 
+              placeholder="Enter Product Code" 
               style={{flex: 1}} 
               className={formErrors.productCode ? styles.errorField : ""}
               value={productCode}
@@ -827,7 +849,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <label>GST(%) <InfoIcon text="Goods and Services Tax percentage." /></label>
           <input 
             type="text" 
-            placeholder="Enter GST(%) here" 
+            placeholder="Enter GST(%)" 
             value={gst}
             onChange={(e) => setGst(e.target.value)}
           />
@@ -836,7 +858,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
           <label>HSN Code <span>*</span></label>
           <input 
             type="text" 
-            placeholder="Enter HSN Code here" 
+            placeholder="Enter HSN Code" 
             className={formErrors.hsnCode ? styles.errorField : ""}
             value={hsnCode}
             onChange={(e) => handleNumericInput(e.target.value, setHsnCode, 8, 'hsnCode')}
@@ -901,13 +923,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <>
                 <div className={styles.inputField}>
                   <label>Pack Type <span>*</span> <InfoIcon text="Outer packing type of the product." /></label>
-                  <select 
-                    className={`${!variant.packType ? styles.placeholderSelect : ""} ${formErrors[`${index}_packType`] ? styles.errorField : ""}`}
-                    value={variant.packType || ""} 
-                    onChange={(e) => updateVariant(index, 'packType', e.target.value)}
-                  >
-                    <option value="">Select Pack Type</option>
-                    {PACK_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
+                    <select 
+                      className={`${!variant.packType ? styles.placeholderSelect : ""} ${formErrors[`${index}_packType`] ? styles.errorField : ""}`}
+                      value={variant.packType || ""} 
+                      onChange={(e) => updateVariant(index, 'packType', e.target.value)}
+                    >
+                      <option value="">Select Pack Type</option>
+                      {PACK_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                   {formErrors[`${index}_packType`] && <div className={styles.errorMessage}>{formErrors[`${index}_packType`]}</div>}
                 </div>
@@ -1019,7 +1041,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                   <div className={`${styles.dimInputGroup} ${formErrors[`${index}_unitMeasure`] ? styles.errorField : ""}`}>
                     <input 
                       type="text" 
-                      placeholder="Enter here" 
+                      placeholder="Enter Unit Measure" 
                       value={variant.unitMeasure || ""}
                       onChange={(e) => updateVariant(index, 'unitMeasure', e.target.value)}
                      />
@@ -1036,7 +1058,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <label>EAN/UPC Number</label>
                 <input 
                     type="text" 
-                    placeholder="Enter EAN/UPC number" 
+                    placeholder="Enter EAN/UPC Number" 
                     className={formErrors[`${index}_eanUpc`] ? styles.errorField : ""}
                     value={variant.eanUpc || ""}
                     onChange={(e) => updateVariantNumeric(index, 'eanUpc', e.target.value, 13)}
@@ -1079,7 +1101,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <label>MRP <span>*</span></label>
                 <input 
                     type="text" 
-                    placeholder="Enter MRP here" 
+                    placeholder="Enter MRP" 
                     className={formErrors[`${index}_mrp`] ? styles.errorField : ""}
                     value={variant.mrp || ""}
                     onChange={(e) => handlePriceInput(index, 'mrp', e.target.value)}
@@ -1090,7 +1112,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <label>Selling Price <span>*</span></label>
                 <input 
                     type="text" 
-                    placeholder="Enter selling price here" 
+                    placeholder="Enter Selling Price" 
                     className={(formErrors[`${index}_sellingPrice`] || priceErrors[index]) ? styles.errorField : ""}
                     value={variant.sellingPrice || ""}
                     onChange={(e) => {
@@ -1116,7 +1138,7 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             {/* Per-Variant Additional Information Section */}
             <div style={{marginTop: 32}}>
               <div className={styles.sectionTitle} style={{fontSize: 15, marginBottom: 16, background: 'none', padding: 0}}>Additional information of product</div>
-              <div className={styles.inputGrid} style={{background: '#fafafa', padding: 20, borderRadius: 8}}>
+              <div className={styles.inputGrid} style={{ borderRadius: 8}}>
                 {productType === "Medical" ? (
                   <>
                     <div className={styles.inputField}>
@@ -1193,9 +1215,10 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
             type="button"
             className={`${styles.pageBtn} ${styles.nextBtn}`} 
             onClick={handleSave} 
-            style={{background: '#000', color: '#fff'}}
+            disabled={isSaving}
+            style={{background: isSaving ? '#666' : '#000', color: '#fff', cursor: isSaving ? 'not-allowed' : 'pointer'}}
         >
-            Save
+            {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
 

@@ -322,7 +322,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         const discAmount = (billableSubtotal * discPercent / 100);
                         const afterDiscount = billableSubtotal - discAmount;
                         const taxPercent = parseFloat(item.tax) || 0;
-                        const rowTotal = afterDiscount + (afterDiscount * (taxPercent / 100));
+                        const taxAmount = afterDiscount * (taxPercent / 100);
+                        const rowTotal = afterDiscount + taxAmount;
                         
                         const orderedBase = (parseFloat(item.qty) || 0) * cost;
                         const orderedDiscAmount = (orderedBase * discPercent / 100);
@@ -498,15 +499,24 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                         <div className={styles.itemSummary}>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Ordered Value</span>
-                                                <span className={styles.summaryValue}>₹ {rowOrdered.toLocaleString()}</span>
+                                                <span className={styles.summaryValue}>₹ {rowOrdered.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Received Value</span>
-                                                <span className={styles.summaryValue}>₹ {rowTotal.toLocaleString()}</span>
+                                                <span className={styles.summaryValue}>₹ {(received * cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
+                                           
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Discount Value</span>
-                                                <span className={styles.summaryValue}>₹ {Number(item.discount || 0).toLocaleString()}</span>
+                                                <span className={styles.summaryValue}>₹ - {discAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </div>
+                                            <div className={styles.summaryItem}>
+                                                <span className={styles.summaryLabel}>Tax Amount</span>
+                                                <span className={styles.summaryValue}>₹ +{taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </div>
+                                            <div className={styles.summaryItem}>
+                                                <span className={styles.summaryLabel}>Calculated Amount</span>
+                                                <span className={styles.summaryValue}>₹ {rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
