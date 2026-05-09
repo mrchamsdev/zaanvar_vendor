@@ -80,13 +80,67 @@ const StockStatusPage = () => {
           lowStock: res.lowStock || [],
           expired: res.expired || [],
           shortExpiry: res.shortExpiry || [],
-          damaged: res.damagedBillItems || []
+          damaged: [
+            ...(res.customerDamagedReturns || []).map(item => ({ 
+                ...item, 
+                type: 'customerReturn',
+                displayQty: item.damagedQty || 0
+            }))
+          ]
         });
       }
     } catch (error) {
       toast.error("Failed to load reports");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRestore = async (id) => {
+    if (id === undefined || id === null) {
+        toast.error("Unable to restore: No ID found for this item");
+        return;
+    }
+
+    try {
+        setLoading(true);
+        const res = await productService.restoreDamagedItem(jwtToken, id);
+        const body = res?.data || res;
+        
+        if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
+            toast.success(body?.msg || "Item restored successfully");
+            await fetchReports();
+        } else {
+            toast.error(body?.msg || body?.message || "Failed to restore item");
+        }
+    } catch (error) {
+        toast.error(error?.response?.data?.msg || error?.message || "Error restoring item");
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleMarkWaste = async (id, isExpired = false) => {
+    if (!id) {
+        toast.error(`Unable to mark as waste: No ${isExpired ? 'ID' : 'consumption ID'} found`);
+        return;
+    }
+
+    try {
+        setLoading(true);
+        const res = await productService.markAsWaste(jwtToken, id, isExpired);
+        const body = res?.data || res;
+        
+        if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
+            toast.success(body?.msg || "Item marked as waste");
+            await fetchReports();
+        } else {
+            toast.error(body?.msg || body?.message || "Failed to mark as waste");
+        }
+    } catch (error) {
+        toast.error(error?.response?.data?.msg || error?.message || "Error marking waste");
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -197,7 +251,7 @@ const StockStatusPage = () => {
       
       // Determine quantity to show based on tab
       let displayQty = item.totalQuantity || item.qty || 0;
-      if (activeTab === "damaged") displayQty = item.damagedQty ?? item.qty ?? 0;
+      if (activeTab === "damaged") displayQty = item.displayQty ?? item.damagedQty ?? item.qty ?? 0;
       
       const qtyLabel = activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged" ? " UNITS" : "";
       
@@ -242,16 +296,30 @@ const StockStatusPage = () => {
                 {activeTab === "outOfStock" || activeTab === "lowStock" ? (
                     <button className={`${styles.actionBtn} ${styles.restockBtn}`}><IconRefresh /> Restock</button>
                 ) : activeTab === "expired" ? (
-                    <>
-                        <button className={`${styles.actionBtn} ${styles.removeBtn}`}>🗑 Remove</button>
-                        <button className={`${styles.actionBtn} ${styles.wasteBtn}`}>🏷 Mark Waste</button>
-                    </>
+                    <button 
+                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                        onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
+                    >
+                        🏷 Mark Waste
+                    </button>
                 ) : activeTab === "shortExpiry" ? (
                     <button className={`${styles.actionBtn} ${styles.flashSaleBtn}`}>+ Add to Flash Sale</button>
                 ) : (
                     <>
-                         <button className={`${styles.actionBtn} ${styles.restockBtn}`}><IconRefresh /> Restore</button>
-                         <button className={`${styles.actionBtn} ${styles.wasteBtn}`}>🏷 Mark Waste</button>
+                          {item.consumptionId && (
+                              <button 
+                                className={`${styles.actionBtn} ${styles.restockBtn}`}
+                                onClick={() => handleRestore(item.consumptionId)}
+                              >
+                                <IconRefresh /> Restore
+                              </button>
+                          )}
+                          <button 
+                             className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                             onClick={() => handleMarkWaste(item.consumptionId)}
+                          >
+                             🏷 Mark Waste
+                          </button>
                     </>
                 )}
             </div>
@@ -271,7 +339,7 @@ const StockStatusPage = () => {
               className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ""}`}
               onClick={() => setActiveTab(t.id)}
             >
-              {t.label}
+              {t.label} ({data[t.id]?.length || 0})
             </div>
           ))}
         </div>

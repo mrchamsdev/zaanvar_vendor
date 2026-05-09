@@ -9,8 +9,19 @@ import { useRouter } from "next/router";
 
 const SalesReturnPage = () => {
     const router = useRouter();
-    const { branches, branchId } = useDashboardData();
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const { branches, branchId: defaultBranchId } = useDashboardData();
+    const currentBranchId = router.query.branchId || "";
+
+    React.useEffect(() => {
+        if (!router.isReady) return;
+        if (!currentBranchId && branches && branches.length > 0) {
+            const targetId = defaultBranchId || branches[0].id;
+            router.replace({
+                pathname: router.pathname,
+                query: { ...router.query, branchId: targetId }
+            }, undefined, { shallow: true });
+        }
+    }, [router.isReady, currentBranchId, branches, defaultBranchId]);
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
