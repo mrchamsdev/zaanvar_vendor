@@ -221,21 +221,23 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     <div style={{ background: '#fff', padding: isSplit ? '15px' : '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h3 style={{ fontSize: '16px', fontWeight: '700' }}>{activeTab}</h3>
-                            <button 
-                                onClick={() => {
-                                    const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
-                                    if (pendingBill) {
-                                        setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
-                                        setSelectedBillData(pendingBill);
-                                        setIsPayNowModalOpen(true);
-                                    } else {
-                                        toast.info("No pending payments found");
-                                    }
-                                }}
-                                style={{ color: '#E9315D', border: '1px solid #E9315D', background: '#fff', padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
-                            >
-                                PAY NOW
-                            </button>
+                            {(activeTab === "Purchase Orders" ? purchaseOrders.length > 0 : paymentHistory.length > 0) && (
+                                <button 
+                                    onClick={() => {
+                                        const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
+                                        if (pendingBill) {
+                                            setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
+                                            setSelectedBillData(pendingBill);
+                                            setIsPayNowModalOpen(true);
+                                        } else {
+                                            toast.info("No pending payments found");
+                                        }
+                                    }}
+                                    style={{ color: '#E9315D', border: '1px solid #E9315D', background: '#fff', padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+                                >
+                                    PAY NOW
+                                </button>
+                            )}
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>

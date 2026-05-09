@@ -218,18 +218,20 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                             <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                     <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{activeTab}</h3>
-                                    <button style={{ 
-                                        color: '#E9315D', 
-                                        border: '1px solid #E9315D', 
-                                        background: '#fff', 
-                                        padding: '8px 20px', 
-                                        borderRadius: '8px', 
-                                        fontSize: '13px', 
-                                        fontWeight: '700',
-                                        cursor: 'pointer'
-                                    }}>
-                                        PAY NOW
-                                    </button>
+                                    {transactions.length > 0 && (
+                                        <button style={{ 
+                                            color: '#E9315D', 
+                                            border: '1px solid #E9315D', 
+                                            background: '#fff', 
+                                            padding: '8px 20px', 
+                                            borderRadius: '8px', 
+                                            fontSize: '13px', 
+                                            fontWeight: '700',
+                                            cursor: 'pointer'
+                                        }}>
+                                            PAY NOW
+                                        </button>
+                                    )}
                                 </div>
 
                                 {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}

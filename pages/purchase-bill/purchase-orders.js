@@ -228,8 +228,8 @@ const PurchaseOrdersPage = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            {["order placed", "cancel order", "cancel"].includes(item.orderStatus?.toLowerCase()) ? (
-                                                <div style={{textAlign: 'center', color: '#ccc', fontWeight: '700', fontSize: '14px'}}>---</div>
+                                            {["order placed", "cancel order", "cancel", "draft"].includes(item.orderStatus?.toLowerCase()) ? (
+                                                <div style={{textAlign: 'center', width: '100%', color: '#ccc', fontWeight: '700', fontSize: '14px'}}>---</div>
                                             ) : (
                                                 <div className={styles.statusBadgeGroup}>
                                                     <span className={

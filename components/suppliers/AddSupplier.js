@@ -26,6 +26,10 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
 
     // Available options
     const supplierTypes = [
+        { id: 'Wholesaler', name: 'Wholesaler' },
+        { id: 'Distributor', name: 'Distributor' },
+        { id: 'Manufacturer', name: 'Manufacturer' },
+        { id: 'Local Vendor', name: 'Local Vendor' },
         { id: 'PETS', name: 'PETS' },
         { id: 'MEDICAL', name: 'MEDICAL' },
         { id: 'PRODUCTS', name: 'PRODUCTS' }
@@ -48,7 +52,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             if (res.status === "success") {
                 const data = res.data;
                 setSupplierName(data.supplierName || "");
-                setSupplierType(data.supplierType ? data.supplierType.split(',').map(s => s.trim()) : []);
+                setSupplierType(data.supplierType ? (Array.isArray(data.supplierType) ? data.supplierType : data.supplierType.split(',').map(s => s.trim())) : []);
                 setPhone(data.phone || "");
                 setEmail(data.email || "");
                 setStreet(data.street || "");
@@ -76,7 +80,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
 
         const payload = {
             supplierName,
-            supplierType: supplierType.join(', '),
+            supplierType: supplierType,
             phone,
             email,
             street,
