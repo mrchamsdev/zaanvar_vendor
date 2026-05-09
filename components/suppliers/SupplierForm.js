@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
+import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import { FiChevronDown } from "react-icons/fi";
 
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     const { jwtToken, userInfo } = useStore();
+    const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
 
     // Form states
@@ -62,9 +64,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
         { id: 'PRODUCTS', name: 'PRODUCTS' }
     ];
 
-    const branchesList = (userInfo?.vendorCompanies || []).flatMap(co => 
-        (co.branches || []).map(br => ({ id: br.id, name: br.name }))
-    );
+    const branchesList = (branches || []).map(br => ({ 
+        id: br.id || br._id || br.branchId, 
+        name: br.name || br.branchName 
+    }));
 
     const handleSave = async () => {
         let hasError = false;
@@ -155,7 +158,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier name <span style={{color: '#FF4D4F'}}>*</span>
+                                Supplier name
                             </label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Supplier Name"
@@ -165,7 +168,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Branch Name <span style={{color: '#FF4D4F'}}>*</span>
+                                Branch Name
                             </label>
                             <MultiSelectDropdown 
                                 listItems={branchesList}
@@ -178,7 +181,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier Type <span style={{color: '#FF4D4F'}}>*</span>
+                                Supplier Type
                             </label>
                             <MultiSelectDropdown 
                                 listItems={supplierTypes}
@@ -191,7 +194,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Phone Number <span style={{color: '#FF4D4F'}}>*</span>
+                                Phone Number
                             </label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Phone Number"
@@ -208,7 +211,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             {phoneError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{phoneError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID</label>
                             <input 
                                 type="email" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Email ID here"
                                 value={email} 
@@ -229,7 +232,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                 <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country</label>
                             <div style={{ position: 'relative' }}>
                                 <select style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#777', appearance: 'none', outline: 'none' }} value={country} onChange={(e) => { setCountry(e.target.value); if(countryError) setCountryError(""); }}>
                                     <option value="">Select country here</option>
@@ -241,7 +244,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             {countryError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{countryError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State</label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select State here"
                                 value={state} onChange={(e) => { setState(e.target.value); if(stateError) setStateError(""); }}
@@ -249,7 +252,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             {stateError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{stateError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City</label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select City here"
                                 value={city} onChange={(e) => { setCity(e.target.value); if(cityError) setCityError(""); }}
@@ -271,7 +274,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             />
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code <span style={{color: '#FF4D4F'}}>*</span></label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code</label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Pin Code here"
                                 value={areaPinCode} 

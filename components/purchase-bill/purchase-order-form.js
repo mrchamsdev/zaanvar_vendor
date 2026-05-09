@@ -292,9 +292,17 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                 <div className={styles.grid}>
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Selected Branch</label>
-                        <div className={styles.select} style={{ background: '#fcfcfc', cursor: 'not-allowed' }}>
-                            {branches.find(b => b.id == branchId)?.name || "N/A"}
-                        </div>
+                        <select 
+                            className={`${styles.select} ${styles.input}`} 
+                            value={branchId}
+                            onChange={(e) => setBranchId(e.target.value)}
+                            style={{ padding: '0 15px', height: '100%', border: 'none', background: 'transparent', outline: 'none', width: '100%', appearance: 'auto' }}
+                        >
+                            <option value="">Select Branch</option>
+                            {branches.map(b => (
+                                <option key={b.id || b._id} value={b.id || b._id}>{b.name || b.branchName}</option>
+                            ))}
+                        </select>
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>

@@ -60,12 +60,13 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
         try {
             const payload = { orderStatus: newStatus };
             const res = await purchaseService.updatePurchaseOrder(jwtToken, requestId, payload);
-            if (res.status === "success" || res.status === "ok") {
+            const isSuccess = res.status === 200 || res.status === "success" || res.status === "ok" || res.data?.status === "success" || res.statusText === "OK";
+            if (isSuccess) {
                 toast.success(`Order ${newStatus} successfully`);
+                setOrderData(prev => ({ ...prev, orderStatus: newStatus }));
                 if (onSave) onSave();
-                else if (onClose) onClose();
             } else {
-                toast.error(res.message || "Failed to update status");
+                toast.error(res?.data?.message || res.message || "Failed to update status");
             }
         } catch (error) {
             toast.error("Something went wrong");

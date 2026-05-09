@@ -156,7 +156,6 @@ const PurchaseOrdersPage = () => {
                         initialId={managerConfig.id}
                         onSave={() => {
                             console.log("Orders: onSave triggered");
-                            setManagerConfig(null);
                             fetchOrders();
                         }}
                         onClose={() => {

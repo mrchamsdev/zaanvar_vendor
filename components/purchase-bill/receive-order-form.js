@@ -366,12 +366,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <div className={styles.labelRow}>
-                                                    <label className={styles.fieldLabel}>Expire Date</label>
-                                                    {(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) && (
-                                                        <span className={styles.errorLabel}>* Expiry required</span>
-                                                    )}
-                                                </div>
+                                                <label className={styles.fieldLabel}>Expire Date</label>
                                                 <input 
                                                     type="date" 
                                                     className={`${styles.input} ${(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) ? styles.inputError : ""}`} 
@@ -380,15 +375,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                     max="9999-12-31"
                                                     onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
                                                 />
+                                                {(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Expiry required</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <div className={styles.labelRow}>
-                                                    <label className={styles.fieldLabel}>Cost Price</label>
-                                                    {(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) && (
-                                                        <span className={styles.errorLabel}>* cost price can not be greater than mrp</span>
-                                                    )}
-                                                </div>
+                                                <label className={styles.fieldLabel}>Cost Price</label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
                                                     <input 
@@ -398,6 +391,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                         onChange={(e) => handleItemChange(index, "costPrice", e.target.value)}
                                                     />
                                                 </div>
+                                                {(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>cost price can not be greater than mrp</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
@@ -427,7 +423,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <div className={styles.labelWithInfo}>
                                                     <label className={styles.fieldLabel}>Damaged Items</label>
                                                     <div className={styles.infoTooltip}>
-                                                        <FiInfo className={styles.infoIcon} title="damage quanty will count from recived quantity" />
+                                                        <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} title="damage quanty will count from recived quantity" />
                                                     </div>
                                                 </div>
                                                 <input 
