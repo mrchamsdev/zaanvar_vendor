@@ -70,6 +70,15 @@ const StockStatusPage = () => {
     }
   }, [jwtToken, branchId, isHydrated]);
 
+  useEffect(() => {
+    if (router.isReady && router.query.tab) {
+        setActiveTab(router.query.tab);
+        // Clear query param to avoid sticking to the tab on manual refresh
+        const { tab, ...restQuery } = router.query;
+        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.isReady, router.query.tab]);
+
   const fetchReports = async () => {
     setLoading(true);
     try {
@@ -142,6 +151,20 @@ const StockStatusPage = () => {
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleRestock = (item) => {
+    router.push({
+      pathname: "/purchase-bill/purchase-orders",
+      query: { 
+        openAdd: "true",
+        restockProductId: item.productId,
+        restockVariantId: item.variantId,
+        restockSupplierId: item.supplierId,
+        restockBranchId: branchId,
+        returnTab: activeTab
+      }
+    });
   };
 
   const formatDate = (dateStr) => {
@@ -294,7 +317,12 @@ const StockStatusPage = () => {
           <td>
             <div style={{display: 'flex', gap: '8px'}}>
                 {activeTab === "outOfStock" || activeTab === "lowStock" ? (
-                    <button className={`${styles.actionBtn} ${styles.restockBtn}`}><IconRefresh /> Restock</button>
+                    <button 
+                        className={`${styles.actionBtn} ${styles.restockBtn}`}
+                        onClick={() => handleRestock(item)}
+                    >
+                        <IconRefresh /> Restock
+                    </button>
                 ) : activeTab === "expired" ? (
                     <button 
                         className={`${styles.actionBtn} ${styles.wasteBtn}`}

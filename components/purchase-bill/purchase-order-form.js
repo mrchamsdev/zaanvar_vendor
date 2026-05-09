@@ -96,6 +96,44 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
         }
     }, [jwtToken, branchId]);
 
+    // Handle restock auto-population
+    useEffect(() => {
+        if (initialData?.restockItem && suppliers.length > 0 && allProducts.length > 0) {
+            const { productId, variantId } = initialData.restockItem;
+            
+            // 1. Select Supplier if provided
+            if (initialData.supplierId) {
+                setSupplierId(initialData.supplierId);
+                const supplier = suppliers.find(s => String(s.supplierId) === String(initialData.supplierId));
+                if (supplier) setSupplierPhone(supplier.phone);
+            }
+
+            // 2. Select Product and Variant
+            const product = allProducts.find(p => p.productId === productId);
+            if (product) {
+                const variants = product.variants || [];
+                const variant = variants.find(v => v.variantId === variantId) || variants[0] || {};
+                const vt = variant.variantType || {};
+                const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
+                
+                const newItems = [{
+                    id: Date.now(),
+                    productId: product.productId,
+                    productName: product.productName,
+                    productCode: product.ProductCode || "--",
+                    variant: variantDisplay,
+                    currentStock: variant.currentQty || 0,
+                    variantId: variant.variantId,
+                    costPrice: parseFloat(variant.sellingPrice) || 0,
+                    taxGroupId: variant.taxGroupId || 1,
+                    orderQty: 1, // Default to 1 for restock
+                    allVariants: variants
+                }];
+                setItems(newItems);
+            }
+        }
+    }, [initialData, suppliers, allProducts]);
+
     const fetchSuppliers = async () => {
         try {
             const response = await purchaseService.getSuppliers(jwtToken, branchId);
