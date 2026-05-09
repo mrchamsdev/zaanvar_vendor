@@ -176,6 +176,9 @@ const SuppliersPage = () => {
             onClose={() => {
               setManagerConfig(null);
               fetchSuppliers();
+              if (router.query.returnUrl) {
+                router.push(router.query.returnUrl);
+              }
             }}
           />
         )}

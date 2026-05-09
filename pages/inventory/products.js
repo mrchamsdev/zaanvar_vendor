@@ -293,6 +293,9 @@ const ProductsPage = () => {
             onClose={() => {
               setIsAddingProduct(false);
               fetchProducts();
+              if (router.query.returnUrl) {
+                router.push(router.query.returnUrl);
+              }
             }} 
           />
         )}
