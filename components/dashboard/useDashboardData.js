@@ -57,7 +57,8 @@ export default function useDashboardData(options = {}) {
   const vendor     = userInfo || null;
   const companies  = vendor?.vendorCompanies || [];
   const company    = companies[0] || null;
-  const companyId  = company?.compId  || null;
+  // Robust companyId extraction: try compId, id, and companyId from company or vendor
+  const companyId  = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
   
   const [apiBranches, setApiBranches] = useState(null);
 
@@ -68,7 +69,12 @@ export default function useDashboardData(options = {}) {
       .then((res) => {
         const data = res?.data?.data || res?.data || res;
         if (Array.isArray(data)) {
-          setApiBranches(data);
+          // Ensure every branch has an 'id' field for consistency
+          const mapped = data.map(b => ({
+            ...b,
+            id: b.id || b._id || b.branchId
+          }));
+          setApiBranches(mapped);
         }
       })
       .catch((err) => console.error("Failed to fetch branches by company:", err));
@@ -79,7 +85,7 @@ export default function useDashboardData(options = {}) {
   // Set default branch if none selected
   useEffect(() => {
     if (branches.length > 0 && !selectedBranchId) {
-        setSelectedBranchId(branches[0].id);
+        setSelectedBranchId(branches[0].id || branches[0]._id);
     }
   }, [branches, selectedBranchId, setSelectedBranchId]);
 

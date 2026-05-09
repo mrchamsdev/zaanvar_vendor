@@ -170,9 +170,12 @@ const StockStatusPage = () => {
   };
 
   const renderTableSubHeaders = () => {
-      if (activeTab === "outOfStock") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
-      if (activeTab === "lowStock") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
-      if (activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged") return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
+      if (activeTab === "outOfStock" || activeTab === "lowStock" || activeTab === "expired" || activeTab === "shortExpiry") {
+          return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Quantity</th></tr>;
+      }
+      if (activeTab === "damaged") {
+          return <tr><th className={styles.subTh}>Unit</th><th className={styles.subTh}>Damaged Qty</th></tr>;
+      }
       return null;
   };
 
@@ -194,7 +197,7 @@ const StockStatusPage = () => {
       
       // Determine quantity to show based on tab
       let displayQty = item.totalQuantity || item.qty || 0;
-      if (activeTab === "damaged") displayQty = item.damagedQuantity || item.qty || 0;
+      if (activeTab === "damaged") displayQty = item.damagedQty ?? item.qty ?? 0;
       
       const qtyLabel = activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged" ? " UNITS" : "";
       
@@ -300,7 +303,7 @@ const StockStatusPage = () => {
                     headers = ["Product Name", "Expiry Date", "Unit", "Quantity", "Status"];
                     if (activeTab === "shortExpiry") headers.splice(2, 0, "Remaining Days");
                 }
-                else if (activeTab === "damaged") headers = ["Product Name", "Unit", "Quantity", "Status"];
+                else if (activeTab === "damaged") headers = ["Product Name", "Unit", "Damaged Quantity", "Status"];
                 
                 csvRows.push(headers.join(","));
                 
@@ -309,7 +312,7 @@ const StockStatusPage = () => {
                     const pName = `"${details.productName || item.productName || "Unknown"}"`;
                     const unit = item.variantMeasure || "STND";
                     let qty = item.totalQuantity || item.qty || 0;
-                    if (activeTab === "damaged") qty = item.damagedQuantity || item.qty || 0;
+                    if (activeTab === "damaged") qty = item.damagedQty ?? item.qty ?? 0;
                     
                     let row = [];
                     if (activeTab === "outOfStock") {
