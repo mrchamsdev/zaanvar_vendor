@@ -57,7 +57,24 @@ export default function useDashboardData(options = {}) {
   const vendor     = userInfo || null;
   const companies  = vendor?.vendorCompanies || [];
   const company    = companies[0] || null;
-  const branches   = company?.branches || [];
+  const companyId  = company?.compId  || null;
+  
+  const [apiBranches, setApiBranches] = useState(null);
+
+  useEffect(() => {
+    if (!jwtToken || !companyId) return;
+    const webApi = new WebApimanager(jwtToken);
+    webApi.get(`branches/getBranchesByCompany/${companyId}`)
+      .then((res) => {
+        const data = res?.data?.data || res?.data || res;
+        if (Array.isArray(data)) {
+          setApiBranches(data);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch branches by company:", err));
+  }, [jwtToken, companyId]);
+
+  const branches   = apiBranches || company?.branches || [];
   
   // Set default branch if none selected
   useEffect(() => {
@@ -71,7 +88,6 @@ export default function useDashboardData(options = {}) {
   const timings    = normaliseTiming(branch?.timings);
 
   const branchId   = currentBranchId;
-  const companyId  = company?.compId  || null;
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {

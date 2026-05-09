@@ -42,6 +42,15 @@ const PurchaseOrdersPage = () => {
         }
     }, [jwtToken, branchId]);
 
+    useEffect(() => {
+        if (router.isReady && router.query.openAdd === 'true') {
+            openOrder(null, "Add");
+            // Clear query param
+            const { openAdd, ...restQuery } = router.query;
+            router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+        }
+    }, [router.isReady, router.query.openAdd]);
+
     const fetchOrders = async () => {
         setLoading(true);
         try {

@@ -211,8 +211,33 @@ const StockUpdatesPage = () => {
                   const val = parseFloat(update.totalValue || 0);
                   const isNegative = update.remove > 0 || (update.reason?.toLowerCase().includes('damaged') || update.reason?.toLowerCase().includes('onhold'));
                   
-                  const vt = update.variantType || update.product?.variantType || {};
-                  const unit = (vt.size || vt.flavor) ? `${vt.size || ""} ${vt.flavor || ""}`.trim() : (vt.packCount || vt.packType ? `${vt.packCount || ""} ${vt.packType || ""}`.trim() : (update.variantMeasure || update.unit || "STND"));
+                  let rawVt = update.variantType || update.variant?.variantType || update.product?.variantType || update.product?.variants?.[0]?.variantType;
+                  if (typeof rawVt === 'string') {
+                      try { rawVt = JSON.parse(rawVt); } catch(e) { rawVt = {}; }
+                  }
+                  const vt = rawVt || {};
+                  
+                  let size = vt.size && vt.size !== "1" && vt.size !== "undefined" ? vt.size : "";
+                  if (typeof size === 'string' && size.trim().startsWith('{')) {
+                      try {
+                          const dim = JSON.parse(size);
+                          const parts = [];
+                          if (dim.height) parts.push(`${dim.height}${dim.heightUnit || 'mm'}H`);
+                          if (dim.width) parts.push(`${dim.width}${dim.widthUnit || 'mm'}W`);
+                          if (dim.length) parts.push(`${dim.length}${dim.lengthUnit || 'mm'}L`);
+                          if (dim.radius) parts.push(`R:${dim.radius}${dim.radiusUnit || 'mm'}`);
+                          size = parts.join(" x ");
+                      } catch(e){}
+                  }
+                  
+                  let unit = size;
+                  if (!unit || unit === " ") {
+                      // fallback to extracting from string if available
+                      unit = update.variantMeasure || update.unit || "STND";
+                      if (unit === "STND" && typeof update.variantType === 'string') {
+                          unit = update.variantType; // Just show the raw string if we failed to parse
+                      }
+                  }
                   const quantity = update.qty || update.quantity || update.add || update.remove || 0;
 
                   return (

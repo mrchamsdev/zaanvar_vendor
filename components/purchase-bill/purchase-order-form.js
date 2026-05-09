@@ -300,7 +300,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                         <label className={styles.label}>Select Supplier</label>
                         <div 
                             className={`${styles.supplierSearchWrapper} ${formErrors.supplierId ? styles.errorField : ""}`} 
-                            onClick={() => setIsSupplierDropdownOpen(!isSupplierDropdownOpen)}
+                            onClick={() => setIsSupplierDropdownOpen(true)}
                         >
                             <input 
                                 className={styles.input} 
@@ -314,7 +314,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                 onFocus={() => setIsSupplierDropdownOpen(true)}
                                 style={{ border: 'none', background: 'transparent', width: '100%', height: '100%' }}
                             />
-                            <div className={styles.dropdownIcon}>
+                            <div className={styles.dropdownIcon} onClick={(e) => {
+                                e.stopPropagation();
+                                setIsSupplierDropdownOpen(!isSupplierDropdownOpen);
+                            }}>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
                             </div>
                         </div>
@@ -339,7 +342,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                 <div 
                                     className={styles.productOption} 
                                     style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
-                                    onClick={() => router.push('/suppliers?action=add')}
+                                    onClick={() => router.push(`/suppliers?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
                                 >
                                     + ADD SUPPLIER
                                 </div>
@@ -416,7 +419,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                             <div 
                                                 className={styles.productOption} 
                                                 style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
-                                                onClick={() => router.push('/inventory/products?action=add')}
+                                                onClick={() => router.push(`/inventory/products?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
                                             >
                                                 + ADD PRODUCT
                                             </div>
