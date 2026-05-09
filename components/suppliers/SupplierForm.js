@@ -6,6 +6,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import { FiChevronDown } from "react-icons/fi";
+import { Country, State, City } from 'country-state-city';
 
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     const { jwtToken, userInfo } = useStore();
@@ -34,6 +35,15 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     const [countryError, setCountryError] = useState("");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
     const [branchError, setBranchError] = useState("");
+    
+    // Dropdown lists
+    const [countries, setCountries] = useState([]);
+    const [states, setStates] = useState([]);
+    const [cities, setCities] = useState([]);
+    
+    // Selection codes for fetching
+    const [selectedCountryCode, setSelectedCountryCode] = useState("");
+    const [selectedStateCode, setSelectedStateCode] = useState("");
 
     const supplierId = initialData?.supplierId;
 
@@ -50,7 +60,33 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
             setLocality(initialData.locality || "");
             setAreaPinCode(initialData.areaPinCode || "");
             setCountry(initialData.country || "");
+            setCity(initialData.city || "");
+            setLocality(initialData.locality || "");
+            setAreaPinCode(initialData.areaPinCode || "");
             setSelectedBranchIds(initialData.branches?.map(b => b.id) || []);
+
+            // Handle edit mode hydration for dropdowns
+            const allCountries = Country.getAllCountries();
+            setCountries(allCountries);
+            
+            if (initialData.country) {
+                const foundCountry = allCountries.find(c => c.name === initialData.country);
+                if (foundCountry) {
+                    setSelectedCountryCode(foundCountry.isoCode);
+                    const foundStates = State.getStatesOfCountry(foundCountry.isoCode);
+                    setStates(foundStates);
+                    
+                    if (initialData.state) {
+                        const foundState = foundStates.find(s => s.name === initialData.state);
+                        if (foundState) {
+                            setSelectedStateCode(foundState.isoCode);
+                            setCities(City.getCitiesOfState(foundCountry.isoCode, foundState.isoCode));
+                        }
+                    }
+                }
+            }
+        } else {
+            setCountries(Country.getAllCountries());
         }
     }, [initialData]);
 
@@ -234,10 +270,26 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country</label>
                             <div style={{ position: 'relative' }}>
-                                <select style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#777', appearance: 'none', outline: 'none' }} value={country} onChange={(e) => { setCountry(e.target.value); if(countryError) setCountryError(""); }}>
+                                <select 
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: country ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
+                                    value={selectedCountryCode} 
+                                    onChange={(e) => { 
+                                        const code = e.target.value;
+                                        const name = countries.find(c => c.isoCode === code)?.name || "";
+                                        setSelectedCountryCode(code);
+                                        setCountry(name);
+                                        setStates(State.getStatesOfCountry(code));
+                                        setSelectedStateCode("");
+                                        setState("");
+                                        setCities([]);
+                                        setCity("");
+                                        if(countryError) setCountryError(""); 
+                                    }}
+                                >
                                     <option value="">Select country here</option>
-                                    <option value="India">India</option>
-                                    <option value="USA">USA</option>
+                                    {countries.map(c => (
+                                        <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                                    ))}
                                 </select>
                                 <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
                             </div>
@@ -245,18 +297,49 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State</label>
-                            <input 
-                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select State here"
-                                value={state} onChange={(e) => { setState(e.target.value); if(stateError) setStateError(""); }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <select 
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: state ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
+                                    value={selectedStateCode} 
+                                    onChange={(e) => { 
+                                        const code = e.target.value;
+                                        const name = states.find(s => s.isoCode === code)?.name || "";
+                                        setSelectedStateCode(code);
+                                        setState(name);
+                                        setCities(City.getCitiesOfState(selectedCountryCode, code));
+                                        setCity("");
+                                        if(stateError) setStateError(""); 
+                                    }}
+                                    disabled={!selectedCountryCode}
+                                >
+                                    <option value="">Select State here</option>
+                                    {states.map(s => (
+                                        <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                                    ))}
+                                </select>
+                                <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
+                            </div>
                             {stateError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{stateError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City</label>
-                            <input 
-                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Select City here"
-                                value={city} onChange={(e) => { setCity(e.target.value); if(cityError) setCityError(""); }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <select 
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: city ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
+                                    value={city} 
+                                    onChange={(e) => { 
+                                        setCity(e.target.value); 
+                                        if(cityError) setCityError(""); 
+                                    }}
+                                    disabled={!selectedStateCode}
+                                >
+                                    <option value="">Select City here</option>
+                                    {cities.map(c => (
+                                        <option key={c.name} value={c.name}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
+                            </div>
                             {cityError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{cityError}</span>}
                         </div>
                         <div className={styles.field}>

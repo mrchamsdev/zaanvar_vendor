@@ -31,7 +31,7 @@ const PurchaseOrdersPage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [managerConfig, setManagerConfig] = useState(null); // { mode: 'Add'|'View', id: null }
+    const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
 
     const [summary, setSummary] = useState(null);
 
@@ -44,9 +44,21 @@ const PurchaseOrdersPage = () => {
 
     useEffect(() => {
         if (router.isReady && router.query.openAdd === 'true') {
-            openOrder(null, "Add");
-            // Clear query param
-            const { openAdd, ...restQuery } = router.query;
+            let initialData = null;
+            if (router.query.restockProductId) {
+                initialData = {
+                    branchId: router.query.restockBranchId,
+                    supplierId: router.query.restockSupplierId,
+                    returnTab: router.query.returnTab,
+                    restockItem: {
+                        productId: parseInt(router.query.restockProductId),
+                        variantId: parseInt(router.query.restockVariantId)
+                    }
+                };
+            }
+            openOrder(null, "Add", initialData);
+            // Clear query params
+            const { openAdd, restockProductId, restockVariantId, restockSupplierId, restockBranchId, returnTab, ...restQuery } = router.query;
             router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
         }
     }, [router.isReady, router.query.openAdd]);
@@ -117,8 +129,8 @@ const PurchaseOrdersPage = () => {
         return filteredData.slice(start, start + rowsPerPage);
     }, [filteredData, currentPage, rowsPerPage]);
 
-    const openOrder = (id = null, mode = "View") => {
-        setManagerConfig({ mode, id });
+    const openOrder = (id = null, mode = "View", initialData = null) => {
+        setManagerConfig({ mode, id, initialData });
     };
 
     const formatDate = (dateString) => {
@@ -154,14 +166,22 @@ const PurchaseOrdersPage = () => {
                     <PurchaseOrderManager 
                         mode={managerConfig.mode}
                         initialId={managerConfig.id}
+                        initialData={managerConfig.initialData}
                         onSave={() => {
-                            console.log("Orders: onSave triggered");
-                            fetchOrders();
+                            if (managerConfig.initialData?.returnTab) {
+                                router.push(`/inventory/stock-status?tab=${managerConfig.initialData.returnTab}`);
+                            } else {
+                                setManagerConfig(null);
+                                fetchOrders();
+                            }
                         }}
                         onClose={() => {
-                            console.log("Orders: onClose triggered, hiding form");
-                            setManagerConfig(null);
-                            fetchOrders();
+                            if (managerConfig.initialData?.returnTab) {
+                                router.push(`/inventory/stock-status?tab=${managerConfig.initialData.returnTab}`);
+                            } else {
+                                setManagerConfig(null);
+                                fetchOrders();
+                            }
                         }} 
                     />
                 )}
