@@ -38,7 +38,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     useEffect(() => {
         if (initialData && Object.keys(initialData).length > 0) {
             setSupplierName(initialData.supplierName || "");
-            setSupplierType(initialData.supplierType ? initialData.supplierType.split(',').map(s => s.trim()) : []);
+            setSupplierType(initialData.supplierType ? (Array.isArray(initialData.supplierType) ? initialData.supplierType : initialData.supplierType.split(',').map(s => s.trim())) : []);
             setPhone(initialData.phone || "");
             setEmail(initialData.email || "");
             setStreet(initialData.street || "");
@@ -110,7 +110,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
 
         const payload = {
             supplierName,
-            supplierType: supplierType.join(', '),
+            supplierType: supplierType,
             phone,
             email,
             street,

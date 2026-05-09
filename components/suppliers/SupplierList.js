@@ -71,9 +71,7 @@ const SupplierList = ({
                 <th>Supplier Type</th>
                 <th>Supplier Name</th>
                 <th>Branch Assigned</th>
-                <th>Order QTY</th>
-                <th>Received QTY</th>
-                <th>Return QTY</th>
+
                 <th>Total Amount</th>
               </tr>
             </thead>
@@ -88,12 +86,10 @@ const SupplierList = ({
                     />
                   </td>
                   <td>{s.supplierId}</td>
-                  <td style={{ textTransform: 'uppercase' }}>{s.supplierType || "-"}</td>
+                  <td style={{ textTransform: 'uppercase' }}>{Array.isArray(s.supplierType) ? s.supplierType.join(', ') : (s.supplierType || "-")}</td>
                   <td>{s.supplierName}</td>
                   <td>{s.branches?.map(b => b.name).join(", ") || "-"}</td>
-                  <td>000</td>
-                  <td>000</td>
-                  <td>000</td>
+
                   <td style={{ color: '#27AE60', fontWeight: 600 }}>₹000</td>
                 </tr>
               ))}

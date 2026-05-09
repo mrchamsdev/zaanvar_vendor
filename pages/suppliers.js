@@ -96,21 +96,6 @@ const SuppliersPage = () => {
 
   return (
     <DashboardLayout
-      customTopbarLeft={(
-        <select 
-          className={styles.branchSelect}
-          value={branchId}
-          onChange={handleBranchChange}
-        >
-          {branches.length > 0 ? (
-            branches.map(br => (
-              <option key={br.id} value={br.id}>{br.branchName || br.name || "Unnamed Branch"}</option>
-            ))
-          ) : (
-            <option value={branchId}>Main Branch</option>
-          )}
-        </select>
-      )}
       customTopbarRight={(
         <button 
           className={styles.addBtn}
