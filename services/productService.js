@@ -207,11 +207,25 @@ export const productService = {
         lowStock: [],
         expired: [],
         shortExpiry: [],
-        damagedBillItems: []
+        damagedBillItems: [],
+        customerDamagedReturns: []
       };
     } catch (error) {
       console.error("Error fetching stock reports:", error);
       return null;
     }
+  },
+
+  restoreDamagedItem: async (jwt, consumptionId) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.put(`vendor/products/stock-reports`, { consumptionId, action: "restore" });
+  },
+
+  markAsWaste: async (jwt, id, isExpired = false) => {
+    const webApi = new WebApimanager(jwt);
+    const payload = isExpired 
+        ? { stockUpdateId: id, action: "waste", type: "expired" }
+        : { consumptionId: id, action: "waste" };
+    return await webApi.put(`vendor/products/stock-reports`, payload);
   }
 };
