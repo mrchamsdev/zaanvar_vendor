@@ -150,12 +150,12 @@
 
 .draftBtn {
     padding: 12px 36px;
-    border: 1px solid #ddd;
+    border: 1px solid #333;
     background: #fff;
     border-radius: 10px;
     font-weight: 700;
     cursor: pointer;
-    color: #bbb;
+    color: #333;
     font-size: 14px;
 }
 
@@ -410,7 +410,7 @@
 
 .dropdownIcon {
     position: absolute;
-    right: 12px;
+    right: 20px;
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;

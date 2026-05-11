@@ -41,6 +41,10 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         overallTax: rootOverallTax,
         overallDiscount: rootOverallDiscount,
         previousCredit: rootPreviousCredit,
+        itemTaxAmount: rootItemTax,
+        itemDiscountAmount: rootItemDiscount,
+        damagedAmount: rootDamagedAmount,
+        shortfallAmount: rootShortfallAmount,
         receivedDetails = {}
     } = data;
 
@@ -49,7 +53,12 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     const finalOverallDiscount = rootOverallDiscount || receivedDetails.overallDiscount || { value: 0, type: '₹' };
     const finalPreviousCredit = rootPreviousCredit ?? receivedDetails.previousCredit ?? 0;
 
-    const [showBreakdown, setShowBreakdown] = React.useState(true);
+    const [showBreakdown, setShowBreakdown] = React.useState(false);
+
+    const handleHeaderClick = () => {
+        setShowBreakdown(!showBreakdown);
+    };
+
     const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
 
     const formatDate = (dateStr) => {
@@ -84,10 +93,10 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         
         let totalOrderValue = 0;
         let grandTotal = 0;
-        let itemDiscountTotal = 0;
-        let itemTaxTotal = 0;
-        let damagedAmountTotal = 0;
-        let shortfallAmountTotal = 0;
+        let calculatedItemDiscountTotal = 0;
+        let calculatedItemTaxTotal = 0;
+        let calculatedDamagedAmountTotal = 0;
+        let calculatedShortfallAmountTotal = 0;
 
         itemsList.forEach(item => {
             const cost = parseFloat(item.costPrice) || 0;
@@ -98,14 +107,9 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             const taxPercent = parseFloat(item.taxGroupId) || parseFloat(item.tax) || 0; 
 
             totalOrderValue += (ordered * cost);
-            
-            if (ordered > received) {
-                shortfallAmountTotal += (ordered - received) * cost;
-            }
-            damagedAmountTotal += (damaged * cost);
 
             const baseQty = payBasedOnOrdered ? ordered : received;
-            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+            const billingQty = Math.max(0, baseQty - damaged);
 
             const billableSubtotal = billingQty * cost;
             const discAmount = (billableSubtotal * discountPercent / 100);
@@ -113,10 +117,20 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             const taxAmount = (afterDiscount * taxPercent / 100);
             const finalProductAmount = afterDiscount + taxAmount;
 
-            itemDiscountTotal += discAmount;
-            itemTaxTotal += taxAmount;
+            calculatedItemDiscountTotal += discAmount;
+            calculatedItemTaxTotal += taxAmount;
             grandTotal += finalProductAmount;
+            
+            if (ordered > received) {
+                calculatedShortfallAmountTotal += (ordered - received) * cost;
+            }
+            calculatedDamagedAmountTotal += (damaged * cost);
         });
+        
+        const itemDiscountTotal = rootItemDiscount !== undefined ? parseFloat(rootItemDiscount) : calculatedItemDiscountTotal;
+        const itemTaxTotal = rootItemTax !== undefined ? parseFloat(rootItemTax) : calculatedItemTaxTotal;
+        const damagedAmountTotal = rootDamagedAmount !== undefined ? parseFloat(rootDamagedAmount) : calculatedDamagedAmountTotal;
+        const shortfallAmountTotal = rootShortfallAmount !== undefined ? parseFloat(rootShortfallAmount) : calculatedShortfallAmountTotal;
         
         let overallDiscountVal = Number(finalOverallDiscount.value) || 0;
         if (finalOverallDiscount.type === '%') {
@@ -129,15 +143,15 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         }
         
         const previousCredit = Number(finalPreviousCredit) || 0;
-        const subtotal = grandTotal - overallDiscountVal + overallTaxVal;
-        const finalAmount = subtotal - previousCredit;
+        const subtotal = grandTotal;
+        const finalAmount = subtotal - overallDiscountVal + overallTaxVal - previousCredit;
         
         return { 
             totalCost: totalOrderValue, 
             shortfallAmountTotal,
             damagedAmountTotal,
             discountableAmount: grandTotal, 
-            discountableBase: (grandTotal - itemTaxTotal + itemDiscountTotal),
+            discountableBase: (grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal),
             itemDiscountTotal,
             itemTaxTotal,
             overallDiscountVal, 
@@ -205,6 +219,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>PRODUCT NAME</th>
                             <th>PRODUCT CODE</th>
                             <th>VRIANT</th>
+                            <th>ORDER QTY</th>
                             <th>RECEIVED QTY</th>
                             <th>SHORTFALL QTY</th>
                             <th>DAMAGED GOODS</th>
@@ -239,6 +254,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                     </td>
                                     <td>{item.productCode || "--"}</td>
                                     <td>{[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}</td>
+                                    <td style={{textAlign: 'center', fontWeight: '700'}}>{item.qty || item.orderQuantity || 0}</td>
                                     <td>
                                         <div className={styles.qtyCell}>
                                             <span className={styles.value}>{item.receivedQty}</span>
@@ -276,8 +292,13 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     </tbody>
                     <tfoot>
                         <tr className={styles.tableFooter}>
-                            <td colSpan={11} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
-                            <td className={styles.totalValueCell}>₹ {breakdown.finalAmount.toLocaleString()}</td>
+                            <td colSpan={13} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
+                            <td className={styles.totalValueCell}>
+                                <div className={styles.totalValueWrapper}>
+                                    <span>₹</span>
+                                    <span>{breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -285,25 +306,27 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
 
             <div className={styles.breakdownSection}>
                 <div className={styles.breakdownWrapper}>
-                    <div className={styles.breakdownHeader} onClick={() => setShowBreakdown(!showBreakdown)}>
+                    <div 
+                        className={styles.breakdownHeader} 
+                        onClick={handleHeaderClick}
+                    >
                         <span className={styles.breakdownTitle}>Price Breakdown</span>
                         <FiChevronDown className={`${styles.breakdownIcon} ${showBreakdown ? styles.breakdownIconActive : ""}`} />
                     </div>
-                    {showBreakdown && (
-                        <div className={styles.breakdownContent}>
+                    <div className={`${styles.breakdownContent} ${showBreakdown ? styles.breakdownContentActive : ""}`}>
                             <div className={styles.breakdownRow}>
                                 <span>Total Ordered Cost</span>
                                 <span>₹ {breakdown.totalCost.toLocaleString()}</span>
                             </div>
-                            {!breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
+                            {breakdown.shortfallAmountTotal > 0 && (
                                 <div className={styles.breakdownRow}>
-                                    <span>Shortfall Amount</span>
+                                    <span> Shortfall Amount</span>
                                     <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString()}</span>
                                 </div>
                             )}
-                            {breakdown.damagedReturnedGoods && breakdown.damagedAmountTotal > 0 && (
+                            {breakdown.damagedAmountTotal > 0 && (
                                 <div className={styles.breakdownRow}>
-                                    <span>Damaged Amount</span>
+                                    <span> Damaged Amount</span>
                                     <span>- ₹ {breakdown.damagedAmountTotal.toLocaleString()}</span>
                                 </div>
                             )}
@@ -325,16 +348,16 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                 <span>₹ {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.breakdownRow}>
-                                <span>Overall Tax {finalOverallTax.type === '%' ? `(${finalOverallTax.value}%)` : ""}</span>
+                                <span> Overall Tax {finalOverallTax.type === '%' ? `(${finalOverallTax.value}%)` : ""}</span>
                                 <span>₹ {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.breakdownRow}>
-                                <span>Overall Discount {finalOverallDiscount.type === '%' ? `(${finalOverallDiscount.value}%)` : ""}</span>
+                                <span> Overall Discount {finalOverallDiscount.type === '%' ? `(${finalOverallDiscount.value}%)` : ""}</span>
                                 <span>- ₹ {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             {breakdown.previousCredit > 0 && (
                                 <div className={styles.breakdownRow}>
-                                    <span>Credit Note</span>
+                                    <span>Previous Credit</span>
                                     <span>- ₹ {breakdown.previousCredit.toLocaleString()}</span>
                                 </div>
                             )}
@@ -343,9 +366,8 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                 <span>₹ {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
-            </div>
 
             {/* <div className={styles.totalSection}>
                 <span className={styles.totalLabel}>TOTAL :</span>

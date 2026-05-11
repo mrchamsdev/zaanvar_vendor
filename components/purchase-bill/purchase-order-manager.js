@@ -26,7 +26,7 @@ const IconX = () => (
     </svg>
 );
 
-const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initialData }) => {
+const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initialData, totalOrders = 0 }) => {
     // Lock body scroll
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -36,7 +36,8 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     const [tabs, setTabs] = useState([
         { 
             id: initialId || '1', 
-            title: mode === "View" ? `Order Details #${initialId}` : 'New Order', 
+            title: mode === "View" ? `Order Details #${initialId}` : `Purchase Order #${totalOrders + 1}`, 
+            orderNumber: mode === "View" ? initialId : (totalOrders + 1),
             isMinimized: false, 
             data: initialData || {}, 
             mode: mode 
@@ -49,7 +50,8 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
 
     const addTab = () => {
         const newId = String(Date.now());
-        const newTab = { id: newId, title: `Purchase Order #${tabs.length + 1}`, isMinimized: false, data: {}, mode: "Add" };
+        const nextNum = totalOrders + tabs.length + 1;
+        const newTab = { id: newId, title: `Purchase Order #${nextNum}`, orderNumber: nextNum, isMinimized: false, data: {}, mode: "Add" };
         setTabs([...tabs, newTab]);
         setActiveTabId(newId);
         if (splitMode && !splitTabIds[1]) {
@@ -74,8 +76,25 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     };
 
     const toggleMinimize = (id) => {
-        setActiveTabId(id);
-        setTabs(prev => prev.map(t => t.id === id ? { ...t, isMinimized: !t.isMinimized } : t));
+        const targetTab = tabs.find(t => t.id === id);
+        if (!targetTab) return;
+
+        const isNowMinimizing = !targetTab.isMinimized;
+        
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, isMinimized: isNowMinimizing } : t));
+
+        if (isNowMinimizing) {
+            // If minimizing the current active tab, switch to another visible one
+            if (id === activeTabId) {
+                const otherVisible = tabs.find(t => t.id !== id && !t.isMinimized);
+                if (otherVisible) {
+                    setActiveTabId(otherVisible.id);
+                }
+            }
+        } else {
+            // If maximizing, make it active
+            setActiveTabId(id);
+        }
     };
 
     const toggleSplit = () => {
@@ -123,6 +142,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
             <PurchaseOrderForm 
                 key={tab.id}
                 initialData={tab.data}
+                orderNumber={tab.orderNumber}
                 onSave={() => {
                     if (onSave) onSave();
                     closeTab(tab.id);
@@ -133,8 +153,8 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     };
 
     return (
-        <div className={styles.taskManager}>
-            <div className={styles.tabBar}>
+        <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.minimizedMode : ""}`}>
+            <div className={`${styles.tabBar} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
                 {visibleTabs.map(tab => (
                     <div 
                         key={tab.id} 
@@ -154,32 +174,31 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
                 </div>
             </div>
 
-            {isAnyVisible && (
-                <>
-                    <div className={styles.managerHeader}>Purchase Order Details</div>
-                    <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-                        {tabs.map(tab => {
-                            const isVisible = splitMode ? splitTabIds.includes(tab.id) : activeTabId === tab.id;
-                            const isMinimized = tab.isMinimized;
-                            
-                            return (
-                                <div 
-                                    key={tab.id} 
-                                    className={styles.formWrapper} 
-                                    style={{ display: (isVisible && !isMinimized) ? 'flex' : 'none' }}
-                                >
-                                    {renderForm(tab, () => closeTab(tab.id))}
-                                </div>
-                            );
-                        })}
-                        {splitMode && splitTabIds.some(id => id === null) && (
-                            <div className={styles.formWrapper}>
-                                <div className={styles.placeholder}>Select PO from Tabs</div>
-                            </div>
-                        )}
+            <div className={`${styles.managerHeader} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
+                Purchase Order Details
+            </div>
+            
+            <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
+                {tabs.map(tab => {
+                    const isVisible = splitMode ? splitTabIds.includes(tab.id) : activeTabId === tab.id;
+                    const isMinimized = tab.isMinimized;
+                    
+                    return (
+                        <div 
+                            key={tab.id} 
+                            className={styles.formWrapper} 
+                            style={{ display: (isVisible && !isMinimized) ? 'flex' : 'none' }}
+                        >
+                            {renderForm(tab, () => closeTab(tab.id))}
+                        </div>
+                    );
+                })}
+                {splitMode && splitTabIds.some(id => id === null) && (
+                    <div className={styles.formWrapper}>
+                        <div className={styles.placeholder}>Select PO from Tabs</div>
                     </div>
-                </>
-            )}
+                )}
+            </div>
 
             <div className={styles.minimizedBar}>
                 {minimizedTabs.map(tab => (

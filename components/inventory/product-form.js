@@ -29,6 +29,7 @@ const IconTrash = () => (
       <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
     </svg>
 );
+
 const IconChevron = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 9l6 6 6-6" />
@@ -196,6 +197,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
     newVariants[index].images = [...(newVariants[index].images || []), ...newImages];
     setVariants(newVariants);
     
+    // Clear image error for this variant
+    if (formErrors[`${index}_images`]) {
+      const newErrors = { ...formErrors };
+      delete newErrors[`${index}_images`];
+      setFormErrors(newErrors);
+    }
+    
     e.target.value = null;
   };
 
@@ -237,6 +245,14 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       const response = await productService.generateProductCode(jwtToken);
       if (response?.data?.data?.productCode) {
         setProductCode(response.data.data.productCode);
+        
+        // Clear product code error
+        if (formErrors.productCode) {
+          const newErrors = { ...formErrors };
+          delete newErrors.productCode;
+          setFormErrors(newErrors);
+        }
+        
         toast.success("Product code assigned", { id: tid });
       } else {
         toast.error("Failed to generate code", { id: tid });
@@ -477,7 +493,10 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         // 2. Create new variants individually using the specific endpoint
         if (newVariants.length > 0) {
             console.log(`Creating ${newVariants.length} new variants individually...`);
-            for (const v of newVariants) {
+            for (let i = 0; i < variants.length; i++) {
+                const v = variants[i];
+                if (v.variantId) continue; // Skip existing ones
+
                 const variantPayload = {
                     productId: initialData.productId,
                     mrp: Number(v.mrp) || 0,
@@ -510,12 +529,18 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 
                 try {
                     const vResp = await productService.createVariant(jwtToken, variantPayload);
-                    console.log("Variant creation response:", vResp);
-                    // Add the new variant ID to our list for image upload
-                    if (vResp?.data?.data) {
-                        if (!response.data) response.data = {};
-                        if (!response.data.variants) response.data.variants = [];
-                        response.data.variants.push(vResp.data.data);
+                    console.log(`[DEBUG] New variant creation response for index ${i}:`, vResp);
+                    
+                    // Robust ID extraction
+                    const dataObj = vResp?.data || vResp;
+                    const innerData = dataObj?.data || dataObj;
+                    const newId = innerData?.variantId || innerData?.id || dataObj?.variantId || dataObj?.id || vResp?.variantId || vResp?.id;
+                    
+                    console.log(`[DEBUG] Extracted ID for index ${i}:`, newId);
+                    if (newId) {
+                        v.variantId = newId;
+                    } else {
+                        console.error(`[DEBUG] FAILED to extract ID from variant response for index ${i}`, vResp);
                     }
                 } catch (vErr) {
                     console.error("Failed to create individual variant:", vErr);
@@ -529,42 +554,37 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
       
       console.log("Final Save/Update response:", response);
       if (response) {
-        // Handle different response structures for variants
-        const responseData = response.data || response;
-        const responseVariants = responseData?.variants || responseData?.data?.variants || response?.variants || [];
-        
-        console.log("Extracted response variants:", responseVariants);
-        console.log(`Starting per-variant image upload for ${variants.length} variants...`);
-        
+        // Handle image uploads for all variants (using the ID from the form state)
+        console.log(`Starting image upload for ${variants.length} variants...`);
         let uploadPromises = [];
-
+ 
         for (let i = 0; i < variants.length; i++) {
           const formVariant = variants[i];
-          const backendVariant = responseVariants[i];
-          const targetId = backendVariant?.variantId || backendVariant?.id || formVariant.variantId;
+          const targetId = formVariant.variantId; 
           
           const variantImages = formVariant.images || [];
           const imageFiles = variantImages.filter(img => img.file).map(img => img.file);
           
+          console.log(`Variant ${i} analysis: ID=${targetId}, newFiles=${imageFiles.length}`);
+
           if (imageFiles.length > 0 && targetId) {
-            console.log(`Uploading ${imageFiles.length} new images for Variant ID: ${targetId}`);
+            console.log(`>>> TRIGGERING image upload for Variant ID: ${targetId}`);
             const formData = new FormData();
             imageFiles.forEach(file => formData.append("productImgs", file));
             
             const uploadPromise = productService.uploadProductImages(jwtToken, targetId, formData)
               .then(upResp => {
-                console.log(`Batch image upload successful for variant ${targetId}:`, upResp);
+                console.log(`Batch image upload success for ${targetId}:`, upResp);
                 return upResp;
               })
-              .catch(uploadError => {
-                console.error(`Failed to upload images for variant ${targetId}:`, uploadError);
+              .catch(err => {
+                console.error(`Batch image upload FAILED for ${targetId}:`, err);
                 toast.error(`Failed to upload images for variant ${i + 1}`);
-                throw uploadError;
               });
             
             uploadPromises.push(uploadPromise);
           } else {
-            console.log(`Skipping image upload for variant ${i}: imageFiles=${imageFiles.length}, targetId=${targetId}`);
+              console.log(`>>> SKIPPING image upload for Variant ${i}: targetId is ${targetId ? "present" : "MISSING"}, imageFiles is ${imageFiles.length}`);
           }
         }
         
@@ -603,16 +623,35 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
   }, []);
 
   const handlePetTypeToggle = (type) => {
-    setSelectedPetTypes(prev => 
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    );
+    setSelectedPetTypes(prev => {
+      const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
+      
+      // Clear error if at least one type is selected
+      if (next.length > 0 && formErrors.petType) {
+        const newErrors = { ...formErrors };
+        delete newErrors.petType;
+        setFormErrors(newErrors);
+      }
+      
+      return next;
+    });
   };
 
   const handleSelectAllPetTypes = () => {
+    let next = [];
     if (selectedPetTypes.length === PET_TYPES.length) {
-      setSelectedPetTypes([]);
+      next = [];
     } else {
-      setSelectedPetTypes([...PET_TYPES]);
+      next = [...PET_TYPES];
+    }
+    
+    setSelectedPetTypes(next);
+    
+    // Clear error if selection is not empty
+    if (next.length > 0 && formErrors.petType) {
+      const newErrors = { ...formErrors };
+      delete newErrors.petType;
+      setFormErrors(newErrors);
     }
   };
 
@@ -752,11 +791,13 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
               {formErrors.category && <div className={styles.errorMessage}>{formErrors.category}</div>}
             </>
           ) : (
+            <div className={styles.selectWrapper}>
               <select 
                 className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
                 value={category} 
                 onChange={(e) => {
                   setCategory(e.target.value);
+                  setSubCategory(""); 
                   if (formErrors.category) {
                     const newErrors = { ...formErrors };
                     delete newErrors.category;
@@ -767,6 +808,8 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
                 <option value="">Select Category</option>
                 {MEDICAL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+              <div className={styles.selectIcon}><IconChevron /></div>
+            </div>
           )}
         </div>
         <div className={styles.inputField}>

@@ -182,6 +182,7 @@ const useStore = create(
         'genieFilters_bird-names': { petname: "", gender: "", Theme: "", letters: [] },
         'genieFilters_small-pets-names': { petname: "", gender: "", Theme: "", letters: [] },
       },
+      expandedMenus: {},
 
       // Setters
       setLocation: (lat, lng) => set({ lat, lng }),
@@ -227,6 +228,9 @@ const useStore = create(
       getBreedFilter: () => get().breedFilter,
       getSelectedPet: () => get().selectedPet,
       getSelectedBranchId: () => get().selectedBranchId,
+      setExpandedMenus: (valOrFn) => set((state) => ({
+        expandedMenus: typeof valOrFn === 'function' ? valOrFn(state.expandedMenus) : valOrFn
+      })),
 
       // PetGenie setters/getters - now supports page-specific filters
       setGenieFilters: (filters) =>
@@ -307,6 +311,7 @@ const useStore = create(
           isSettingsDetailOpen: false,
           genieFilters: { petname: "", gender: "", Theme: "", letters: [] },
           selectedBranchId: null,
+          expandedMenus: {},
         }),
 
     }),
@@ -340,6 +345,7 @@ const useStore = create(
         // settings UI state is not persisted (session-only)
         genieFilters: state.genieFilters,
         selectedBranchId: state.selectedBranchId,
+        expandedMenus: state.expandedMenus,
       }),
     }
   )

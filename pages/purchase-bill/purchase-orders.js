@@ -167,6 +167,7 @@ const PurchaseOrdersPage = () => {
                         mode={managerConfig.mode}
                         initialId={managerConfig.id}
                         initialData={managerConfig.initialData}
+                        totalOrders={stats.total}
                         onSave={() => {
                             if (managerConfig.initialData?.returnTab) {
                                 router.push(`/inventory/stock-status?tab=${managerConfig.initialData.returnTab}`);

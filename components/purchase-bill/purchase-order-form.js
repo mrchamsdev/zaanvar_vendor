@@ -14,7 +14,7 @@ const IconTrash = () => (
     </svg>
 );
 
-const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
+const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber }) => {
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -48,7 +48,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
     const [supplierPhone, setSupplierPhone] = useState(initialData?.supplierPhone || "");
     const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState(initialData?.items || [
-        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: 0 }
+        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: "", mrp: 0 }
     ]);
 
     const [formErrors, setFormErrors] = useState({});
@@ -125,6 +125,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                     currentStock: variant.currentQty || 0,
                     variantId: variant.variantId,
                     costPrice: parseFloat(variant.sellingPrice) || 0,
+                    mrp: parseFloat(variant.mrp) || 0,
                     taxGroupId: variant.taxGroupId || 1,
                     orderQty: 1, // Default to 1 for restock
                     allVariants: variants
@@ -162,7 +163,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: 0 }]);
+        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: "" }]);
     };
 
     const removeItem = (id) => {
@@ -203,7 +204,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
             variant: variantDisplay,
             currentStock: variant.currentQty || 0,
             variantId: variant.variantId,
-            costPrice: parseFloat(variant.sellingPrice) || 0, // Default to selling price
+            costPrice: "", 
+            mrp: variant.mrp || 0,
             taxGroupId: variant.taxGroupId || 1, // Default or from data
             allVariants: variants
         };
@@ -227,7 +229,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
             variant: variantDisplay,
             currentStock: variant.currentQty || 0,
             variantId: variant.variantId,
-            costPrice: parseFloat(variant.sellingPrice) || 0,
+            costPrice: "",
+            mrp: variant.mrp || 0,
             taxGroupId: variant.taxGroupId || 1
         };
         setItems(newItems);
@@ -253,6 +256,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
             if (!item.productId) errs.productId = "Product is required";
             if (!item.variant || item.variant === "--") errs.variant = "Variant is required";
             if (!item.orderQty || item.orderQty <= 0) errs.orderQty = "Qty > 0";
+            if (item.costPrice && item.mrp && parseFloat(item.costPrice) > parseFloat(item.mrp)) {
+                errs.costPrice = `Max: ${item.mrp}`;
+            }
             return Object.keys(errs).length > 0 ? errs : null;
         });
 
@@ -322,7 +328,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
     return (
         <div className={styles.formContainer}>
             <div className={styles.poNumberHeader}>
-                PO Number <span className={styles.poId}>#000001</span>
+                PO Number <span className={styles.poId}>#{String(orderNumber || 1).padStart(6, '0')}</span>
             </div>
 
             <div className={styles.section}>
@@ -330,17 +336,22 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                 <div className={styles.grid}>
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Selected Branch</label>
-                        <select 
-                            className={`${styles.select} ${styles.input}`} 
-                            value={branchId}
-                            onChange={(e) => setBranchId(e.target.value)}
-                            style={{ padding: '0 15px', height: '100%', border: 'none', background: 'transparent', outline: 'none', width: '100%', appearance: 'auto' }}
-                        >
-                            <option value="">Select Branch</option>
-                            {branches.map(b => (
-                                <option key={b.id || b._id} value={b.id || b._id}>{b.name || b.branchName}</option>
-                            ))}
-                        </select>
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                className={`${styles.select} ${styles.input}`} 
+                                value={branchId}
+                                onChange={(e) => setBranchId(e.target.value)}
+                                style={{ appearance: 'none', width: '100%', paddingRight: '40px' }}
+                            >
+                                <option value="">Select Branch</option>
+                                {branches.map(b => (
+                                    <option key={b.id || b._id} value={b.id || b._id}>{b.name || b.branchName}</option>
+                                ))}
+                            </select>
+                            <div className={styles.dropdownIcon}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                            </div>
+                        </div>
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>
@@ -489,7 +500,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                 >
                                     {item.variant || "--"}
                                     {item.allVariants?.length > 1 && (
-                                        <div style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4}}>
+                                        <div style={{position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4}}>
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
                                         </div>
                                     )}
@@ -525,12 +536,18 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack }) => {
                                 </td>
                                 <td>
                                     <input 
-                                        className={styles.qtyInput}
+                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.costPrice ? styles.errorField : ""}`}
                                         type="number"
                                         step="0.01"
+                                        placeholder="0.00"
                                         value={item.costPrice} 
                                         onChange={(e) => updateItem(index, "costPrice", e.target.value)}
                                     />
+                                    {Number(item.costPrice) > Number(item.mrp) && item.mrp > 0 && (
+                                        <div className={styles.errorMessage} style={{ fontSize: '9px', marginTop: '6px', lineHeight: '1.2', display: 'block', textAlign: 'center' }}>
+                                            Cost Price cannot be greater than MRP: {item.mrp}
+                                        </div>
+                                    )}
                                 </td>
                                 <td style={{width: '60px', textAlign: 'center'}}>
                                     {items.length > 1 && (

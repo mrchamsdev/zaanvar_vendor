@@ -185,6 +185,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
               const catStr = (renderCategory(data.category) || "").toLowerCase();
               const subCatStr = (renderCategory(data.subCategory) || "").toLowerCase();
               const isClothing = catStr.includes('cloth') || subCatStr.includes('cloth');
+              const isSizeBased = ["PIECES (Pcs)", "PAIRS (Prs)"].includes(packTypeStr);
               
               const rawSizeVal = v.variantType?.size || v.size || "";
               const rawSize = (rawSizeVal && rawSizeVal.toString().toUpperCase() !== "N/A" && rawSizeVal !== "undefined") ? rawSizeVal : "";
@@ -193,22 +194,10 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   try { parsedSize = JSON.parse(rawSize); } catch (e) {}
               }
 
-              // Dimension Logic
-              const dimensions = v.variantType?.dimensions || "";
-              const dimParts = dimensions.split('x');
-              
-              const displayHeight = parsedSize?.height ? `${parsedSize.height}${parsedSize.heightUnit || 'mm'}` : (dimParts[0] || "-");
-              const displayWidth = parsedSize?.width ? `${parsedSize.width}${parsedSize.widthUnit || 'mm'}` : (dimParts[1] || "-");
-              const displayLength = parsedSize?.length ? `${parsedSize.length}${parsedSize.lengthUnit || 'mm'}` : (dimParts[2] || "-");
-              const displayRadius = parsedSize?.radius ? `${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}` : "-";
-              const displayWeight = parsedSize?.weight ? `${parsedSize.weight}${parsedSize.weightUnit || 'g'}` : "-";
-
               // Size Column
               let displaySize = "-";
-              if (rawSize && !rawSize.toString().startsWith('{')) {
-                  displaySize = rawSize;
-              } else if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
-                  displaySize = packTypeStr;
+              if (isSizeBased) {
+                  displaySize = (rawSize && !rawSize.toString().startsWith('{')) ? rawSize : "-";
               } else if (parsedSize) {
                   const parts = [];
                   if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
@@ -216,19 +205,17 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
                   if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
                   displaySize = parts.length > 0 ? parts.join(" x ") : "-";
+              } else if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
+                  displaySize = packTypeStr;
               }
 
               // Weight / Unit Column
-              let weightUnitVal = displayWeight;
-              if (weightUnitVal === "-") {
+              let weightUnitVal = "-";
+              if (!isSizeBased) {
                   if (v.unitMeasure) {
                       weightUnitVal = `${v.unitMeasure}${v.unitType || v.sizeType?.[0] || ""}`;
-                  } else if (!isClothing && !parsedSize && rawSize && !rawSize.toString().startsWith('{')) {
-                      const units = ['kg', 'g', 'ml', 'l', 'lb', 'oz'];
-                      const hasUnit = typeof rawSize === 'string' && units.some(u => rawSize.toLowerCase().includes(u));
-                      if (hasUnit || displaySize === "-") {
-                          weightUnitVal = rawSize;
-                      }
+                  } else if (rawSize && !rawSize.toString().startsWith('{')) {
+                      weightUnitVal = rawSize;
                   }
               }
 

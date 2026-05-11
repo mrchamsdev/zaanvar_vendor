@@ -264,7 +264,7 @@ const DashboardLayout = ({
 
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState({});
+  const { expandedMenus, setExpandedMenus } = useStore();
 
   /* ── auto-expand active menu ── */
   useEffect(() => {
