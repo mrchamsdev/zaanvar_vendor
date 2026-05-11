@@ -486,10 +486,10 @@ const PaymentOutList = ({ onAddClick }) => {
 
             let targetValue = "";
             if (key === 'refNo') targetValue = String(t.suppliersTransactionId);
-            else if (key === 'partyName') targetValue = String(t.transactionInfo || "");
+            else if (key === 'partyName') targetValue = String(t.supplierName || t.transactionInfo || "");
             else if (key === 'paymentType') targetValue = String(t.paymentType || "");
-            else if (key === 'total') targetValue = String(t.relatedBill?.amountPaidToSupplier || 0);
-            else if (key === 'paid') targetValue = String(t.amount || 0);
+            else if (key === 'total') targetValue = String(t.amount || 0);
+            else if (key === 'paid') targetValue = String(t.relatedBill?.amountPaidToSupplier || 0);
 
             if (filter.mode === 'Checklist') {
                 if (!filter.value.includes(targetValue)) matchesColFilters = false;
@@ -504,14 +504,14 @@ const PaymentOutList = ({ onAddClick }) => {
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "PARTY NAME", "PAYMENT TYPE", "TOTAL", "PAID"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "PAYMENT TYPE", "TOTAL", "PAID"];
         const rows = filteredTransactions.map(t => [
             `"${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
             `"${t.suppliersTransactionId}"`,
-            `"${(t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
+            `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
             `"${t.paymentType || "N/A"}"`,
-            `"${t.relatedBill?.amountPaidToSupplier || 0}"`,
-            `"${t.amount}"`
+            `"${t.amount || 0}"`,
+            `"${t.relatedBill?.amountPaidToSupplier || 0}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -594,7 +594,7 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryTop}>
                             <div className={styles.summaryItem}>
                                 <span className={styles.summaryLabel}>Total Amount</span>
-                                <span className={styles.summaryValue}>₹{Number(totals?.supplierTotalAmount || 0).toLocaleString()}</span>
+                                <span className={styles.summaryValue}>₹{Number(totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.summaryStats}>
                                 <span className={styles.percentText}>0% <FiArrowUpRight /></span>
@@ -604,11 +604,11 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryBottom}>
                             <div className={styles.bottomItem}>
                                 <span className={styles.paidLabel}>Paid : </span>
-                                <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString()}</span>
+                                <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.bottomItem} style={{marginLeft: 'auto'}}>
                                 <span className={styles.paidLabel}>Balance : </span>
-                                <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString()}</span>
+                                <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>
@@ -681,7 +681,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    PARTY NAME 
+                                    SUPPLIER NAME 
                                     <FiFilter 
                                         className={styles.filterIcon} 
                                         onClick={() => setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName')}
@@ -689,7 +689,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                     {openFilterCol === 'partyName' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Party Name"
+                                            label="Supplier Name"
                                             currentMode={columnFilters.partyName.mode}
                                             currentValue={columnFilters.partyName.value}
                                             onClose={() => setOpenFilterCol(null)}
@@ -756,10 +756,10 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <tr key={idx}>
                                     <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
                                     <td>{t.suppliersTransactionId}</td>
-                                    <td>{t.transactionInfo || "N/A"}</td>
+                                    <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
                                     <td>{t.paymentType || "N/A"}</td>
-                                    <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString()}</td>
-                                    <td>{Number(t.amount).toLocaleString()}</td>
+                                    <td>{Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>
                                         <div className={styles.actions}>
                                              <div style={{position: 'relative'}}>

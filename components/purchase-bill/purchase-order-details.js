@@ -172,7 +172,8 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                             <th style={{textAlign: 'center'}}>PRODUCT CODE</th>
                             <th style={{textAlign: 'center'}}>VARIANT</th>
                             <th style={{textAlign: 'center'}}>COST PRICE</th>
-                            <th style={{textAlign: 'center'}}>Order QTY</th>
+                            <th style={{textAlign: 'center'}}>ORDER QTY</th>
+                            <th style={{textAlign: 'center'}}>RECEIVED QTY</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -187,6 +188,9 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                                 <td style={{textAlign: 'center'}}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
                                 <td style={{textAlign: 'center'}}>
                                     <div style={{fontWeight: '700'}}>{item.qty}</div>
+                                </td>
+                                <td style={{textAlign: 'center'}}>
+                                    <div style={{fontWeight: '700'}}>{item.receivedQty || 0}</div>
                                     <div style={{fontSize: '11px', color: '#999'}}>Current Qty - {item.currentQty || 0}</div>
                                 </td>
                             </tr>

@@ -52,7 +52,7 @@ const ProductsPage = () => {
   const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
-  const [stats, setStats] = useState({ total: 0, expired: 10, damaged: 10, saleReturn: 10 });
+  const [stats, setStats] = useState({ total: 0, expired: 0, damaged: 0, saleReturn: 0 });
   const [productType, setProductType] = useState("Retail");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,7 +98,7 @@ const ProductsPage = () => {
       const data = await productService.getDamagedExpiredReports(jwtToken, bid);
       if (data && data.counts) {
         setStats({
-          total: data.totalProducts || 0,
+          total: data.counts.totalBranchProducts || 0,
           expired: data.counts.expiredProducts || 0,
           damaged: data.counts.damagedBillItems || 0,
           saleReturn: data.counts.damagedReturns || 0
@@ -165,15 +165,12 @@ const ProductsPage = () => {
     const vt = (v.variantType && typeof v.variantType === 'object') ? v.variantType : {};
     
     // 1. Get main measure
-    // Clean strength: ignore "N/A", "undefined", or empty strings
     const rawStrength = v.strength || "";
     const strength = (rawStrength && rawStrength.toUpperCase() !== "N/A" && rawStrength !== "undefined") ? rawStrength : "";
     
-    // Clean size: ignore "1", 1, "undefined", or empty strings
     let size = (vt.size && vt.size !== "1" && vt.size !== 1 && vt.size !== "undefined") ? vt.size : 
                (v.size && v.size !== "1" && v.size !== 1 && v.size !== "undefined" ? v.size : "");
     
-    // Pretty-print JSON dimensions if present
     if (typeof size === 'string' && size.trim().startsWith('{')) {
       try {
         const dim = JSON.parse(size);
@@ -189,8 +186,6 @@ const ProductsPage = () => {
     }
 
     const flavor = vt.flavor || "";
-    
-    // Prioritize strength if it's medical-style, otherwise use size
     let detailInfo = (strength || size || "").toString().trim();
     if (flavor) detailInfo = `${detailInfo} ${flavor}`.trim();
     
@@ -199,12 +194,18 @@ const ProductsPage = () => {
     const type = vt.packType || vt.type || "";
     const packagingInfo = `${count} ${type}`.trim();
     
-    // 3. Combine them
     if (packagingInfo && detailInfo) {
         return `${packagingInfo} (${detailInfo})`;
     }
     
     return (packagingInfo || detailInfo || "-");
+  };
+
+  const isSizeBasedVariant = (v) => {
+    if (!v) return false;
+    const vt = (v.variantType && typeof v.variantType === 'object') ? v.variantType : {};
+    const packType = vt.packType || v.packType || "";
+    return ["PIECES (Pcs)", "PAIRS (Prs)"].includes(packType);
   };
 
   const handleDelete = () => {
@@ -304,15 +305,13 @@ const ProductsPage = () => {
         <div className={styles.topSection}>
           {/* Status & Tabs Row */}
           <div className={styles.statusTabsRow}>
-            {products.length > 0 && (
-                <div className={styles.statusGroup}>
-                  <span className={styles.statusLabel}>Overall Status :</span>
-                  <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
-                  <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
-                  <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
-                  <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
-                </div>
-            )}
+            <div className={styles.statusGroup}>
+              <span className={styles.statusLabel}>Overall Status :</span>
+              <div className={styles.statusBadge}>TOTAL Products: {String(stats.total).padStart(2, '0')}</div>
+              <div className={styles.statusBadge}>Expired Products : {stats.expired}</div>
+              <div className={styles.statusBadge}>Damaged Products : {stats.damaged}</div>
+              <div className={styles.statusBadge}>Sale Return : {stats.saleReturn}</div>
+            </div>
 
             <div className={styles.tabs}>
               <button 
@@ -380,10 +379,11 @@ const ProductsPage = () => {
                   <th rowSpan="2">Product Name</th>
                   <th rowSpan="2">Brand</th>
                   <th rowSpan="2">Category Type</th>
-                  <th colSpan="5" className={styles.variantsHeader}>VARIANTS</th>
+                  <th colSpan="6" className={styles.variantsHeader}>VARIANTS</th>
                 </tr>
                 <tr className={styles.subHeaderRow}>
                   <th>Unit</th>
+                  <th>Size</th>
                   <th>Quantity</th>
                   <th>Open Stock Qty</th>
                   <th>Hold Qty</th>
@@ -395,7 +395,7 @@ const ProductsPage = () => {
                     (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                     (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
                   ) : products).length === 0 ? (
-                  <tr><td colSpan="10" style={{textAlign: 'center', padding: 40}}>No products matching search</td></tr>
+                  <tr><td colSpan="11" style={{textAlign: 'center', padding: 40}}>No products matching search</td></tr>
                 ) : (
                   (searchTerm ? products.filter(p => 
                     (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -425,7 +425,8 @@ const ProductsPage = () => {
                               ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
                               : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
                           </td>
-                          <td>{getUnitDisplay(firstVariant)}</td>
+                          <td>{isSizeBasedVariant(firstVariant) ? "-" : getUnitDisplay(firstVariant)}</td>
+                          <td>{isSizeBasedVariant(firstVariant) ? getUnitDisplay(firstVariant) : "-"}</td>
                           <td>{firstVariant.stockUpdates?.totalQuantity ?? firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
                           <td>{firstVariant.stockUpdates?.openStockQuantity ?? "0"}</td>
                           <td>{firstVariant.stockUpdates?.onHoldQuantity ?? "0"}</td>
@@ -442,7 +443,8 @@ const ProductsPage = () => {
                         {expandedRows.includes(productId) && otherVariants.map((v) => (
                           <tr key={v.variantId} className={styles.variantRow}>
                             <td colSpan="5"></td>
-                            <td>{getUnitDisplay(v)}</td>
+                            <td>{isSizeBasedVariant(v) ? "-" : getUnitDisplay(v)}</td>
+                            <td>{isSizeBasedVariant(v) ? getUnitDisplay(v) : "-"}</td>
                             <td>{v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
                             <td>{v.stockUpdates?.openStockQuantity ?? "0"}</td>
                             <td>{v.stockUpdates?.onHoldQuantity ?? "0"}</td>

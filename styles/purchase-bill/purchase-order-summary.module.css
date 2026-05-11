@@ -77,8 +77,8 @@
 }
 
 .value {
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 13px;
+    /* font-weight: 600; */
     color: #1a1a1a;
 }
 
@@ -247,7 +247,12 @@
     align-items: center;
     cursor: pointer;
     background: #fff;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
+
+
 
 .breakdownTitle {
     font-size: 13px;
@@ -266,10 +271,23 @@
 }
 
 .breakdownContent {
-    padding: 16px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.3s ease, 
+                padding 0.3s ease;
+    border-top: none;
+}
+
+.breakdownContentActive {
+    max-height: 600px;
+    opacity: 1;
+    padding: 16px;
     border-top: 1px solid #f8f8f8;
 }
 
@@ -358,4 +376,32 @@
     border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
+}
+.tableFooter {
+    background: #f9fafb;
+}
+
+.totalLabelCell {
+    text-align: left !important;
+    font-weight: 700;
+    color: #374151;
+    padding: 16px 20px !important;
+    font-size: 14px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.totalValueCell {
+    text-align: right !important;
+    padding: 16px 20px !important;
+    border-top: 2px solid #e5e7eb;
+}
+
+.totalValueWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #000;
 }

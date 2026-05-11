@@ -16,21 +16,24 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [imagePreview, setImagePreview] = useState(null);
 
     // Multi-payment state
+    const [masterTarget, setMasterTarget] = useState(0);
     const [payments, setPayments] = useState([{
-        amountPaid: "",
+        amountPaid: "0",
         paymentType: "Cash",
         referenceNumber: "",
         id: Date.now()
     }]);
 
+    const sessionTotal = payments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
+    const isOverTarget = sessionTotal > masterTarget;
+
     // Calculated / Read-only values from props
     const totalAmount = data.totalAmount || 0;
     const previousPaidAmount = data.previousPaidAmount || 0;
     
-    const currentTotalEntry = payments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
     const initialBalance = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : totalAmount;
-    const balanceAmount = Math.max(0, initialBalance - currentTotalEntry);
-    const totalAmountPaid = previousPaidAmount + currentTotalEntry;
+    const balanceAmount = Math.max(0, initialBalance - masterTarget);
+    const totalAmountPaid = previousPaidAmount + masterTarget;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -50,19 +53,12 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     };
 
     const handlePaymentChange = (id, field, value) => {
+        let cleanedValue = value;
         if (field === "amountPaid") {
-            const numValue = Number(value);
-            const otherPayments = payments.filter(p => p.id !== id).reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
-            const maxAllowed = initialBalance > 0 ? initialBalance : totalAmount;
-            
-            if (numValue + otherPayments > maxAllowed) {
-                toast.error(`Total payment cannot exceed ${maxAllowed}`);
-                // Optional: set to max remaining? 
-                // setPayments(payments.map(p => p.id === id ? { ...p, [field]: maxAllowed - otherPayments } : p));
-                return;
-            }
+            // Remove leading zero unless it's followed by a decimal point
+            cleanedValue = value.replace(/^0+(?=\d)/, '');
         }
-        setPayments(payments.map(p => p.id === id ? { ...p, [field]: value } : p));
+        setPayments(payments.map(p => p.id === id ? { ...p, [field]: cleanedValue } : p));
     };
 
     const handleImageChange = (e) => {
@@ -164,14 +160,17 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                         </div>
                         <div className={styles.field}>
-                            <label>Amount Paid</label>
+                            <label>Total Amount Paid</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input 
-                                    type="number" 
+                                    type="text" 
                                     placeholder="0" 
-                                    value={payments[0].amountPaid}
-                                    onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
+                                    value={masterTarget}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        setMasterTarget(val === "" ? 0 : Number(val));
+                                    }}
                                 />
                             </div>
                         </div>
@@ -183,14 +182,14 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <label>Total Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>₹</span>
-                                <input type="text" value={totalAmount.toLocaleString()} readOnly />
+                                <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>₹</span>
-                                <input type="text" value={balanceAmount.toLocaleString()} readOnly />
+                                <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
                     </div>
@@ -209,22 +208,20 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             </select>
                         </div>
                         <div className={styles.field}>
-                            <label>Total Amount Paid</label>
+                            <label>Amount Paid</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input 
                                     type="text" 
-                                    value={totalAmountPaid.toLocaleString()} 
-                                    onChange={(e) => {
-                                        const newVal = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                        const maxAllowed = initialBalance > 0 ? initialBalance : totalAmount;
-                                        const targetTotal = Math.min(newVal, previousPaidAmount + maxAllowed);
-                                        
-                                        const diff = targetTotal - previousPaidAmount;
-                                        handlePaymentChange(payments[0].id, "amountPaid", diff > 0 ? diff : 0);
-                                    }}
+                                    value={payments[0].amountPaid} 
+                                    onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
                                 />
                             </div>
+                            {isOverTarget && payments.length === 1 && (
+                                <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
+                                    Amount paid can not excceded total amount paid
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -276,6 +273,11 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
                                         />
                                     </div>
+                                    {isOverTarget && idx === payments.length - 2 && (
+                                        <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
+                                            Amount paid can not excceded total amount paid
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -323,7 +325,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 </div>
 
                 <div className={styles.footer}>
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading || isOverTarget}>
                         {loading ? "Saving..." : "Save"}
                     </button>
                 </div>

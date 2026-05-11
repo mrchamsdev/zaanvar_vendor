@@ -44,7 +44,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const [addToCreditNote, setAddToCreditNote] = useState(true);
     
     const [overallTax, setOverallTax] = useState({ value: 0, type: '%' });
-    const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '₹' });
+    const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '%' });
     const [previousCredit, setPreviousCredit] = useState(0);
     const [paymentStatus, setPaymentStatus] = useState("Pending"); // Default to Pending matching ENUM
     const [paidAmount, setPaidAmount] = useState(0);
@@ -81,7 +81,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         damagedQty: savedItem ? savedItem.damagedQty : 0,
                         batchNumber: savedItem ? savedItem.batchNumber : "",
                         expDate: savedItem ? savedItem.expDate : "",
-                        costPrice: savedItem ? (savedItem.costPrice || "") : "",
+                        costPrice: savedItem ? (savedItem.costPrice || "") : (item.costPrice || ""),
                         mrp: savedItem ? savedItem.mrp : (item.mrp || productInfo.mrp || 0),
                         tax: savedItem ? savedItem.tax : 0,
                         discount: savedItem ? savedItem.discount : 0,
@@ -207,8 +207,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         let taxVal = Number(overallTax.value) || 0;
         if (overallTax.type === '%') taxVal = ((grandTotal - discountVal) * (overallTax.value / 100));
         
-        const subtotal = grandTotal - discountVal + taxVal;
-        const finalAmount = subtotal - previousCredit;
+        const subtotal = grandTotal;
+        const totalAfterGlobal = subtotal - discountVal + taxVal;
+        const finalAmount = totalAfterGlobal - previousCredit;
         
         return { discountVal, taxVal, subtotal, finalAmount };
     }, [totals, overallTax, overallDiscount, previousCredit]);
@@ -222,14 +223,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             
             console.log("Entered Items count:", enteredItems.length);
             
-            const invalidItems = enteredItems.filter(item => !item.expDate);
             const invalidPrices = enteredItems.filter(item => Number(item.costPrice) > Number(item.mrp));
-
-            if (invalidItems.length > 0) {
-                toast.error("Expiry date is required for all received items");
-                setLoading(false);
-                return;
-            }
 
             if (invalidPrices.length > 0) {
                 toast.error("Cost Price cannot be greater than MRP");
@@ -252,6 +246,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 overallDiscount: overallDiscount,
                 previousCredit: Number(previousCredit),
                 totalAmount: Number(breakdown.finalAmount),
+                itemDiscountAmount: Number(totals.itemDiscountTotal),
+                itemTaxAmount: Number(totals.itemTaxTotal),
+                damagedAmount: Number(totals.damagedAmount),
+                shortfallAmount: Number(totals.shortfallAmount),
                 toggles: {
                     payBasedOnOrdered: payBasedOnOrdered,
                     damagedReturnedGoods: damagedReturnedGoods,
@@ -369,15 +367,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>Expire Date</label>
                                                 <input 
                                                     type="date" 
-                                                    className={`${styles.input} ${(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) ? styles.inputError : ""}`} 
+                                                    className={styles.input} 
                                                     value={item.expDate ?? ""}
                                                     min={new Date().toISOString().split('T')[0]}
                                                     max="9999-12-31"
                                                     onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
                                                 />
-                                                {(!item.expDate && (item.costPrice !== "" || item.receivedQty !== "")) && (
-                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Expiry required</span>
-                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
@@ -657,9 +652,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span> Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
                                 {Number(previousCredit) > 0 && (
-                                    <div className={styles.breakdownRow}><span>Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span>(-) Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
                                 )}
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>₹ {breakdown.finalAmount.toFixed(2)}</span></div>
                             </div>

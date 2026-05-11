@@ -137,6 +137,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         price: parseFloat(item.sellingPrice || item.returnAmount) || 0,
                         taxPercentage: parseFloat(item.taxAmount || 0),
                         discountPercentage: parseFloat(item.discount || 0),
+                        returnCondition: item.returnCondition || "Resellable",
                         itemTotal: parseFloat(item.returnAmount) || 0
                     };
                 }));
@@ -202,6 +203,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     price: 0,
                     taxPercentage: 0,
                     discountPercentage: 0,
+                    returnCondition: "Resellable",
                     itemTotal: 0
                 }]);
             } else {
@@ -225,6 +227,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             price: 0,
             taxPercentage: 0,
             discountPercentage: 0,
+            returnCondition: "Resellable",
             itemTotal: 0
         }]);
     };
@@ -234,10 +237,17 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         newItems[index] = {
             ...p,
             returnQty: 1,
+            returnCondition: "Resellable",
             itemTotal: p.price + (p.price * p.taxPercentage / 100) - (p.price * p.discountPercentage / 100)
         };
         setItems(newItems);
         setShowProductDropdown(null);
+    };
+
+    const updateReturnCondition = (index, condition) => {
+        const newItems = [...items];
+        newItems[index].returnCondition = condition;
+        setItems(newItems);
     };
 
     const updateItemQty = (index, qty) => {
@@ -289,7 +299,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
                 quantity: i.returnQty,
-                returnCondition: "damaged"
+                returnCondition: i.returnCondition
             }))
         };
 
@@ -345,7 +355,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     alignItems: 'center', 
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5'
+                                    background: mode === "add" ? '#fff' : '#f5f5f5',
+                                    border: '2px solid #ddd'
                                 }}
                             >
                                 <span>{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "Select Name"}</span>
@@ -363,7 +374,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         </div>
                         <div className={styles.field}>
                             <label>Customer Phone Number</label>
-                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{background: '#f5f5f5'}} />
+                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
                         </div>
                         <div className={styles.field} style={{zIndex: showReceiptDropdown ? 100 : 1}}>
                             <label>Receipt No</label>
@@ -376,7 +387,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     alignItems: 'center', 
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5'
+                                    background: mode === "add" ? '#fff' : '#f5f5f5',
+                                    border: '2px solid #ddd'
                                 }}
                             >
                                 <span>{formData.receiptNo ? `Order #${formData.receiptNo}` : "Enter Receipt no"}</span>
@@ -394,7 +406,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         </div>
                         <div className={styles.field}>
                             <label>Return No</label>
-                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{background: '#f5f5f5'}} />
+                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
                         </div>
                         <div className={styles.field}>
                             <label>Return Reason</label>
@@ -405,13 +417,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 onChange={(e) => setFormData({...formData, returnReason: e.target.value})} 
                                 placeholder="Enter here" 
                                 readOnly={mode === "view"}
-                                style={{background: mode === "view" ? '#f5f5f5' : '#fff'}}
+                                style={{background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd'}}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Bill Date</label>
                             <div style={{position: 'relative'}}>
-                                <input type="text" className={styles.input} value={selectedOrder ? new Date(selectedOrder.createdDate).toLocaleDateString() : (formData.billDate ? new Date(formData.billDate).toLocaleDateString() : "")} placeholder="Select Date here" readOnly style={{background: '#f5f5f5'}} />
+                                <input type="text" className={styles.input} value={selectedOrder ? new Date(selectedOrder.createdDate).toLocaleDateString() : (formData.billDate ? new Date(formData.billDate).toLocaleDateString() : "")} placeholder="Select Date here" readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
                                 <FiCalendar style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999'}} />
                             </div>
                         </div>
@@ -423,7 +435,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 value={formData.returnDate} 
                                 onChange={(e) => setFormData({...formData, returnDate: e.target.value})} 
                                 readOnly={mode === "view"}
-                                style={{background: mode === "view" ? '#f5f5f5' : '#fff'}}
+                                style={{background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd'}}
                             />
                         </div>
                     </div>
@@ -437,6 +449,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     <th style={{textAlign: 'center'}}>QTY</th>
                                     <th style={{textAlign: 'center'}}>UNIT</th>
                                     <th style={{textAlign: 'right'}}>Price /Unit</th>
+                                    <th style={{textAlign: 'center'}}>RETURN CONDITION</th>
                                     <th style={{textAlign: 'center'}}>TAX (%)</th>
                                     <th style={{textAlign: 'center'}}>DISCOUNT (%)</th>
                                     <th style={{textAlign: 'right'}}>AMOUNT</th>
@@ -481,7 +494,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                         color: '#6b7280',
                                                         borderBottom: '1px solid #edf2f7',
                                                         textTransform: 'uppercase'
-                                                    }}>
+                                                    }}> 
                                                         <span style={{width: '60%'}}>PRODUCT NAME</span>
                                                         <span style={{width: '20%', textAlign: 'center'}}>TOTAL QTY</span>
                                                         <span style={{width: '20%', textAlign: 'right'}}>UNIT TYPE</span>
@@ -525,6 +538,25 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         </td>
                                         <td style={{textAlign: 'center'}}>{item.unit}</td>
                                         <td style={{textAlign: 'right'}}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
+                                        <td style={{textAlign: 'center'}}>
+                                            <select 
+                                                className={styles.unitSelect}
+                                                style={{
+                                                    textAlign: 'center', 
+                                                    background: mode === "view" ? 'transparent' : '#fff',
+                                                    border: mode === "view" ? 'none' : '1px solid #e0e0e0',
+                                                    borderRadius: '4px',
+                                                    padding: '10px 5px'
+                                                }}
+                                                value={item.returnCondition || "Resellable"}
+                                                onChange={(e) => updateReturnCondition(idx, e.target.value)}
+                                                disabled={mode === "view"}
+                                            >
+                                                <option value="Resellable">Resellable</option>
+                                                <option value="Damaged">Damaged</option>
+                                                <option value="Expired">Expired</option>
+                                            </select>
+                                        </td>
                                         <td style={{textAlign: 'center'}}>{item.taxPercentage}%</td>
                                         <td style={{textAlign: 'center'}}>{item.discountPercentage}%</td>
                                         <td style={{textAlign: 'right', fontWeight: '600'}}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
@@ -536,12 +568,12 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     </tr>
                                 ))}
 
-                                <tr style={{height: '40px'}}><td colSpan="9"></td></tr>
+                                <tr style={{height: '40px'}}><td colSpan="10"></td></tr>
 
                                 <tr style={{fontWeight: '700', borderTop: '2px solid #eee'}}>
                                     <td colSpan="2" style={{paddingTop: '20px'}}>TOTAL</td>
                                     <td style={{paddingTop: '20px', textAlign: 'center'}}>{items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0)}</td>
-                                    <td style={{paddingTop: '20px'}}></td>
+                                    <td colSpan="2" style={{paddingTop: '20px'}}></td>
                                     <td style={{paddingTop: '20px', textAlign: 'right'}}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0).toFixed(2)}</td>
                                     <td style={{paddingTop: '20px'}}></td>
                                     <td style={{paddingTop: '20px', textAlign: 'center'}}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>

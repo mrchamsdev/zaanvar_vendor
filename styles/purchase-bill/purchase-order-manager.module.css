@@ -9,6 +9,18 @@
     z-index: 2000;
     display: flex;
     flex-direction: column;
+    transition: background 0.3s, backdrop-filter 0.3s;
+}
+
+.minimizedMode {
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+    justify-content: flex-end;
+}
+
+.hidden {
+    display: none !important;
 }
 
 .tabBar {
@@ -118,12 +130,14 @@
     /* border-top: 2px solid #E9315D; */
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     padding: 0 20px;
     gap: 15px;
     height: 60px;
     flex-shrink: 0;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
     border-top: 1px solid #eee;
+    pointer-events: auto; /* Re-enable pointer events for the bar in minimized mode */
 }
 
 .minimizedItem {

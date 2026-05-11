@@ -35,7 +35,7 @@ const ShareModal = ({ isOpen, onClose, data }) => {
     const email = supplierInfo?.email || data?.email || "";
     const supplierName = supplierInfo?.supplierName || data?.transactionInfo || "Supplier";
 
-    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nParty: ${supplierName}\nAmount: ₹${data?.amount}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
+    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${data?.amount}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
 
     const handleShare = (type) => {
         let url = "";
