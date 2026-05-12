@@ -173,8 +173,17 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     };
 
     const updateItem = (index, field, value) => {
+        let finalValue = value;
+        // For numeric fields, strip leading zero if it's followed by a digit (prevents "02", "05" etc.)
+        const numericFields = ["orderQty", "costPrice", "mrp"];
+        if (numericFields.includes(field)) {
+            if (typeof value === "string" && value.length > 1 && value.startsWith("0") && value[1] !== ".") {
+                finalValue = value.slice(1);
+            }
+        }
+
         const newItems = [...items];
-        newItems[index][field] = value;
+        newItems[index][field] = finalValue;
         setItems(newItems);
 
         if (formErrors.items?.[index]?.[field]) {
@@ -365,7 +374,12 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 placeholder="Name Supplier" 
                                 value={supplierSearchQuery || (suppliers.find(s => String(s.supplierId) === String(supplierId))?.supplierName || "")}
                                 onChange={(e) => {
-                                    setSupplierSearchQuery(e.target.value);
+                                    const val = e.target.value;
+                                    setSupplierSearchQuery(val);
+                                    if (val === "") {
+                                        setSupplierId("");
+                                        setSupplierPhone("");
+                                    }
                                     setIsSupplierDropdownOpen(true);
                                 }}
                                 onFocus={() => setIsSupplierDropdownOpen(true)}

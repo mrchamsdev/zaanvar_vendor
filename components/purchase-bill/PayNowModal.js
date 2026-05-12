@@ -24,16 +24,21 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const [paymentEntries, setPaymentEntries] = useState([
         { id: Date.now(), type: "Cash", amount: "", refNo: "" }
     ]);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [orderError, setOrderError] = useState("");
 
     useEffect(() => {
         if (isOpen) {
+            setIsSubmitted(false);
+            setOrderError("");
             if (initialBillData) {
                 console.log("PayNowModal: Using initialBillData", initialBillData);
                 // Map the PO/Order data to the billDetails format expected by the modal
                 setBillDetails({
                     ...initialBillData,
-                    amountPaidToSupplier: initialBillData.totalvalue || initialBillData.totalAmount || 0,
-                    paidAmount: initialBillData.paidAmount || 0,
+                    totalAmount: initialBillData.totalAmount || initialBillData.totalvalue || 0,
+                    amountPaidToSupplier: initialBillData.amountPaidToSupplier || 0,
+                    balanceAmount: initialBillData.balanceAmount || (initialBillData.totalvalue || initialBillData.totalAmount || 0),
                     vendor: supplierData || initialBillData.supplier
                 });
                 setLoading(false);
@@ -44,12 +49,18 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     }, [isOpen, billId, initialBillData]);
 
     const handleOrderChange = (newBillId) => {
+        setOrderError("");
+        if (!newBillId) {
+            setBillDetails(null);
+            return;
+        }
         const selected = allOrders?.find(o => (o.productsBillId || o.productsPurchaseRqstID).toString() === newBillId.toString());
         if (selected) {
             setBillDetails({
                 ...selected,
-                amountPaidToSupplier: selected.totalvalue || selected.totalAmount || 0,
-                paidAmount: selected.paidAmount || 0,
+                totalAmount: selected.totalAmount || selected.totalvalue || 0,
+                amountPaidToSupplier: selected.amountPaidToSupplier || 0,
+                balanceAmount: selected.balanceAmount || (selected.totalvalue || selected.totalAmount || 0),
                 vendor: supplierData || selected.supplier
             });
         }
@@ -114,7 +125,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     // Calculations
     const previouslyPaid = parseFloat(billDetails?.amountPaidToSupplier || 0);
     const currentBalance = parseFloat(billDetails?.balanceAmount || 0);
-    const totalBillAmount = previouslyPaid + currentBalance;
+    const totalBillAmount = parseFloat(billDetails?.totalAmount || (previouslyPaid + currentBalance));
     
     // Amount currently being entered (top Paid Amount field)
     const currentEntryAmount = parseFloat(paymentEntries[0]?.amount || 0);
@@ -129,10 +140,22 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         if (isRoundOff) {
             const diff = Math.round(currentEntryAmount) - currentEntryAmount;
             setRoundOffValue(diff.toFixed(2));
+        } else {
+            setRoundOffValue("0");
         }
     }, [isRoundOff, currentEntryAmount]);
 
     const handlePay = async () => {
+        console.log("PayNowModal: handlePay called. billDetails:", billDetails);
+        setIsSubmitted(true);
+        if (!billDetails?.productsBillId && !billDetails?.productsPurchaseRqstID) {
+            console.log("PayNowModal: Validation failed - no order selected");
+            setOrderError("Select order");
+            toast.error("Select order");
+            return;
+        }
+        setOrderError("");
+
         if (totalPaidInModal <= 0) {
             toast.error("Please enter a payment amount");
             return;
@@ -202,6 +225,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                 </div>
 
                 <div className={styles.modalContent}>
+                    {console.log("PayNowModal Render: orderError =", orderError)}
                     {/* Header Info */}
                     <div className={styles.headerGrid}>
                         <div className={styles.field}>
@@ -230,19 +254,24 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     {/* Bill Stats */}
                     <div className={styles.col5}>
                         <div className={styles.field}>
-                            <label>Order Number</label>
+                            <label>Order Number <span style={{color: '#ff4d4f'}}>*</span></label>
                             <select 
-                                className={styles.select}
+                                className={`${styles.select} ${orderError ? styles.errorInput : ""}`}
                                 value={billDetails?.productsBillId || billDetails?.productsPurchaseRqstID || ""}
                                 onChange={(e) => handleOrderChange(e.target.value)}
                             >
                                 <option value="">Select Order</option>
-                                {allOrders?.map(order => (
+                                {allOrders?.filter(o => o.orderStatus === 'received').map(order => (
                                     <option key={order.productsPurchaseRqstID} value={order.productsBillId || order.productsPurchaseRqstID}>
                                         PO-{String(order.productsPurchaseRqstID).padStart(5, '0')}
                                     </option>
                                 ))}
                             </select>
+                            {orderError && (
+                                <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
+                                    {orderError}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount</label>

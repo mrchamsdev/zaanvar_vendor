@@ -159,20 +159,22 @@ const ProductTable = ({
         )}
 
         <div className={styles.pageActions}>
-          <button 
-            className={styles.paginationBtn} 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
-          >
-            Previous
-          </button>
-          <button 
-            className={`${styles.paginationBtn} ${styles.nextBtn}`}
-            disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-          >
-            Next
-          </button>
+          {currentPage > 1 && (
+            <button 
+              className={styles.paginationBtn} 
+              onClick={() => setCurrentPage(prev => prev - 1)}
+            >
+              Previous
+            </button>
+          )}
+          {currentPage < totalPages && (
+            <button 
+              className={`${styles.paginationBtn} ${styles.nextBtn}`}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+            >
+              Next
+            </button>
+          )}
         </div>
       </div>
     </div>

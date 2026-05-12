@@ -74,10 +74,9 @@ const SUB_CATEGORY_MAP = {
 
 const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => {
   const { jwtToken, userInfo } = useStore();
-  const { selectedBranchId } = useDashboardData({ skipReviews: true });
-
+  const { selectedBranchId: globalBranchId } = useDashboardData({ skipReviews: true });
+  const [branchId, setBranchId] = useState(initialData?.branchId || globalBranchId || userInfo?.branchId || 91);
   const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
-  const branchId = selectedBranchId || userInfo?.branchId || 91;
 
   // console.log("ProductForm component rendering", { initialData, propType });
 

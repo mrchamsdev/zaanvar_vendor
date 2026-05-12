@@ -481,7 +481,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             />
                         </div>
 
-                        <div className={styles.field}>
+                        <div className={styles.field} style={{ gridColumn: 'span 2' }}>
                             <label>Return Reason</label>
                             <input 
                                 type="text" 
@@ -492,7 +492,6 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 disabled={isViewOnly}
                             />
                         </div>
-                        <div className={styles.field}></div> {/* Spacer for Gap */}
                         <div className={styles.field}>
                             <label>Bill Date</label>
                             <div className={styles.dateWrapper}>
@@ -517,7 +516,6 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     onChange={(e) => setReturnDate(e.target.value)}
                                     disabled={isViewOnly}
                                 />
-                                {!returnDate && <span className={styles.calendarIcon} style={{right: '35px', pointerEvents: 'none'}}>Select Date here</span>}
                             </div>
                         </div>
                     </div>

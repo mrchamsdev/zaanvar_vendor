@@ -176,7 +176,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <span className={styles.addressLabel}>From</span>
                             <span className={styles.addressName}>{supplier?.supplierName || "N/A"}</span>
                             <span className={styles.addressText}>
-                                {supplier?.street}, {supplier?.city}, {supplier?.state} {supplier?.areaPinCode}
+                                {[supplier?.street, supplier?.city, supplier?.state, supplier?.areaPinCode].filter(Boolean).join(", ")}
                                 <br />{supplier?.country}
                             </span>
                         </div>
@@ -184,7 +184,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <span className={styles.addressLabel}>To</span>
                             <span className={styles.addressName}>{branchName || "N/A"}</span>
                             <span className={styles.addressText}>
-                                {branchAddress?.addressText || `${branchAddress?.flatNo}, ${branchAddress?.area}, ${branchAddress?.city}, ${branchAddress?.state} ${branchAddress?.pincode}`}
+                                {branchAddress?.addressText || [branchAddress?.flatNo, branchAddress?.area, branchAddress?.city, [branchAddress?.state, branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
                                 <br />{branchAddress?.country}
                             </span>
                         </div>
@@ -224,6 +224,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>SHORTFALL QTY</th>
                             <th>DAMAGED GOODS</th>
                             <th>COST PRICE (₹)</th>
+                            <th>MRP (₹)</th>
                             <th>DISCOUNTABLE AMOUNT (₹)</th>
                             <th>TAX (%)</th>
                             <th>Discount (%)</th>
@@ -258,12 +259,13 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                     <td>
                                         <div className={styles.qtyCell}>
                                             <span className={styles.value}>{item.receivedQty}</span>
-                                            <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span>
+                                            {/* <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span> */}
                                         </div>
                                     </td>
                                     <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>
                                     <td>{damaged}</td>
                                     <td className={styles.costCell}>{cost.toLocaleString()}</td>
+                                    <td className={styles.costCell}>{parseFloat(item.mrp || 0).toLocaleString()}</td>
                                     <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>{parseFloat(item.taxGroupId || item.tax || 0)}%</td>
                                     <td>{parseFloat(item.discount || 0)}%</td>
@@ -292,7 +294,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     </tbody>
                     <tfoot>
                         <tr className={styles.tableFooter}>
-                            <td colSpan={13} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
+                            <td colSpan={14} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
                             <td className={styles.totalValueCell}>
                                 <div className={styles.totalValueWrapper}>
                                     <span>₹</span>

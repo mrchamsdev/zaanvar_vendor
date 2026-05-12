@@ -456,8 +456,8 @@ const DashboardLayout = ({
         <header className={styles.topbar}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
             {customTopbarLeft}
-
-            {branches && branches.length > 0 && (
+            
+            {!customTopbarLeft && branches && branches.length > 0 && (
                 <div className={styles.branchSwitcherContainer}>
                     <select 
                         className={styles.branchSwitcher}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import styles from "../../styles/purchase-bill/purchase-out.module.css";
+import styles from "../../styles/suppliers/SupplierView.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import PayNowModal from "../purchase-bill/PayNowModal";
+import PurchaseOrderManager from "../purchase-bill/purchase-order-manager";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
     const { jwtToken } = useStore();
@@ -15,6 +16,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     const [isPayNowModalOpen, setIsPayNowModalOpen] = useState(false);
     const [selectedBillIdForPayment, setSelectedBillIdForPayment] = useState(null);
     const [selectedBillData, setSelectedBillData] = useState(null);
+    const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
 
     const supplierId = data?.supplierId;
 
@@ -40,57 +42,56 @@ const SupplierView = ({ data, onBack, isSplit }) => {
             toast.error("Failed to fetch supplier details");
         } finally {
             setLoading(false);
+
+
         }
     };
 
     const renderPurchaseOrders = () => (
-        <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden' }}>
-                <thead style={{ background: '#F5F5F5' }}>
+        <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+                <thead className={styles.thead}>
                     <tr>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>ORDER PLACED DATE</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>ORDER NO</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>TO</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total Value (₹)</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Order Received date</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Invoice</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>ACTION</th>
+                        <th className={styles.th}>ORDER PLACED DATE</th>
+                        <th className={styles.th}>ORDER NO</th>
+                        <th className={styles.th}>TO</th>
+                        <th className={styles.th}>Total Value (₹)</th>
+                        <th className={styles.th}>Order Received date</th>
+                        <th className={styles.th}>Invoice</th>
                     </tr>
                 </thead>
                 <tbody>
                     {purchaseOrders.length === 0 ? (
-                        <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
+                        <tr><td colSpan="6" className={styles.noData}>No data available</td></tr>
                     ) : (
                         purchaseOrders.map((t, idx) => (
-                            <tr key={idx} style={{ borderTop: '1px solid #eee' }}>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>
-                                    {new Date(t.createdDate || t.orderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                            <tr 
+                                key={idx} 
+                                className={styles.trClickable}
+                                onClick={() => setManagerConfig({ mode: "View", id: t.productsPurchaseRqstID })}
+                            >
+                                <td className={styles.td}>
+                                    {(() => {
+                                        const dateToShow = t.orderStatus === 'cancelled' ? (t.modifiedDate || t.createdDate) : (t.createdDate || t.orderDate);
+                                        return dateToShow ? new Date(dateToShow).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                    })()}
                                 </td>
-                                <td style={{ padding: '14px', fontSize: '13px', fontWeight: '600' }}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>{t.branchname || "Main Branch"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>{t.totalvalue || "0.00"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>
-                                    <div style={{ color: t.orderStatus === 'received' ? '#27AE60' : '#F5790C', fontWeight: '600', fontSize: '12px' }}>{t.orderStatus || "Order Placed"}</div>
-                                    <div style={{ fontSize: '11px', color: '#888' }}>{t.orderrecivedDate ? new Date(t.orderrecivedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--"}</div>
+                                <td className={`${styles.td} ${styles.tdBold}`}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
+                                <td className={styles.td}>{t.branchname || "Main Branch"}</td>
+                                <td className={styles.td}>{t.totalvalue || "0.00"}</td>
+                                <td className={styles.td}>
+                                    <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{t.orderStatus || "Order Placed"}</div>
+                                    <div className={styles.subText}>
+                                        {(() => {
+                                            const dateValue = t.orderStatus === 'received' ? t.orderrecivedDate : (t.orderStatus === 'cancelled' ? (t.modifiedDate || t.createdDate) : (t.createdDate || t.orderDate));
+                                            return dateValue ? new Date(dateValue).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                        })()}
+                                    </div>
                                 </td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>
-                                    <span style={{ color: t.paymentStatus === 'Full' || t.paymentStatus === 'Paid' ? '#27AE60' : t.paymentStatus === 'Partial' ? '#F5790C' : '#E9315D', fontWeight: '600' }}>
-                                        {t.paymentStatus === 'Full' ? 'Paid' : (t.paymentStatus || "pending")}
+                                <td className={styles.td}>
+                                    <span className={`${styles.statusText} ${t.orderStatus === 'received' ? (t.paymentStatus === 'Full' || t.paymentStatus === 'Paid' ? styles.statusGreen : t.paymentStatus === 'Partial' ? styles.statusOrange : styles.statusRed) : styles.statusGrey}`}>
+                                        {t.orderStatus === 'received' ? (t.paymentStatus === 'Full' ? 'Paid' : (t.paymentStatus || "pending")) : "-"}
                                     </span>
-                                </td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>
-                                    {(t.paymentStatus !== 'Full' && t.paymentStatus !== 'Paid') && (
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedBillIdForPayment(t.productsBillId || t.productsPurchaseRqstID);
-                                                setSelectedBillData(t);
-                                                setIsPayNowModalOpen(true);
-                                            }}
-                                            style={{ color: '#E9315D', background: 'none', border: '1px solid #E9315D', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
-                                        >
-                                            PAY
-                                        </button>
-                                    )}
                                 </td>
                             </tr>
                         ))
@@ -101,32 +102,32 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     );
 
     const renderPaymentHistory = () => (
-        <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden' }}>
-                <thead style={{ background: '#F5F5F5' }}>
+        <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+                <thead className={styles.thead}>
                     <tr>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Order Number</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Payment Date</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total amount</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Previous Paid amount</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Paid amount</th>
-                        <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Balance amount</th>
+                        <th className={styles.th}>Order Number</th>
+                        <th className={styles.th}>Payment Date</th>
+                        <th className={styles.th}>Total amount</th>
+                        <th className={styles.th}>Previous Paid amount</th>
+                        <th className={styles.th}>Paid amount</th>
+                        <th className={styles.th}>Balance amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     {paymentHistory.length === 0 ? (
-                        <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
+                        <tr><td colSpan="6" className={styles.noData}>No data available</td></tr>
                     ) : (
                         paymentHistory.map((t, idx) => (
-                            <tr key={idx} style={{ borderTop: '1px solid #eee' }}>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>
+                            <tr key={idx} className={styles.trHistory}>
+                                <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
+                                <td className={styles.td}>
                                     {new Date(t.modifiedDate || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
                                 </td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["previouspaid amount"] || "0.00"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["paid amount"] || t.received || t.amount || "0.00"}</td>
-                                <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00"}</td>
+                                <td className={styles.td}>₹ {t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
+                                <td className={styles.td}>₹ {t["previouspaid amount"] || "0.00"}</td>
+                                <td className={styles.td}>₹ {t["paid amount"] || t.received || t.amount || "0.00"}</td>
+                                <td className={styles.td}>₹ {t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00"}</td>
                             </tr>
                         ))
                     )}
@@ -136,91 +137,81 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     );
 
     return (
-        <div style={{ boxSizing: 'border-box', width: '100%', background: '#fff', padding: isSplit ? '10px' : '20px', borderRadius: '16px' }}>
+        <div className={`${styles.container} ${isSplit ? styles.containerSplit : ""}`}>
             {loading ? (
-                <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>
+                <div className={styles.loading}>Loading...</div>
             ) : (
                 <>
-                    <div style={{ background: '#fff', padding: '32px', borderRadius: '12px', border: '1px solid #F0F0F0', marginBottom: '32px', display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+                    <div className={styles.topCard}>
                         {/* Left Section: Info */}
-                        <div style={{ flex: 1 }}>
-                            <h2 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '32px', color: '#000', letterSpacing: '0.5px' }}>{supplier?.supplierName || "NAVYA"}</h2>
+                        <div className={styles.infoSection}>
+                            <h2 className={styles.supplierName}>{supplier?.supplierName || "NAVYA"}</h2>
                             
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px 16px' }}>
+                            <div className={styles.infoGrid}>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '13px', marginBottom: '6px', color: '#000' }}>
+                                    <p className={styles.infoValue}>
                                         {supplier?.branches?.map(b => b.name).join(", ") || "Rohtak"}
                                     </p>
-                                    <p style={{ color: '#888', fontSize: '11px', fontWeight: '400' }}>Branch Assigned</p>
+                                    <p className={styles.infoLabel}>Branch Assigned</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '13px', marginBottom: '6px', color: '#000' }}>{supplier?.phone || "--"}</p>
-                                    <p style={{ color: '#888', fontSize: '11px', fontWeight: '400' }}>phone Number</p>
+                                    <p className={styles.infoValue}>{supplier?.phone || "--"}</p>
+                                    <p className={styles.infoLabel}>phone Number</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '13px', marginBottom: '6px', color: '#000' }}>{supplier?.email || "--"}</p>
-                                    <p style={{ color: '#888', fontSize: '11px', fontWeight: '400' }}>Email</p>
+                                    <p className={styles.infoValue}>{supplier?.email || "--"}</p>
+                                    <p className={styles.infoLabel}>Email</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '13px', marginBottom: '6px', color: '#000' }}>{supplier?.city || "--"}</p>
-                                    <p style={{ color: '#888', fontSize: '11px', fontWeight: '400' }}>City</p>
+                                    <p className={styles.infoValue}>{supplier?.city || "--"}</p>
+                                    <p className={styles.infoLabel}>City</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '13px', marginBottom: '6px', color: '#000' }}>{supplier?.country || "India"}</p>
-                                    <p style={{ color: '#888', fontSize: '11px', fontWeight: '400' }}>Country</p>
+                                    <p className={styles.infoValue}>{supplier?.country || "India"}</p>
+                                    <p className={styles.infoLabel}>Country</p>
                                 </div>
                             </div>
                         </div>
                         
                         {/* Right Section: Statistics Card */}
-                        <div style={{ boxSizing: 'border-box', width: isSplit ? '100%' : '320px', background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #F0F0F0' }}>
-                            <h4 style={{ marginBottom: '24px', fontSize: '14px', fontWeight: '700', color: '#000' }}>Statistics</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px' }}>
+                        <div className={`${styles.statsCard} ${isSplit ? styles.statsCardSplit : ""}`}>
+                            <h4 className={styles.statsTitle}>Statistics</h4>
+                            <div className={styles.statsGrid}>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '14px', marginBottom: '6px', color: '#000' }}>{supplier?.purchaseOrders?.length || 0}</p>
-                                    <p style={{ color: '#888', fontSize: '10px', fontWeight: '400' }}>Total order Volume</p>
+                                    <p className={styles.infoValue}>{supplier?.purchaseOrders?.length || 0}</p>
+                                    <p className={styles.infoLabel}>Total order Volume</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '14px', marginBottom: '6px', color: '#000' }}>₹ {supplier?.totals?.[0]?.totalBillAmount || "0.00"}</p>
-                                    <p style={{ color: '#888', fontSize: '10px', fontWeight: '400' }}>Total order value</p>
+                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBillAmount || "0.00"}</p>
+                                    <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '14px', marginBottom: '6px', color: '#000' }}>₹ {supplier?.totals?.[0]?.totalBalanceAmount || "0.00"}</p>
-                                    <p style={{ color: '#888', fontSize: '10px', fontWeight: '400' }}>Payment Due</p>
+                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBalanceAmount || "0.00"}</p>
+                                    <p className={styles.infoLabel}>Due Amount</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '500', fontSize: '14px', marginBottom: '6px', color: '#000' }}>₹ {supplier?.totals?.[0]?.supplierTotalAmount || "0.00"}</p>
-                                    <p style={{ color: '#888', fontSize: '10px', fontWeight: '400' }}>Credit Balance</p>
+                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalPaidAmount || "0.00"}</p>
+                                    <p className={styles.infoLabel}>Paid Amount</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ display: 'inline-flex', background: '#F1F1F1', padding: '4px', borderRadius: '8px', marginBottom: '24px' }}>
+                    <div className={styles.tabContainer}>
                         {["Purchase Orders", "Payment History"].map(tab => (
                             <button 
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                style={{
-                                    padding: '8px 20px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    background: activeTab === tab ? '#fff' : 'transparent',
-                                    color: activeTab === tab ? '#E9315D' : '#666',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    boxShadow: activeTab === tab ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                                }}
+                                className={`${styles.tabBtn} ${activeTab === tab ? styles.tabBtnActive : ""}`}
                             >
                                 {tab}
                             </button>
                         ))}
                     </div>
 
-                    <div style={{ background: '#fff', padding: isSplit ? '15px' : '30px', borderRadius: '12px', border: '1px solid #eee' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h3 style={{ fontSize: '16px', fontWeight: '700' }}>{activeTab}</h3>
+                    <div className={`${styles.contentArea} ${isSplit ? styles.contentAreaSplit : ""}`}>
+                        <div className={styles.contentHeader}>
+                            <h3 className={styles.statsTitle}>{activeTab}</h3>
                             {(activeTab === "Purchase Orders" ? purchaseOrders.length > 0 : paymentHistory.length > 0) && (
                                 <button 
                                     onClick={() => {
@@ -233,7 +224,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                             toast.info("No pending payments found");
                                         }
                                     }}
-                                    style={{ color: '#E9315D', border: '1px solid #E9315D', background: '#fff', padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+                                    className={styles.payNowBtn}
                                 >
                                     PAY NOW
                                 </button>
@@ -251,6 +242,22 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         initialBillData={selectedBillData}
                         allOrders={purchaseOrders}
                     />
+
+                    {managerConfig && (
+                        <PurchaseOrderManager 
+                            mode={managerConfig.mode}
+                            initialId={managerConfig.id}
+                            initialData={managerConfig.initialData}
+                            onSave={() => {
+                                setManagerConfig(null);
+                                fetchData();
+                            }}
+                            onClose={() => {
+                                setManagerConfig(null);
+                                fetchData();
+                            }} 
+                        />
+                    )}
                 </>
             )}
         </div>

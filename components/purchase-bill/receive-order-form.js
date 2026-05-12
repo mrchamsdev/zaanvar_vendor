@@ -49,6 +49,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const [paymentStatus, setPaymentStatus] = useState("Pending"); // Default to Pending matching ENUM
     const [paidAmount, setPaidAmount] = useState(0);
     const [duedate, setDuedate] = useState("");
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
     useEffect(() => {
         if (jwtToken && requestId) {
@@ -77,8 +78,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         variantId: item.variantId || productInfo.variantId,
                         productName: productInfo.productName || "Unknown Product",
                         variantType: productInfo.variantType || productInfo.variant || {},
-                        receivedQty: savedItem ? savedItem.receivedQty : "",
-                        damagedQty: savedItem ? savedItem.damagedQty : 0,
+                        receivedQty: savedItem ? (savedItem.receivedQty ?? 0) : 0,
+                        damagedQty: savedItem ? (savedItem.damagedQty ?? 0) : 0,
                         batchNumber: savedItem ? savedItem.batchNumber : "",
                         expDate: savedItem ? savedItem.expDate : "",
                         costPrice: savedItem ? (savedItem.costPrice || "") : (item.costPrice || ""),
@@ -122,6 +123,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         if (numericFields.includes(field)) {
             if (typeof value === "string" && value.length > 1 && value.startsWith("0") && value[1] !== ".") {
                 finalValue = value.slice(1);
+            }
+            if (value === "" && (field === "receivedQty" || field === "damagedQty")) {
+                finalValue = 0;
             }
         }
         const newItems = [...items];
@@ -214,7 +218,14 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         return { discountVal, taxVal, subtotal, finalAmount };
     }, [totals, overallTax, overallDiscount, previousCredit]);
 
+    useEffect(() => {
+        if (paymentStatus === "Full") {
+            setPaidAmount(breakdown.finalAmount);
+        }
+    }, [breakdown.finalAmount, paymentStatus]);
+
     const handleSave = async () => {
+        setIsSubmitted(true);
         setLoading(true);
         console.log("Starting handleSave...");
         try {
@@ -227,6 +238,26 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
             if (invalidPrices.length > 0) {
                 toast.error("Cost Price cannot be greater than MRP");
+                setLoading(false);
+                return;
+            }
+
+            const invalidReceived = enteredItems.filter(item => Number(item.receivedQty) > Number(item.qty));
+            if (invalidReceived.length > 0) {
+                toast.error("Received Qty cannot be greater than Order Qty");
+                setLoading(false);
+                return;
+            }
+
+            const invalidDamaged = enteredItems.filter(item => Number(item.damagedQty) > Number(item.receivedQty));
+            if (invalidDamaged.length > 0) {
+                toast.error("Damaged Qty cannot be greater than Received Qty");
+                setLoading(false);
+                return;
+            }
+
+            if (paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0)) {
+                toast.error("Please enter a valid Paid Amount for partial payment");
                 setLoading(false);
                 return;
             }
@@ -245,7 +276,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 overallTax: overallTax,
                 overallDiscount: overallDiscount,
                 previousCredit: Number(previousCredit),
-                totalAmount: Number(breakdown.finalAmount),
+                amount: Number(breakdown.finalAmount),
                 itemDiscountAmount: Number(totals.itemDiscountTotal),
                 itemTaxAmount: Number(totals.itemTaxTotal),
                 damagedAmount: Number(totals.damagedAmount),
@@ -408,10 +439,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>Received Qty.</label>
                                                 <input 
                                                     type="number" 
-                                                    className={styles.input} 
+                                                    className={`${styles.input} ${Number(item.receivedQty) > Number(item.qty) ? styles.inputError : ""}`} 
                                                     value={item.receivedQty ?? ""}
                                                     onChange={(e) => handleItemChange(index, "receivedQty", e.target.value)}
                                                 />
+                                                {Number(item.receivedQty) > Number(item.qty) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>received qty can not be greater than order qty</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
@@ -423,10 +457,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 </div>
                                                 <input 
                                                     type="number" 
-                                                    className={styles.input} 
+                                                    className={`${styles.input} ${Number(item.damagedQty) > Number(item.receivedQty) ? styles.inputError : ""}`} 
                                                     value={item.damagedQty ?? ""}
                                                     onChange={(e) => handleItemChange(index, "damagedQty", e.target.value)}
                                                 />
+                                                {Number(item.damagedQty) > Number(item.receivedQty) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>damaged qty can not be greater than recieved qty</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
@@ -680,15 +717,25 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                     {(paymentStatus === "Partial" || paymentStatus === "Full") && (
                         <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Paid Amount</label>
+                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{color: '#ff4d4f'}}>*</span>}</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.currencySymbol}>₹</span>
-                                <input type="number" className={`${styles.input} ${styles.inputWithSymbol}`} placeholder="00000" value={paidAmount} onChange={(e) => {
-                                    let val = e.target.value;
-                                    if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
-                                    setPaidAmount(val);
-                                }} />
+                                <input 
+                                    type="number" 
+                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`} 
+                                    placeholder="00000" 
+                                    value={paidAmount} 
+                                    readOnly={paymentStatus === "Full"}
+                                    onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                        setPaidAmount(val);
+                                    }} 
+                                />
                             </div>
+                            {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
+                                <span style={{color: '#ff4d4f', fontSize: '11px', marginTop: '4px'}}>Paid amount is required for partial payment</span>
+                            )}
                         </div>
                     )}
 
