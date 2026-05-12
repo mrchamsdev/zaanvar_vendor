@@ -16,6 +16,19 @@
   margin-bottom: 24px;
 }
 
+.topbarRight {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.searchContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 .searchRow {
   width: 100%;
 }
@@ -52,10 +65,24 @@
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.secondaryBtn {
+  background: #fff;
+  color: #333;
+  border: 1px solid #eee;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tableWrapper {
@@ -67,14 +94,50 @@
   min-height: 0;
 }
 
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f5790c;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}
+
+.loadingText {
+  color: #666;
+  font-size: 14px;
+}
+
+.emptyContainer {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 .table th {
   background: #f9fafb;
-  padding: 12px 16px;
+  padding: 8px 12px;
   text-align: left;
   font-size: 11px;
   font-weight: 700;
@@ -87,6 +150,8 @@
   border-bottom: 1px solid #e5e7eb;
   letter-spacing: 0.05em;
   line-height: 1.2;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .variantHeader {
@@ -96,30 +161,53 @@
 }
 
 .subHeaderRow th {
-  top: 38px !important;
+  top: 40px !important;
   background: #f9fafb !important;
   color: #6b7280 !important;
+  height: 32px;
+  border-top: none;
 }
 
 .table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  border-right: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
   font-size: 13px;
   color: #333;
 }
 
-.table th:nth-child(4),
-.table th:nth-child(5),
-.table td:nth-child(4),
-.table td:nth-child(5) {
-  text-align: center;
+.table th:first-child,
+.table td:first-child {
+  /* border-left: 1px solid #e5e7eb; */
+}
+
+.table tbody td:nth-child(3),
+.table tbody td:nth-child(4),
+.subHeaderRow th {
+  text-align: center !important;
+}
+
+.table thead tr:first-child th:nth-child(3) {
+  text-align: center !important;
 }
 
 .table tr td:last-child,
 .table thead tr:first-child th:last-child {
   border-right: none;
 }
+
+.rightAlign {
+  text-align: right !important;
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+.dateCol { width: 140px; }
+.unitCol { width: 100px; }
+.qtyCol { width: 90px; }
+.totalValCol { width: 150px; }
 
 /* Ensure sub-headers in the second row keep their right borders */
 .subHeaderRow th {
@@ -183,7 +271,7 @@
 }
 
 .pageBtnActive {
-  background: #000;
-  color: #fff;
-  border-color: #000;
+  background: #000 !important;
+  color: #fff !important;
+  border: none !important;
 }

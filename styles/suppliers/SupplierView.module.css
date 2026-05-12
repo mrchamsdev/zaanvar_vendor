@@ -1,0 +1,215 @@
+.container {
+    box-sizing: border-box;
+    width: 100%;
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+}
+
+.containerSplit {
+    padding: 10px;
+}
+
+.loading {
+    padding: 40px;
+    text-align: center;
+}
+
+.topCard {
+    background: #fff;
+    padding: 32px;
+    border-radius: 12px;
+    border: 1px solid #F0F0F0;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.infoSection {
+    flex: 1;
+}
+
+.supplierName {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    color: #000;
+    letter-spacing: 0.5px;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px 16px;
+}
+
+.infoValue {
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #000;
+}
+
+.infoLabel {
+    color: #888;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.statsCard {
+    box-sizing: border-box;
+    width: 320px;
+    background: #fff;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #F0F0F0;
+}
+
+.statsCardSplit {
+    width: 100%;
+}
+
+.statsTitle {
+    margin-bottom: 24px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 16px;
+}
+
+.tabContainer {
+    display: inline-flex;
+    background: #F1F1F1;
+    padding: 4px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.tabBtn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+    transition: all 0.2s;
+}
+
+.tabBtnActive {
+    background: #fff;
+    color: #E9315D;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.contentArea {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+}
+
+.contentAreaSplit {
+    padding: 15px;
+}
+
+.contentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.payNowBtn {
+    color: #E9315D;
+    border: 1px solid #E9315D;
+    background: #fff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.payNowBtn:hover {
+    background: #E9315D;
+    color: #fff;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    overflow: hidden;
+}
+
+.thead {
+    background: #F5F5F5;
+}
+
+.th {
+    padding: 14px;
+    text-align: left;
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+}
+
+.td {
+    padding: 14px;
+    font-size: 13px;
+}
+
+.tdBold {
+    font-weight: 600;
+}
+
+.trClickable {
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.trClickable:hover {
+    background: #fcfcfc;
+}
+
+.trHistory {
+    border-top: 1px solid #eee;
+}
+
+.statusText {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.statusGreen { color: #27AE60; }
+.statusOrange { color: #F5790C; }
+.statusRed { color: #E9315D; }
+.statusGrey { color: #999; }
+
+.subText {
+    font-size: 11px;
+    color: #888;
+}
+
+.noData {
+    padding: 40px;
+    text-align: center;
+    color: #999;
+}

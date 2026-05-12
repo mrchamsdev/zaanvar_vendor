@@ -40,7 +40,7 @@ const formatVariantSize = (size) => {
 };
 
 // Searchable Product Dropdown component
-const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
+const ProductSelect = ({ products, value, onChange, onAddNew, error, disabled = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const containerRef = useRef(null);
@@ -70,28 +70,29 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
     );
 
     return (
-        <div className={styles.customDropdownContainer} ref={containerRef}>
-            <div className={`${styles.dropdownTrigger} ${error ? styles.errorField : ""}`} style={{ padding: 0 }}>
+        <div className={`${styles.customDropdownContainer} ${disabled ? styles.disabledDropdown : ""}`} ref={containerRef}>
+            <div className={`${styles.dropdownTrigger} ${error ? styles.errorField : ""} ${styles.dropdownTriggerReset}`}>
                 <input 
                     type="text"
-                    className={styles.tableInput}
-                    style={{ textAlign: 'left', padding: '10px' }}
+                    className={`${styles.tableInput} ${styles.leftAlignInput}`}
                     placeholder="SELECT PRODUCT"
                     value={searchTerm}
                     onChange={(e) => {
+                        if (disabled) return;
                         setSearchTerm(e.target.value);
                         setIsOpen(true);
                     }}
-                    onFocus={() => setIsOpen(true)}
+                    onFocus={() => !disabled && setIsOpen(true)}
+                    readOnly={disabled}
                 />
-                <div style={{ paddingRight: 10, cursor: 'pointer' }} onClick={() => setIsOpen(!isOpen)}>
+                <div className={styles.chevronContainer} onClick={() => !disabled && setIsOpen(!isOpen)}>
                     <IconChevronDown />
                 </div>
             </div>
-            {isOpen && (
+            {isOpen && !disabled && (
                 <div className={styles.dropdownMenu}>
                     {filtered.length === 0 ? (
-                        <div className={styles.dropdownOption} style={{ color: '#999' }}>No products found</div>
+                        <div className={`${styles.dropdownOption} ${styles.mutedText}`}>No products found</div>
                     ) : (
                         filtered.map(p => (
                             <div 
@@ -116,9 +117,10 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error }) => {
     );
 };
 
-const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
+const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", initialId = null, initialData = null }) => {
   const { jwtToken, userInfo } = useStore();
-  const { branches, branchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: globalBranchId } = useDashboardData({ skipReviews: true });
+  const [branchId, setBranchId] = useState(globalBranchId || "91");
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
   const [products, setProducts] = useState([]);
   const [rows, setRows] = useState([
@@ -138,6 +140,45 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
   const loadProducts = async () => {
     const data = await productService.getAllProductsBrief(jwtToken, branchId);
     setProducts(Array.isArray(data) ? data : []);
+  };
+
+  useEffect(() => {
+    if (mode === "View" && initialId && jwtToken) {
+        fetchStockUpdateDetails();
+    }
+  }, [mode, initialId, jwtToken]);
+
+  const fetchStockUpdateDetails = async () => {
+    try {
+        const response = await productService.getStockUpdateById(jwtToken, initialId);
+        const data = response?.data || response;
+        if (data) {
+            // Map API response to form row
+            const mappedRow = {
+                id: data.stockUpdateId,
+                productId: data.productId,
+                productName: data.product?.productName || data.itemName,
+                productCode: data.product?.ProductCode || data.productCode,
+                variantId: data.variantId,
+                sourceStatus: data.reason === "Open Stock" ? "Open Stock" : "", // Heuristic
+                batchNumber: data.batchNumber || "",
+                currentQty: data.currentQty || 0,
+                add: data.add || 0,
+                remove: data.remove || 0,
+                updatedQty: (data.currentQty || 0) + (data.add || 0) - (data.remove || 0),
+                reason: data.reason,
+                expiryDate: data.expiryDate?.split('T')[0] || "",
+                costPrice: data.costPrice || 0,
+                total: ((data.add || 0) - (data.remove || 0)) * (data.costPrice || 0)
+            };
+            setRows([mappedRow]);
+            if (data.branchId) setBranchId(String(data.branchId));
+            if (data.createdDate) setUpdateDate(data.createdDate.split('T')[0]);
+        }
+    } catch (error) {
+        console.error("Error fetching stock update details:", error);
+        toast.error("Failed to load stock update details");
+    }
   };
 
   const addRow = () => {
@@ -342,7 +383,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
 
         {!isEmbedded && (
             <div className={styles.header}>
-              <h2>Update Stock</h2>
+              <h2>{mode === "View" ? "Stock Update Details" : "Update Stock"}</h2>
               <div className={styles.headerActions}>
                 <span className={styles.closeBtn} onClick={onClose}><IconX /></span>
               </div>
@@ -353,7 +394,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
           <div className={styles.topRow}>
             <div className={styles.inputField}>
               <label>Select Branch <span>*</span></label>
-              <select className={styles.topInput} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <select 
+                className={styles.topInput} 
+                value={branchId} 
+                onChange={(e) => setBranchId(e.target.value)}
+                disabled={mode === "View"}
+              >
                 {branches && branches.length > 0 ? (
                   branches.map(b => (
                     <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
@@ -374,6 +420,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                 value={updateDate} 
                 max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setUpdateDate(e.target.value)} 
+                disabled={mode === "View"}
               />
             </div>
           </div>
@@ -382,20 +429,20 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
             <table className={styles.stockUpdateTable}>
               <thead>
                 <tr>
-                  <th style={{ minWidth: 200 }}>Product Name</th>
-                  <th style={{ minWidth: 120, textAlign: 'center' }}>Product Code</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Batch No</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Variants</th>
-                  <th style={{ minWidth: 130, textAlign: 'center' }}>Source Status</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Quantity</th>
-                  <th style={{ minWidth: 150, textAlign: 'center' }}>Reason</th>
-                  {showAddColumn && <th style={{ minWidth: 70, textAlign: 'center' }}>Add</th>}
-                  {showRemoveColumn && <th style={{ minWidth: 70, textAlign: 'center' }}>Remove</th>}
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Updated Qty</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Exp. Date</th>
-                  <th style={{ minWidth: 100, textAlign: 'center' }}>Cost Price</th>
-                  <th style={{ minWidth: 120, textAlign: 'right' }}>Total (₹)</th>
-                  <th style={{ width: 40 }}></th>
+                  <th className={styles.colProd}>Product Name</th>
+                  <th className={`${styles.colCode} ${styles.centerAlign}`}>Product Code</th>
+                  <th className={`${styles.colBatch} ${styles.centerAlign}`}>Batch No</th>
+                  <th className={`${styles.colVar} ${styles.centerAlign}`}>Variants</th>
+                  <th className={`${styles.colSource} ${styles.centerAlign}`}>Source Status</th>
+                  <th className={`${styles.colQty} ${styles.centerAlign}`}>Quantity</th>
+                  <th className={`${styles.colReason} ${styles.centerAlign}`}>Reason</th>
+                  {showAddColumn && <th className={`${styles.colSmall} ${styles.centerAlign}`}>Add</th>}
+                  {showRemoveColumn && <th className={`${styles.colSmall} ${styles.centerAlign}`}>Remove</th>}
+                  <th className={`${styles.colExp} ${styles.centerAlign}`}>Updated Qty</th>
+                  <th className={`${styles.colExp} ${styles.centerAlign}`}>Exp. Date</th>
+                  <th className={`${styles.colCost} ${styles.centerAlign}`}>Cost Price</th>
+                  <th className={`${styles.colTotal} ${styles.rightAlign}`}>Total (₹)</th>
+                  <th className={styles.colAction}></th>
                 </tr>
               </thead>
               <tbody>
@@ -411,6 +458,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                     onChange={(val) => handleProductChange(index, val)}
                                     onAddNew={() => setShowAddProduct(true)}
                                     error={errors[`${index}_product`]}
+                                    disabled={mode === "View"}
                                 />
                             </div>
                         </td>
@@ -425,6 +473,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                 className={styles.tableSelect} 
                                 value={row.variantId} 
                                 onChange={(e) => handleVariantChange(index, e.target.value)}
+                                disabled={mode === "View"}
                             >
                                 <option value="">SELECT</option>
                                 {currentProduct?.variants?.map(v => (
@@ -439,6 +488,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                 className={styles.tableSelect} 
                                 value={row.sourceStatus} 
                                 onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
+                                disabled={mode === "View"}
                             >
                                 <option value="">SELECT SOURCE</option>
                                 <option value="Open Stock">Open Stock</option>
@@ -451,9 +501,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                 })()}
                             </select>
                         </td>
-                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.currentQty} /></td>
+                        <td><input className={`${styles.tableInput} ${styles.boldText}`} readOnly value={row.currentQty} /></td>
                         <td>
-                            <select id={`field_${index}_reason`} className={`${styles.tableSelect} ${errors[`${index}_reason`] ? styles.errorField : ""}`} value={row.reason} onChange={(e) => updateRowField(index, 'reason', e.target.value)}>
+                            <select id={`field_${index}_reason`} className={`${styles.tableSelect} ${errors[`${index}_reason`] ? styles.errorField : ""}`} value={row.reason} onChange={(e) => updateRowField(index, 'reason', e.target.value)} disabled={mode === "View"}>
                                 <option value="">SELECT REASON</option>
                                 {REASONS.filter(r => {
                                     if (row.sourceStatus === "Open Stock" && r === "Open Stock") return false;
@@ -472,6 +522,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                         value={row.add || ""} 
                                         onChange={(e) => updateRowField(index, 'add', e.target.value)} 
                                         placeholder="0" 
+                                        disabled={mode === "View"}
                                     />
                                 ) : <div className={styles.disabledPlaceholder}>--</div>}
                             </td>
@@ -486,18 +537,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
                                         value={row.remove || ""} 
                                         onChange={(e) => updateRowField(index, 'remove', e.target.value)} 
                                         placeholder="0" 
+                                        disabled={mode === "View"}
                                     />
                                 ) : <div className={styles.disabledPlaceholder}>--</div>}
                             </td>
                         )}
-                        <td><input className={styles.tableInput} style={{ fontWeight: 700 }} readOnly value={row.updatedQty} /></td>
+                        <td><input className={`${styles.tableInput} ${styles.boldText}`} readOnly value={row.updatedQty} /></td>
                         <td><input className={styles.tableInput} readOnly value={row.expiryDate} placeholder="------" /></td>
                         <td><input className={styles.tableInput} readOnly value={`₹${row.costPrice}`} /></td>
-                        <td style={{ color: row.total >= 0 ? '#27ae60' : '#ff4d4f', fontWeight: 600, textAlign: 'right' }}>
+                        <td className={`${styles.rightAlign} ${row.total >= 0 ? styles.positiveText : styles.negativeText} ${styles.boldText}`}>
                         {row.total >= 0 ? `+ ₹ ${row.total.toFixed(2)}` : `- ₹ ${Math.abs(row.total).toFixed(2)}`}
                         </td>
                         <td>
-                        {index > 0 && (
+                        {index > 0 && mode !== "View" && (
                             <span className={styles.removeRowBtn} onClick={() => removeRow(row.id)}><IconX /></span>
                         )}
                         </td>
@@ -508,21 +560,23 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false }) => {
             </table>
           </div>
 
-          <button className={styles.addItemBtn} onClick={addRow}>+ ADD ITEM</button>
+          {mode !== "View" && <button className={styles.addItemBtn} onClick={addRow}>+ ADD ITEM</button>}
           
           <div className={styles.totalSection}>
             <div className={styles.totalLabel}>TOTAL</div>
-            <div className={`${styles.totalAmount}`} style={{ color: grandTotal >= 0 ? '#27ae60' : '#ff4d4f' }}>
+            <div className={`${styles.totalAmount} ${grandTotal >= 0 ? styles.positiveText : styles.negativeText}`}>
               {grandTotal >= 0 ? `+ ₹ ${grandTotal.toFixed(2)}` : `- ₹ ${Math.abs(grandTotal).toFixed(2)}`}
             </div>
           </div>
         </div>
 
-        <div className={styles.footer}>
-          <button className={styles.submitBtn} onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Processing..." : "Update Stock"}
-          </button>
-        </div>
+        {mode !== "View" && (
+            <div className={styles.footer}>
+              <button className={styles.submitBtn} onClick={handleSubmit} disabled={submitting}>
+                {submitting ? "Processing..." : "Update Stock"}
+              </button>
+            </div>
+        )}
       </div>
     </>
   );

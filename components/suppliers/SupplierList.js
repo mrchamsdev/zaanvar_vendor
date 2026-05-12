@@ -63,6 +63,7 @@ const SupplierList = ({
                 <th style={{ width: 40 }}>
                   <input 
                     type="checkbox" 
+                    className={styles.checkbox}
                     checked={suppliers.length > 0 && selectedIds.length === suppliers.length}
                     onChange={() => onSelectAll(suppliers.map(s => s.supplierId))}
                   />
@@ -81,6 +82,7 @@ const SupplierList = ({
                   <td>
                     <input 
                       type="checkbox" 
+                      className={styles.checkbox}
                       checked={selectedIds.includes(s.supplierId)}
                       onChange={() => onToggleSelection(s.supplierId)}
                     />
@@ -139,20 +141,22 @@ const SupplierList = ({
 
           <div className={styles.paginationRight}>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                className={styles.pageBtn} 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
-              >
-                Previous
-              </button>
-              <button 
-                className={`${styles.pageBtn} ${styles.nextBtn}`}
-                disabled={currentPage * rowsPerPage >= suppliers.length}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                Next
-              </button>
+              {currentPage > 1 && (
+                <button 
+                  className={styles.pageBtn} 
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                  Previous
+                </button>
+              )}
+              {currentPage * rowsPerPage < suppliers.length && (
+                <button 
+                  className={`${styles.pageBtn} ${styles.nextBtn}`}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                  Next
+                </button>
+              )}
             </div>
           </div>
         </div>

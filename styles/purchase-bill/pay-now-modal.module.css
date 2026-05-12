@@ -111,6 +111,18 @@
     cursor: not-allowed;
 }
 
+.errorInput {
+    border: 1px solid #ff4d4f !important;
+    background: #fff1f0;
+}
+
+.errorMessage {
+    color: #ff4d4f;
+    font-size: 11px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
 .summaryRow {
     display: grid;
     grid-template-columns: 1.5fr 1fr;

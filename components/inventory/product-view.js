@@ -256,6 +256,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     <tr>
                       <th>Order No</th>
                       <th>Supplier Name</th>
+                      <th>Batch Number</th>
                       <th>MRP</th>
                       <th>Cost Price</th>
                       <th>ORDERED</th>
@@ -270,6 +271,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       <tr key={idx}>
                         <td>#{bill.productsPurchaseRqstId || bill.productsBillId}</td>
                         <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
+                        <td>{bill.batchNumber || "-"}</td>
                         <td>₹{bill.mrp}</td>
                         <td>₹{bill.costPrice}</td>
                         <td>{bill.qty}</td>

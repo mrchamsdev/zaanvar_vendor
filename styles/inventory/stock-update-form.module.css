@@ -164,6 +164,24 @@
   text-transform: uppercase;
 }
 
+.dropdownTriggerReset {
+  padding: 0 !important;
+}
+
+.leftAlignInput {
+  text-align: left !important;
+  padding: 10px !important;
+}
+
+.chevronContainer {
+  padding-right: 10px;
+  cursor: pointer;
+}
+
+.mutedText {
+  color: #999;
+}
+
 .dropdownMenu {
   position: absolute;
   top: 100%;
@@ -221,11 +239,17 @@
   background: #000;
   color: #fff;
   border: none;
-  padding: 14px 40px;
+  padding: 10px 24px;
   border-radius: 8px;
   font-weight: 700;
+  font-size: 13px;
   cursor: pointer;
   text-transform: uppercase;
+  transition: opacity 0.2s;
+}
+
+.submitBtn:hover {
+  opacity: 0.85;
 }
 
 .removeRowBtn {
@@ -251,6 +275,39 @@
   font-size: 24px;
   font-weight: 700;
 }
+
+.boldText {
+  font-weight: 700 !important;
+}
+
+.rightAlign {
+  text-align: right !important;
+}
+
+.centerAlign {
+  text-align: center !important;
+}
+
+.positiveText {
+  color: #27ae60 !important;
+}
+
+.negativeText {
+  color: #ff4d4f !important;
+}
+
+.colProd { min-width: 200px; }
+.colCode { min-width: 120px; }
+.colBatch { min-width: 100px; }
+.colVar { min-width: 100px; }
+.colSource { min-width: 130px; }
+.colQty { min-width: 100px; }
+.colReason { min-width: 150px; }
+.colSmall { min-width: 70px; }
+.colExp { min-width: 100px; }
+.colCost { min-width: 100px; }
+.colTotal { min-width: 120px; }
+.colAction { width: 40px; }
 
 .errorField {
   border: 1.5px solid #ff4d4f !important;
