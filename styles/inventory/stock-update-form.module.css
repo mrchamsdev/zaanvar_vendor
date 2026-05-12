@@ -325,3 +325,38 @@
     background: #f9f9f9;
     border-radius: 4px;
 }
+
+.errorText {
+  color: #ff4d4f;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+  text-align: left;
+}
+
+.disabledDropdown {
+    opacity: 1 !important;
+    background: #f9f9f9 !important;
+    cursor: default !important;
+}
+
+.disabledDropdown .dropdownTrigger {
+    cursor: default !important;
+    background: #f9f9f9 !important;
+    border-color: #eee !important;
+}
+
+.disabledDropdown input {
+    background: #f9f9f9 !important;
+    color: #333 !important;
+    cursor: default !important;
+}
+
+.topInput:disabled, .tableSelect:disabled, .tableInput:disabled {
+    background: #f9f9f9 !important;
+    color: #333 !important;
+    cursor: default !important;
+    border-color: #eee !important;
+    -webkit-text-fill-color: #333 !important;
+}

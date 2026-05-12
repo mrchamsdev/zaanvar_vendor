@@ -230,7 +230,7 @@ const StockStatusPage = () => {
             {activeTab === "shortExpiry" && <th rowSpan="2">Remaining Days</th>}
             <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
             <th rowSpan="2">Status</th>
-            <th rowSpan="2">Action</th>
+            {activeTab !== "shortExpiry" && <th rowSpan="2">Action</th>}
           </tr>
         );
       case "damaged":
@@ -314,44 +314,44 @@ const StockStatusPage = () => {
               <td><span className={styles.statusText} style={{color: '#f39c12'}}><IconAlert /> Approaching</span></td>
           )}
 
-          <td>
-            <div style={{display: 'flex', gap: '8px'}}>
-                {activeTab === "outOfStock" || activeTab === "lowStock" ? (
-                    <button 
-                        className={`${styles.actionBtn} ${styles.restockBtn}`}
-                        onClick={() => handleRestock(item)}
-                    >
-                        <IconRefresh /> Restock
-                    </button>
-                ) : activeTab === "expired" ? (
-                    <button 
-                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                        onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
-                    >
-                        🏷 Mark Waste
-                    </button>
-                ) : activeTab === "shortExpiry" ? (
-                    <button className={`${styles.actionBtn} ${styles.flashSaleBtn}`}>+ Add to Flash Sale</button>
-                ) : (
-                    <>
-                          {item.consumptionId && (
-                              <button 
-                                className={`${styles.actionBtn} ${styles.restockBtn}`}
-                                onClick={() => handleRestore(item.consumptionId)}
-                              >
-                                <IconRefresh /> Restore
-                              </button>
-                          )}
-                          <button 
-                             className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                             onClick={() => handleMarkWaste(item.consumptionId)}
-                          >
-                             🏷 Mark Waste
-                          </button>
-                    </>
-                )}
-            </div>
-          </td>
+          {activeTab !== "shortExpiry" && (
+            <td>
+              <div style={{display: 'flex', gap: '8px'}}>
+                  {activeTab === "outOfStock" || activeTab === "lowStock" ? (
+                      <button 
+                          className={`${styles.actionBtn} ${styles.restockBtn}`}
+                          onClick={() => handleRestock(item)}
+                      >
+                          <IconRefresh /> Restock
+                      </button>
+                  ) : activeTab === "expired" ? (
+                      <button 
+                          className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                          onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
+                      >
+                          🏷 Mark Waste
+                      </button>
+                  ) : (
+                      <>
+                            {item.consumptionId && (
+                                <button 
+                                  className={`${styles.actionBtn} ${styles.restockBtn}`}
+                                  onClick={() => handleRestore(item.consumptionId)}
+                                >
+                                  <IconRefresh /> Restore
+                                </button>
+                            )}
+                            <button 
+                               className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                               onClick={() => handleMarkWaste(item.consumptionId)}
+                            >
+                               🏷 Mark Waste
+                            </button>
+                      </>
+                  )}
+              </div>
+            </td>
+          )}
         </tr>
       );
     });
