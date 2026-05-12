@@ -18,7 +18,7 @@ const IconChevronDown = () => (
     </svg>
 );
 
-const REASONS = ["Miscount", "Damage", "Internal purpose", "Theft", "Expired", "Onhold", "Open Stock"];
+const REASONS = ["Miscount", "Damage", "Internal purpose", "Theft", "Expired", "OnHold", "Open Stock"];
 
 const formatVariantSize = (size) => {
     if (!size) return "";
@@ -151,28 +151,28 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
   const fetchStockUpdateDetails = async () => {
     try {
         const response = await productService.getStockUpdateById(jwtToken, initialId);
-        const data = response?.data || response;
+        const data = response?.data?.data || response?.data || response;
         if (data) {
-            // Map API response to form row
+            // Map API response to form row using correct keys from StockUpdateView
             const mappedRow = {
                 id: data.stockUpdateId,
-                productId: data.productId,
+                productId: parseInt(data.productId || data.product?.productId),
                 productName: data.product?.productName || data.itemName,
-                productCode: data.product?.ProductCode || data.productCode,
-                variantId: data.variantId,
-                sourceStatus: data.reason === "Open Stock" ? "Open Stock" : "", // Heuristic
-                batchNumber: data.batchNumber || "",
+                productCode: data.product?.ProductCode || data.productCode || data.product?.productCode,
+                variantId: parseInt(data.variantId || data.variant?.variantId),
+                sourceStatus: data.reason === "Open Stock" ? "Open Stock" : (data.reason === "OnHold" ? "Hold Qty" : ""), // Heuristic
+                batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
                 currentQty: data.currentQty || 0,
                 add: data.add || 0,
                 remove: data.remove || 0,
-                updatedQty: (data.currentQty || 0) + (data.add || 0) - (data.remove || 0),
+                updatedQty: data.updatedQty || ((data.currentQty || 0) + (data.add || 0) - (data.remove || 0)),
                 reason: data.reason,
-                expiryDate: data.expiryDate?.split('T')[0] || "",
-                costPrice: data.costPrice || 0,
-                total: ((data.add || 0) - (data.remove || 0)) * (data.costPrice || 0)
+                expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
+                costPrice: data.billItem?.costPrice || data.costPrice || 0,
+                total: parseFloat(data.totalValue || (( (data.add || 0) - (data.remove || 0) ) * (data.billItem?.costPrice || data.costPrice || 0)) || 0)
             };
             setRows([mappedRow]);
-            if (data.branchId) setBranchId(String(data.branchId));
+            if (data.branchId || data.branch?.id) setBranchId(String(data.branchId || data.branch?.id));
             if (data.createdDate) setUpdateDate(data.createdDate.split('T')[0]);
         }
     } catch (error) {
@@ -269,8 +269,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     if (field === 'reason') {
         if (value === "Open Stock") {
             newRows[index].remove = 0;
-        } else if (value && value !== "Miscount") {
-            // It's a removal reason
+        } else if (value && value !== "Miscount" && value !== "OnHold") {
+            // It's a removal reason (Damage, Theft, etc.)
             newRows[index].add = 0;
         }
     }
@@ -303,14 +303,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     
     rows.forEach((row, index) => {
         if (!row.productId) {
-            newErrors[`${index}_product`] = true;
+            newErrors[`${index}_product`] = "Product is required";
         }
         if (!row.add && !row.remove) {
-            newErrors[`${index}_add`] = true;
-            newErrors[`${index}_remove`] = true;
+            newErrors[`${index}_add`] = "Required";
+            newErrors[`${index}_remove`] = "Required";
         }
         if (!row.reason) {
-            newErrors[`${index}_reason`] = true;
+            newErrors[`${index}_reason`] = "Reason is required";
         }
     });
 
@@ -368,11 +368,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
   // Dynamic Column Visibility Logic
   const anyMiscount = rows.some(r => r.reason === "Miscount");
   const anyOpenStock = rows.some(r => r.reason === "Open Stock");
-  const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired", "Onhold"].includes(r.reason));
+  const anyOnHold = rows.some(r => r.reason === "OnHold");
+  const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired"].includes(r.reason));
   const anyEmptyReason = rows.some(r => !r.reason);
 
-  const showAddColumn = anyEmptyReason || anyMiscount || anyOpenStock;
-  const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval;
+  const showAddColumn = anyEmptyReason || anyMiscount || anyOpenStock || anyOnHold;
+  const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval || anyOnHold;
 
   return (
     <>
@@ -457,16 +458,23 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                     value={row.productId} 
                                     onChange={(val) => handleProductChange(index, val)}
                                     onAddNew={() => setShowAddProduct(true)}
-                                    error={errors[`${index}_product`]}
                                     disabled={mode === "View"}
                                 />
+                                {errors[`${index}_product`] && <span className={styles.errorText}>{errors[`${index}_product`]}</span>}
                             </div>
                         </td>
                         <td>
                             <input className={styles.tableInput} readOnly value={row.productCode} placeholder="ENTER CODE" />
                         </td>
                         <td>
-                            <input className={styles.tableInput} value={row.batchNumber} onChange={(e) => updateRowField(index, 'batchNumber', e.target.value)} placeholder="------" />
+                            <input 
+                                className={styles.tableInput} 
+                                value={row.batchNumber} 
+                                onChange={(e) => updateRowField(index, 'batchNumber', e.target.value)} 
+                                placeholder="------" 
+                                disabled={mode === "View"}
+                                readOnly={mode === "View"}
+                            />
                         </td>
                         <td>
                             <select 
@@ -507,14 +515,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                 <option value="">SELECT REASON</option>
                                 {REASONS.filter(r => {
                                     if (row.sourceStatus === "Open Stock" && r === "Open Stock") return false;
-                                    if (row.sourceStatus === "Hold Qty" && r === "Onhold") return false;
+                                    if (row.sourceStatus === "Hold Qty" && r === "OnHold") return false;
                                     return true;
                                 }).map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
+                            {errors[`${index}_reason`] && <span className={styles.errorText}>{errors[`${index}_reason`]}</span>}
                         </td>
                         {showAddColumn && (
                             <td>
-                                {(row.reason === "Open Stock" || row.reason === "Miscount" || !row.reason) ? (
+                                {(row.reason === "Open Stock" || row.reason === "Miscount" || row.reason === "OnHold" || !row.reason) ? (
                                     <input 
                                         id={`field_${index}_add`} 
                                         className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`} 
@@ -524,12 +533,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                         placeholder="0" 
                                         disabled={mode === "View"}
                                     />
-                                ) : <div className={styles.disabledPlaceholder}>--</div>}
+                                ) : (
+                                    <div className={styles.disabledPlaceholder}>--</div>
+                                )}
+                                {errors[`${index}_add`] && <span className={styles.errorText}>{errors[`${index}_add`]}</span>}
                             </td>
                         )}
                         {showRemoveColumn && (
                             <td>
-                                {(row.reason !== "Open Stock" || !row.reason) ? (
+                                {(row.reason !== "Open Stock" || row.reason === "OnHold" || !row.reason) ? (
                                     <input 
                                         id={`field_${index}_remove`} 
                                         className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`} 
@@ -539,7 +551,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                         placeholder="0" 
                                         disabled={mode === "View"}
                                     />
-                                ) : <div className={styles.disabledPlaceholder}>--</div>}
+                                ) : (
+                                    <div className={styles.disabledPlaceholder}>--</div>
+                                )}
+                                {errors[`${index}_remove`] && <span className={styles.errorText}>{errors[`${index}_remove`]}</span>}
                             </td>
                         )}
                         <td><input className={`${styles.tableInput} ${styles.boldText}`} readOnly value={row.updatedQty} /></td>
