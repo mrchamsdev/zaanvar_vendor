@@ -549,6 +549,16 @@ const ProductForm = ({ initialData, onSave, onBack, productType: propType }) => 
         }
       } else {
         response = await productService.createProduct(jwtToken, payload, false);
+        
+        // Extract created variants and map IDs back to the variants array
+        const createdProduct = response?.data?.data || response?.data || response;
+        const createdVariants = createdProduct?.variants || createdProduct?.productVariants || [];
+        
+        variants.forEach((v, idx) => {
+          if (createdVariants[idx]) {
+            v.variantId = createdVariants[idx].variantId || createdVariants[idx].id;
+          }
+        });
       }
       
       console.log("Final Save/Update response:", response);

@@ -379,11 +379,10 @@ const ProductsPage = () => {
                   <th rowSpan="2">Product Name</th>
                   <th rowSpan="2">Brand</th>
                   <th rowSpan="2">Category Type</th>
-                  <th colSpan="6" className={styles.variantsHeader}>VARIANTS</th>
+                  <th colSpan="5" className={styles.variantsHeader}>VARIANTS</th>
                 </tr>
                 <tr className={styles.subHeaderRow}>
                   <th>Unit</th>
-                  <th>Size</th>
                   <th>Quantity</th>
                   <th>Open Stock Qty</th>
                   <th>Hold Qty</th>
@@ -425,8 +424,7 @@ const ProductsPage = () => {
                               ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
                               : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
                           </td>
-                          <td>{isSizeBasedVariant(firstVariant) ? "-" : getUnitDisplay(firstVariant)}</td>
-                          <td>{isSizeBasedVariant(firstVariant) ? getUnitDisplay(firstVariant) : "-"}</td>
+                          <td>{getUnitDisplay(firstVariant)}</td>
                           <td>{firstVariant.stockUpdates?.totalQuantity ?? firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
                           <td>{firstVariant.stockUpdates?.openStockQuantity ?? "0"}</td>
                           <td>{firstVariant.stockUpdates?.onHoldQuantity ?? "0"}</td>
@@ -434,17 +432,20 @@ const ProductsPage = () => {
                             style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
                             onClick={() => hasMultipleVariants && toggleRowExpansion(productId)}
                           >
-                            ₹{firstVariant.mrp || "-"} 
-                            {hasMultipleVariants && (
-                              expandedRows.includes(productId) ? <IconChevronUp /> : <IconChevronDown />
-                            )}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <span>₹{firstVariant.mrp || "-"}</span>
+                              {hasMultipleVariants && (
+                                <div style={{ marginTop: -4 }}>
+                                  {expandedRows.includes(productId) ? <IconChevronUp /> : <IconChevronDown />}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                         {expandedRows.includes(productId) && otherVariants.map((v) => (
                           <tr key={v.variantId} className={styles.variantRow}>
                             <td colSpan="5"></td>
-                            <td>{isSizeBasedVariant(v) ? "-" : getUnitDisplay(v)}</td>
-                            <td>{isSizeBasedVariant(v) ? getUnitDisplay(v) : "-"}</td>
+                            <td>{getUnitDisplay(v)}</td>
                             <td>{v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
                             <td>{v.stockUpdates?.openStockQuantity ?? "0"}</td>
                             <td>{v.stockUpdates?.onHoldQuantity ?? "0"}</td>

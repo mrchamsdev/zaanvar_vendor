@@ -286,7 +286,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     damagedReturnedGoods: damagedReturnedGoods,
                     addToCreditNote: addToCreditNote
                 },
-                items: enteredItems.map(item => ({
+                bill: {
+                    receivedDate: receivedDate
+                },
+                billItems: enteredItems.map(item => ({
                     productId: item.productId,
                     variantId: item.variantId,
                     costPrice: Number(item.costPrice),
@@ -295,7 +298,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     receivedQuantity: Number(item.receivedQty),
                     damagedQuantity: Number(item.damagedQty),
                     discount: Number(item.discount),
-                    taxGroupId: Number(item.tax) || 0, // Sending direct tax value as requested
+                    taxGroupId: Number(item.tax) || 0,
                     expiryDate: item.expDate,
                     batchNumber: item.batchNumber
                 }))

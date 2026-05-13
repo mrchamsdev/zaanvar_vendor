@@ -1,68 +1,7 @@
 
 import { WebApimanager } from "../components/utilities/WebApiManager";
 
-const FAKE_PRODUCTS = [
-  { 
-    id: "1", 
-    productCode: "100001", 
-    productName: "Dog Food Premium", 
-    brandName: "Kinley", 
-    category: { name: "Food" },
-    totalQuantity: "50", 
-    openingStock: "20", 
-    holdQuantity: "05", 
-    mrp: "1200",
-    productType: "retail"
-  },
-  { 
-    id: "2", 
-    productCode: "100002", 
-    productName: "Cat Litter Sand", 
-    brandName: "Kinley", 
-    category: { name: "Grooming" },
-    totalQuantity: "30", 
-    openingStock: "10", 
-    holdQuantity: "02", 
-    mrp: "450",
-    productType: "retail"
-  },
-  { 
-    id: "3", 
-    productCode: "100003", 
-    productName: "Paracetamol Pet", 
-    brandName: "Kinley", 
-    category: { name: "Medicines" },
-    totalQuantity: "100", 
-    openingStock: "50", 
-    holdQuantity: "10", 
-    mrp: "150",
-    productType: "medical"
-  },
-  { 
-    id: "4", 
-    productCode: "100004", 
-    productName: "Surgical Kit", 
-    brandName: "MediPet", 
-    category: { name: "Medical" },
-    totalQuantity: "15", 
-    openingStock: "5", 
-    holdQuantity: "0", 
-    mrp: "2500",
-    productType: "medical"
-  },
-  { 
-    id: "5", 
-    productCode: "100005", 
-    productName: "Pet Shampoo", 
-    brandName: "GroomWell", 
-    category: { name: "Grooming" },
-    totalQuantity: "25", 
-    openingStock: "05", 
-    holdQuantity: "01", 
-    mrp: "600",
-    productType: "retail"
-  }
-];
+
 
 export const productService = {
   getProducts: async (jwt, branchId, type, search = "") => {
@@ -164,10 +103,10 @@ export const productService = {
     return await webApi.get(`vendor/product-variants/generate-sku`);
   },
 
-  getStockUpdates: async (jwt, branchId) => {
+  getStockUpdates: async (jwt) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/stock-updates/branch/${branchId}`);
+      const response = await webApi.get(`vendor/stock-updates/manual-entries`);
       const body = response?.data || response;
       return body?.data || (Array.isArray(body) ? body : []);
     } catch (error) {

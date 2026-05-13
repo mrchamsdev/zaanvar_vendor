@@ -159,6 +159,7 @@
 .table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 1400px; /* Ensure horizontal scroll for many columns */
 }
 
 .table th {
