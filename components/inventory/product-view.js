@@ -79,7 +79,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
             </div>
             <div className={styles.infoGridItem}>
               <label>GST(%)</label>
-              <strong>{data.taxGroupId || data.gst || "-"}%</strong>
+              <strong>{(data.taxGroupId || data.gst) && (data.taxGroupId !== "-" && data.gst !== "-") ? `${data.taxGroupId || data.gst}%` : "-"}</strong>
             </div>
             <div className={styles.infoGridItem}>
               <label>Pet Type</label>
@@ -296,15 +296,14 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <thead>
                     <tr>
                       <th>UPDATED DATE</th>
-                      <th>ADD PRODUCT NAME</th>
-                      <th>Product Code</th>
+                      <th>BATCH NUMBER</th>
                       <th>CURRENT QTY</th>
                       <th>ADD</th>
                       <th>REMOVE</th>
                       <th>UPDATED QTY</th>
                       <th>REASON</th>
+                      <th>SOURCE STATUS</th>
                       <th>EXP. DATE</th>
-                      <th>COST PRICE</th>
                       <th>TOTAL (₹)</th>
                     </tr>
                   </thead>
@@ -312,15 +311,14 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     {data.stockHistory.map((stock, idx) => (
                       <tr key={idx}>
                         <td>{stock.createdDate?.split("T")[0] || "-"}</td>
-                        <td>{stock.itemName || data.productName}</td>
-                        <td>{stock.productCode || "-"}</td>
+                        <td>{stock.batchNumber || "-"}</td>
                         <td>{stock.currentQty}</td>
                         <td>{stock.add}</td>
                         <td>{stock.remove}</td>
                         <td>{stock.updatedQty}</td>
                         <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
+                        <td>{stock.sourceStatus || "-"}</td>
                         <td>{stock.expDate || "-"}</td>
-                        <td>₹{stock.billItem?.costPrice || "-"}</td>
                         <td>₹{stock.totalValue}</td>
                       </tr>
                     ))}

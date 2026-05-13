@@ -196,10 +196,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                         <span className={styles.label}>Delivered on</span>
                         <span className={styles.value}>{formatDate(createdAt || orderDate)}</span>
                     </div>
-                    <div className={styles.statusGroup}>
-                        <span className={styles.label}>Purchase Order</span>
-                        <span className={styles.value}>#{String(purchaseRequestId || "").padStart(6, '0')}</span>
-                    </div>
+                   
                     <div className={styles.statusGroup}>
                         <div className={`${styles.statusBadge} ${getStatusClass(paymentStatus)}`}>
                             {getStatusLabel(paymentStatus)}
@@ -223,12 +220,13 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>RECEIVED QTY</th>
                             <th>SHORTFALL QTY</th>
                             <th>DAMAGED GOODS</th>
+                            <th>BATCH NUMBER</th>
+                            <th>EXPIRY DATE</th>
                             <th>COST PRICE (₹)</th>
                             <th>MRP (₹)</th>
                             <th>DISCOUNTABLE AMOUNT (₹)</th>
                             <th>TAX (%)</th>
                             <th>Discount (%)</th>
-                            <th>Total Order Value (₹)</th>
                             <th>Total Received Value (₹)</th>
                         </tr>
                     </thead>
@@ -264,21 +262,13 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                     </td>
                                     <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>
                                     <td>{damaged}</td>
+                                    <td>{item.batchNumber || "------"}</td>
+                                    <td>{item.expDate || item.expiryDate || "------"}</td>
                                     <td className={styles.costCell}>{cost.toLocaleString()}</td>
                                     <td className={styles.costCell}>{parseFloat(item.mrp || 0).toLocaleString()}</td>
                                     <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>{parseFloat(item.taxGroupId || item.tax || 0)}%</td>
                                     <td>{parseFloat(item.discount || 0)}%</td>
-                                    <td className={styles.costCell}>
-                                        ₹ {(() => {
-                                            const base = (parseFloat(item.qty || item.orderQuantity) || 0) * cost;
-                                            const discPercent = parseFloat(item.discount) || 0;
-                                            const discAmount = (base * discPercent / 100);
-                                            const afterDisc = base - discAmount;
-                                            const tax = (afterDisc * (parseFloat(item.taxGroupId || item.tax) || 0) / 100);
-                                            return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                        })()}
-                                    </td>
                                     <td className={styles.costCell}>
                                         ₹ {(() => {
                                             const discPercent = parseFloat(item.discount) || 0;
@@ -294,7 +284,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     </tbody>
                     <tfoot>
                         <tr className={styles.tableFooter}>
-                            <td colSpan={14} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
+                            <td colSpan={15} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
                             <td className={styles.totalValueCell}>
                                 <div className={styles.totalValueWrapper}>
                                     <span>₹</span>

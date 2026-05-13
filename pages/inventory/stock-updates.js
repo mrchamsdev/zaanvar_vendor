@@ -44,7 +44,8 @@ const StockUpdatesPage = () => {
   const fetchStockUpdates = async () => {
     setLoading(true);
     try {
-      const data = await productService.getStockUpdates(jwtToken, branchId);
+      // BranchId is no longer needed in the URL as per user request
+      const data = await productService.getStockUpdates(jwtToken);
       setStockUpdates(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error("API ERROR:", error);
@@ -130,6 +131,7 @@ const StockUpdatesPage = () => {
                   <th rowSpan="2">UP-DATED DATE</th>
                   <th rowSpan="2">PRODUCT NAME</th>
                   <th colSpan="2" className={styles.variantHeader}>VARIANT</th>
+                  <th rowSpan="2">REASON</th>
                   <th rowSpan="2" className={styles.rightAlign}>TOTAL VALUE (₹)</th>
                 </tr>
                 <tr className={styles.subHeaderRow}>
@@ -181,8 +183,9 @@ const StockUpdatesPage = () => {
                       <td>{update.itemName || update.product?.productName}</td>
                       <td>{unit}</td>
                       <td>{quantity}</td>
+                      <td>{update.reason || "--"}</td>
                       <td className={`${styles.rightAlign} ${isNegative ? styles.totalValueRed : styles.totalValueGreen}`}>
-                        {isNegative ? `- ₹ ${Math.abs(val).toLocaleString()}` : `₹ ${val.toLocaleString()}`}
+                        {isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `₹ ${val.toFixed(2)}`}
                       </td>
                     </tr>
                   );

@@ -160,7 +160,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 productName: data.product?.productName || data.itemName,
                 productCode: data.product?.ProductCode || data.productCode || data.product?.productCode,
                 variantId: parseInt(data.variantId || data.variant?.variantId),
-                sourceStatus: data.reason === "Open Stock" ? "Open Stock" : (data.reason === "OnHold" ? "Hold Qty" : ""), // Heuristic
+                sourceStatus: data.sourceStatus === "openStock" ? "Open Stock" : (data.sourceStatus === "holdQty" ? "Hold Qty" : (data.reason === "Open Stock" ? "Open Stock" : (data.reason === "OnHold" ? "Hold Qty" : ""))),
                 batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
                 currentQty: data.currentQty || 0,
                 add: data.add || 0,
@@ -275,6 +275,17 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         }
     }
     
+    // Handle batch selection to update expiry date
+    if (field === 'batchNumber' && value) {
+        const product = products.find(p => p.productId === newRows[index].productId);
+        const variant = product?.variants?.find(v => v.variantId === parseInt(newRows[index].variantId));
+        const batch = variant?.batchNumbers?.find(b => b.batchNumber === value);
+        if (batch) {
+            newRows[index].expiryDate = batch.expiryDate?.split('T')[0] || "";
+            if (batch.costPrice) newRows[index].costPrice = batch.costPrice;
+        }
+    }
+
     // Clear error for this field
     const newErrors = { ...errors };
     delete newErrors[`${index}_${field}`];
@@ -312,7 +323,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         if (!row.reason) {
             newErrors[`${index}_reason`] = "Reason is required";
         }
+        if (!row.sourceStatus) {
+            newErrors[`${index}_sourceStatus`] = "Source is required";
+        }
     });
+
+    if (!updateDate) {
+        newErrors["updateDate"] = "Update date is required";
+    }
 
     if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
@@ -414,15 +432,23 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
               </select>
             </div>
             <div className={styles.inputField}>
-              <label>UPDATED DATE</label>
+              <label>UPDATED DATE <span>*</span></label>
               <input 
-                className={styles.topInput}
+                className={`${styles.topInput} ${errors.updateDate ? styles.errorField : ""}`}
                 type="date" 
                 value={updateDate} 
                 max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setUpdateDate(e.target.value)} 
+                onChange={(e) => {
+                    setUpdateDate(e.target.value);
+                    if (errors.updateDate) {
+                        const newErrs = { ...errors };
+                        delete newErrs.updateDate;
+                        setErrors(newErrs);
+                    }
+                }} 
                 disabled={mode === "View"}
               />
+              {errors.updateDate && <span className={styles.errorText}>{errors.updateDate}</span>}
             </div>
           </div>
 
@@ -459,6 +485,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                     onChange={(val) => handleProductChange(index, val)}
                                     onAddNew={() => setShowAddProduct(true)}
                                     disabled={mode === "View"}
+                                    error={errors[`${index}_product`]}
                                 />
                                 {errors[`${index}_product`] && <span className={styles.errorText}>{errors[`${index}_product`]}</span>}
                             </div>
@@ -467,14 +494,28 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                             <input className={styles.tableInput} readOnly value={row.productCode} placeholder="ENTER CODE" />
                         </td>
                         <td>
-                            <input 
-                                className={styles.tableInput} 
-                                value={row.batchNumber} 
-                                onChange={(e) => updateRowField(index, 'batchNumber', e.target.value)} 
-                                placeholder="------" 
-                                disabled={mode === "View"}
-                                readOnly={mode === "View"}
-                            />
+                            {currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId))?.batchNumbers?.length > 0 ? (
+                                <select 
+                                    className={styles.tableSelect} 
+                                    value={row.batchNumber} 
+                                    onChange={(e) => updateRowField(index, 'batchNumber', e.target.value)}
+                                    disabled={mode === "View"}
+                                >
+                                    <option value="">SELECT BATCH</option>
+                                    {currentProduct.variants.find(v => v.variantId === parseInt(row.variantId)).batchNumbers.map(b => (
+                                        <option key={b.batchNumber} value={b.batchNumber}>{b.batchNumber}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input 
+                                    className={styles.tableInput} 
+                                    value={row.batchNumber} 
+                                    onChange={(e) => updateRowField(index, 'batchNumber', e.target.value)} 
+                                    placeholder="------" 
+                                    disabled={mode === "View"}
+                                    readOnly={mode === "View"}
+                                />
+                            )}
                         </td>
                         <td>
                             <select 
@@ -492,22 +533,25 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                             </select>
                         </td>
                         <td>
-                            <select 
-                                className={styles.tableSelect} 
-                                value={row.sourceStatus} 
-                                onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
-                                disabled={mode === "View"}
-                            >
-                                <option value="">SELECT SOURCE</option>
-                                <option value="Open Stock">Open Stock</option>
-                                {(() => {
-                                    const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
-                                    if (variant?.stockUpdates?.onHoldQuantity > 0) {
-                                        return <option value="Hold Qty">Hold Qty</option>;
-                                    }
-                                    return null;
-                                })()}
-                            </select>
+                            <div id={`field_${index}_sourceStatus`}>
+                                <select 
+                                    className={`${styles.tableSelect} ${errors[`${index}_sourceStatus`] ? styles.errorField : ""}`} 
+                                    value={row.sourceStatus} 
+                                    onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
+                                    disabled={mode === "View"}
+                                >
+                                    <option value="">SELECT SOURCE</option>
+                                    <option value="Open Stock">Open Stock</option>
+                                    {(() => {
+                                        const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                                        if (variant?.stockUpdates?.onHoldQuantity > 0) {
+                                            return <option value="Hold Qty">Hold Qty</option>;
+                                        }
+                                        return null;
+                                    })()}
+                                </select>
+                                {errors[`${index}_sourceStatus`] && <span className={styles.errorText}>{errors[`${index}_sourceStatus`]}</span>}
+                            </div>
                         </td>
                         <td><input className={`${styles.tableInput} ${styles.boldText}`} readOnly value={row.currentQty} /></td>
                         <td>
