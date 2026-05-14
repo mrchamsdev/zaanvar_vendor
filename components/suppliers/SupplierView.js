@@ -186,8 +186,13 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBalanceAmount || "0.00"}</p>
-                                    <p className={styles.infoLabel}>Due Amount</p>
+                                    <p className={styles.infoValue} style={{ 
+                                        color: Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' : 
+                                               Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : 'inherit'
+                                    }}>
+                                        ₹ {Math.abs(Number(supplier?.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
+                                    <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
                                     <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalPaidAmount || "0.00"}</p>
