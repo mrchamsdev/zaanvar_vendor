@@ -27,6 +27,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
         id: Date.now()
     }]);
 
+    const currentTotalAllocated = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+    const isUnbalanced = Number(editablePaidAmount) > 0 && Math.abs(currentTotalAllocated - Number(editablePaidAmount)) > 0.01;
+
     useEffect(() => {
         const fetchSuppliers = async () => {
             try {
@@ -45,13 +48,15 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
         setSelectedSupplierId(supplierId);
         if (!supplierId) {
             setSupplierTotals(null);
+            setEditablePaidAmount("");
             return;
         }
         try {
             const res = await purchaseService.getSupplierTransactions(jwtToken, supplierId);
             if (res.status === "success") {
-                setSupplierTotals(res.totals || null);
-                setEditablePaidAmount("");
+                const totals = res.totals?.[0] || null;
+                setSupplierTotals(totals);
+                setEditablePaidAmount("0");
             }
         } catch (error) {
             console.error("Error fetching supplier totals:", error);
@@ -80,6 +85,14 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const handleSave = async () => {
         if (!selectedSupplierId) {
             toast.error("Please select a supplier");
+            return;
+        }
+
+        const totalAmountToBePaid = Number(editablePaidAmount);
+        const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+
+        if (totalAmountToBePaid > 0 && Math.abs(currentTotalPaid - totalAmountToBePaid) > 0.01) {
+            toast.error(`The sum of payments (₹ ${currentTotalPaid}) does not match the Total Amount Paid (₹ ${totalAmountToBePaid})`);
             return;
         }
 
@@ -134,30 +147,33 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
-                    <h3>Add Payment Out</h3>
+                    <h3>Payment Details</h3>
                     <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
                 </div>
 
                 <div className={styles.modalContent}>
-                    {/* Row 1: Name and Date */}
-                    <div className={styles.topRow}>
+                    {/* Supplier Selection */}
+                    <div className={styles.field} style={{marginBottom: '32px'}}>
+                        <label>Name / Phone number</label>
+                        <select 
+                            className={styles.select}
+                            value={selectedSupplierId}
+                            onChange={(e) => handleSupplierChange(e.target.value)}
+                            style={{width: '624px'}}
+                        >
+                            <option value="">Select Name</option>
+                            {suppliers.map(s => (
+                                <option key={s.supplierId} value={s.supplierId}>
+                                    {s.supplierName} {s.phone ? `(${s.phone})` : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Row 1: Date and Total Amount Paid */}
+                    <div className={styles.gridRow}>
                         <div className={styles.field}>
-                            <label>Name / Phone number</label>
-                            <select 
-                                className={styles.select}
-                                value={selectedSupplierId}
-                                onChange={(e) => handleSupplierChange(e.target.value)}
-                            >
-                                <option value="">Select Name</option>
-                                {suppliers.map(s => (
-                                    <option key={s.supplierId} value={s.supplierId}>
-                                        {s.supplierName} {s.phone ? `(${s.phone})` : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className={styles.field}>
-                            <label>Date</label>
+                            <label>Amount paid date</label>
                             <input 
                                 type="date" 
                                 className={styles.input}
@@ -165,25 +181,41 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 onChange={(e) => setTransactionDate(e.target.value)}
                             />
                         </div>
+                        <div className={styles.field}>
+                            <label>Total Amount Paid</label>
+                            <input 
+                                type="number" 
+                                className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
+                                placeholder="0"
+                                value={editablePaidAmount}
+                                onChange={(e) => {
+                                    let val = e.target.value;
+                                    if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                                        val = val.substring(1);
+                                    }
+                                    setEditablePaidAmount(val);
+                                }}
+                            />
+                        </div>
                     </div>
 
-                    {/* Row 2: Balance and Paid Amount */}
+                    {/* Row 2: Total Amount and Balance Amount */}
                     <div className={styles.gridRow}>
                         <div className={styles.field}>
-                            <label>Total Balance Amount</label>
+                            <label>Total Amount</label>
                             <input 
                                 type="text" 
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={supplierTotals?.supplierTotalAmount || "000"}
+                                value={supplierTotals?.totalBalanceAmount ? `₹ ${supplierTotals.totalBalanceAmount}` : "₹ 0"}
                                 readOnly
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Paid Amount</label>
+                            <label>Balance Amount</label>
                             <input 
                                 type="text" 
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={editablePaidAmount || "000"}
+                                value={`₹ ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toFixed(2)}`}
                                 readOnly
                             />
                         </div>
@@ -207,18 +239,29 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 </div>
                                 <div className={styles.field}>
                                     <label>Amount Paid</label>
-                                    <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-                                        <input 
-                                            type="number" 
-                                            className={styles.input}
-                                            placeholder="₹ 25000"
-                                            value={p.amountPaid}
-                                            onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
-                                        />
-                                        {payments.length > 1 && (
-                                            <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
-                                                <FiTrash2 />
-                                            </button>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                                            <input 
+                                                type="number" 
+                                                className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
+                                                placeholder="0"
+                                                value={p.amountPaid}
+                                                onChange={(e) => {
+                                                    let val = e.target.value;
+                                                    if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                                                        val = val.substring(1);
+                                                    }
+                                                    handlePaymentChange(p.id, "amountPaid", val);
+                                                }}
+                                            />
+                                            {payments.length > 1 && (
+                                                <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
+                                                    <FiTrash2 />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {isUnbalanced && idx === payments.length - 1 && (
+                                            <span className={styles.errorText}>match to total amount paid</span>
                                         )}
                                     </div>
                                 </div>
@@ -240,8 +283,35 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         </div>
                     ))}
 
-                    <div className={styles.addPaymentLink} onClick={handleAddPayment}>
-                        +ADD ANOTHER PAYMENT
+                    <div style={{
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        marginBottom: '32px'
+                    }}>
+                        <div className={styles.addPaymentLink} onClick={handleAddPayment} style={{margin: 0}}>
+                            +ADD ANOTHER PAYMENT
+                        </div>
+                        {Number(editablePaidAmount) > 0 && (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '14px', 
+                                    fontWeight: '700', 
+                                    color: !isUnbalanced ? '#22c55e' : '#E93E64'
+                                }}>
+                                    { (Number(editablePaidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ ' }
+                                    { Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toFixed(2) }
+                                </div>
+                                <div style={{fontSize: '11px', color: '#999'}}>
+                                    Total Allocated: ₹ { currentTotalAllocated.toFixed(2) } / ₹ { Number(editablePaidAmount).toFixed(2) }
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Description */}

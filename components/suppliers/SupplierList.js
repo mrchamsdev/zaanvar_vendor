@@ -92,8 +92,12 @@ const SupplierList = ({
                   <td>{s.supplierName}</td>
                   <td>{s.branches?.map(b => b.name).join(", ") || "-"}</td>
 
-                  <td style={{ color: '#27AE60', fontWeight: 600 }}>
-                    ₹{Number(s.totals?.[0]?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <td style={{ 
+                    color: Number(s.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' : 
+                           Number(s.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : '#333', 
+                    fontWeight: 600 
+                  }}>
+                    ₹{Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
