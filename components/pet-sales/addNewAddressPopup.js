@@ -148,6 +148,7 @@ const AddNewAddressPopup = ({ onSaveAddress, onClose }) => {
       area: formData.street,
       city: formData.city,
       state: formData.state,
+      country: formData.country,
       pincode: formData.pinCode,
       landmark: formData.landmark
     };

@@ -25,6 +25,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     const [billDate, setBillDate] = useState("");
     const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
     const [returnReason, setReturnReason] = useState("");
+    const [allReturns, setAllReturns] = useState([]);
 
     const [items, setItems] = useState([]); // [{ productsBillItemsId, productId, productName, receivedQty, returnQty, costPrice, taxGroupId, amount }]
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index of the row showing dropdown
@@ -42,7 +43,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     // Fetch returns to calculate return number for new returns
                     const retRes = await purchaseService.getBranchReturns(jwtToken, branchId);
                     if (retRes.status === "success") {
-                        const count = (retRes.data || []).length;
+                        const returnData = retRes.data || [];
+                        setAllReturns(returnData);
+                        const count = returnData.length;
                         setReturnNo((count + 1).toString());
                     }
                 }
@@ -147,11 +150,18 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     };
 
     const handleSupplierChange = (supplierId) => {
-        const supplier = suppliers.find(s => s.supplierId === parseInt(supplierId));
+        const id = parseInt(supplierId);
+        const supplier = suppliers.find(s => s.supplierId === id);
         if (supplier) {
             setSelectedSupplier(supplier);
             setPhone(supplier.phone || "");
-            setReceipts(supplier.productsBills || []);
+            
+            // Filter returns by supplier and extract unique productsBillId
+            const supplierReturns = allReturns.filter(r => r.supplierId === id);
+            const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
+            const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+            
+            setReceipts(filteredReceipts);
             setSelectedBillId("");
             setBillDetails(null);
             setItems([]);
@@ -170,7 +180,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         const supplier = suppliers.find(s => s.phone === val);
         if (supplier) {
             setSelectedSupplier(supplier);
-            setReceipts(supplier.productsBills || []);
+            
+            // Filter returns by supplier and extract unique productsBillId
+            const supplierReturns = allReturns.filter(r => r.supplierId === supplier.supplierId);
+            const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
+            const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+            
+            setReceipts(filteredReceipts);
             setSelectedBillId("");
             setBillDetails(null);
             setItems([]);
@@ -223,17 +239,23 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
                 // Auto-set supplier from bill data
                 if (data.vendor) {
-                    const existingSupplier = suppliers.find(s => s.supplierId === data.vendor.supplierId);
+                    const vendorId = data.vendor.supplierId;
+                    const existingSupplier = suppliers.find(s => s.supplierId === vendorId);
+                    
                     if (existingSupplier) {
                         setSelectedSupplier(existingSupplier);
                         setPhone(existingSupplier.phone || "");
-                        setReceipts(existingSupplier.productsBills || []);
                     } else {
                         setSelectedSupplier(data.vendor);
                         setPhone(data.vendor.phone || "");
-                        // If we can't find the supplier in our list, we might not have their other bills
-                        setReceipts(data.vendor.productsBills || []);
                     }
+
+                    // Maintain receipts from the returns data source
+                    const supplierReturns = allReturns.filter(r => r.supplierId === vendorId);
+                    const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
+                    const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+                    
+                    setReceipts(filteredReceipts);
                 }
             } else {
                 // If the API returns success: false or similar

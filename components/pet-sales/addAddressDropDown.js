@@ -138,6 +138,7 @@ const AddressDropdown = ({ formData, setFormData, userInfo, errors, petData }) =
           city: selectedAddress.townOrCity || "",
           state: selectedAddress.state || "",
           pincode: selectedAddress.pinCode || "",
+          country: selectedAddress.country || "",
           landmark: selectedAddress.landmark || ""
         };
         

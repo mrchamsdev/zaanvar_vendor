@@ -274,6 +274,7 @@ const StockStatusPage = () => {
       
       // Determine quantity to show based on tab
       let displayQty = item.totalQuantity || item.qty || 0;
+      if (activeTab === "expired") displayQty = item.expiredQty ?? displayQty;
       if (activeTab === "damaged") displayQty = item.displayQty ?? item.damagedQty ?? item.qty ?? 0;
       
       const qtyLabel = activeTab === "expired" || activeTab === "shortExpiry" || activeTab === "damaged" ? " UNITS" : "";
@@ -408,6 +409,7 @@ const StockStatusPage = () => {
                     const pName = `"${details.productName || item.productName || "Unknown"}"`;
                     const unit = item.variantMeasure || "STND";
                     let qty = item.totalQuantity || item.qty || 0;
+                    if (activeTab === "expired") qty = item.expiredQty ?? qty;
                     if (activeTab === "damaged") qty = item.damagedQty ?? item.qty ?? 0;
                     
                     let row = [];
