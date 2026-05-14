@@ -809,7 +809,7 @@ const AddNewPuppyPopup = ({
       state: selectedAddressObj?.state || formData.address?.state || "",
       pincode: selectedAddressObj?.pinCode || formData.address?.pincode || "",
       landmark: selectedAddressObj?.landmark || formData.address?.landmark || "",
-      country: selectedCountryName || selectedAddressObj?.country || formData.address?.country || ""
+      country: selectedAddressObj?.country || formData.address?.country || "",
     };
 
     // Determine father and mother values based on selection

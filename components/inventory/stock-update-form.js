@@ -283,6 +283,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         if (batch) {
             newRows[index].expiryDate = batch.expiryDate?.split('T')[0] || "";
             if (batch.costPrice) newRows[index].costPrice = batch.costPrice;
+            if (batch.quantity !== undefined) newRows[index].currentQty = batch.quantity;
         }
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-return.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { purchaseService } from "../../services/purchaseService";
@@ -120,7 +120,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
     };
 
     return (
-        <div className={styles.dateFilterModal} style={{ textTransform: 'none', width: '240px', padding: '12px', top: '80%' }}>
+        <div className={styles.dateFilterModal} style={{ textTransform: 'none' }}>
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
@@ -133,34 +133,33 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                             }}
                         >
                             {opt}
-                            {mode === opt && <FiChevronRight />}
+                            {mode === opt && <FiCheck />}
                         </div>
                     ))}
                 </div>
             ) : (
                 <>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>Select Category</span>
-                    <div className={styles.categorySelect} style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px'}} onClick={() => setShowOptions(true)}>
+                    <span className={styles.modalLabel}>Select Category</span>
+                    <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
                         <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
                     </div>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>{label}</span>
+                    <span className={styles.modalLabel}>{label}</span>
                     <input 
                         type="text" 
                         className={styles.dateInput} 
-                        style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', width: '100%', boxSizing: 'border-box'}}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                     />
 
-                    <div className={styles.modalActions} style={{marginTop: '4px', gap: '8px'}}>
-                        <button className={styles.clearBtn} style={{padding: '8px', fontSize: '13px'}} onClick={() => {
+                    <div className={styles.modalActions}>
+                        <button className={styles.clearBtn} onClick={() => {
                              setValue('');
                              onApply(null, null);
                              onClose();
                         }}>Clear</button>
-                        <button className={styles.applyBtn} style={{padding: '8px', fontSize: '13px'}} onClick={handleApply}>Apply</button>
+                        <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
                 </>
             )}
@@ -192,7 +191,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     };
 
     return (
-        <div className={styles.dateFilterModal} style={{ textTransform: 'none', width: '240px', padding: '12px', top: '80%' }}>
+        <div className={styles.dateFilterModal} style={{ textTransform: 'none' }}>
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
@@ -205,58 +204,58 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                             }}
                         >
                             {opt}
-                            {mode === opt && <FiChevronRight />}
+                            {mode === opt && <FiCheck />}
                         </div>
                     ))}
                 </div>
             ) : (
                 <>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>Select Category</span>
-                    <div className={styles.categorySelect} style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px'}} onClick={() => setShowOptions(true)}>
+                    <span className={styles.modalLabel}>Select Category</span>
+                    <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
                         <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
                     </div>
 
                     {mode === 'Range' ? (
                         <>
-                            <div className={styles.dateInputContainer} style={{marginBottom: '10px'}}>
-                                <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>From</span>
+                            <div className={styles.dateInputContainer}>
+                                <span className={styles.modalLabel}>From</span>
                                 <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('from')}>
-                                    <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                    <div className={styles.dateInput}>
                                         {formatDateForDisplay(dates.from)}
                                     </div>
-                                    <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                    <FiCalendar className={styles.calendarIconOverlay} />
                                 </div>
                             </div>
-                            <div className={styles.dateInputContainer} style={{marginBottom: '12px'}}>
-                                <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>To</span>
+                            <div className={styles.dateInputContainer}>
+                                <span className={styles.modalLabel}>To</span>
                                 <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('to')}>
-                                    <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                    <div className={styles.dateInput}>
                                         {formatDateForDisplay(dates.to)}
                                     </div>
-                                    <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                    <FiCalendar className={styles.calendarIconOverlay} />
                                 </div>
                             </div>
                         </>
                     ) : (
-                        <div className={styles.dateInputContainer} style={{marginBottom: '12px'}}>
-                            <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>Select Date</span>
+                        <div className={styles.dateInputContainer}>
+                            <span className={styles.modalLabel}>Select Date</span>
                             <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('single')}>
-                                <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                <div className={styles.dateInput}>
                                     {formatDateForDisplay(dates.single)}
                                 </div>
-                                <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                <FiCalendar className={styles.calendarIconOverlay} />
                             </div>
                         </div>
                     )}
 
                     {showCalendar && (
-                        <div style={{position: 'absolute', top: '-40px', left: '105%', zIndex: 3000}}>
+                        <div style={{position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px'}}>
                             <CustomDateRangePicker 
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
-                                isEmbedded={true}
+                                isEmbedded={false}
                                 onSelect={(range) => {
                                     if (showCalendar === 'single') {
                                         setDates({ ...dates, single: range.startDate });
@@ -272,13 +271,13 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                         </div>
                     )}
 
-                    <div className={styles.modalActions} style={{marginTop: '4px', gap: '8px'}}>
-                        <button className={styles.clearBtn} style={{padding: '8px', fontSize: '13px'}} onClick={() => {
+                    <div className={styles.modalActions}>
+                        <button className={styles.clearBtn} onClick={() => {
                              setDates({single: '', from: '', to: ''});
                              onApply(null, null);
                              onClose();
                         }}>Clear</button>
-                        <button className={styles.applyBtn} style={{padding: '8px', fontSize: '13px'}} onClick={handleApply}>Apply</button>
+                        <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
                 </>
             )}
@@ -582,7 +581,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     DATE 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
                                     />
                                     {isDateFilterOpen && (
                                         <DateFilterModal 
@@ -600,7 +599,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     REF NO 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo')}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal 
@@ -617,7 +616,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     SUPPLIER NAME 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName')}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'supplierName' && (
                                         <GeneralFilterModal 
@@ -634,7 +633,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     RECEIVED 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => setOpenFilterCol(openFilterCol === 'received' ? null : 'received')}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'received' && (
                                         <GeneralFilterModal 
@@ -651,7 +650,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     BALANCE 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance')}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal 
