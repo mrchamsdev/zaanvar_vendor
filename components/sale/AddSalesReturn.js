@@ -289,6 +289,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             return;
         }
 
+        const totalReturnAmount = validItems.reduce((acc, i) => acc + (i.itemTotal || 0), 0);
+
         const payload = {
             userOrderId: parseInt(formData.receiptNo),
             branchId,
@@ -296,6 +298,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             refundMode: formData.refundMode,
             refundReference: formData.refundReference,
             createdBy: userInfo?.userId || 1,
+            totalReturnAmount: parseFloat(totalReturnAmount.toFixed(2)),
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
                 quantity: i.returnQty,

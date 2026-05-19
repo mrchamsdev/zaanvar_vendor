@@ -292,6 +292,7 @@ const SalesReturnList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken } = useStore();
     const [returns, setReturns] = useState([]);
+    const [totals, setTotals] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
@@ -333,6 +334,7 @@ const SalesReturnList = ({ onAddClick }) => {
             const res = await saleService.getAllSalesReturns(jwtToken, branchId);
             if (res.status === "success") {
                 setReturns(res.data || []);
+                setTotals(res.totals || []);
             }
         } catch (error) {
             console.error("Error fetching sales returns:", error);
@@ -488,8 +490,8 @@ const SalesReturnList = ({ onAddClick }) => {
                 const labels = {
                     refNo: 'Ref No',
                     customerName: 'Customer',
-                    received: 'Received',
-                    balance: 'Balance'
+                    received: 'Total Sale Return Amount',
+                    balance: 'Total balance amount'
                 };
                 chips.push({
                     id: col,
@@ -516,13 +518,13 @@ const SalesReturnList = ({ onAddClick }) => {
     };
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "CUSTOMER NAME", "RECEIVED", "BALANCE"];
+        const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL SALE RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
             `"${new Date(r.createdDate).toLocaleDateString('en-GB')}"`,
             `"SR-${r.customerReturnId}"`,
             `"${(r.customer ? r.customer.firstName + ' ' + r.customer.lastName : 'Walk-in Customer').replace(/"/g, '""')}"`,
-            `"${r.totalReturnAmount}"`,
-            `"0.00"`
+            `"${r.totalReturnAmount || 0}"`,
+            `"${totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || '0.00'}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -682,7 +684,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    RECEIVED 
+                                    TOTAL SALE RETURN AMOUNT 
                                     <FiFilter 
                                         className={styles.filterIcon} 
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
@@ -690,7 +692,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                     {openFilterCol === 'received' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Received"
+                                            label="Total Sale Return Amount"
                                             currentMode={columnFilters.received.mode}
                                             currentValue={columnFilters.received.value}
                                             onClose={() => setOpenFilterCol(null)}
@@ -699,7 +701,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    BALANCE 
+                                    TOTAL BALANCE AMOUNT 
                                     <FiFilter 
                                         className={styles.filterIcon} 
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
@@ -707,7 +709,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Balance"
+                                            label="Total balance amount"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
@@ -724,8 +726,10 @@ const SalesReturnList = ({ onAddClick }) => {
                                     <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
                                     <td>SR-{r.customerReturnId}</td>
                                     <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
-                                    <td>{Number(r.totalReturnAmount || 0).toLocaleString()}</td>
-                                    <td>0.00</td>
+                                    <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td style={{ color: Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
+                                        {Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                    </td>
                                     <td>
                                         <div className={styles.actions}>
                                             <FiShare2 className={styles.actionIcon} />
