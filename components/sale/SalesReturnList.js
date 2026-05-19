@@ -286,6 +286,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 import EmptyState from "../utilities/EmptyState";
+import Loader from "../utilities/Loader";
 
 const SalesReturnList = ({ onAddClick }) => {
     const router = useRouter();
@@ -617,13 +618,7 @@ const SalesReturnList = ({ onAddClick }) => {
             </div>
 
             {loading ? (
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <tbody>
-                            <tr><td colSpan="6" style={{textAlign: 'center', padding: '40px'}}>Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <Loader message="Loading Returns..." />
             ) : filteredReturns.length === 0 ? (
                 <EmptyState 
                     buttonText="Add Sales Return"

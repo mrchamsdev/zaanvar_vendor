@@ -89,13 +89,11 @@ const StockStatusPage = () => {
           lowStock: res.lowStock || [],
           expired: res.expired || [],
           shortExpiry: res.shortExpiry || [],
-          damaged: [
-            ...(res.customerDamagedReturns || []).map(item => ({ 
-                ...item, 
-                type: 'customerReturn',
-                displayQty: item.damagedQty || 0
-            }))
-          ]
+          damaged: (res.customerDamagedReturns || []).map(item => ({ 
+              ...item, 
+              type: 'customerReturn',
+              displayQty: item.damagedQty || 0
+          }))
         });
       }
     } catch (error) {
@@ -237,6 +235,7 @@ const StockStatusPage = () => {
         return (
           <tr>
             <th rowSpan="2">Product Name</th>
+            <th rowSpan="2">Date</th>
             <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
             <th rowSpan="2">Status</th>
             <th rowSpan="2">Action</th>
@@ -283,6 +282,10 @@ const StockStatusPage = () => {
         <tr key={idx}>
           <td className={styles.productName}>{pName}</td>
           
+          {activeTab === "damaged" && (
+              <td>{formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}</td>
+          )}
+          
           {activeTab === "outOfStock" && <td className={styles.category}>{details.category || "GENERAL"}</td>}
           
           {(activeTab === "expired" || activeTab === "shortExpiry") && (
@@ -306,7 +309,10 @@ const StockStatusPage = () => {
           {(activeTab === "expired" || activeTab === "damaged") && (
               <td>
                 <span className={activeTab === "expired" ? styles.statusExpired : styles.statusDamaged}>
-                    <div className={styles.statusText}><IconAlert /> {activeTab === "expired" ? "Expired" : "Damaged"}</div>
+                    <div className={styles.statusText}>
+                        <IconAlert /> 
+                        {activeTab === "expired" ? "Expired" : "Customer Return"}
+                    </div>
                 </span>
               </td>
           )}

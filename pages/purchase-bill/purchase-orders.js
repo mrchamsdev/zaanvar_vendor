@@ -7,6 +7,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
 import EmptyState from "../../components/utilities/EmptyState";
+import Loader from "../../components/utilities/Loader";
 import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft } from "react-icons/fi";
 
 /* ── Inline Icons ────────────────────────────────────────── */
@@ -540,13 +541,7 @@ const PurchaseOrdersPage = () => {
 
                 {/* Table Section */}
                 {loading ? (
-                    <div className={styles.tableWrapper}>
-                        <table className={styles.table}>
-                            <tbody>
-                                <tr><td colSpan="7" style={{textAlign: 'center', padding: 40}}>Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <Loader message="Loading Purchase Orders..." />
                 ) : filteredData.length === 0 ? (
                     <EmptyState 
                         buttonText="Add Purchase Order"
