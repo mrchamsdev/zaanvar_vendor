@@ -494,7 +494,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
             if (filter.value) {
                 const labels = {
                     invoiceNo: 'Invoice No',
-                    partyName: 'Party Name',
+                    partyName: 'Customer Name',
                     amount: 'Amount',
                     paid: 'Paid',
                     balance: 'Balance'
@@ -524,7 +524,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
     };
 
     const exportToExcel = () => {
-        const headers = ["DATE", "INVOICE NO", "PARTY NAME", "AMOUNT", "PAID", "BALANCE"];
+        const headers = ["DATE", "INVOICE NO", "CUSTOMER NAME", "AMOUNT", "PAID", "BALANCE"];
         const rows = filteredInvoices.map(inv => [
             `"${new Date(inv.createdDate).toLocaleDateString('en-GB')}"`,
             `"${inv.userOrderId || inv.invoiceNumber || ''}"`,
@@ -590,7 +590,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                 <FiSearch className={styles.searchIcon} />
                 <input 
                     type="text" 
-                    placeholder="Search party or invoice number" 
+                    placeholder="Search customer or invoice number" 
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -685,7 +685,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    PARTY NAME 
+                                    CUSTOMER NAME 
                                     <FiFilter 
                                         className={styles.filterIcon} 
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
@@ -693,7 +693,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                     {openFilterCol === 'partyName' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Party Name"
+                                            label="Customer Name"
                                             currentMode={columnFilters.partyName.mode}
                                             currentValue={columnFilters.partyName.value}
                                             onClose={() => setOpenFilterCol(null)}
