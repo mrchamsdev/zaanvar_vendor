@@ -234,6 +234,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
         const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
 
+        const availableQty = selectedVariant?.stockUpdates?.qtyForSale !== undefined ? selectedVariant.stockUpdates.qtyForSale : (selectedVariant?.currentQty || 0);
+
         newItems[index] = {
             productId: prod.productId,
             variantId: selectedVariant?.variantId || "",
@@ -244,8 +246,9 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             taxPercent: tax,
             taxAmount: taxAmount,
             amount: (price * qty) + taxAmount,
-            availableQty: selectedVariant?.currentQty || 0,
-            availableVariants: variants // Store for the unit dropdown
+            availableQty: availableQty,
+            availableVariants: variants, // Store for the unit dropdown
+            error: qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -263,6 +266,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
             const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
 
+            const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
             newItems[index] = {
                 ...it,
                 variantId: v.variantId,
@@ -270,7 +274,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 price: price,
                 taxAmount: taxAmount,
                 amount: (price * it.qty) + taxAmount,
-                availableQty: v.currentQty || 0
+                availableQty: availableQty,
+                error: it.qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
             };
             setItems(newItems);
         }
@@ -284,9 +289,10 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const taxAmount = (it.price * qty * it.taxPercent) / 100;
         newItems[index] = {
             ...it,
-            qty: qty,
+            qty: val === "" ? "" : qty,
             taxAmount: taxAmount,
-            amount: (it.price * qty) + taxAmount
+            amount: (it.price * qty) + taxAmount,
+            error: qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null
         };
         setItems(newItems);
     };
@@ -324,6 +330,13 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         if (validItems.length === 0) {
             toast.error("Please add at least one product");
             return;
+        }
+
+        for (const it of validItems) {
+            if (it.qty > it.availableQty) {
+                toast.error(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
+                return;
+            }
         }
 
         const payload = {
@@ -492,8 +505,20 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                 )}
                                             </div>
                                         </td>
-                                        <td>
-                                            <input type="number" className={styles.tableInputCenter} value={it.qty} onChange={(e) => handleQtyChange(idx, e.target.value)} disabled={isViewOnly} />
+                                        <td style={{verticalAlign: 'top', paddingTop: '12px'}}>
+                                            <input 
+                                                type="number" 
+                                                className={styles.tableInputCenter} 
+                                                style={it.error ? { border: '1px solid #ff4d4f', background: '#fffcfc' } : {}}
+                                                value={it.qty === 0 ? "" : it.qty} 
+                                                onChange={(e) => handleQtyChange(idx, e.target.value)} 
+                                                disabled={isViewOnly} 
+                                            />
+                                            {it.error && (
+                                                <div style={{color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap'}}>
+                                                    {it.error}
+                                                </div>
+                                            )}
                                         </td>
                                         <td>
                                             {it.availableVariants && it.availableVariants.length > 0 ? (
