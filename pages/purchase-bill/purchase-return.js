@@ -9,6 +9,7 @@ import AddPurchaseReturn from "../../components/purchase-bill/AddPurchaseReturn"
 const PurchaseReturnPage = () => {
     const router = useRouter();
     const { branches, branchId: defaultBranchId } = useDashboardData();
+    const [refreshKey, setRefreshKey] = React.useState(0);
     const currentBranchId = router.query.branchId || "";
 
     React.useEffect(() => {
@@ -84,6 +85,7 @@ const PurchaseReturnPage = () => {
             customTopbarRight={customRight}
         >
             <PurchaseReturnList 
+                key={refreshKey}
                 onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
             />
             
@@ -93,7 +95,7 @@ const PurchaseReturnPage = () => {
                 returnId={router.query.id}
                 onClose={() => router.push({ pathname: router.pathname, query: { branchId: currentBranchId } }, undefined, { shallow: true })}
                 onRefresh={() => {
-                    window.location.reload(); 
+                    setRefreshKey(prev => prev + 1);
                 }}
             />
         </DashboardLayout>

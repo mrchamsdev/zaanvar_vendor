@@ -285,6 +285,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 import EmptyState from "../utilities/EmptyState";
+import Loader from "../utilities/Loader";
 
 const SalesInvoiceList = ({ onAddClick }) => {
     const router = useRouter();
@@ -637,13 +638,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
             </div>
 
             {loading ? (
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <tbody>
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <Loader message="Loading Invoices..." />
             ) : filteredInvoices.length === 0 ? (
                 <EmptyState 
                     buttonText="Add Sale Invoice"

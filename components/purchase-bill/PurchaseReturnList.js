@@ -10,6 +10,7 @@ import ShareModal from "./ShareModal";
 import HistoryModal from "./HistoryModal";
 import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
+import Loader from "../utilities/Loader";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
@@ -316,7 +317,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
         supplierName: { mode: 'Contains', value: '' },
-        received: { mode: 'Contains', value: '' },
+        totalAmount: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
     });
 
@@ -340,9 +341,11 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 if (res.totals) {
                     setTotals(Array.isArray(res.totals) ? res.totals[0] : res.totals);
                 } else {
-                    const totalAmt = data.reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
+                    const totalAmt = data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0);
                     const totalRec = data.reduce((acc, curr) => acc + Number(curr.received || 0), 0);
-                    const totalBal = data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
+                    const totalBal = (res.suppliers && Array.isArray(res.suppliers)) 
+                        ? res.suppliers.reduce((acc, curr) => acc + Number(curr.balance || 0), 0)
+                        : data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
                     setTotals({ totalAmount: totalAmt, totalReceived: totalRec, totalBalance: totalBal });
                 }
             }
@@ -440,7 +443,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
             let targetValue = "";
             if (key === 'refNo') targetValue = String(r.returnProductsId);
             else if (key === 'supplierName') targetValue = String(r.supplierName || "");
-            else if (key === 'received') targetValue = String(r.totalAmount || 0);
+            else if (key === 'totalAmount') targetValue = String(r.returnAmount || 0);
             else if (key === 'balance') targetValue = String(r.balance || 0);
 
             if (filter.mode === 'Exact Match') {
@@ -560,13 +563,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
             </div>
 
             {loading ? (
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <tbody>
-                            <tr><td colSpan="6" style={{textAlign: 'center', padding: '40px'}}>Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <Loader message="Loading Returns..." />
             ) : filteredReturns.length === 0 ? (
                 <EmptyState 
                     buttonText="Add Purchase Return"
@@ -630,24 +627,24 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    RECEIVED 
+                                    Total Return Amount 
                                     <FiFilter 
                                         className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
                                     />
-                                    {openFilterCol === 'received' && (
+                                    {openFilterCol === 'totalAmount' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Received"
-                                            currentMode={columnFilters.received.mode}
-                                            currentValue={columnFilters.received.value}
+                                            label="Total Return Amount"
+                                            currentMode={columnFilters.totalAmount.mode}
+                                            currentValue={columnFilters.totalAmount.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, received: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, totalAmount: {mode, value: val}})}
                                         />
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    BALANCE 
+                                    TOTAL BALANCE AMOUNT 
                                     <FiFilter 
                                         className={styles.filterIcon} 
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
@@ -655,7 +652,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal 
                                             type="text"
-                                            label="Balance"
+                                            label="Total Balance Amount"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
@@ -672,8 +669,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
                                     <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
                                     <td>{r.supplierName || "N/A"}</td>
-                                    <td style={{ fontWeight: '600' }}>{Number(r.received || 0).toLocaleString()}</td>
-                                    <td>{Number(r.balance || 0).toLocaleString()}</td>
+                                    <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
+                                    <td style={{ 
+                                        fontWeight: '600',
+                                        color: Number(r.balance) < 0 ? '#28a745' : (Number(r.balance) > 0 ? '#E9315D' : 'inherit')
+                                    }}>
+                                        {Math.abs(Number(r.balance || 0)).toLocaleString()}
+                                    </td>
                                     <td>
                                         <div className={styles.actions}>
                                              <div style={{position: 'relative'}}>
@@ -735,13 +737,10 @@ const PurchaseReturnList = ({ onAddClick }) => {
             {returns.length > 0 && (
                 <div className={styles.bottomSummary}>
                     <div className={styles.summaryItem}>
-                        Total Amount : Rs {Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </div>
                     <div className={styles.summaryItem}>
-                        Received : Rs {Number(totals?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className={styles.summaryItem}>
-                        Balance : Rs {Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        Total Balance Amount : Rs {Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </div>
                 </div>
             )}

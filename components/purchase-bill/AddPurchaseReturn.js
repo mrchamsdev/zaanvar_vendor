@@ -156,10 +156,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             setSelectedSupplier(supplier);
             setPhone(supplier.phone || "");
             
-            // Filter returns by supplier and extract unique productsBillId
-            const supplierReturns = allReturns.filter(r => r.supplierId === id);
-            const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
-            const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+            // Filter receipts by supplier's productsBillIds
+            const filteredReceipts = (supplier.productsBillIds || []).map(billId => ({ productsBillId: billId }));
             
             setReceipts(filteredReceipts);
             setSelectedBillId("");
@@ -181,10 +179,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         if (supplier) {
             setSelectedSupplier(supplier);
             
-            // Filter returns by supplier and extract unique productsBillId
-            const supplierReturns = allReturns.filter(r => r.supplierId === supplier.supplierId);
-            const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
-            const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+            // Filter receipts by supplier's productsBillIds
+            const filteredReceipts = (supplier.productsBillIds || []).map(billId => ({ productsBillId: billId }));
             
             setReceipts(filteredReceipts);
             setSelectedBillId("");
@@ -250,10 +246,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                         setPhone(data.vendor.phone || "");
                     }
 
-                    // Maintain receipts from the returns data source
-                    const supplierReturns = allReturns.filter(r => r.supplierId === vendorId);
-                    const uniqueBillIds = [...new Set(supplierReturns.map(r => r.productsBillId))];
-                    const filteredReceipts = uniqueBillIds.map(billId => ({ productsBillId: billId }));
+                    // Maintain receipts from the supplier's productsBillIds
+                    const billIds = existingSupplier ? (existingSupplier.productsBillIds || []) : (data.vendor.productsBillIds || []);
+                    const filteredReceipts = billIds.map(billId => ({ productsBillId: billId }));
                     
                     setReceipts(filteredReceipts);
                 }
@@ -284,8 +279,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             productsBillItemsId: "",
             productId: "",
             productName: "",
+            sourceStatus: "",
             receivedQty: 0,
-            returnQty: 1,
+            included: 0,
+            excluded: 0,
+            totalQuantity: 0,
+            onHoldQuantity: 0,
+            returnQty: 0,
             costPrice: 0,
             tax: 0,
             amount: 0
@@ -310,16 +310,30 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             productsBillItemsId: billItem.productsBillItemsId,
             productId: billItem.productId,
             productName: billItem.productDetails?.productName || "Product",
-            receivedQty: billItem.receivedQuantity || 0,
+            batchNumber: billItem.batchNumber || "N/A",
+            sourceStatus: newItems[index].sourceStatus || "",
+            receivedQty: parseInt(billItem.receivedQuantity) || 0,
+            included: parseInt(billItem.included) || 0,
+            excluded: parseInt(billItem.excluded) || 0,
+            totalQuantity: parseInt(billItem.totalQuantity) || 0,
+            onHoldQuantity: parseInt(billItem.onHoldQuantity) || 0,
             currentQty: billItem.stockUpdates?.[0]?.currentQty || 0,
-            returnQty: qty,
+            returnQty: 0,
             costPrice: costPrice,
             tax: taxPercent,
-            taxAmount: taxAmount,
-            amount: (qty * costPrice) + taxAmount
+            taxAmount: 0,
+            amount: 0
         };
         setItems(newItems);
         setShowProductDropdown(null);
+    };
+
+    const getMaxQty = (item) => {
+        if (!item) return 0;
+        if (item.sourceStatus === "Damaged") return (item.included || 0) + (item.excluded || 0);
+        if (item.sourceStatus === "Open Stock") return (item.totalQuantity || 0) - (item.included || 0);
+        if (item.sourceStatus === "Hold Stock") return item.onHoldQuantity || 0;
+        return item.receivedQty || 0;
     };
 
     const handleQtyChange = (index, val) => {
@@ -333,17 +347,19 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         }
         const qty = parseInt(val) || 0;
         const item = items[index];
-        if (qty > item.receivedQty) {
-            toast.warning(`Return quantity cannot exceed received quantity (${item.receivedQty})`);
-            return;
-        }
-        if (qty > (item.currentQty || 0)) {
-            toast.warning(`Return quantity cannot exceed current stock (${item.currentQty || 0})`);
-            return;
-        }
-        const taxAmount = (qty * item.costPrice * item.tax) / 100;
+        
         const newItems = [...items];
-        newItems[index].returnQty = qty;
+        newItems[index].returnQty = val === "" ? "" : qty;
+        
+        const maxAllowed = getMaxQty(item);
+        // Track error but allow the value in state so it can be seen/corrected
+        if (qty > maxAllowed) {
+            newItems[index].error = `Cannot exceed quantity (${maxAllowed})`;
+        } else {
+            newItems[index].error = null;
+        }
+
+        const taxAmount = (qty * item.costPrice * item.tax) / 100;
         newItems[index].taxAmount = taxAmount;
         newItems[index].amount = (qty * item.costPrice) + taxAmount;
         setItems(newItems);
@@ -351,17 +367,12 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
     const availableProducts = useMemo(() => {
         if (!billDetails || !billDetails.billItems) return [];
-        const selectedIds = items.map(it => it.productsBillItemsId).filter(id => id);
-        return billDetails.billItems.filter(bi => !selectedIds.includes(bi.productsBillItemsId));
+        return billDetails.billItems;
     }, [billDetails, items]);
 
     const availableProductsForDropdown = (currentIndex) => {
         if (!billDetails || !billDetails.billItems) return [];
-        const currentSelectedId = items[currentIndex]?.productsBillItemsId;
-        const otherSelectedIds = items
-            .map((it, idx) => idx !== currentIndex ? it.productsBillItemsId : null)
-            .filter(id => id);
-        return billDetails.billItems.filter(bi => !otherSelectedIds.includes(bi.productsBillItemsId));
+        return billDetails.billItems;
     };
 
     const totalQty = items.reduce((acc, it) => acc + (parseInt(it.returnQty) || 0), 0);
@@ -385,12 +396,21 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 toast.error("Please select a product for all rows");
                 return;
             }
+            if (!it.sourceStatus) {
+                toast.error(`Please select a Source Status for ${it.productName}`);
+                const newItems = [...items];
+                const idx = items.indexOf(it);
+                newItems[idx].sourceError = "Required";
+                setItems(newItems);
+                return;
+            }
             if (!it.returnQty || it.returnQty <= 0) {
                 toast.error(`Please enter a valid Return Qty for ${it.productName}`);
                 return;
             }
-            if (it.returnQty > it.receivedQty) {
-                toast.error(`Return Qty for ${it.productName} cannot exceed Received Qty (${it.receivedQty})`);
+            const maxAllowed = getMaxQty(it);
+            if (it.returnQty > maxAllowed) {
+                toast.error(`Return Qty for ${it.productName} cannot exceed quantity (${maxAllowed})`);
                 return;
             }
         }
@@ -399,11 +419,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             branchId: branchId,
             productsBillId: parseInt(selectedBillId),
             returnReason: returnReason,
+            returnAmount: totalAmount,
             createdBy: userInfo?.userId || 1,
             modifiedBy: userInfo?.userId || 1,
             items: items.map(it => ({
                 productsBillItemsId: it.productsBillItemsId,
-                qty: it.returnQty
+                batchNumber: it.batchNumber,
+                qty: it.returnQty,
+                sourceStatus: it.sourceStatus === "Open Stock" ? "openStock" : (it.sourceStatus === "Hold Stock" ? "hold" : (it.sourceStatus === "Damaged" ? "damaged" : it.sourceStatus))
             }))
         };
 
@@ -419,9 +442,22 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             if (res && (res.status === "success" || res.status === 200)) {
                 toast.success(mode === 'edit' ? "Purchase return updated successfully" : "Purchase return recorded successfully");
                 
+                // Reset form state
+                setSelectedSupplier(null);
+                setPhone("");
+                setReceipts([]);
+                setSelectedBillId("");
+                setBillDetails(null);
+                setReturnReason("");
+                setReturnDate(new Date().toISOString().split('T')[0]);
+                setItems([]);
+                setShowProductDropdown(null);
+
                 // Allow the toast to be visible before navigating
                 setTimeout(() => {
-                    window.location.assign(`/purchase-bill/purchase-return?branchId=${branchId}`);
+                    if (onRefresh) onRefresh();
+                    if (onClose) onClose();
+                    router.push(`/purchase-bill/purchase-return?branchId=${branchId}`);
                 }, 1000);
             } else {
                 if (res.message === "RETURNS_NOT_APPLICABLE") {
@@ -548,6 +584,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <tr>
                                     <th className={styles.snoCol}>S NO.</th>
                                     <th className={styles.productCol}>ENTER ITEM</th>
+                                    <th>SOURCE STATUS</th>
+                                    <th style={{textAlign: 'center', fontSize: '11px'}}>
+                                        {items.length > 0 && items[0].sourceStatus === "Damaged" ? "DAMAGED QTY" :
+                                         items.length > 0 && items[0].sourceStatus === "Open Stock" ? "OPEN STOCK QTY" :
+                                         items.length > 0 && items[0].sourceStatus === "Hold Stock" ? "HOLD STOCK QTY" :
+                                         "STATUS QTY"}
+                                    </th>
                                     <th className={styles.qtyCol}>RETURN QTY</th>
                                     <th className={styles.priceCol}>
                                         <div className={styles.priceHeader}>
@@ -567,6 +610,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                         </div>
                                     </th>
                                     <th className={styles.amountCol}>AMOUNT</th>
+                                    <th style={{width: '40px'}}></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -588,10 +632,11 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                         <thead>
                                                             <tr>
                                                                 <th>PRODUCT NAME</th>
-                                                                <th>TOTAL QTY</th>
                                                                 <th>ORDER QTY</th>
                                                                 <th>RECIVED QTY</th>
+                                                                <th>TOTAL QTY</th>
                                                                 <th>DAMAGED QTY</th>
+                                                                <th>RETURNABLE QTY</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -601,10 +646,11 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                                     onClick={() => handleProductSelect(idx, bi)}
                                                                 >
                                                                     <td style={{fontWeight: '600'}}>{bi.productDetails?.productName}</td>
-                                                                    <td>{bi.stockUpdates?.[0]?.currentQty || 0}</td>
                                                                     <td>{bi.qty}</td>
                                                                     <td>{bi.receivedQuantity}</td>
+                                                                    <td>{bi.stockUpdates?.[0]?.currentQty || 0}</td>
                                                                     <td>{bi.damagedQuantity}</td>
+                                                                    <td>{bi.returnableQty || 0}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -612,16 +658,74 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                 </div>
                                             )}
                                         </td>
+                                        <td style={{ minWidth: '120px', verticalAlign: 'top' }}>
+                                            <select 
+                                                className={styles.input}
+                                                style={{ border: item.sourceError ? '1px solid #ff4d4f' : '1px solid #eee', width: '100%', background: 'transparent' }}
+                                                value={item.sourceStatus || ""}
+                                                onChange={(e) => {
+                                                    const newItems = [...items];
+                                                    newItems[idx].sourceStatus = e.target.value;
+                                                    if (newItems[idx].sourceError) newItems[idx].sourceError = null;
+                                                    
+                                                    const maxAllowed = getMaxQty(newItems[idx]);
+                                                    const currentQty = parseInt(newItems[idx].returnQty) || 0;
+                                                    if (currentQty > maxAllowed) {
+                                                        newItems[idx].error = `Cannot exceed quantity (${maxAllowed})`;
+                                                    } else {
+                                                        newItems[idx].error = null;
+                                                    }
+                                                    
+                                                    setItems(newItems);
+                                                }}
+                                                disabled={isViewOnly}
+                                            >
+                                                <option value="">Select Status</option>
+                                                <option value="Open Stock">Open Stock</option>
+                                                <option value="Damaged">Damaged</option>
+                                                <option value="Hold Stock">Hold Stock</option>
+                                            </select>
+                                            {item.sourceError && (
+                                                <div style={{color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500'}}>
+                                                    {item.sourceError}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td style={{textAlign: 'center', verticalAlign: 'middle', minWidth: '80px'}}>
+                                            {item.sourceStatus ? (
+                                                <div style={{fontWeight: '600', color: '#333'}}>
+                                                    {getMaxQty(item)}
+                                                </div>
+                                            ) : (
+                                                <div style={{color: '#ccc'}}>-</div>
+                                            )}
+                                        </td>
                                         <td className={styles.qtyCol}>
                                             <input 
                                                 type="number" 
                                                 className={styles.input} 
-                                                style={{background: '#f9f9f9', textAlign: 'center', border: '1px solid #eee'}}
+                                                style={{
+                                                    background: 'transparent', 
+                                                    textAlign: 'center', 
+                                                    border: item.error ? '1px solid #ff4d4f' : '1px solid #eee'
+                                                }}
                                                 value={item.returnQty === 0 ? "" : item.returnQty}
                                                 onChange={(e) => handleQtyChange(idx, e.target.value)}
                                                 onFocus={(e) => e.target.select()}
                                                 disabled={isViewOnly}
                                             />
+                                            {item.error && (
+                                                <div style={{
+                                                    color: '#ff4d4f', 
+                                                    fontSize: '10px', 
+                                                    marginTop: '4px',
+                                                    textAlign: 'center',
+                                                    fontWeight: '500',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {item.error}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className={styles.priceCol}>
                                             <div style={{textAlign: 'center'}}>{item.costPrice.toLocaleString()}</div>
@@ -635,16 +739,24 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                         <td className={styles.amountCol}>
                                             <div style={{fontWeight: '600'}}>{item.amount.toLocaleString()}</div>
                                         </td>
+                                        <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                                            {!isViewOnly && idx > 0 && (
+                                                <FiTrash2 
+                                                    style={{color: '#ff4d4f', cursor: 'pointer', fontSize: '18px'}} 
+                                                    onClick={() => handleRemoveRow(idx)}
+                                                />
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                                 {items.length === 0 && (
                                     <tr>
-                                        <td colSpan="6" style={{height: '100px', border: 'none'}}></td>
+                                        <td colSpan="9" style={{height: '100px', border: 'none'}}></td>
                                     </tr>
                                 )}
                                 {availableProducts.length > 0 && !isViewOnly && (
                                     <tr>
-                                        <td colSpan="6" style={{border: 'none', padding: '16px 0'}}>
+                                        <td colSpan="9" style={{border: 'none', padding: '16px 0'}}>
                                             <span 
                                                 className={styles.addBtn}
                                                 onClick={handleAddRow}
@@ -655,7 +767,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     </tr>
                                 )}
                                 <tr className={styles.totalRow}>
-                                    <td colSpan="2" className={styles.totalLabel}>TOTAL</td>
+                                    <td className={styles.totalLabel} colSpan="4">TOTAL</td>
                                     <td className={styles.qtyCol}>{totalQty.toString().padStart(3, '0')}</td>
                                     <td className={styles.priceCol}>{totalPrice.toLocaleString()}</td>
                                     <td className={styles.taxCol}>
@@ -665,6 +777,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                         </div>
                                     </td>
                                     <td className={styles.amountCol}>{totalAmount.toLocaleString()}</td>
+                                    <td></td>
                                 </tr>
                             </tbody>
                         </table>

@@ -285,6 +285,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 import EmptyState from "../utilities/EmptyState";
+import Loader from "../utilities/Loader";
 
 const PaymentInList = ({ onAddClick }) => {
     const router = useRouter();
@@ -644,13 +645,7 @@ const PaymentInList = ({ onAddClick }) => {
             </div>
 
             {loading ? (
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <tbody>
-                            <tr><td colSpan="7" style={{textAlign: 'center', padding: '40px'}}>Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <Loader message="Loading Payments..." />
             ) : filteredPayments.length === 0 ? (
                 <EmptyState 
                     buttonText="Add Payment In"

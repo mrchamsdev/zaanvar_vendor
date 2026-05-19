@@ -6,6 +6,7 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import PurchaseOrderForm from "./purchase-order-form";
 import ReceiveOrderForm from "./receive-order-form";
+import Loader from "../utilities/Loader";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
     const formatVariantSize = (size) => {
@@ -75,7 +76,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
         }
     };
 
-    if (loading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Order Details...</div>;
+    if (loading) return <Loader message="Loading Order Details..." />;
     if (!orderData) return <div style={{padding: '50px', textAlign: 'center'}}>Order not found</div>;
 
     // Condition 1: If Draft, show the editable Form

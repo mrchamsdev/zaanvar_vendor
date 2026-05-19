@@ -367,7 +367,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
           createdDate: updateDate,
           productsBillItemsId: null,
           consumptionId: null,
-          addItem: null
+          addItem: null,
+          sourceStatus: row.sourceStatus === "Open Stock" ? "openStock" : (row.sourceStatus === "Hold Qty" ? "onHold" : null)
         };
         await productService.updateStock(jwtToken, payload);
       }
