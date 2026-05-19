@@ -110,7 +110,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     productsBillItemsId: it.productsBillItemsId,
                                     productId: it.productId,
                                     productName: it.productName || "Product",
-                                    receivedQty: billItem ? billItem.receivedQuantity : it.qty, 
+                                    sourceStatus: it.sourceStatus || "",
+                                    receivedQty: billItem ? parseInt(billItem.receivedQuantity) || 0 : it.qty, 
+                                    included: billItem ? parseInt(billItem.included) || 0 : 0,
+                                    excluded: billItem ? parseInt(billItem.excluded) || 0 : 0,
+                                    totalQuantity: billItem ? parseInt(billItem.totalQuantity) || 0 : 0,
+                                    openStockQuantity: billItem ? (billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0))) || 0 : 0,
+                                    onHoldQuantity: billItem ? parseInt(billItem.onHoldQuantity) || 0 : 0,
                                     currentQty: billItem?.stockUpdates?.[0]?.currentQty || it.qty,
                                     returnQty: it.qty,
                                     costPrice: parseFloat(it.costPrice || 0),
@@ -128,7 +134,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             productsBillItemsId: it.productsBillItemsId,
                             productId: it.productId,
                             productName: it.productName || "Product",
-                            receivedQty: it.qty, 
+                            sourceStatus: it.sourceStatus || "",
+                            receivedQty: it.qty,
+                            included: 0,
+                            excluded: 0,
+                            totalQuantity: 0,
+                            openStockQuantity: 0,
+                            onHoldQuantity: 0, 
                             returnQty: it.qty,
                             costPrice: parseFloat(it.costPrice || 0),
                             tax: 0,
@@ -221,8 +233,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     setItems([{ 
                         productsBillItemsId: "", 
                         productId: "", 
-                        productName: "", 
-                        receivedQty: 0, 
+                        productName: "",
+                        sourceStatus: "", 
+                        receivedQty: 0,
+                        included: 0,
+                        excluded: 0,
+                        totalQuantity: 0,
+                        openStockQuantity: 0,
+                        onHoldQuantity: 0, 
                         returnQty: 0, 
                         costPrice: 0, 
                         tax: 0, 
@@ -284,6 +302,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             included: 0,
             excluded: 0,
             totalQuantity: 0,
+            openStockQuantity: 0,
             onHoldQuantity: 0,
             returnQty: 0,
             costPrice: 0,
@@ -316,6 +335,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             included: parseInt(billItem.included) || 0,
             excluded: parseInt(billItem.excluded) || 0,
             totalQuantity: parseInt(billItem.totalQuantity) || 0,
+            openStockQuantity: billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0)) || 0,
             onHoldQuantity: parseInt(billItem.onHoldQuantity) || 0,
             currentQty: billItem.stockUpdates?.[0]?.currentQty || 0,
             returnQty: 0,
@@ -331,7 +351,10 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     const getMaxQty = (item) => {
         if (!item) return 0;
         if (item.sourceStatus === "Damaged") return (item.included || 0) + (item.excluded || 0);
-        if (item.sourceStatus === "Open Stock") return (item.totalQuantity || 0) - (item.included || 0);
+        if (item.sourceStatus === "Open Stock") {
+            const openStock = item.openStockQuantity || ((item.totalQuantity || 0) - (item.excluded || 0));
+            return openStock - (item.included || 0);
+        }
         if (item.sourceStatus === "Hold Stock") return item.onHoldQuantity || 0;
         return item.receivedQty || 0;
     };

@@ -381,7 +381,7 @@ const PaymentOutList = ({ onAddClick }) => {
             const res = await purchaseService.getBranchTransactions(jwtToken, branchId || selectedBranchId);
             if (res.status === "success") {
                 setTransactions(res.data || []);
-                setTotals(Array.isArray(res.totals) ? res.totals[0] : (res.totals || null));
+                setTotals(res.overallTotals || (Array.isArray(res.totals) ? res.totals[0] : (res.totals || null)));
             }
         } catch (error) {
             console.error("Error fetching transactions:", error);
