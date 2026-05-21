@@ -11,6 +11,7 @@ import { productService } from "../../services/productService";
 import { FiGrid, FiSearch } from "react-icons/fi";
 import useStore from "@/components/state/useStore";
 import styles from "../../styles/pet-store/products.module.css";
+import { toast } from "sonner";
 
 const menuItems = [
   { name: "Dashboard", icon: <FiGrid />, path: "/pet-store" },
@@ -55,6 +56,18 @@ const ProductsPage = () => {
   };
 
   const handleDelete = async () => {
+    const selectedProducts = products.filter(p => selectedIds.includes(p.id || p.productId));
+    const hasRestrictedProducts = selectedProducts.some(p => 
+      p.hasOrders === true || 
+      p.hasOrders === "true" ||
+      (p.variants && p.variants.some(v => v.hasOrders === true || v.hasOrders === "true"))
+    );
+
+    if (hasRestrictedProducts) {
+      toast.error("Cannot delete: Some selected products have active orders.");
+      return;
+    }
+
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} item(s)?`)) {
       try {
         for (const id of selectedIds) {

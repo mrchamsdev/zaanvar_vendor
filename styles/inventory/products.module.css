@@ -156,7 +156,7 @@
   background: #fff;
   border: 1px solid #eee;
   border-radius: 12px;
-  overflow-y: auto;
+  overflow: auto;
   min-height: 0;
   margin-top: 10px;
 }
@@ -168,6 +168,12 @@
   min-width: 1200px;
 }
 
+.table thead {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
 .table th {
   background: #f9fafb;
   padding: 0 16px;
@@ -176,9 +182,6 @@
   font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
-  position: sticky;
-  top: 0;
-  z-index: 10;
   border-right: 1px solid #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
   letter-spacing: 0.05em;
@@ -208,14 +211,12 @@
 }
 
 .subHeaderRow th {
-  top: 56px !important; 
   background: #f9fafb !important;
   color: #6b7280 !important;
   border-top: none !important;
   border-right: 1px solid #e5e7eb !important;
   height: 56px !important;
   line-height: 56px !important;
-  z-index: 9 !important;
 }
 
 /* Center text for variant-related columns */
