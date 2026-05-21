@@ -117,7 +117,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     totalQuantity: billItem ? parseInt(billItem.totalQuantity) || 0 : 0,
                                     openStockQuantity: billItem ? (billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0))) || 0 : 0,
                                     onHoldQuantity: billItem ? parseInt(billItem.onHoldQuantity) || 0 : 0,
-                                    currentQty: billItem?.stockUpdates?.[0]?.currentQty || it.qty,
+                                    currentQty: billItem?.stockUpdates?.[0]?.updatedQty ?? billItem?.stockUpdates?.[0]?.currentQty ?? it.qty,
                                     returnQty: it.qty,
                                     costPrice: parseFloat(it.costPrice || 0),
                                     tax: billItem ? parseFloat(billItem.taxGroupId || 0) : 0,
@@ -337,7 +337,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             totalQuantity: parseInt(billItem.totalQuantity) || 0,
             openStockQuantity: billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0)) || 0,
             onHoldQuantity: parseInt(billItem.onHoldQuantity) || 0,
-            currentQty: billItem.stockUpdates?.[0]?.currentQty || 0,
+            currentQty: billItem.stockUpdates?.[0]?.updatedQty ?? billItem.stockUpdates?.[0]?.currentQty ?? 0,
             returnQty: 0,
             costPrice: costPrice,
             tax: taxPercent,
@@ -671,7 +671,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                                     <td style={{fontWeight: '600'}}>{bi.productDetails?.productName}</td>
                                                                     <td>{bi.qty}</td>
                                                                     <td>{bi.receivedQuantity}</td>
-                                                                    <td>{bi.stockUpdates?.[0]?.currentQty || 0}</td>
+                                                                    <td>{bi.stockUpdates?.[0]?.updatedQty ?? bi.stockUpdates?.[0]?.currentQty ?? 0}</td>
                                                                     <td>{bi.damagedQuantity}</td>
                                                                     <td>{bi.returnableQty || 0}</td>
                                                                 </tr>

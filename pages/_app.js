@@ -16,6 +16,7 @@ import Script from "next/script";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import useStore from "../components/state/useStore";
+import { Toaster } from "sonner";
 
 /* Routes that authenticated users should NOT access (redirect → /dashboard) */
 const AUTH_REDIRECT_ROUTES = [
@@ -97,6 +98,8 @@ export default function App({ Component, pageProps }) {
       <AuthGuard>
         <Component {...pageProps} />
       </AuthGuard>
+      
+      <Toaster richColors position="top-right" closeButton />
     </>
   );
 }

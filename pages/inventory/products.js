@@ -5,7 +5,7 @@ import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import ProductFormManager from "../../components/inventory/product-form-manager";
 import ConfirmationModal from "../../components/inventory/confirmation-modal";
-import { IconSearch } from "../../components/dashboard/DashboardLayout"; 
+import { IconSearch } from "../../components/dashboard/DashboardLayout";
 import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
 import useDashboardData from "../../components/dashboard/useDashboardData";
@@ -67,6 +67,14 @@ const ProductsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
+  const filteredProducts = searchTerm ? products.filter(p =>
+    (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : products;
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + rowsPerPage);
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -114,14 +122,18 @@ const ProductsPage = () => {
     try {
       const bid = branchId || 91;
       const result = await productService.getProducts(
-        jwtToken, 
-        bid, 
-        productType, 
+        jwtToken,
+        bid,
+        productType,
         debouncedSearchTerm,
         currentPage,
         rowsPerPage
       );
-      setProducts(result.products);
+      const normalizedProducts = (result.products || []).map(p => ({
+        ...p,
+        productId: p.productId || p.id || p.ID || p._id
+      }));
+      setProducts(normalizedProducts);
       setTotalProducts(result.total);
     } catch (e) {
       console.error(e);
@@ -131,15 +143,15 @@ const ProductsPage = () => {
   };
 
   const toggleSelection = (id) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
   const selectAll = () => {
-    const allCurrentIds = products.map(p => p.productId);
+    const allCurrentIds = paginatedProducts.map(p => p.productId);
     const areAllCurrentSelected = allCurrentIds.every(id => selectedIds.includes(id));
-    
+
     if (areAllCurrentSelected) {
       setSelectedIds(prev => prev.filter(id => !allCurrentIds.includes(id)));
     } else {
@@ -148,7 +160,7 @@ const ProductsPage = () => {
   };
 
   const handlePageChange = (direction) => {
-    if (direction === "next" && (currentPage * rowsPerPage < totalProducts)) {
+    if (direction === "next" && (currentPage * rowsPerPage < filteredProducts.length)) {
       setCurrentPage(prev => prev + 1);
     } else if (direction === "prev" && currentPage > 1) {
       setCurrentPage(prev => prev - 1);
@@ -163,14 +175,14 @@ const ProductsPage = () => {
     if (!v) return "-";
 
     const vt = (v.variantType && typeof v.variantType === 'object') ? v.variantType : {};
-    
+
     // 1. Get main measure
     const rawStrength = v.strength || "";
     const strength = (rawStrength && rawStrength.toUpperCase() !== "N/A" && rawStrength !== "undefined") ? rawStrength : "";
-    
-    let size = (vt.size && vt.size !== "1" && vt.size !== 1 && vt.size !== "undefined") ? vt.size : 
-               (v.size && v.size !== "1" && v.size !== 1 && v.size !== "undefined" ? v.size : "");
-    
+
+    let size = (vt.size && vt.size !== "1" && vt.size !== 1 && vt.size !== "undefined") ? vt.size :
+      (v.size && v.size !== "1" && v.size !== 1 && v.size !== "undefined" ? v.size : "");
+
     if (typeof size === 'string' && size.trim().startsWith('{')) {
       try {
         const dim = JSON.parse(size);
@@ -188,16 +200,16 @@ const ProductsPage = () => {
     const flavor = vt.flavor || "";
     let detailInfo = (strength || size || "").toString().trim();
     if (flavor) detailInfo = `${detailInfo} ${flavor}`.trim();
-    
+
     // 2. Get packaging info
     const count = v.numberOfPieces || vt.packCount || "";
     const type = vt.packType || vt.type || "";
     const packagingInfo = `${count} ${type}`.trim();
-    
+
     if (packagingInfo && detailInfo) {
-        return `${packagingInfo} (${detailInfo})`;
+      return `${packagingInfo} (${detailInfo})`;
     }
-    
+
     return (packagingInfo || detailInfo || "-");
   };
 
@@ -210,10 +222,14 @@ const ProductsPage = () => {
 
   const handleDelete = () => {
     const selectedProducts = products.filter(p => selectedIds.includes(p.productId));
-    const hasRestrictedProducts = selectedProducts.some(p => p.hasOrders);
+    const hasRestrictedProducts = selectedProducts.some(p => 
+      p.hasOrders === true || 
+      p.hasOrders === "true" ||
+      (p.variants && p.variants.some(v => v.hasOrders === true || v.hasOrders === "true"))
+    );
 
     if (hasRestrictedProducts) {
-      toast.error("Some selected products have active orders and cannot be deleted.");
+      toast.error("Cannot delete: Some selected products have active orders.");
       return;
     }
 
@@ -265,8 +281,8 @@ const ProductsPage = () => {
     <DashboardLayout
       customTopbarRight={(
         <div className={styles.addBtnWrapper}>
-          <button 
-            className={styles.addBtn} 
+          <button
+            className={styles.addBtn}
             onClick={() => setShowAddDropdown(!showAddDropdown)}
           >
             <IconPlus /> Add Product <IconChevronDown />
@@ -276,7 +292,7 @@ const ProductsPage = () => {
               <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); }}>
                 <IconPlus /> Add Product
               </div>
-              <hr style={{margin: 0, border: 'none', borderTop: '1px solid #eee'}} />
+              <hr style={{ margin: 0, border: 'none', borderTop: '1px solid #eee' }} />
               <div className={styles.dropdownItem}>
                 <IconPlus /> Add Bulk Product
               </div>
@@ -288,8 +304,8 @@ const ProductsPage = () => {
       <div className={styles.container}>
         {/* Multi-tasking Manager Overlay */}
         {isAddingProduct && (
-          <ProductFormManager 
-            mode={formMode} 
+          <ProductFormManager
+            mode={formMode}
             initialData={formMode === "Add" ? null : editProductData}
             onClose={() => {
               setIsAddingProduct(false);
@@ -297,7 +313,7 @@ const ProductsPage = () => {
               if (router.query.returnUrl) {
                 router.push(router.query.returnUrl);
               }
-            }} 
+            }}
           />
         )}
 
@@ -314,13 +330,13 @@ const ProductsPage = () => {
             </div>
 
             <div className={styles.tabs}>
-              <button 
+              <button
                 className={`${styles.tab} ${productType === "Retail" ? styles.tabActive : ""}`}
                 onClick={() => { setProductType("Retail"); setCurrentPage(1); }}
               >
                 Retail Product
               </button>
-              <button 
+              <button
                 className={`${styles.tab} ${productType === "Medical" ? styles.tabActive : ""}`}
                 onClick={() => { setProductType("Medical"); setCurrentPage(1); }}
               >
@@ -335,9 +351,9 @@ const ProductsPage = () => {
               <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
-              <input 
-                type="text" 
-                placeholder="Search products here" 
+              <input
+                type="text"
+                placeholder="Search products here"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
@@ -347,19 +363,19 @@ const ProductsPage = () => {
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              border: '3px solid #f5790c', 
-              borderTopColor: 'transparent', 
-              borderRadius: '50%', 
-              animation: 'spin 0.8s linear infinite' 
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #f5790c',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite'
             }} />
             <p style={{ color: '#666', fontSize: '14px' }}>Loading products...</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : products.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             buttonText="Add Product"
             onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
           />
@@ -368,11 +384,11 @@ const ProductsPage = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th rowSpan="2" style={{width: 40}}>
-                    <input 
-                      type="checkbox" 
-                      onChange={selectAll} 
-                      checked={products.length > 0 && products.every(p => selectedIds.includes(p.productId))} 
+                  <th rowSpan="2" style={{ width: 40 }}>
+                    <input
+                      type="checkbox"
+                      onChange={selectAll}
+                      checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.productId))}
                     />
                   </th>
                   <th rowSpan="2">Product Code</th>
@@ -390,28 +406,22 @@ const ProductsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {(searchTerm ? products.filter(p => 
-                    (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
-                  ) : products).length === 0 ? (
-                  <tr><td colSpan="11" style={{textAlign: 'center', padding: 40}}>No products matching search</td></tr>
+                {filteredProducts.length === 0 ? (
+                  <tr><td colSpan="11" style={{ textAlign: 'center', padding: 40 }}>No products matching search</td></tr>
                 ) : (
-                  (searchTerm ? products.filter(p => 
-                    (p.productName || p.name || "")?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    (p.ProductCode || p.productCode || "")?.toLowerCase().includes(searchTerm.toLowerCase())
-                  ) : products).map((product) => {
+                  paginatedProducts.map((product) => {
                     const isExpanded = expandedRows.includes(product.productId);
                     const firstVariant = product.variants?.[0] || {};
                     const otherVariants = product.variants?.slice(1) || [];
                     const hasMultipleVariants = product.variants?.length > 1;
-  
-                    const productId = product.productId || product.id || product.ID;
+
+                    const productId = product.productId || product.id || product.ID || product._id;
                     return (
                       <React.Fragment key={productId}>
                         <tr>
                           <td>
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={selectedIds.includes(productId)}
                               onChange={() => toggleSelection(productId)}
                             />
@@ -420,16 +430,16 @@ const ProductsPage = () => {
                           <td>{product.productName || product.name || "-"}</td>
                           <td>{product.brand?.name || product.brand || "-"}</td>
                           <td>
-                            {Array.isArray(product.categoryId) 
-                              ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ") 
+                            {Array.isArray(product.categoryId)
+                              ? product.categoryId.map(c => typeof c === 'object' ? (c.category || c.name || JSON.stringify(c)) : c).join(", ")
                               : (typeof product.categoryId === 'object' ? (product.categoryId.category || product.categoryId.name) : product.categoryId) || "-"}
                           </td>
                           <td>{getUnitDisplay(firstVariant)}</td>
                           <td>{firstVariant.stockUpdates?.totalQuantity ?? firstVariant.currentQty ?? firstVariant.numberOfPieces ?? "-"}</td>
                           <td>{firstVariant.stockUpdates?.openStockQuantity ?? "0"}</td>
                           <td>{firstVariant.stockUpdates?.onHoldQuantity ?? "0"}</td>
-                          <td 
-                            style={{fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default'}}
+                          <td
+                            style={{ fontWeight: 600, cursor: hasMultipleVariants ? 'pointer' : 'default' }}
                             onClick={() => hasMultipleVariants && toggleRowExpansion(productId)}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -449,7 +459,7 @@ const ProductsPage = () => {
                             <td>{v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
                             <td>{v.stockUpdates?.openStockQuantity ?? "0"}</td>
                             <td>{v.stockUpdates?.onHoldQuantity ?? "0"}</td>
-                            <td style={{fontWeight: 600}}>₹{v.mrp}</td>
+                            <td style={{ fontWeight: 600 }}>₹{v.mrp}</td>
                           </tr>
                         ))}
                       </React.Fragment>
@@ -463,108 +473,114 @@ const ProductsPage = () => {
 
         {/* Footer/Pagination */}
         {products.length > 0 && (
-            <div className={styles.pagination}>
-              <div className={styles.paginationLeft}>
-                <div className={styles.rowsPerPage}>
-                  Rows per Page
-                  <select 
-                    value={rowsPerPage} 
-                    onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                  >
-                    {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <span>
-                    {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, totalProducts)} of {totalProducts} Items
-                  </span>
-                </div>
-              </div>
-    
-              <div className={styles.paginationCenter}>
-                {selectedIds.length > 0 && (
-                  <div className={styles.bulkActionsInline}>
-                    <span 
-                      className={styles.bulkCount} 
-                      onClick={() => setSelectedIds([])}
-                      style={{cursor: 'pointer'}}
-                      title="Unselect All"
-                    >
-                      ✕ {selectedIds.length} Items Selected
-                    </span>
-                    <div className={styles.bulkDivider} />
-                    <div 
-                      className={styles.actionItem} 
-                      onClick={async () => {
-                        setLoading(true);
-                        try {
-                          const fullProducts = [];
-                          for (const id of selectedIds) {
-                            const res = await productService.getProductById(jwtToken, id);
-                            if (res?.data?.data) {
-                              fullProducts.push(res.data.data);
-                            } else if (res?.data) {
-                              fullProducts.push(res.data);
-                            }
-                          }
-                          setEditProductData(fullProducts);
-                          setFormMode("View");
-                          setIsAddingProduct(true);
-                        } catch (e) {
-                          console.error("Error fetching full product details:", e);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                    >
-                      <IconEye /> View
-                    </div>
-                    <div 
-                      className={styles.actionItem} 
-                      onClick={() => { 
-                        const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
-                        setEditProductData(productsToEdit);
-                        setFormMode("Edit"); 
-                        setIsAddingProduct(true); 
-                      }}
-                    >
-                      <IconEdit /> Edit
-                    </div>
-                    <div className={styles.actionItem} onClick={handleDelete}>
-                      <IconTrash /> Delete
-                    </div>
-                  </div>
-                )}
-              </div>
-    
-              <div className={styles.paginationRight}>
-                <div style={{display: 'flex', gap: 12}}>
-                    {currentPage > 1 && (
-                      <button 
-                        className={styles.pageBtn} 
-                        onClick={() => handlePageChange("prev")}
-                      >
-                        Previous
-                      </button>
-                    )}
-                    {currentPage * rowsPerPage < totalProducts && (
-                      <button 
-                        className={`${styles.pageBtn} ${styles.nextBtn}`} 
-                        onClick={() => handlePageChange("next")}
-                      >
-                        Next
-                      </button>
-                    )}
-                </div>
+          <div className={styles.pagination}>
+            <div className={styles.paginationLeft}>
+              <div className={styles.rowsPerPage}>
+                Rows per Page
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                >
+                  {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>
+                  {filteredProducts.length > 0 ? `${(currentPage - 1) * rowsPerPage + 1} - ${Math.min(currentPage * rowsPerPage, filteredProducts.length)} of ${filteredProducts.length} Items` : "0-0 of 0 Items"}
+                </span>
               </div>
             </div>
+
+            <div className={styles.paginationCenter}>
+              {selectedIds.length > 0 && (
+                <div className={styles.bulkActionsInline}>
+                  <span
+                    className={styles.bulkCount}
+                    onClick={() => setSelectedIds([])}
+                    style={{ cursor: 'pointer' }}
+                    title="Unselect All"
+                  >
+                    ✕ {selectedIds.length} Items Selected
+                  </span>
+                  <div className={styles.bulkDivider} />
+                  <div
+                    className={styles.actionItem}
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const fullProducts = [];
+                        for (const id of selectedIds) {
+                          const res = await productService.getProductById(jwtToken, id);
+                          let prod = res?.data?.data || res?.data;
+                          if (prod) {
+                            prod = {
+                              ...prod,
+                              productId: prod.productId || prod.id || prod.ID || prod._id
+                            };
+                            fullProducts.push(prod);
+                          }
+                        }
+                        setEditProductData(fullProducts);
+                        setFormMode("View");
+                        setIsAddingProduct(true);
+                      } catch (e) {
+                        console.error("Error fetching full product details:", e);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  >
+                    <IconEye /> View
+                  </div>
+                  <div
+                    className={styles.actionItem}
+                    onClick={() => {
+                      const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
+                      setEditProductData(productsToEdit);
+                      setFormMode("Edit");
+                      setIsAddingProduct(true);
+                    }}
+                  >
+                    <IconEdit /> Edit
+                  </div>
+                  <div className={styles.actionItem} onClick={handleDelete}>
+                    <IconTrash /> Delete
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.paginationRight}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {currentPage > 1 && (
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => handlePageChange("prev")}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentPage * rowsPerPage < filteredProducts.length && (
+                  <button
+                    className={`${styles.pageBtn} ${styles.nextBtn}`}
+                    onClick={() => handlePageChange("next")}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Confirmation Modal */}
-        <ConfirmationModal 
+        <ConfirmationModal
           isOpen={showDeleteConfirm}
           title="Delete Products?"
           message={`Are you sure you want to delete ${selectedIds.length} selected product(s)? This action is permanent and cannot be undone.`}
           onConfirm={executeDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+          confirmText="OK"
+          closeText="Cancel"
+          cancelText="Cancel"
         />
 
       </div>
