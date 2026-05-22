@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck } from "react-icons/fi";
@@ -203,7 +204,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
-        single: currentDate?.single || new Date().toISOString().split('T')[0],
+        single: currentDate?.single || toApiDateOnly(new Date()),
         from: currentDate?.from || '',
         to: currentDate?.to || ''
     });
@@ -515,7 +516,7 @@ const PaymentOutList = ({ onAddClick }) => {
         
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Purchase_Out_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Purchase_Out_Report_${toApiDateOnly(new Date())}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

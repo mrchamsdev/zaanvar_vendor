@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { withTimeZone } from "@/utilities/date-time-utils";
 import { WebApimanager } from "../utilities/WebApiManager";
 import styles from "../../styles/pet-sales/chageStutus.module.css";
 import useStore from "../state/useStore";
@@ -78,7 +79,7 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
       const payload = {
         petStatus: selectedStatus,
         thanksNote: detailData.notes || "",
-        statusDate: new Date().toISOString(),
+        ...withTimeZone("statusDate", new Date()),
       };
       await triggerStatusUpdateAPI(payload);
     }
@@ -111,7 +112,7 @@ const ChangeStatus = ({ pet, setPet, onClose, onStatusChange }) => {
       zaanvarHelpSell,
       zaanvarRecommend,
       price: changePrice === "yes" ? newPrice : pet?.price,
-      statusDate: new Date().toISOString(),
+      ...withTimeZone("statusDate", new Date()),
       thanksNote: detailData.notes || "",
     };
 

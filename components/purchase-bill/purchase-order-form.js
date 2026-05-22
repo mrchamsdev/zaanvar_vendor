@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import styles from "../../styles/purchase-bill/purchase-order-form.module.css";
@@ -6,6 +7,7 @@ import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const IconTrash = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -46,7 +48,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const [branchId, setBranchId] = useState(initialData?.branchId || currentBranchId || "");
     const [supplierId, setSupplierId] = useState(initialData?.supplierId || "");
     const [supplierPhone, setSupplierPhone] = useState(initialData?.supplierPhone || "");
-    const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
+    const [orderDate, setOrderDate] = useState(initialData?.orderDate || toApiDateOnly(new Date()));
     const [items, setItems] = useState(initialData?.items || [
         { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: "", mrp: 0 }
     ]);
@@ -283,7 +285,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
         setFormErrors({});
 
         // Date validation: No future dates
-        const todayStr = new Date().toISOString().split("T")[0];
+        const todayStr = toApiDateOnly(new Date());
         if (orderDate > todayStr) {
             toast.error("Future dates are not allowed for order date");
             return;
@@ -300,7 +302,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 supplierId: parseInt(supplierId),
                 createdBy: userInfo?.vendorId || 1,
                 orderStatus: statusValue,
-                orderDate: orderDate,
+                ...dateOnlyWithTimeZone(
+                    "orderDate",
+                    parseWallClockDate(orderDate) || new Date(orderDate),
+                ),
                 items: validItems.map(i => ({
                     productId: i.productId,
                     variantId: i.variantId,
@@ -430,7 +435,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                             className={`${styles.input} ${formErrors.orderDate ? styles.errorField : ""}`} 
                             type="date" 
                             value={orderDate} 
-                            max={new Date().toISOString().split("T")[0]}
+                            max={toApiDateOnly(new Date())}
                             onChange={(e) => {
                                 setOrderDate(e.target.value);
                                 if (formErrors.orderDate) {

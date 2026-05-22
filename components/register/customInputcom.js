@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useEffect, useState } from "react";
 // import styles from "../../styles/ui.module.css";
 import styles from "../../styles/register/ui.module.css";
@@ -73,7 +74,7 @@ const CustomInputElement2 = ({
         value={value}
         onChange={(e) => onChange(e)}
         className="input"
-        max={type === "date" ? new Date().toISOString().split("T")[0] : ""}
+        max={type === "date" ? toApiDateOnly(new Date()) : ""}
         required // Add the required attribute
       />
       {error && (

@@ -1,9 +1,11 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/pay-now-modal.module.css";
 import { FiX, FiCalendar, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initialBillData, allOrders }) => {
     const { jwtToken, userInfo } = useStore();
@@ -12,7 +14,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     
     // Header Data
     const [billDetails, setBillDetails] = useState(null);
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [paymentDate, setPaymentDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     
@@ -180,7 +182,10 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     debitOrCredit: "Debit",
                     paymentFrom: "payment out",
                     paymentType: entry.type,
-                    userTransactionDate: new Date(paymentDate).toISOString(),
+                    ...dateOnlyWithTimeZone(
+                        "userTransactionDate",
+                        parseWallClockDate(paymentDate) || new Date(paymentDate),
+                    ),
                     supplierId: supplierData?.supplierId || billDetails?.supplierId,
                     branchId: branchId,
                     createdBy: userInfo?.userId || 1,

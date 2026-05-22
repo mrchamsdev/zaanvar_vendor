@@ -3,6 +3,7 @@ import { WebApimanager } from "../utilities/WebApiManager";
 import styles from "../../styles/pet-sales/chageStutus.module.css";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
+import { withTimeZone } from "@/utilities/date-time-utils";
 
 const ChangeStatusForPet = ({ pet, setPet, onClose, onStatusChange }) => {
   const { getJwtToken } = useStore();
@@ -41,7 +42,7 @@ const triggerStatusUpdateAPI = async (statusValue) => {
 
     const payload = {
       petStatus: finalStatus,
-      statusDate: new Date().toISOString(),
+      ...withTimeZone("statusDate", new Date()),
     };
 
     const response = await webApi.put(`vendorPetProfile/update/${pet.id}`, payload);

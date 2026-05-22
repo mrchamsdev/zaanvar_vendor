@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -164,7 +165,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
-        single: currentDate?.single || new Date().toISOString().split('T')[0],
+        single: currentDate?.single || toApiDateOnly(new Date()),
         from: currentDate?.from || '',
         to: currentDate?.to || ''
     });
@@ -534,7 +535,7 @@ const PaymentInList = ({ onAddClick }) => {
         
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Payment_In_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Payment_In_Report_${toApiDateOnly(new Date())}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

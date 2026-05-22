@@ -19,6 +19,7 @@ import useStore from "@/components/state/useStore";
 import AddNewPuppyPopup from "@/components/pet-sales/AddNewPuppyPopUp";
 import ChangeStatus from "@/components/pet-sales/ChangeStatus";
 import SharePopup from "@/components/pet-sales/SharePopup";
+import { formatInOriginalTz, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const ViewDetails = () => {
   const [pet, setPet] = useState(null);
@@ -127,7 +128,13 @@ const ViewDetails = () => {
             <div className={styles.priceTag}>Price: ₹ {pet.price}</div>
           </div>
           
-          <p className={styles.postDate}>Post Date: {new Date(pet.createdDate).toISOString().split('T')[0]}</p>
+          <p className={styles.postDate}>
+            Post Date:{" "}
+            {formatInOriginalTz(pet.createdDate, pet.createdDateTimeZone, { dateStyle: "medium" }) ||
+              (parseWallClockDate(pet.createdDate)
+                ? parseWallClockDate(pet.createdDate).toLocaleDateString("en-GB")
+                : "-")}
+          </p>
 
          
           <div className={styles.breedInfoBox}>

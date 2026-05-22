@@ -1,7 +1,13 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
+import {
+  dateOnlyWithTimeZone,
+  formatDobInputValue,
+  parseWallClockDate,
+} from "@/utilities/date-time-utils";
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { AddIcon } from "@/public/images/SVG";
 import styles from "../../styles/register/settingsregister.module.css";
@@ -25,7 +31,8 @@ const MAX_VIDEOS = 1;
 // ─────────────────────────────────────────────────────────────────────────────
 const calculateAge = (dob) => {
   if (!dob) return "";
-  const dobDate = new Date(dob);
+  const dobDate = parseWallClockDate(dob);
+  if (!dobDate) return "";
   const today = new Date();
   let years = today.getFullYear() - dobDate.getFullYear();
   let months = today.getMonth() - dobDate.getMonth();
@@ -304,7 +311,7 @@ const AddNewPetPopup = ({
         instagramLink: petData.instagramLink || "",
         petGender: petData.petGender || "",
         spayedOrNeutered: petData.spayedOrNeutered || "",
-        dob: petData.birthday ? petData.birthday.split("T")[0] : "",
+        dob: formatDobInputValue(petData.birthday || petData.dob || ""),
         medication: petData.medication || "",
         howManyVaccinationsDone: petData.howManyVaccinationsDone || [],
         size: petData.size || "",
@@ -706,7 +713,9 @@ const AddNewPetPopup = ({
       Events: formData.Events,
       skills: formData.skills,
       instagramLink: formData.instagramLink,
-      birthday: formData.dob ? new Date(formData.dob).toISOString() : null,
+      ...(formData.dob
+        ? dateOnlyWithTimeZone("birthday", parseWallClockDate(formData.dob) || new Date(formData.dob))
+        : { birthday: null }),
       spayedOrNeutered: formData.spayedOrNeutered,
       medication: formData.medication,
       doesYourPetHasAnyHealthIssues: formData.healthCondition,
@@ -768,7 +777,7 @@ const AddNewPetPopup = ({
     }
   };
 
-  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const maxDate = useMemo(() => toApiDateOnly(new Date()), []);
   
   const sizeOptions = useMemo(() => {
     if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {

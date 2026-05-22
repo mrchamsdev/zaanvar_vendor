@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -24,7 +25,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         partyName: "",
         totalBalance: "",
         paidAmount: "",
-        date: new Date().toISOString().split('T')[0],
+        date: toApiDateOnly(new Date()),
         referenceNumber: "",
         description: "",
         image: null
@@ -99,7 +100,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
                     totalBalance: isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
-                    date: data.createdDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    date: data.createdDate?.split('T')[0] || toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || "") : (data.userOrderId || ""),
                     description: data.description || "",
                     image: null
@@ -124,7 +125,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
             partyName: "",
             totalBalance: "",
             paidAmount: "",
-            date: new Date().toISOString().split('T')[0],
+            date: toApiDateOnly(new Date()),
             referenceNumber: "",
             description: "",
             image: null

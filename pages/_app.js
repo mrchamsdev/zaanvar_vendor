@@ -15,8 +15,10 @@ import Head from "next/head";
 import Script from "next/script";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import Axios from "axios";
 import useStore from "../components/state/useStore";
 import { Toaster } from "sonner";
+import { userTimeZone } from "../utilities/date-time-utils";
 
 /* Routes that authenticated users should NOT access (redirect → /dashboard) */
 const AUTH_REDIRECT_ROUTES = [
@@ -71,6 +73,42 @@ function AuthGuard({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tz = userTimeZone();
+    if (!tz) return;
+
+    Axios.defaults.headers.common["X-Client-Timezone"] = tz;
+
+    if (window.__zaanvarVendorFetchTzPatched__) return;
+    const originalFetch = window.fetch;
+    window.fetch = function patchedFetch(input, init = {}) {
+      try {
+        const nextInit = { ...(init || {}) };
+        const existing = nextInit.headers;
+        if (existing instanceof Headers) {
+          const merged = new Headers(existing);
+          if (!merged.has("X-Client-Timezone")) merged.set("X-Client-Timezone", tz);
+          nextInit.headers = merged;
+        } else if (Array.isArray(existing)) {
+          const hasTz = existing.some(
+            (pair) => Array.isArray(pair) && pair[0]?.toLowerCase?.() === "x-client-timezone",
+          );
+          nextInit.headers = hasTz ? existing : [...existing, ["X-Client-Timezone", tz]];
+        } else {
+          const obj = { ...(existing || {}) };
+          const hasTz = Object.keys(obj).some((k) => k.toLowerCase() === "x-client-timezone");
+          if (!hasTz) obj["X-Client-Timezone"] = tz;
+          nextInit.headers = obj;
+        }
+        return originalFetch.call(this, input, nextInit);
+      } catch {
+        return originalFetch.call(this, input, init);
+      }
+    };
+    window.__zaanvarVendorFetchTzPatched__ = true;
+  }, []);
+
   useEffect(() => {
     const handleWheel = (e) => {
       if (document.activeElement && document.activeElement.type === 'number') {

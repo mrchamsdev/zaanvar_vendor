@@ -1,16 +1,18 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/payment-details-popup.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
     
     // Global States
-    const [amountPaidDate, setAmountPaidDate] = useState(new Date().toISOString().split('T')[0]);
+    const [amountPaidDate, setAmountPaidDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -35,7 +37,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const balanceAmount = Math.max(0, initialBalance - masterTarget);
     const totalAmountPaid = previousPaidAmount + masterTarget;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = toApiDateOnly(new Date());
 
     const handleAddPayment = () => {
         setPayments([...payments, {
@@ -90,7 +92,10 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     paymentFrom: "payment out",
                     paymentType: p.paymentType,
                     referenceNumber: p.referenceNumber || "",
-                    userTransactionDate: new Date(amountPaidDate).toISOString(),
+                    ...dateOnlyWithTimeZone(
+                        "userTransactionDate",
+                        parseWallClockDate(amountPaidDate) || new Date(amountPaidDate),
+                    ),
                     supplierId: data.supplierId,
                     branchId: data.branchId,
                     createdBy: userInfo?.userId || 1,

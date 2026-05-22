@@ -19,6 +19,7 @@ import useStore from "@/components/state/useStore";
 import AddNewPetPopup from "@/components/pet-sales/AddNewPetPopup";
 import ChangeStatusForPet from "@/components/pet-sales/ChangeStatusForPet";
 import SharePopup from "../../components/pet-sales/SharePopup";
+import { parseWallClockDate } from "@/utilities/date-time-utils";
 
 const ViewDetails = () => {
   const [pet, setPet] = useState(null);
@@ -47,7 +48,8 @@ const ViewDetails = () => {
 
   const getAge = (birthday) => {
     if (!birthday) return "N/A";
-    const birth = new Date(birthday);
+    const birth = parseWallClockDate(birthday);
+    if (!birth) return "N/A";
     const today = new Date();
     let years = today.getFullYear() - birth.getFullYear();
     let months = today.getMonth() - birth.getMonth();

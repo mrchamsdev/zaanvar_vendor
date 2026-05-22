@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import styles from "../../styles/vendorregisteration/vendor-registeration.module.css";
@@ -15,6 +16,14 @@ import { GalleryIcon } from "@/components/svg/svg2";
 import BreederFields from "@/components/BranchFeatures/BreederFields";
 import TrainingFields from "@/components/BranchFeatures/TrainingFields";
 import SitterFields from "@/components/BranchFeatures/SitterFields";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "../../utilities/date-time-utils";
+
+function wallDatePayload(field, value) {
+  if (!value) return { [field]: value || "" };
+  const d = parseWallClockDate(value);
+  if (!d) return { [field]: value };
+  return dateOnlyWithTimeZone(field, d);
+}
 
 const VendorRegistration = () => {
   const API_BASE_URL = typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com" ? "https://dev.zaanvar.com/api/vendorBusiness" : "https://prod.zaanvar.com/api/vendorBusiness";
@@ -380,7 +389,7 @@ const VendorRegistration = () => {
         phoneNo: formData.companyPhone || "",
         website: formData.companyWebsite || "",
         servicesProvided: formData.featureNeeds || [],
-        experienceDateOfCreation: formData.businessOpeningDate || "",
+        ...wallDatePayload("experienceDateOfCreation", formData.businessOpeningDate),
         businessType: formData.businessModel || "",
         aboutCompany: formData.aboutCompany || "",
         petTypes: formData.petTypes || [],
@@ -422,7 +431,7 @@ const VendorRegistration = () => {
           longitude: b.longitude || "",
         },
         experience: b.experience || calculateExperience(b.branchOpeningDate) || "0 Years",
-        openingDate: b.branchOpeningDate || "",
+        ...wallDatePayload("openingDate", b.branchOpeningDate || ""),
         dataStoreType: b.dataStoreType || "manual",
         about: b.aboutShop || "",
         services: mapServicesToBackend(b.services, b),
@@ -459,7 +468,7 @@ const VendorRegistration = () => {
           longitude: branch.longitude || "",
         },
         experience: branch.experience || calculateExperience(branch.branchOpeningDate) || "0 Years",
-        openingDate: branch.branchOpeningDate || null,
+        ...wallDatePayload("openingDate", branch.branchOpeningDate || null),
         dataStoreType: branch.dataStoreType || "",
         about: branch.aboutShop || "",
         services: mapServicesToBackend(branch.services, branch),
@@ -477,7 +486,7 @@ const VendorRegistration = () => {
         location: branch.branchLocation || "",
         about: branch.aboutShop || "",
         experience: branch.experience || calculateExperience(branch.branchOpeningDate) || "0 Years",
-        openingDate: branch.branchOpeningDate || null,
+        ...wallDatePayload("openingDate", branch.branchOpeningDate || null),
         dataStoreType: branch.dataStoreType || "",
         petTypes: branch.branchPetTypes || [],
         paymentMode: branch.paymentMethods || [],
@@ -981,7 +990,7 @@ const VendorRegistration = () => {
         experience: branch.experience || "0 Years",
         petTypes: branch.branchPetTypes || [],
         paymentMode: branch.paymentMethods || [],
-        openingDate: branch.branchOpeningDate || null,
+        ...wallDatePayload("openingDate", branch.branchOpeningDate || null),
         dataStoreType: branch.dataStoreType || "",
         timings: {
           monday: branch.timings?.Monday || "",
@@ -1025,7 +1034,7 @@ const VendorRegistration = () => {
         phoneNo: formData.companyPhone || "",
         website: formData.companyWebsite || "",
         servicesProvided: formData.featureNeeds || [],
-        experienceDateOfCreation: formData.businessOpeningDate || "",
+        ...wallDatePayload("experienceDateOfCreation", formData.businessOpeningDate),
         businessType: formData.businessModel || "",
         aboutCompany: formData.aboutCompany?.trim() || "",
         petTypes: formData.petTypes || [],
@@ -1049,7 +1058,7 @@ const VendorRegistration = () => {
         petTypes: b.branchPetTypes || [],
         paymentMode: b.paymentMethods || [],
         experience: b.experience || calculateExperience(b.branchOpeningDate) || "0 Years",
-        openingDate: b.branchOpeningDate || null,
+        ...wallDatePayload("openingDate", b.branchOpeningDate || null),
         dataStoreType: b.dataStoreType || "manual",
         about: b.aboutShop || "",
         isEmailVerified: b.verificationChecks?.isEmailVerified || false,
@@ -2137,7 +2146,7 @@ const VendorRegistration = () => {
                         </div>
                         {/* <div className={styles["form-field"]}>
                         <label>Company Started <span style={{ color: "#e74c3c" }}>*</span></label>
-                        <input type="date" name="businessOpeningDate" value={formData.businessOpeningDate || ""} onChange={(e) => { setFormData(prev => ({ ...prev, businessOpeningDate: e.target.value })); }} max={new Date().toISOString().split("T")[0]} />
+                        <input type="date" name="businessOpeningDate" value={formData.businessOpeningDate || ""} onChange={(e) => { setFormData(prev => ({ ...prev, businessOpeningDate: e.target.value })); }} max={toApiDateOnly(new Date())} />
                         {errors.businessOpeningDate && <p className={styles["error"]}>{errors.businessOpeningDate}</p>}
                         {formData.businessOpeningDate && <div style={{ marginTop: "8px", fontSize: "0.95rem", color: "#444", fontWeight: "500" }}>Experience: <strong>{calculateExperience(formData.businessOpeningDate)}</strong></div>}
                       </div> */}
@@ -2185,7 +2194,7 @@ const VendorRegistration = () => {
                               const exp = convertDateToExperience(date);
                               setExperienceInput(exp);
                             }}
-                            max={new Date().toISOString().split("T")[0]}
+                            max={toApiDateOnly(new Date())}
                           />
 
                           {/* 🔹 Experience Display */}
@@ -2511,7 +2520,7 @@ const VendorRegistration = () => {
                                     [branchIndex]: exp,
                                   }));
                                 }}
-                                max={new Date().toISOString().split("T")[0]}
+                                max={toApiDateOnly(new Date())}
                                 required
                               />
 

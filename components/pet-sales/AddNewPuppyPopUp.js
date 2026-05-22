@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import useStore from "@/components/state/useStore";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
@@ -14,10 +15,16 @@ import Cookies from "js-cookie";
 import { toast } from "sonner";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 import SearchableDropdown from "../register/FilterDropDown";
+import {
+  dateOnlyWithTimeZone,
+  formatDobInputValue,
+  parseWallClockDate,
+} from "@/utilities/date-time-utils";
 
 const calculateAge = (dateOfBirth) => {
   if (!dateOfBirth) return "";
-  const dobDate = new Date(dateOfBirth);
+  const dobDate = parseWallClockDate(dateOfBirth);
+  if (!dobDate) return "";
   const today = new Date();
   let years = today.getFullYear() - dobDate.getFullYear();
   let months = today.getMonth() - dobDate.getMonth();
@@ -255,7 +262,7 @@ const AddNewPuppyPopup = ({
         instagramLink: petData.instagramLink || "",
         petGender: petData.petGender || "",
         spayedOrNeutered: petData.spayedOrNeutered || "",
-        dateOfBirth: petData.dateOfBirth ? petData.dateOfBirth.split("T")[0] : "",
+        dateOfBirth: formatDobInputValue(petData.dateOfBirth || ""),
         medication: petData.medication || "",
         howManyVaccinationsDone: petData.howManyVaccinationsDone || [],
         size: petData.size || "",
@@ -839,7 +846,12 @@ const AddNewPuppyPopup = ({
       size: formData.size,
       petAge: formData.petAge,
       weight: formData.weight ? `${formData.weight} ${formData.petWeightIn}` : "",
-      dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+      ...(formData.dateOfBirth
+        ? dateOnlyWithTimeZone(
+            "dateOfBirth",
+            parseWallClockDate(formData.dateOfBirth) || new Date(formData.dateOfBirth),
+          )
+        : { dateOfBirth: null }),
       price: formData.price,
       negotiable: formData.negotiable || "No",
       vaccinated: formData.vaccinated || "No",
@@ -934,7 +946,7 @@ const AddNewPuppyPopup = ({
     }
   };
   
-  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const maxDate = useMemo(() => toApiDateOnly(new Date()), []);
 
   const sizeOptions = useMemo(() => {
     if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {

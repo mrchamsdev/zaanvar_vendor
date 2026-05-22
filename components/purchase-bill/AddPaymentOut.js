@@ -1,4 +1,6 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import styles from "../../styles/purchase-bill/add-payment-out.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
@@ -13,7 +15,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplierId, setSelectedSupplierId] = useState("");
     const [supplierTotals, setSupplierTotals] = useState(null);
-    const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
+    const [transactionDate, setTransactionDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -112,7 +114,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     paymentType: p.paymentType,
                     branchId: branchId,
                     supplierId: Number(selectedSupplierId),
-                    userTransactionDate: transactionDate,
+                    ...dateOnlyWithTimeZone(
+                        "userTransactionDate",
+                        parseWallClockDate(transactionDate) || new Date(transactionDate),
+                    ),
                     transactionInfo: description || "Payment Out recorded",
                     createdBy: userInfo?.userId || 1,
                     productsBillId: null,

@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -44,7 +45,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         vendorCustomerId: null,
         discountForCustomer: 0,
         invoiceNumber: "",
-        invoiceDate: new Date().toISOString().split('T')[0],
+        invoiceDate: toApiDateOnly(new Date()),
         status: "Pending"
     });
 
@@ -99,7 +100,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             vendorCustomerId: null,
             discountForCustomer: 0,
             invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
-            invoiceDate: new Date().toISOString().split('T')[0],
+            invoiceDate: toApiDateOnly(new Date()),
             status: "Pending"
         });
         setItems([{ 
