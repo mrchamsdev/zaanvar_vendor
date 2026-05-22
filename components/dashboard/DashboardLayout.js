@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useDashboardData from "./useDashboardData";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -65,6 +66,14 @@ const IconDog = () => (
     <path d="M16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2" />
   </svg>
 );
+const IconPackage = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m7.5 4.27 9 5.15" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5" />
+    <path d="M12 22V12" />
+  </svg>
+);
 const IconChevronLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="15 18 9 12 15 6" />
@@ -73,12 +82,6 @@ const IconChevronLeft = () => (
 const IconChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-const IconSearch = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
   </svg>
 );
 const IconMenu = () => (
@@ -98,39 +101,92 @@ const IconLogout = () => (
 
 /* ── Service → Sidebar config (all flat routes) ─────────── */
 const SERVICE_MAP = {
-  Grooming:       { label: "Grooming",  path: "/grooming",   icon: <IconScissors /> },
-  Clinic:         { label: "Clinic",    path: "/clinic",     icon: <IconActivity /> },
-  "Pet Shop":     { label: "Pet Shop",  path: "/pet-shop",   icon: <IconShop />     },
-  Training:       { label: "Training",  path: "/training",   icon: <IconActivity /> },
-  "Day Care":     { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Day Care": { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  Daycare:        { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Sales":    { 
-    label: "Pet Sale", 
-    path: "/pet-sales",  
+  Grooming: { label: "Grooming", path: "/grooming", icon: <IconScissors /> },
+  Clinic: { label: "Clinic", path: "/clinic", icon: <IconActivity /> },
+  "Pet Shop": { label: "Pet Shop", path: "/pet-shop", icon: <IconShop /> },
+  Training: { label: "Training", path: "/training", icon: <IconActivity /> },
+  "Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  "Pet Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  Daycare: { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  "Pet Sales": {
+    label: "Pet Sale",
+    path: "/pet-sales",
     icon: <IconDog />,
     subItems: [
       { label: "Pet", path: "/pet-sales?tab=Pets" },
       { label: "Puppy", path: "/pet-sales?tab=Puppies" }
     ]
   },
-  "Pet Training": { label: "Training",  path: "/training",   icon: <IconActivity /> },
+  "Pet Training": { label: "Training", path: "/training", icon: <IconActivity /> },
+  Inventory: {
+    label: "Inventory",
+    path: "/inventory",
+    icon: <IconPackage />,
+    subItems: [
+      { label: "Products", path: "/inventory/products" },
+      { label: "Stock Updates", path: "/inventory/stock-updates" },
+      { label: "Stock Status", path: "/inventory/stock-status" }
+    ]
+  },
+  "Purchase Bills": {
+    label: "Purchase Bills",
+    path: "/purchase-bill",
+    icon: <IconPackage />,
+    subItems: [
+      { label: "Purchase Orders", path: "/purchase-bill/purchase-orders" },
+      { label: "Payment Out", path: "/purchase-bill/purchase-out" },
+      { label: "Purchase Return", path: "/purchase-bill/purchase-return" }
+    ]
+  },
+  Supplier: { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
+  Sale: {
+    label: "Sale",
+    path: "/sale",
+    icon: <IconShop />,
+    subItems: [
+      { label: "Sales Invoice", path: "/sale/sales-invoice" },
+      { label: "Payment In", path: "/sale/payment-in" },
+      { label: "Sales Return", path: "/sale/sales-return" }
+    ]
+  }
 };
 
 const BRANCH_SERVICE_MAP = {
-  clinicDetails:    "Clinic",
+  clinicDetails: "Clinic",
   groomingServices: "Grooming",
-  daycares:         "Day Care",
-  petShops:         "Pet Shop",
-  petSales:         "Pet Sales",
+  daycares: "Day Care",
+  petShops: "Pet Shop",
+  petSales: "Pet Sales",
+  inventory: "Inventory",
+  purchaseBills: "Purchase Bills",
+  sale: "Sale",
 };
 
 function buildMenuFromVendor(userInfo) {
   const base = [
-    { label: "Dashboard",         path: "/dashboard",      icon: <IconGrid />  },
-    { label: "Timing Slots",      path: "/timing-slots",   icon: <IconClock /> },
-    { label: "Reviews & Ratings", path: "/reviews",        icon: <IconStar />  },
-    { label: "Profile",           path: "/profile",        icon: <IconUser />  },
+    { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
+    { label: "Timing Slots", path: "/timing-slots", icon: <IconClock /> },
+    { label: "Reviews & Ratings", path: "/reviews", icon: <IconStar /> },
+    { label: "Profile", path: "/profile", icon: <IconUser /> },
+    {
+      label: "Inventory",
+      path: "/inventory",
+      icon: <IconPackage />,
+      subItems: SERVICE_MAP["Inventory"].subItems
+    },
+    {
+      label: "Purchase Bills",
+      path: "/purchase-bill",
+      icon: <IconPackage />,
+      subItems: SERVICE_MAP["Purchase Bills"].subItems
+    },
+    {
+      label: "Sale",
+      path: "/sale",
+      icon: <IconShop />,
+      subItems: SERVICE_MAP["Sale"].subItems
+    },
+    { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
   ];
 
   const serviceSet = new Set();
@@ -147,7 +203,9 @@ function buildMenuFromVendor(userInfo) {
     });
   });
 
-  const seen     = new Set();
+  const seen = new Set();
+  base.forEach(b => seen.add(b.path));
+
   const svcItems = [];
   serviceSet.forEach((s) => {
     const cfg = SERVICE_MAP[s];
@@ -193,13 +251,29 @@ function Skeleton() {
 /* ═══════════════════════════════════════════════════════════
  * DashboardLayout
  * ═══════════════════════════════════════════════════════════ */
-const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
-  const router  = useRouter();
+const DashboardLayout = ({
+  children,
+  topbarButtons = [],
+  onTopbarAction,
+  customTopbarLeft,
+  customTopbarRight
+}) => {
+  const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
+  const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
 
-  const [sidebarOpen,      setSidebarOpen]      = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState({ "/pet-sales": true }); // Default expand pet sales if active
+  const { expandedMenus, setExpandedMenus } = useStore();
+
+  /* ── auto-expand active menu ── */
+  useEffect(() => {
+    const parts = router.pathname.split('/').filter(Boolean);
+    if (parts.length > 0) {
+      const parentPath = "/" + parts[0];
+      setExpandedMenus(prev => ({ ...prev, [parentPath]: true }));
+    }
+  }, [router.pathname]);
 
   /* ── auth guard ── */
   useEffect(() => {
@@ -222,7 +296,7 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
 
   /* ── avatar ── */
   const firstName = userInfo?.firstName || "";
-  const lastName  = userInfo?.lastName  || "";
+  const lastName = userInfo?.lastName || "";
   const avatarInitial =
     `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase() || "V";
   const avatarImg = userInfo?.profileImage || null;
@@ -248,11 +322,9 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
 
       {/* ── Sidebar ── */}
       <aside
-        className={`${styles.sidebar} ${
-          sidebarOpen      ? styles.sidebarOpen      : ""
-        } ${
-          sidebarCollapsed ? styles.sidebarCollapsed : ""
-        }`}
+        className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""
+          } ${sidebarCollapsed ? styles.sidebarCollapsed : ""
+          }`}
       >
         {/* Logo + collapse toggle */}
         <div className={styles.sidebarLogo}>
@@ -286,16 +358,15 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
                   </Link>
                 ) : (
                   <>
-                    <div 
+                    <div
                       onClick={() => {
                         setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
-                        if (!isExpanded && !isActive) router.push(item.subItems[0].path);
                       }}
                       className={isActive ? styles.active : ""}
                       title={sidebarCollapsed ? item.label : undefined}
-                      style={{ 
-                        display: "flex", alignItems: "center", cursor: "pointer", 
-                        padding: "12px 16px", borderRadius: "8px", 
+                      style={{
+                        display: "flex", alignItems: "center", cursor: "pointer",
+                        padding: "12px 16px", borderRadius: "8px",
                         background: isActive ? "#000" : "transparent",
                         color: isActive ? "#fff" : "inherit"
                       }}
@@ -308,15 +379,15 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
                         </>
                       )}
                     </div>
-                    
+
                     {isExpanded && !sidebarCollapsed && (
                       <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
                         {item.subItems.map((sub, i) => {
                           // Clean up paths for comparison since router.asPath includes queries
-                          const isSubActive = router.asPath === sub.path || (router.asPath === "/pet-sales" && i === 0);
+                          const isSubActive = router.asPath.split('?')[0] === sub.path.split('?')[0] || (router.asPath === "/pet-sales" && i === 0);
                           return (
-                            <Link 
-                              key={sub.path} 
+                            <Link
+                              key={sub.path}
                               href={sub.path}
                               style={{
                                 padding: "8px 16px 8px 45px",
@@ -381,22 +452,38 @@ const DashboardLayout = ({ children, topbarButtons = [], onTopbarAction }) => {
 
         {/* Desktop topbar */}
         <header className={styles.topbar}>
-          <div className={styles.searchBox}>
-            <IconSearch />
-            <input type="text" placeholder="Search here" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+            {customTopbarLeft}
+
+            {!customTopbarLeft && branches && branches.length > 0 && (
+              <div className={styles.branchSwitcherContainer}>
+                <select
+                  className={styles.branchSwitcher}
+                  value={selectedBranchId || ""}
+                  onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
+                >
+                  {branches.length > 1 && <option value="">All Firms</option>}
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className={styles.topbarActions}>
-            {topbarButtons.map((btn, i) => (
+            {customTopbarRight}
+
+            {/* Common Buttons if no custom content */}
+            {!customTopbarRight && topbarButtons.map((btn, i) => (
               <button
                 key={i}
-                className={`${styles.topBtn} ${
-                  btn.color === "purple"
+                className={`${styles.topBtn} ${btn.color === "purple"
                     ? styles.topBtnPurple
                     : btn.color === "red"
-                    ? styles.topBtnRed
-                    : styles.topBtnGray
-                }`}
+                      ? styles.topBtnRed
+                      : styles.topBtnGray
+                  }`}
                 onClick={() => onTopbarAction && onTopbarAction(btn.action)}
               >
                 {btn.label}

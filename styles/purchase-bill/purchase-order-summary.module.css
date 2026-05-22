@@ -1,0 +1,408 @@
+.container {
+    padding: 40px;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+.headerCard {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.orderMainInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.orderNumber {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.orderNumber span {
+    color: #E9315D;
+}
+
+.orderDate {
+    font-size: 14px;
+    color: #888;
+}
+
+.orderStatusText {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: capitalize;
+    margin-top: 4px;
+}
+
+.statusReceived {
+    color: #22c55e;
+}
+
+.statusDefault {
+    color: #000;
+}
+
+.statusInfo {
+    display: flex;
+    justify-content: flex-end;
+    gap: 80px;
+    margin-top: 24px;
+    padding: 0 10px;
+}
+
+.statusGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.label {
+    font-size: 15px;
+    color: #999;
+    font-weight: 400;
+}
+
+.value {
+    font-size: 13px;
+    /* font-weight: 600; */
+    color: #1a1a1a;
+}
+
+.statusBadge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.statusBadgePending {
+    background: #FFF4DF;
+    color: #FDB226;
+    font-weight: 400;
+}
+
+.statusBadgePaid {
+    background: #DFFFE8;
+    color: #119F1A;
+        font-weight: 400;
+
+
+}
+
+.statusBadgePartial {
+    background: #e7f5ff;
+    color: #1971c2;
+}
+
+.dueDate {
+    font-size: 13px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin-top: 4px;
+}
+
+.addressSection {
+    display: flex;
+    gap: 100px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #f8f9fa;
+}
+
+.addressGroup {
+    flex: 1;
+}
+
+.addressLabel {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.addressName {
+    font-weight: 700;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.addressText {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* Table Styles */
+.tableContainer {
+    margin-top: 30px;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1400px; /* Ensure horizontal scroll for many columns */
+}
+
+.table th {
+    background: #f9fafb;
+    padding: 14px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table th:last-child {
+    border-right: none;
+}
+
+.table td {
+    padding: 14px 12px;
+    font-size: 13px;
+    color: #333;
+    border-right: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: top;
+}
+
+.table td:last-child {
+    border-right: none;
+}
+
+.sno { color: #000; font-weight: 600; }
+
+.productCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.productName {
+    font-weight: 700;
+    color: #333;
+}
+
+.productSubtext {
+    font-size: 11px;
+    color: #999;
+}
+
+.qtyCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.orderedQtySub {
+    font-size: 11px;
+    color: #999;
+}
+
+.costCell {
+    font-weight: 600;
+}
+
+/* Price Breakdown */
+.breakdownSection {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.breakdownWrapper {
+    width: 320px;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.breakdownHeader {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: #fff;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+
+
+.breakdownTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+}
+
+.breakdownIcon {
+    font-size: 16px;
+    color: #888;
+    transition: transform 0.3s ease;
+}
+
+.breakdownIconActive {
+    transform: rotate(180deg);
+}
+
+.breakdownContent {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.3s ease, 
+                padding 0.3s ease;
+    border-top: none;
+}
+
+.breakdownContentActive {
+    max-height: 600px;
+    opacity: 1;
+    padding: 16px;
+    border-top: 1px solid #f8f8f8;
+}
+
+.breakdownRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #666;
+}
+
+.breakdownRow span:last-child {
+    font-weight: 600;
+    color: #333;
+}
+
+.breakdownDivider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 0;
+}
+
+.breakdownRowTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 2px solid #000;
+}
+
+.breakdownRowTotal span:first-child {
+    font-size: 14px;
+    font-weight: 800;
+    color: #000;
+    letter-spacing: 1px;
+}
+
+.breakdownRowTotal span:last-child {
+    font-size: 18px;
+    font-weight: 800;
+    color: #000;
+}
+
+.footer {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.totalSection {
+    text-align: right;
+    margin-bottom: 24px;
+}
+
+.totalLabel {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 12px;
+}
+
+.totalValue {
+    font-size: 20px;
+    font-weight: 800;
+    color: #000;
+}
+
+.printBtn {
+    padding: 12px 40px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.markPaidBtn {
+    padding: 12px 40px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.tableFooter {
+    background: #f9fafb;
+}
+
+.totalLabelCell {
+    text-align: left !important;
+    font-weight: 700;
+    color: #374151;
+    padding: 16px 20px !important;
+    font-size: 14px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.totalValueCell {
+    text-align: right !important;
+    padding: 16px 20px !important;
+    border-top: 2px solid #e5e7eb;
+}
+
+.totalValueWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #000;
+}

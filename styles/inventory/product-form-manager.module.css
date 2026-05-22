@@ -1,0 +1,312 @@
+.taskManager {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none; /* Allow clicks to pass through if not active */
+}
+
+.managerActive {
+  background: #f8f9fa;
+  pointer-events: auto;
+}
+
+.tabBar {
+  display: flex;
+  align-items: center;
+  background: var(--header-background-color);
+  padding: 12px 12px 0; /* Reduced padding and removed bottom to align tabs */
+  gap: 0;
+  border-bottom: 1px solid var(--underline-color);
+  pointer-events: auto;
+  overflow: hidden; /* Contain shrinking tabs */
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  max-width: 200px;
+  min-width: 40px; /* Chrome-like shrinking */
+  flex: 0 1 200px; /* Grow to max, but shrink as needed */
+  color: var(--header-secondary-text-color);
+  position: relative;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  container-type: inline-size; /* Enable container queries for adaptive titles */
+}
+
+/* Vertical Separator for Inactive Tabs */
+.tab:not(.tabActive)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: var(--underline-color);
+}
+
+.tabActive {
+  display: flex;
+  justify-content: space-between;
+  background: var(--background-color);
+  color: var(--primary-black);
+  font-weight: 500;
+  margin-top: 0;
+  padding-top: 10px;
+  z-index: 2;
+}
+
+/* The "Flow" Curves for Active Tab using brand variables */
+.tabActive::before,
+.tabActive::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.tabActive::before {
+  left: -16px;
+  border-bottom-right-radius: 12px;
+  box-shadow: 6px 6px 0 6px var(--background-color);
+}
+
+.tabActive::after {
+  right: -16px;
+  border-bottom-left-radius: 12px;
+  box-shadow: -6px 6px 0 6px var(--background-color);
+}
+
+.tabIcon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tabText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.fullTitle {
+  display: block;
+}
+
+.shortTitle {
+  display: none;
+}
+
+/* Switch to short title when tab shrinks below 110px */
+@container (max-width: 110px) {
+  .fullTitle {
+    display: none;
+  }
+  .shortTitle {
+    display: block;
+  }
+}
+
+.tabClose {
+  opacity: 0.5;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.tabClose:hover {
+  background: #eee;
+  opacity: 1;
+}
+
+.addTabBtn {
+  background: transparent;
+  color: var(--header-secondary-text-color);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  margin-top: 0;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.2s;
+  flex-shrink: 0; /* Never hide the add button */
+}
+
+.addTabBtn:hover {
+  background: var(--underline-color);
+  color: var(--primary-black);
+}
+
+.windowActions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  color: #555;
+  padding: 0 8px 8px;
+  flex-shrink: 0; /* Keep actions visible even with many tabs */
+  align-items: center;
+}
+
+.windowActionIcon {
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.windowActionIcon:hover {
+  background: rgba(0,0,0,0.05);
+  color: #000;
+}
+
+.managerHeader {
+  background: #fff;
+  padding: 14px 24px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  pointer-events: auto;
+}
+
+.formContent {
+  flex: 1;
+  display: flex;
+  overflow-y: auto;
+  background: #fff;
+  pointer-events: auto;
+}
+
+.formWrapper {
+  flex: 1;
+  overflow: visible;  
+  padding: 32px 16px 0px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  background-color: white;
+}
+
+.formLabel {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #E9315D;
+  text-transform: uppercase;
+}
+
+.splitMode .formWrapper {
+  flex: 1;
+  width: 50%;
+  border-right: 1px solid #e0e0e0;
+  overflow: hidden; /* Prevent form from expanding the width */
+}
+
+.splitMode .formWrapper:last-child {
+  border-right: none;
+}
+
+.minimizedBar {
+  position: fixed;
+  bottom: 0;
+  right: 24px;
+  display: flex;
+  gap: 12px;
+  z-index: 10000;
+  pointer-events: auto; /* Required to capture clicks on transparent overlay */
+}
+
+.minimizedItem {
+  background: #fff;
+  padding: 10px 20px;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #eee;
+  border-bottom: none;
+  min-width: 180px;
+  justify-content: space-between;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.minimizedItem:hover {
+  background-color: #fcfcfc;
+  transform: translateY(-2px);
+}
+
+.minimizedTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.minimizedActions {
+  display: flex;
+  gap: 8px;
+}
+
+.minimizedActionBtn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 6px;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+
+.minimizedActionBtn:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+.minimizedActionBtn[title="Close"]:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}

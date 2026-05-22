@@ -1,0 +1,602 @@
+.container {
+    display: flex;
+    gap: 30px;
+    padding: 24px;
+    background: #f8f9fa;
+    height: 100%;
+    overflow-y: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mainContent {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.headerSection {
+    margin-bottom: 8px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a1a1a;
+}
+
+.requestId {
+    color: #E9315D;
+}
+
+/* Card Styles matching Image 2 */
+.itemList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.productCard {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eef0f2;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    position: relative;
+}
+
+.productCardActive {
+    border-color: #ddd;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.cardHeader {
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.headerInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.headerTitleLine {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.index {
+    color: #000;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.productName {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+}
+
+.headerStatsLine {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: #888;
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.headerTotalValue {
+    font-size: 14px;
+    color: #666;
+}
+
+.headerTotalValue span {
+    font-weight: 600;
+    color: #000;
+}
+
+.expandIcon {
+    color: #999;
+    transition: transform 0.3s ease;
+    font-size: 18px;
+}
+
+.expandIconActive {
+    transform: rotate(180deg);
+}
+
+.cardContent {
+    padding: 24px;
+    border-top: 1px solid #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.fieldGrid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 10px 0 25px 0;
+    scrollbar-width: thin;
+    gap: 32px;
+}
+
+.fieldGrid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.fieldGrid::-webkit-scrollbar-thumb {
+    background: #eee;
+    border-radius: 10px;
+}
+
+.fieldGroup {
+    flex-shrink: 0;
+    min-width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.fieldGroups {
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+
+.fieldLabel {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.labelRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.errorLabel {
+    font-size: 11px;
+    color: #E9315D;
+    font-weight: 600;
+}
+
+.inputError {
+    border: 1px solid #E9315D !important;
+    background: #FFF1F4 !important;
+}
+
+.labelWithInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.infoTooltip {
+    position: relative;
+    display: inline-flex;
+    cursor: help;
+}
+
+.infoIcon {
+    color: #888;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.infoIcon:hover {
+    color: #E9315D;
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.currencySymbol {
+    position: absolute;
+    left: 12px;
+    font-size: 13px;
+    color: #999;
+}
+
+.calendarIcon {
+    position: absolute;
+    right: 12px;
+    color: #888;
+    pointer-events: none;
+}
+
+.input {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: #f8f9fa;
+    border: 1px solid #f1f1f1;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.inputWithSymbol {
+    padding-left: 28px;
+}
+
+.input:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+}
+
+.textarea {
+    width: 96%;
+    min-height: 100px;
+    padding: 16px;
+    border: none;
+    background: #f9f9f9;
+    border-radius: 12px;
+    font-size: 14px;
+    resize: vertical;
+    outline: none;
+}
+
+.itemSummary {
+    display: flex;
+    gap: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #f8f9fa;
+}
+
+.summaryItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summaryLabel {
+    font-size: 12px;
+    color: #888;
+}
+
+.summaryValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000;
+}
+
+/* Sidebar Styles Overhaul */
+.sidebar {
+    width: 360px;
+    flex-shrink: 0;
+}
+
+.summarySection {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.sidebarTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.infoGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.infoLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    margin-bottom: 2px;
+}
+
+.infoValue {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+.infoSubValue {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.4;
+}
+
+.dateGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.toggleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.toggleLabel {
+    font-size: 14px;
+    font-weight: 600;
+    color: #444;
+}
+
+.toggle {
+    width: 44px;
+    height: 22px;
+    background: #ddd;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.toggleActive {
+    background: #E9315D;
+}
+
+.toggleCircle {
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s;
+}
+
+.toggleCircleActive {
+    left: 24px;
+}
+
+.alertBox {
+    background: #FFF1F4;
+    border: 1px solid #FFD9E2;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.alertHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alertValue {
+    font-size: 16px;
+    font-weight: 800;
+    color: #333;
+}
+
+.alertAction {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+}
+
+.checkIconActive {
+    color: #E9315D;
+    font-size: 16px;
+}
+
+.alertSub {
+    font-size: 12px;
+    color: #888;
+}
+
+.alertSmall {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+.globalInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.combinedInput {
+    display: flex;
+    background: #f9f9f9;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.miniInput {
+    width: 60%;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    outline: none;
+}
+
+.miniSelect {
+    width: 40%;
+    padding: 10px;
+    border: none;
+    background: #f0f0f0;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+.balanceText {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+}
+
+.breakdownContainer {
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.breakdownHeader {
+    padding: 12px 16px;
+    background: #fcfcfc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.breakdownTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+.breakdownContent {
+    padding: 16px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.breakdownRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #666;
+}
+
+.breakdownDivider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 0;
+}
+
+.breakdownRowBold {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 800;
+    color: #000;
+}
+
+.statusGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.statusBadge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+    border: 1px solid transparent;
+}
+
+.statusBadgeActive {
+    background: #fff;
+    border-color: #eee;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    color: #000;
+    font-weight: 600;
+}
+
+.statusBadgeActive .radioCircle {
+    background: #E9315D;
+    border-color: #E9315D;
+}
+
+.radioCircle {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.sidebarActions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.saveBtn {
+    padding: 14px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn {
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+@media (max-width: 1200px) {
+    .container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+    }
+}

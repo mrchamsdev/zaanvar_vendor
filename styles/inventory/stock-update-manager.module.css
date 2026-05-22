@@ -1,0 +1,228 @@
+.taskManager {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.3s, backdrop-filter 0.3s;
+}
+
+.minimizedMode {
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+    justify-content: flex-end;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.tabBar {
+    background: #fff;
+    padding: 10px 20px 0 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    border-bottom: 2px solid #f1f1f1;
+    flex-shrink: 0;
+}
+
+.tab {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+    font-size: 14px;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #eee;
+    border-bottom: none;
+    transition: all 0.2s;
+    min-width: 150px;
+    justify-content: space-between;
+}
+
+.tabActive {
+    background: #fff;
+    color: #E9315D;
+    font-weight: 600;
+    border-top: 3px solid #E9315D;
+}
+
+.tabClose {
+    opacity: 0.4;
+    cursor: pointer;
+}
+
+.tabClose:hover {
+    opacity: 1;
+}
+
+.addTabBtn {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    border: none;
+    background: #f1f1f1;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.windowActions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+    padding-bottom: 10px;
+}
+
+.windowActionIcon {
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+.windowActionIcon:hover {
+    opacity: 1;
+}
+
+.formContent {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+    display: flex;
+}
+
+.splitMode {
+    gap: 20px;
+    padding: 0 10px;
+    background: #f8f9fa;
+}
+
+.formWrapper {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.managerHeader {
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    background: #fff;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.minimizedBar {
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px;
+    gap: 15px;
+    height: 60px;
+    flex-shrink: 0;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    border-top: 1px solid #eee;
+    pointer-events: auto;
+}
+
+.minimizedItem {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    min-width: 200px;
+    justify-content: space-between;
+}
+
+.minimizedTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #444;
+}
+
+.minimizedActions {
+    display: flex;
+    gap: 8px;
+}
+
+.minimizedActionBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 2px;
+    display: flex;
+}
+
+.minimizedActionBtn:hover {
+    opacity: 1;
+}
+
+.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888;
+    background: #fcfcfc;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .tabBar {
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .tab {
+        padding: 8px 12px;
+        min-width: 120px;
+        font-size: 13px;
+    }
+
+    .managerHeader {
+        padding: 12px 16px;
+        font-size: 16px;
+    }
+
+    .splitMode {
+        flex-direction: column;
+        padding: 0;
+        gap: 0;
+    }
+
+    .formWrapper {
+        box-shadow: none;
+        border-bottom: 1px solid #eee;
+    }
+
+    .minimizedBar {
+        height: 50px;
+        padding: 0 10px;
+        gap: 10px;
+    }
+
+    .minimizedItem {
+        min-width: 140px;
+        padding: 6px 12px;
+    }
+}

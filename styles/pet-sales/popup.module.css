@@ -1,0 +1,59 @@
+/* Overlay (fullscreen background) */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* width: 100%;
+  height: 100%; */
+
+  background-color: #ffffff;
+  z-index: 9999;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  overflow-y: auto;
+
+  /* smooth scroll for mobile */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inner container */
+.popupContainer {
+  /* width: clamp(320px, 95%, 1200px); */
+  /* margin: calc(10px + 1vh) auto; */
+
+  display: flex;
+  justify-content: center;
+}
+
+/* Optional: add subtle shadow/card feel */
+/* .popupCard {
+  width: 100%;
+  border-radius: clamp(8px, 1vw, 16px);
+  background: #fff; */
+
+  /* soft shadow */
+  /* box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+
+  padding: clamp(10px, 2vw, 24px);
+} */
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+  .popupOverlay {
+    align-items: flex-start; /* better scroll */
+  }
+
+  .popupContainer {
+    width: 100%;
+    margin: 0;
+  }
+
+  .popupCard {
+    border-radius: 0; /* full screen feel */
+  }
+}
+
+/* Extra small devices */

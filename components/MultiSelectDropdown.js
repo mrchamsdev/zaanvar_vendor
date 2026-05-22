@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "../styles/multiSelectDropdown.module.css";
 import { FaTimes } from "react-icons/fa";
+import { FiChevronDown } from "react-icons/fi";
 
 const MultiSelectDropdown = ({
   listItems = [],         // [{ id, name }]
@@ -93,7 +94,9 @@ const MultiSelectDropdown = ({
             <span className={styles["placeholder"]}>Select options...</span>
           )}
         </div>
-        <span className={styles["arrow"]}>&#9662;</span>
+        <span className={`${styles["arrow"]} ${isOpen ? styles["arrow-open"] : ""}`}>
+          <FiChevronDown />
+        </span>
       </div>
 
       {/* Dropdown Menu */}

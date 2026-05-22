@@ -67,54 +67,63 @@ const DropDownv1 = ({
           </React.Fragment>
         ))}
       </p>
-      <select
-        style={{
-          backgroundColor: backgroundColor,
-          width: "100%",
-          border: "1px solid rgb(217, 217, 217)",
-          padding: "10px",
-          paddingRight: "40px",
-          appearance: "none",
-          WebkitAppearance: "none",
-          MozAppearance: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          opacity: disabled ? 0.6 : 1,
-          marginTop: custommarrgin?.marginTop,
-        }}
-        value={disabled ? "Disabled" : value}
-        onChange={handleChange}
-        disabled={disabled}
-      >
-        {/* Render options */}
-        {/* {options?.map((option) => (
-                    <option key={option} value={option}>
-                        {option}
-                    </option>
-                ))} */}
-
-        {[...new Set(options)]?.map((option) => (
-          <option key={option} value={option}>
-            {option} 
-          </option>
-        ))}
-      </select>
-      {/* Show error message if value is 'select' or empty */}
+      <div style={{ position: "relative", width: "100%" }}>
+        <select
+          style={{
+            backgroundColor: backgroundColor,
+            width: "100%",
+            border: "1px solid rgb(217, 217, 217)",
+            padding: "10px",
+            paddingRight: "40px",
+            appearance: "none",
+            WebkitAppearance: "none",
+            MozAppearance: "none",
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.6 : 1,
+            marginTop: custommarrgin?.marginTop,
+          }}
+          value={disabled ? "Disabled" : value}
+          onChange={handleChange}
+          disabled={disabled}
+        >
+          {[...new Set(options)]?.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <div 
+          style={{ 
+            position: "absolute", 
+            right: "15px", 
+            top: "50%", 
+            transform: "translateY(-50%)", 
+            pointerEvents: "none",
+            color: "#666",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center"
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
       {(value === "select" || value === "") && error && (
         <span
           style={{
             color: "red",
             fontSize: "0.875rem",
-            justifyContent: "center",
-            alignItems: "center",
-            // textAlign: "center",
             marginTop: "5px",
-            // marginLeft: "50px",
+            display: "block"
           }}
         >
           {error}
         </span>
       )}
     </div>
+
   );
 };
 

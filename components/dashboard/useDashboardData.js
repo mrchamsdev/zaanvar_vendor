@@ -16,7 +16,7 @@ import useStore from "../state/useStore";
 import { WebApimanager } from "../utilities/WebApiManager";
 
 /* ── helpers ────────────────────────────────────────────── */
-const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 function normaliseTiming(timings) {
   if (!timings) return null;
@@ -24,7 +24,7 @@ function normaliseTiming(timings) {
   DAYS.forEach((d) => {
     const slot = timings[d];
     out[d] = {
-      open:  slot?.open  || "closed",
+      open: slot?.open || "closed",
       close: slot?.close || "closed",
     };
   });
@@ -34,15 +34,16 @@ function normaliseTiming(timings) {
 /* ═══════════════════════════════════════════════════════════
  * Hook
  * ═══════════════════════════════════════════════════════════ */
-export default function useDashboardData() {
+export default function useDashboardData(options = {}) {
+  const { skipReviews = true } = options;
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId } = useStore();
 
   /* ── supplementary state ── */
-  const [reviews,        setReviews]        = useState([]);
-  const [ratings,        setRatings]        = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [ratings, setRatings] = useState(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError,   setReviewsError]   = useState(null);
+  const [reviewsError, setReviewsError] = useState(null);
 
   /* ── redirect to login when not authenticated ── */
   useEffect(() => {
@@ -53,25 +54,56 @@ export default function useDashboardData() {
   }, [_hasHydrated, jwtToken, userInfo]);
 
   /* ── derive vendor shape from stored userInfo ── */
-  const vendor     = userInfo || null;
-  const companies  = vendor?.vendorCompanies || [];
-  const company    = companies[0] || null;
-  const branches   = company?.branches || [];
-  const branch     = branches[0] || null;
-  const timings    = normaliseTiming(branch?.timings);
+  const vendor = userInfo || null;
+  const companies = vendor?.vendorCompanies || [];
+  const company = companies[0] || null;
+  // Robust companyId extraction: try compId, id, and companyId from company or vendor
+  const companyId = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
 
-  const branchId   = vendor?.branchId || branch?.id || null;
-  const companyId  = company?.compId  || null;
+  const [apiBranches, setApiBranches] = useState(null);
+
+  useEffect(() => {
+    if (!jwtToken || !companyId) return;
+    const webApi = new WebApimanager(jwtToken);
+    webApi.get(`branches/getBranchesByCompany/${companyId}`)
+      .then((res) => {
+        const data = res?.data?.data || res?.data || res;
+        if (Array.isArray(data)) {
+          // Ensure every branch has an 'id' field for consistency
+          const mapped = data.map(b => ({
+            ...b,
+            id: b.id || b._id || b.branchId
+          }));
+          setApiBranches(mapped);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch branches by company:", err));
+  }, [jwtToken, companyId]);
+
+  const branches = apiBranches || company?.branches || [];
+
+  // Set default branch if none selected
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranchId) {
+      setSelectedBranchId(branches[0].id || branches[0]._id);
+    }
+  }, [branches, selectedBranchId, setSelectedBranchId]);
+
+  const currentBranchId = selectedBranchId || branches[0]?.id || vendor?.branchId || null;
+  const branch = branches.find(b => b.id === currentBranchId) || branches[0] || null;
+  const timings = normaliseTiming(branch?.timings);
+
+  const branchId = currentBranchId;
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken || !branchId || skipReviews) return;
 
     const webApi = new WebApimanager(jwtToken);
     setReviewsLoading(true);
 
     webApi
-      .get(`vendorUser/getReviews/${branchId}`)
+      .get(`vendor-reviews/branch/${branchId}`)
       .then((res) => {
         const data = res?.data || res;
         const list = data?.reviews || data?.data || data || [];
@@ -86,12 +118,12 @@ export default function useDashboardData() {
         setReviewsError(err?.message || "Failed");
       })
       .finally(() => setReviewsLoading(false));
-  }, [jwtToken, branchId]);
+  }, [jwtToken, branchId, skipReviews]);
 
   return {
     /* ── auth / hydration ── */
-    isHydrated:    _hasHydrated,
-    isLoading:     !_hasHydrated,
+    isHydrated: _hasHydrated,
+    isLoading: !_hasHydrated,
 
     /* ── vendor data (from Zustand / login response) ── */
     vendor,
@@ -101,6 +133,8 @@ export default function useDashboardData() {
     branches,
     timings,
     branchId,
+    selectedBranchId: branchId,
+    setSelectedBranchId,
     companyId,
 
     /* ── supplementary (API) ── */

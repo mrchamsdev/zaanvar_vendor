@@ -23,7 +23,7 @@ const PetForm = ({
   console.log(userInfo, "currentUsercurrentUser");
   // setData Here
   const [formData, setFormData] = useState(() => ({
-    petType: initialData?.petType || "",
+    petType: typeof initialData?.petType === 'object' ? initialData.petType?.petType : (initialData?.petType || ""),
     petBreed: initialData?.breed || "",
     age: initialData?.petAge || "",
     color: initialData?.color || "",

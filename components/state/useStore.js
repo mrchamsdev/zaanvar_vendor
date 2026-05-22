@@ -165,6 +165,7 @@ const useStore = create(
       lng: null,
 
       sellerLogos: [],
+      selectedBranchId: null,
       // Settings UI state
       activeTab: "Notifications",
       showMobSettings: true,
@@ -181,6 +182,7 @@ const useStore = create(
         'genieFilters_bird-names': { petname: "", gender: "", Theme: "", letters: [] },
         'genieFilters_small-pets-names': { petname: "", gender: "", Theme: "", letters: [] },
       },
+      expandedMenus: {},
 
       // Setters
       setLocation: (lat, lng) => set({ lat, lng }),
@@ -216,6 +218,7 @@ const useStore = create(
         set({ selectedLocation: locationLabel }),
       // ✅ Add setter for findMatchesStoredId
       setFindMatchesStoredId: (id) => set({ findMatchesStoredId: id }),
+      setSelectedBranchId: (id) => set({ selectedBranchId: id }),
       setSellerLogos: (logos) => set({ sellerLogos: logos }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setShowMobSettings: (show) => set({ showMobSettings: show }),
@@ -224,6 +227,10 @@ const useStore = create(
       setBreedFilter: (filter) => set({ breedFilter: filter }),
       getBreedFilter: () => get().breedFilter,
       getSelectedPet: () => get().selectedPet,
+      getSelectedBranchId: () => get().selectedBranchId,
+      setExpandedMenus: (valOrFn) => set((state) => ({
+        expandedMenus: typeof valOrFn === 'function' ? valOrFn(state.expandedMenus) : valOrFn
+      })),
 
       // PetGenie setters/getters - now supports page-specific filters
       setGenieFilters: (filters) =>
@@ -303,6 +310,8 @@ const useStore = create(
           isNotificationOpen: false,
           isSettingsDetailOpen: false,
           genieFilters: { petname: "", gender: "", Theme: "", letters: [] },
+          selectedBranchId: null,
+          expandedMenus: {},
         }),
 
     }),
@@ -335,6 +344,8 @@ const useStore = create(
         sellerLogos: state.sellerLogos,
         // settings UI state is not persisted (session-only)
         genieFilters: state.genieFilters,
+        selectedBranchId: state.selectedBranchId,
+        expandedMenus: state.expandedMenus,
       }),
     }
   )

@@ -126,11 +126,11 @@ const ViewProduct = ({ product, onClose }) => {
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Category</span>
-              <span className={styles.metaValue}>{product.category?.name || "Bottles"}</span>
+              <span className={styles.metaValue}>{product.category?.category || product.category?.name || "Bottles"}</span>
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Sub-Category</span>
-              <span className={styles.metaValue}>{product.subCategory?.name || "Liters"}</span>
+              <span className={styles.metaValue}>{product.subCategory?.subCategory || product.subCategory?.name || "Liters"}</span>
             </div>
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Pet Type</span>
@@ -195,27 +195,48 @@ const ViewProduct = ({ product, onClose }) => {
             </div>
 
             <div className={styles.statsSection}>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Total :</span>
-                <span className={styles.statValue}>000000</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Available products :</span>
-                <span className={styles.statValue}>000000</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Soldout products :</span>
-                <span className={styles.statValue}>000000</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Open Stock products :</span>
-                <span className={styles.statValue}>000000</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Damaged products :</span>
-                <span className={styles.statValue}>000000</span>
-              </div>
+              {(() => {
+                const variants = product.variants || [];
+                const totalQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.totalQuantity || v.stockQty || 0), 0);
+                const availableQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.qtyForSale || v.stockQty || 0), 0);
+                const onHoldQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0), 0);
+                const openStockQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.openStockQuantity || v.openingStock || 0), 0);
+                const damagedQty = variants.reduce((sum, v) => sum + (v.damagedQty || 0), 0);
+                const soldQty = variants.reduce((sum, v) => sum + (v.soldQty || 0), 0);
+
+                return (
+                  <>
+                    <div className={styles.statRow}>
+                      <span className={styles.statLabel}>Total :</span>
+                      <span className={styles.statValue}>{String(totalQty).padStart(6, '0')}</span>
+                    </div>
+                    <div className={styles.statRow}>
+                      <span className={styles.statLabel}>Available products :</span>
+                      <span className={styles.statValue}>{String(availableQty).padStart(6, '0')}</span>
+                    </div>
+                    <div className={styles.statRow}>
+                      <span className={styles.statLabel}>Soldout products :</span>
+                      <span className={styles.statValue}>{String(soldQty).padStart(6, '0')}</span>
+                    </div>
+                    <div className={styles.statRow}>
+                      <span className={styles.statLabel}>Open Stock products :</span>
+                      <span className={styles.statValue}>{String(openStockQty).padStart(6, '0')}</span>
+                    </div>
+                    <div className={styles.statRow}>
+                      <span className={styles.statLabel}>Damaged products :</span>
+                      <span className={styles.statValue}>{String(damagedQty).padStart(6, '0')}</span>
+                    </div>
+                    {onHoldQty > 0 && (
+                      <div className={styles.statRow}>
+                        <span className={styles.statLabel}>On Hold products :</span>
+                        <span className={styles.statValue} style={{color: '#E9315D'}}>{String(onHoldQty).padStart(6, '0')}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
+
           </div>
         </div>
 

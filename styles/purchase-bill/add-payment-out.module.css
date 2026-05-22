@@ -1,0 +1,254 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    z-index: 2000;
+    overflow-y: auto;
+}
+
+.modal {
+    background: #fff;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    padding: 16px 40px;
+    background: #F8F9FA;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.modalContent {
+    padding: 32px 60px;
+    flex: 1;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #fff;
+}
+
+.topRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 32px;
+}
+
+.gridRow {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+}
+
+.input {
+    padding: 12px 16px;
+    border: none;
+    background: #F9F9F9;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    color: #333;
+    width: 300px;
+    box-sizing: border-box;
+}
+
+
+.select {
+    padding: 12px 36px 12px 16px;
+    border: none;
+    background: #F9F9F9;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    color: #333;
+    width: 330px;
+    box-sizing: border-box;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.textarea {
+    padding: 12px 16px;
+    border: none;
+    background: #F9F9F9;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    color: #333;
+    width: 664px;
+    min-height: 44px;
+}
+
+.input::placeholder {
+    color: #999;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    border-color: #E9315D;
+    background: #fff;
+}
+
+.readOnly {
+    background: #F9F9F9;
+    color: #666;
+}
+
+.paymentEntry {
+    margin-bottom: 24px;
+}
+
+.addPaymentLink {
+    color: #E9315D;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 16px 0;
+    text-transform: uppercase;
+}
+
+.imageUpload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #F9F9F9;
+    padding: 4px;
+    border-radius: 8px;
+    width: fit-content;
+    width: 690px;
+}
+
+.uploadTrigger {
+    background: #666;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.modalFooter {
+    padding: 24px 60px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 20px;
+    background: #fff;
+    position: sticky;
+    bottom: 0;
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.cancelBtn {
+    padding: 10px 32px;
+    border: 1px solid #E0E0E0;
+    background: #fff;
+    color: #333;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: #f9f9f9;
+    border-color: #d0d0d0;
+}
+
+.shareBtn {
+    padding: 10px 40px;
+    border: 1px solid #333;
+    background: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.saveBtn {
+    padding: 10px 40px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.miniRemove {
+    padding: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.miniRemove:hover {
+    background: #fdf2f2;
+    color: #e9315d;
+    border-color: #e9315d;
+}
+
+.closeBtn {
+    display: none; /* In full page view we might not need it or move it */
+}
+
+.inputError {
+    border: 1px solid #E9315D !important;
+    background: #FFF5F7 !important;
+}
+
+.errorText {
+    color: #E9315D;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
