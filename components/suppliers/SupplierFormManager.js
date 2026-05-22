@@ -34,18 +34,24 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
 
   const [tabs, setTabs] = useState(() => {
     if (Array.isArray(initialData) && initialData.length > 0) {
-      return initialData.map((s, idx) => ({
-        id: String(idx + 1),
-        title: s.supplierName || `Edit Supplier ${idx + 1}`,
-        isMinimized: false,
-        data: s,
-        mode: mode
-      }));
+      return initialData.map((s, idx) => {
+        const defaultTitle = s.supplierName || `Edit Supplier ${idx + 1}`;
+        return {
+          id: String(idx + 1),
+          title: defaultTitle,
+          defaultTitle: defaultTitle,
+          isMinimized: false,
+          data: s,
+          mode: mode
+        };
+      });
     }
+    const defaultTitle = initialData?.supplierName || (mode === "Add" ? 'Supplier 1' : 'Edit Supplier');
     return [
       { 
         id: '1', 
-        title: initialData?.supplierName || (mode === "Add" ? 'Supplier 1' : 'Edit Supplier'), 
+        title: defaultTitle, 
+        defaultTitle: defaultTitle,
         isMinimized: false, 
         data: initialData || {},
         mode: mode
@@ -59,10 +65,31 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
 
   const addTab = () => {
     const newId = String(Date.now());
-    const newTab = { id: newId, title: `Supplier ${tabs.length + 1}`, isMinimized: false, data: {}, mode: "Add" };
+    const defaultTitle = `Supplier ${tabs.length + 1}`;
+    const newTab = { 
+      id: newId, 
+      title: defaultTitle, 
+      defaultTitle: defaultTitle,
+      isMinimized: false, 
+      data: {}, 
+      mode: "Add" 
+    };
     setTabs([...tabs, newTab]);
     setActiveTabId(newId);
     if (splitMode && !splitTabIds[1]) setSplitTabIds([splitTabIds[0], newId]);
+  };
+
+  const updateTabData = (id, newData) => {
+    setTabs(prev => prev.map(t => {
+      if (t.id === id) {
+        return {
+          ...t,
+          title: newData.supplierName || t.defaultTitle,
+          data: newData
+        };
+      }
+      return t;
+    }));
   };
 
   const closeTab = (id, e) => {
@@ -127,7 +154,13 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
                 {activeTab.mode === "View" ? (
                   <SupplierView key={`view-${activeTab.id}`} data={activeTab.data} onBack={() => closeTab(activeTab.id)} isSplit={splitMode} />
                 ) : (
-                  <SupplierForm key={`form-${activeTab.id}`} initialData={activeTab.data} onSave={() => closeTab(activeTab.id)} onBack={() => closeTab(activeTab.id)} />
+                  <SupplierForm 
+                    key={`form-${activeTab.id}`} 
+                    initialData={activeTab.data} 
+                    onChange={(newData) => updateTabData(activeTab.id, newData)}
+                    onSave={() => closeTab(activeTab.id)} 
+                    onBack={() => closeTab(activeTab.id)} 
+                  />
                 )}
               </div>
             ) : (
@@ -143,7 +176,13 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
                             {tab.mode === "View" ? (
                               <SupplierView key={`view-${tab.id}`} data={tab.data} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} isSplit={splitMode} />
                             ) : (
-                              <SupplierForm key={`form-${tab.id}`} initialData={tab.data} onSave={() => closeTab(tab.id)} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} />
+                              <SupplierForm 
+                                key={`form-${tab.id}`} 
+                                initialData={tab.data} 
+                                onChange={(newData) => updateTabData(tab.id, newData)}
+                                onSave={() => closeTab(tab.id)} 
+                                onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} 
+                              />
                             )}
                           </>
                         );

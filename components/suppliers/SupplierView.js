@@ -65,8 +65,8 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <tr><td colSpan="6" className={styles.noData}>No data available</td></tr>
                     ) : (
                         purchaseOrders.map((t, idx) => (
-                            <tr 
-                                key={idx} 
+                            <tr
+                                key={idx}
                                 className={styles.trClickable}
                                 onClick={() => setManagerConfig({ mode: "View", id: t.productsPurchaseRqstID })}
                             >
@@ -146,7 +146,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         {/* Left Section: Info */}
                         <div className={styles.infoSection}>
                             <h2 className={styles.supplierName}>{supplier?.supplierName || "NAVYA"}</h2>
-                            
+
                             <div className={styles.infoGrid}>
                                 <div>
                                     <p className={styles.infoValue}>
@@ -172,23 +172,23 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Right Section: Statistics Card */}
                         <div className={`${styles.statsCard} ${isSplit ? styles.statsCardSplit : ""}`}>
                             <h4 className={styles.statsTitle}>Statistics</h4>
                             <div className={styles.statsGrid}>
                                 <div>
                                     <p className={styles.infoValue}>{supplier?.purchaseOrders?.length || 0}</p>
-                                    <p className={styles.infoLabel}>Total order Volume</p>
+                                    <p className={styles.infoLabel}>Total order </p>
                                 </div>
                                 <div>
                                     <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBillAmount || "0.00"}</p>
                                     <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue} style={{ 
-                                        color: Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' : 
-                                               Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : 'inherit'
+                                    <p className={styles.infoValue} style={{
+                                        color: Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' :
+                                            Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : 'inherit'
                                     }}>
                                         ₹ {Math.abs(Number(supplier?.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
@@ -204,7 +204,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
 
                     <div className={styles.tabContainer}>
                         {["Purchase Orders", "Payment History"].map(tab => (
-                            <button 
+                            <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`${styles.tabBtn} ${activeTab === tab ? styles.tabBtnActive : ""}`}
@@ -218,7 +218,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <div className={styles.contentHeader}>
                             <h3 className={styles.statsTitle}>{activeTab}</h3>
                             {(activeTab === "Purchase Orders" ? purchaseOrders.length > 0 : paymentHistory.length > 0) && (
-                                <button 
+                                <button
                                     onClick={() => {
                                         const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
                                         if (pendingBill) {
@@ -237,8 +237,8 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>
-                    
-                    <PayNowModal 
+
+                    <PayNowModal
                         isOpen={isPayNowModalOpen}
                         onClose={() => setIsPayNowModalOpen(false)}
                         onRefresh={fetchData}
@@ -249,7 +249,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     />
 
                     {managerConfig && (
-                        <PurchaseOrderManager 
+                        <PurchaseOrderManager
                             mode={managerConfig.mode}
                             initialId={managerConfig.id}
                             initialData={managerConfig.initialData}
@@ -260,7 +260,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                             onClose={() => {
                                 setManagerConfig(null);
                                 fetchData();
-                            }} 
+                            }}
                         />
                     )}
                 </>

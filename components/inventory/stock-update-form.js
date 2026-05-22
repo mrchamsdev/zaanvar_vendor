@@ -198,7 +198,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     
     // Default source status to empty
     newRows[index].sourceStatus = "";
-    newRows[index].currentQty = 0;
+    newRows[index].batchNumber = "";
+    newRows[index].currentQty = variant.stockUpdates?.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
     
     newRows[index].costPrice = variant.costPrice || 0;
     newRows[index].expiryDate = variant.expiryDate?.split('T')[0] || "";
@@ -222,12 +223,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     newRows[index].productId = product.productId;
     newRows[index].productName = product.productName;
     newRows[index].productCode = product.ProductCode || "";
+    newRows[index].sourceStatus = "";
+    newRows[index].batchNumber = "";
     
     // Default to first variant if exists
     if (product.variants?.length > 0) {
         const v = product.variants[0];
         newRows[index].variantId = v.variantId;
-        newRows[index].currentQty = v.currentQty || v.stockQty || 0;
+        newRows[index].currentQty = v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.stockQty ?? 0;
         newRows[index].costPrice = v.costPrice || 0;
         newRows[index].expiryDate = v.expiryDate?.split('T')[0] || "";
     }
@@ -260,7 +263,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             } else if (value === "Hold Qty") {
                 newRows[index].currentQty = stockData.onHoldQuantity || 0;
             } else {
-                newRows[index].currentQty = 0;
+                newRows[index].currentQty = stockData.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
             }
         }
     }
@@ -276,14 +279,28 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     }
     
     // Handle batch selection to update expiry date
-    if (field === 'batchNumber' && value) {
+    if (field === 'batchNumber') {
         const product = products.find(p => p.productId === newRows[index].productId);
         const variant = product?.variants?.find(v => v.variantId === parseInt(newRows[index].variantId));
-        const batch = variant?.batchNumbers?.find(b => b.batchNumber === value);
-        if (batch) {
-            newRows[index].expiryDate = batch.expiryDate?.split('T')[0] || "";
-            if (batch.costPrice) newRows[index].costPrice = batch.costPrice;
-            if (batch.quantity !== undefined) newRows[index].currentQty = batch.quantity;
+        if (value) {
+            const batch = variant?.batchNumbers?.find(b => b.batchNumber === value);
+            if (batch) {
+                newRows[index].expiryDate = batch.expiryDate?.split('T')[0] || "";
+                if (batch.costPrice) newRows[index].costPrice = batch.costPrice;
+                if (batch.quantity !== undefined) newRows[index].currentQty = batch.quantity;
+            }
+        } else {
+            // Revert to sourceStatus quantity or total quantity
+            const stockData = variant?.stockUpdates || {};
+            if (newRows[index].sourceStatus === "Open Stock") {
+                newRows[index].currentQty = stockData.openStockQuantity || 0;
+            } else if (newRows[index].sourceStatus === "Hold Qty") {
+                newRows[index].currentQty = stockData.onHoldQuantity || 0;
+            } else {
+                newRows[index].currentQty = stockData.totalQuantity ?? variant?.currentQty ?? variant?.stockQty ?? 0;
+            }
+            newRows[index].expiryDate = variant?.expiryDate?.split('T')[0] || "";
+            if (variant?.costPrice) newRows[index].costPrice = variant.costPrice;
         }
     }
 

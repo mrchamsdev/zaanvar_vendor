@@ -157,6 +157,7 @@ const ProductForm = ({
     initialData?.branchId || globalBranchId || userInfo?.branchId || 91,
   );
   const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
+  const isEdit = !!initialData?.productId;
 
   // console.log("ProductForm component rendering", { initialData, propType });
 
@@ -967,13 +968,15 @@ const ProductForm = ({
       <div className={styles.tabs} style={{ marginBottom: 32 }}>
         <button
           className={`${styles.tab} ${productType === "Retail" ? styles.tabActive : ""}`}
-          onClick={() => setProductType("Retail")}
+          onClick={() => !isEdit && setProductType("Retail")}
+          disabled={isEdit}
         >
           Retail Product
         </button>
         <button
           className={`${styles.tab} ${productType === "Medical" ? styles.tabActive : ""}`}
-          onClick={() => setProductType("Medical")}
+          onClick={() => !isEdit && setProductType("Medical")}
+          disabled={isEdit}
         >
           Medical Products
         </button>
@@ -991,6 +994,7 @@ const ProductForm = ({
             placeholder="Enter Product Name"
             className={formErrors.productName ? styles.errorField : ""}
             value={productName}
+            disabled={isEdit}
             onChange={(e) => {
               setProductName(e.target.value);
               if (formErrors.productName) {
@@ -1010,6 +1014,7 @@ const ProductForm = ({
             type="text"
             placeholder="Enter Brand Name"
             value={brand}
+            disabled={isEdit}
             onChange={(e) => setBrand(e.target.value)}
           />
         </div>
@@ -1023,6 +1028,7 @@ const ProductForm = ({
                 <select
                   className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
                   value={category}
+                  disabled={isEdit}
                   onChange={(e) => {
                     setCategory(e.target.value);
                     if (formErrors.category) {
@@ -1052,6 +1058,7 @@ const ProductForm = ({
               <select
                 className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
                 value={category}
+                disabled={isEdit}
                 onChange={(e) => {
                   setCategory(e.target.value);
                   setSubCategory("");
@@ -1168,9 +1175,10 @@ const ProductForm = ({
                   "productCode",
                 )
               }
-              readOnly={!!initialData?.productId}
+              readOnly={isEdit}
+              disabled={isEdit}
             />
-            {!initialData?.productId && (
+            {!isEdit && (
               <button
                 className={styles.pageBtn}
                 style={{ background: "#eee", whiteSpace: "nowrap" }}
@@ -1196,6 +1204,7 @@ const ProductForm = ({
             type="text"
             placeholder="Enter GST(%)"
             value={gst}
+            disabled={isEdit}
             onChange={(e) => setGst(e.target.value)}
           />
         </div>
@@ -1208,6 +1217,7 @@ const ProductForm = ({
             placeholder="Enter HSN Code"
             className={formErrors.hsnCode ? styles.errorField : ""}
             value={hsnCode}
+            disabled={isEdit}
             onChange={(e) =>
               handleNumericInput(e.target.value, setHsnCode, 8, "hsnCode")
             }
@@ -1227,21 +1237,23 @@ const ProductForm = ({
         }}
       >
         Variants
-        <div className={styles.variantActions}>
-          <button
-            className={styles.pageBtn}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              padding: "6px 16px",
-            }}
-            onClick={addVariant}
-          >
-            <IconPlus /> Add Variant
-          </button>
-        </div>
+        {!isEdit && (
+          <div className={styles.variantActions}>
+            <button
+              className={styles.pageBtn}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                padding: "6px 16px",
+              }}
+              onClick={addVariant}
+            >
+              <IconPlus /> Add Variant
+            </button>
+          </div>
+        )}
       </div>
 
       {variants.map((variant, index) => {
@@ -1259,23 +1271,25 @@ const ProductForm = ({
               <div style={{ fontWeight: 600, fontSize: 14, color: "#666" }}>
                 Variant #{index + 1}
               </div>
-              <div className={styles.variantActions}>
-                <span
-                  className={styles.windowActionIcon}
-                  onClick={() => console.log("Scan triggered")}
-                  title="Scan Barcode"
-                >
-                  <IconScan />
-                </span>
-                <span
-                  className={styles.windowActionIcon}
-                  style={{ color: "#ff4d4f" }}
-                  onClick={() => removeVariant(index)}
-                  title="Remove Variant"
-                >
-                  <IconTrash />
-                </span>
-              </div>
+              {!isEdit && (
+                <div className={styles.variantActions}>
+                  <span
+                    className={styles.windowActionIcon}
+                    onClick={() => console.log("Scan triggered")}
+                    title="Scan Barcode"
+                  >
+                    <IconScan />
+                  </span>
+                  <span
+                    className={styles.windowActionIcon}
+                    style={{ color: "#ff4d4f" }}
+                    onClick={() => removeVariant(index)}
+                    title="Remove Variant"
+                  >
+                    <IconTrash />
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className={styles.inputGrid}>
@@ -1287,6 +1301,7 @@ const ProductForm = ({
                       type="text"
                       placeholder="Tablet"
                       value={variant.drugType || ""}
+                      disabled={isEdit}
                       onChange={(e) =>
                         updateVariant(index, "drugType", e.target.value)
                       }
@@ -1299,12 +1314,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="Enter strength"
                         value={variant.strength || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "strength", e.target.value)
                         }
                       />
                       <select
                         value={variant.unitType || "ml"}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "unitType", e.target.value)
                         }
@@ -1328,6 +1345,7 @@ const ProductForm = ({
                     <select
                       className={`${!variant.packType ? styles.placeholderSelect : ""} ${formErrors[`${index}_packType`] ? styles.errorField : ""}`}
                       value={variant.packType || ""}
+                      disabled={isEdit}
                       onChange={(e) =>
                         updateVariant(index, "packType", e.target.value)
                       }
@@ -1357,6 +1375,7 @@ const ProductForm = ({
                           type="text"
                           placeholder="Enter count"
                           value={variant.packCount || ""}
+                          disabled={isEdit}
                           onChange={(e) =>
                             updateVariant(index, "packCount", e.target.value)
                           }
@@ -1390,6 +1409,7 @@ const ProductForm = ({
                     </label>
                     <select
                       value={variant.size || ""}
+                      disabled={isEdit}
                       onChange={(e) =>
                         updateVariant(index, "size", e.target.value)
                       }
@@ -1423,12 +1443,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.height || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "height", e.target.value)
                         }
                       />
                       <select
                         value={variant.heightUnit || "mm"}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "heightUnit", e.target.value)
                         }
@@ -1448,12 +1470,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.width || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "width", e.target.value)
                         }
                       />
                       <select
                         value={variant.widthUnit || "mm"}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "widthUnit", e.target.value)
                         }
@@ -1473,12 +1497,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.length || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "length", e.target.value)
                         }
                       />
                       <select
                         value={variant.lengthUnit || "mm"}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "lengthUnit", e.target.value)
                         }
@@ -1498,12 +1524,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.radius || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "radius", e.target.value)
                         }
                       />
                       <select
                         value={variant.radiusUnit || "mm"}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "radiusUnit", e.target.value)
                         }
@@ -1533,12 +1561,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="Enter Unit Measure"
                         value={variant.unitMeasure || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "unitMeasure", e.target.value)
                         }
                       />
                       <select
                         value={variant.unitType || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "unitType", e.target.value)
                         }
@@ -1568,6 +1598,7 @@ const ProductForm = ({
                     formErrors[`${index}_eanUpc`] ? styles.errorField : ""
                   }
                   value={variant.eanUpc || ""}
+                  disabled={isEdit}
                   onChange={(e) =>
                     updateVariantNumeric(index, "eanUpc", e.target.value, 13)
                   }
@@ -1599,9 +1630,10 @@ const ProductForm = ({
                         6,
                       )
                     }
-                    readOnly={!!initialData?.productId}
+                    readOnly={isEdit}
+                    disabled={isEdit}
                   />
-                  {!initialData?.productId && (
+                  {!isEdit && (
                     <button
                       className={styles.pageBtn}
                       style={{ background: "#eee", whiteSpace: "nowrap" }}
@@ -1715,6 +1747,7 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.variantDescription || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(
                             index,
@@ -1733,6 +1766,7 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.composition || ""}
+                        disabled={isEdit}
                         onChange={(e) =>
                           updateVariant(index, "composition", e.target.value)
                         }
@@ -1749,6 +1783,7 @@ const ProductForm = ({
                     <textarea
                       placeholder="Type here"
                       value={variant.variantDescription || ""}
+                      disabled={isEdit}
                       onChange={(e) =>
                         updateVariant(
                           index,
@@ -1777,29 +1812,34 @@ const ProductForm = ({
                       multiple
                       accept="image/*"
                       style={{ display: "none" }}
+                      disabled={isEdit}
                     />
-                    <div
-                      className={styles.uploadItem}
-                      onClick={() => fileInputsRef.current[index]?.click()}
-                    >
-                      <div style={{ fontSize: 24, marginBottom: 8 }}>+</div>
-                      <span style={{ fontSize: 12, color: "#999" }}>
-                        Tap to Select Photo
-                      </span>
-                    </div>
+                    {!isEdit && (
+                      <div
+                        className={styles.uploadItem}
+                        onClick={() => fileInputsRef.current[index]?.click()}
+                      >
+                        <div style={{ fontSize: 24, marginBottom: 8 }}>+</div>
+                        <span style={{ fontSize: 12, color: "#999" }}>
+                          Tap to Select Photo
+                        </span>
+                      </div>
+                    )}
                     {(variant.images || []).map((img, imgIdx) => (
                       <div key={imgIdx} className={styles.imagePreview}>
                         <img
                           src={img.preview}
                           alt={`Variant ${index} Img ${imgIdx}`}
                         />
-                        <button
-                          className={styles.removeImageBtn}
-                          onClick={(e) => removeImage(e, index, imgIdx)}
-                          title="Remove Image"
-                        >
-                          ✕
-                        </button>
+                        {!isEdit && (
+                          <button
+                            className={styles.removeImageBtn}
+                            onClick={(e) => removeImage(e, index, imgIdx)}
+                            title="Remove Image"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

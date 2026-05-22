@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
@@ -8,7 +8,7 @@ import MultiSelectDropdown from "../MultiSelectDropdown";
 import { FiChevronDown } from "react-icons/fi";
 import { Country, State, City } from 'country-state-city';
 
-const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
+const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
     const { jwtToken, userInfo } = useStore();
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
@@ -46,8 +46,31 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
     const [selectedStateCode, setSelectedStateCode] = useState("");
 
     const supplierId = initialData?.supplierId;
+    const isInitialized = useRef(false);
+    const hasUserEditedBranches = useRef(false);
 
     useEffect(() => {
+        if (supplierId && jwtToken) {
+            const fetchFullDetails = async () => {
+                try {
+                    const res = await purchaseService.getSupplierById(jwtToken, supplierId);
+                    const data = res?.data || res;
+                    if (data && data.branches && !hasUserEditedBranches.current) {
+                        const fullBranchIds = data.branches.map(b => Number(b.id || b.branchId || b._id));
+                        setSelectedBranchIds(fullBranchIds);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch full supplier details in form:", err);
+                }
+            };
+            fetchFullDetails();
+        }
+    }, [supplierId, jwtToken]);
+
+    useEffect(() => {
+        if (isInitialized.current) return;
+        isInitialized.current = true;
+
         if (initialData && Object.keys(initialData).length > 0) {
             setSupplierName(initialData.supplierName || "");
             setSupplierType(initialData.supplierType ? (Array.isArray(initialData.supplierType) ? initialData.supplierType : initialData.supplierType.split(',').map(s => s.trim())) : []);
@@ -60,16 +83,30 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
             setLocality(initialData.locality || "");
             setAreaPinCode(initialData.areaPinCode || "");
             setCountry(initialData.country || "");
-            setCity(initialData.city || "");
-            setLocality(initialData.locality || "");
-            setAreaPinCode(initialData.areaPinCode || "");
-            setSelectedBranchIds(initialData.branches?.map(b => b.id) || []);
+            setSelectedBranchIds(
+                initialData.selectedBranchIds?.map(Number) || 
+                initialData.branches?.map(b => Number(b.id || b.branchId || b._id)) || 
+                []
+            );
 
             // Handle edit mode hydration for dropdowns
             const allCountries = Country.getAllCountries();
             setCountries(allCountries);
+
+            if (initialData.countries && initialData.countries.length > 0) {
+                setCountries(initialData.countries);
+            }
+            if (initialData.states && initialData.states.length > 0) {
+                setStates(initialData.states);
+            }
+            if (initialData.cities && initialData.cities.length > 0) {
+                setCities(initialData.cities);
+            }
+
+            setSelectedCountryCode(initialData.selectedCountryCode || "");
+            setSelectedStateCode(initialData.selectedStateCode || "");
             
-            if (initialData.country) {
+            if (!initialData.selectedCountryCode && initialData.country) {
                 const foundCountry = allCountries.find(c => c.name === initialData.country);
                 if (foundCountry) {
                     setSelectedCountryCode(foundCountry.isoCode);
@@ -90,6 +127,50 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
         }
     }, [initialData]);
 
+    useEffect(() => {
+        if (!isInitialized.current) return;
+        if (onChange) {
+            onChange({
+                ...initialData,
+                supplierName,
+                supplierType,
+                phone,
+                email,
+                street,
+                landmark,
+                state,
+                city,
+                locality,
+                areaPinCode,
+                country,
+                selectedBranchIds,
+                countries,
+                states,
+                cities,
+                selectedCountryCode,
+                selectedStateCode
+            });
+        }
+    }, [
+        supplierName,
+        supplierType,
+        phone,
+        email,
+        street,
+        landmark,
+        state,
+        city,
+        locality,
+        areaPinCode,
+        country,
+        selectedBranchIds,
+        countries,
+        states,
+        cities,
+        selectedCountryCode,
+        selectedStateCode
+    ]);
+
     const supplierTypes = [
         { id: 'Wholesaler', name: 'Wholesaler' },
         { id: 'Distributor', name: 'Distributor' },
@@ -100,8 +181,19 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
         { id: 'PRODUCTS', name: 'PRODUCTS' }
     ];
 
-    const branchesList = (branches || []).map(br => ({ 
-        id: br.id || br._id || br.branchId, 
+    // Combine company branches with the supplier's own branches to guarantee that all associated branches are present in the list
+    const combinedBranches = [...(branches || [])];
+    if (initialData?.branches && Array.isArray(initialData.branches)) {
+        initialData.branches.forEach(ib => {
+            const id = ib.id || ib.branchId || ib._id;
+            if (id && !combinedBranches.some(b => (b.id || b.branchId || b._id) === id)) {
+                combinedBranches.push(ib);
+            }
+        });
+    }
+
+    const branchesList = combinedBranches.map(br => ({ 
+        id: Number(br.id || br._id || br.branchId), 
         name: br.name || br.branchName 
     }));
 
@@ -209,7 +301,11 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add' }) => {
                             <MultiSelectDropdown 
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
-                                setSelectedIds={(ids) => { setSelectedBranchIds(ids); if(branchError) setBranchError(""); }}
+                                setSelectedIds={(ids) => { 
+                                    hasUserEditedBranches.current = true;
+                                    setSelectedBranchIds(ids.map(Number)); 
+                                    if(branchError) setBranchError(""); 
+                                }}
                                 placeholder="Select Branch Name here"
                                 customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
                             />
