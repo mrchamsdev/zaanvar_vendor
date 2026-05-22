@@ -11,19 +11,19 @@ import { WebApimanager } from "../utilities/WebApiManager";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";
 
-const MyPuppies = ({ 
-  pets = [], 
-  showForm, 
-  setShowForm, 
-  setEditingPet, 
-  refreshPets, 
-  editingPet 
+const MyPuppies = ({
+  pets = [],
+  showForm,
+  setShowForm,
+  setEditingPet,
+  refreshPets,
+  editingPet
 }) => {
   const { getJwtToken, getUserInfo } = useStore();
   const jwttoken = getJwtToken();
   const currentUser = getUserInfo();
   const webApi = new WebApimanager(jwttoken);
-  
+
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showChangeStatus, setShowChangeStatus] = useState(false);
@@ -63,74 +63,74 @@ const MyPuppies = ({
     e.preventDefault();
     e.stopPropagation();
     console.log("Add button clicked");
-    
+
     if (typeof setShowForm !== 'function') {
       console.error("setShowForm is not a function! Check parent props.");
       return;
     }
 
-    setEditingPet(null); 
+    setEditingPet(null);
     setShowForm(true);
   };
 
-const handleAddEditSuccess = (savedPet) => {
-  console.log("Add/Edit puppy popup closed, received pet:", savedPet);
-  setShowForm(false);
-  setEditingPet(null);
-  
-  if (savedPet && savedPet !== false) {
-    if (editingPet) {
-      // Update existing pet
-      setPetList(prevList => 
-        prevList.map(pet => 
-          (pet.id === editingPet.id || pet._id === editingPet._id) 
-            ? { ...pet, ...savedPet } // Merge updates
-            : pet
-        )
-      );
-    } else if (savedPet.id || savedPet._id) {
-      // Add new pet to the list (add to beginning)
-      setPetList(prevList => [savedPet, ...prevList]);
+  const handleAddEditSuccess = (savedPet) => {
+    console.log("Add/Edit puppy popup closed, received pet:", savedPet);
+    setShowForm(false);
+    setEditingPet(null);
+
+    if (savedPet && savedPet !== false) {
+      if (editingPet) {
+        // Update existing pet
+        setPetList(prevList =>
+          prevList.map(pet =>
+            (pet.id === editingPet.id || pet._id === editingPet._id)
+              ? { ...pet, ...savedPet } // Merge updates
+              : pet
+          )
+        );
+      } else if (savedPet.id || savedPet._id) {
+        // Add new pet to the list (add to beginning)
+        setPetList(prevList => [savedPet, ...prevList]);
+      }
     }
-  }
-};
+  };
 
   // Handle status change - update local state without refresh
- const handleStatusChangeSuccess = async (updatedPet) => {
-  console.log("Status changed, updating local state:", updatedPet);
-  setShowChangeStatus(false);
-  setSelectedPet(null);
-  
-  // Update local state immediately for better UX
-  if (updatedPet) {
-    setPetList(prevList =>
-      prevList.map(pet =>
-        (pet.id === updatedPet.id || pet._id === updatedPet._id)
-          ? { 
-              ...pet, 
+  const handleStatusChangeSuccess = async (updatedPet) => {
+    console.log("Status changed, updating local state:", updatedPet);
+    setShowChangeStatus(false);
+    setSelectedPet(null);
+
+    // Update local state immediately for better UX
+    if (updatedPet) {
+      setPetList(prevList =>
+        prevList.map(pet =>
+          (pet.id === updatedPet.id || pet._id === updatedPet._id)
+            ? {
+              ...pet,
               petStatus: updatedPet.petStatus,
               ...updatedPet
             }
-          : pet
-      )
-    );
-  }
-  
-  // Refresh data from server to ensure consistency
-  if (refreshPets) {
-    console.log("Refreshing data from server after status change...");
-    await refreshPets();
-  }
-};
+            : pet
+        )
+      );
+    }
+
+    // Refresh data from server to ensure consistency
+    if (refreshPets) {
+      console.log("Refreshing data from server after status change...");
+      await refreshPets();
+    }
+  };
 
   const handleStatusUpdate = (data) => {
-  // data contains { petId, status, updatedPet }
-  setAllPets(currentPets => 
-    currentPets.map(item => 
-      item.id === data.petId ? { ...item, petStatus: data.status } : item
-    )
-  );
-};
+    // data contains { petId, status, updatedPet }
+    setAllPets(currentPets =>
+      currentPets.map(item =>
+        item.id === data.petId ? { ...item, petStatus: data.status } : item
+      )
+    );
+  };
 
   const handleLocalUpdate = ({ status, details, updatedPet }) => {
     // Update local state immediately for better UX
@@ -280,25 +280,25 @@ const handleAddEditSuccess = (savedPet) => {
         ) : (
           <div className={styles.emptyState}>No puppies found.</div>
         )}
-        
-        <div 
-          className={styles.addIconContainer} 
+
+        <div
+          className={styles.addIconContainer}
           onClick={handleAddBtnClick}
           style={{ cursor: 'pointer', zIndex: 100 }}
         >
           <AddPetIcon className={styles.addIcon} />
         </div>
       </div>
-      
+
       {/* Delete/Status Change Popup */}
       {showChangeStatus && selectedPet && (
-  <ChangeStatus
-    pet={selectedPet}
-    setPet={setSelectedPet}
-    onClose={() => setShowChangeStatus(false)}
-    onStatusChange={handleLocalUpdate}
-  />
-)}
+        <ChangeStatus
+          pet={selectedPet}
+          setPet={setSelectedPet}
+          onClose={() => setShowChangeStatus(false)}
+          onStatusChange={handleLocalUpdate}
+        />
+      )}
 
       {/* Add/Edit Puppy Popup */}
       {showForm && (

@@ -98,7 +98,7 @@ export default function App({ Component, pageProps }) {
       <AuthGuard>
         <Component {...pageProps} />
       </AuthGuard>
-      
+
       <Toaster richColors position="top-right" closeButton />
     </>
   );

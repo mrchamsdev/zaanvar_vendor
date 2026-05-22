@@ -27,7 +27,7 @@ const Index = () => {
       // Changed to exact endpoint from your logs
       const response = await webApi.get(`vendorPetSales/myPuppies`);
       console.log("Fetch puppies response:", response);
-      
+
       const pets = response?.data?.data || [];
       setMyPetData(pets);
       return pets;
@@ -47,14 +47,14 @@ const Index = () => {
       logoText="Zaanvar"
       sidebarToggleButton={<BackButton />}
     >
-     <MyPuppies 
-  pets={myPetData} 
-  showForm={showForm} 
-  setShowForm={setShowForm} 
-  editingPet={editingPet}       
-  setEditingPet={setEditingPet} // <--- CRITICAL: Ensure this line exists
-  refreshPets={FetchAllData} 
-/>
+      <MyPuppies
+        pets={myPetData}
+        showForm={showForm}
+        setShowForm={setShowForm}
+        editingPet={editingPet}
+        setEditingPet={setEditingPet} // <--- CRITICAL: Ensure this line exists
+        refreshPets={FetchAllData}
+      />
     </Layout>
   );
 };

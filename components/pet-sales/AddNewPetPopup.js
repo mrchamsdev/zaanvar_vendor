@@ -39,7 +39,7 @@ const calculateAge = (dob) => {
 const AddNewPetPopup = ({
   closePopup,
   petData,
-  fetchPetData = () => {},
+  fetchPetData = () => { },
 }) => {
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
@@ -50,7 +50,7 @@ const AddNewPetPopup = ({
   const isProcessingCrop = useRef(false);
   const blobUrlsRef = useRef([]);
   const vaccMenuRef = useRef(null);
-  
+
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
@@ -109,8 +109,8 @@ const AddNewPetPopup = ({
   // ─────────────────────────────────────────────────────────────────────────────
   const validateField = (field, value) => {
     let error = "";
-    
-    switch(field) {
+
+    switch (field) {
       case "petName":
         if (!value || value.trim() === "") {
           error = "Pet Name is required.";
@@ -120,19 +120,19 @@ const AddNewPetPopup = ({
           error = "Pet Name cannot exceed 50 characters.";
         }
         break;
-        
+
       case "petType":
         if (!value || value === "select") {
           error = "Please select a pet type.";
         }
         break;
-        
+
       case "breed":
         if (!value || value === "select") {
           error = "Please select a pet breed.";
         }
         break;
-        
+
       case "dob":
         if (!value) {
           error = "Date of Birth is required.";
@@ -140,7 +140,7 @@ const AddNewPetPopup = ({
           const selectedDate = new Date(value);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          
+
           if (selectedDate > today) {
             error = "Date of Birth cannot be in the future.";
           } else if (selectedDate.getFullYear() < 1900) {
@@ -148,19 +148,19 @@ const AddNewPetPopup = ({
           }
         }
         break;
-        
+
       case "petGender":
         if (!value || value === "select") {
           error = "Please select gender.";
         }
         break;
-        
+
       case "color":
         if (!value || value === "Select Color") {
           error = "Please select a color.";
         }
         break;
-        
+
       case "weight":
         if (!value) {
           error = "Weight is required.";
@@ -170,53 +170,53 @@ const AddNewPetPopup = ({
           error = "Weight seems too high. Please verify.";
         }
         break;
-        
+
       case "petWeightIn":
         if (!value) {
           error = "Please select weight unit (kg/lb).";
         }
         break;
-        
+
       case "spayedOrNeutered":
         if (!value || value === "select") {
           error = "Please specify if pet is spayed/neutered.";
         }
         break;
-        
+
       case "medication":
         if (!value || value.trim() === "") {
           error = "Medication information is required.";
         }
         break;
-        
+
       case "healthCondition":
         if (!value || value.trim() === "") {
           error = "Please specify if pet has any health issues.";
         }
         break;
-        
+
       case "vaccinated":
         if (!value || value === "select") {
           error = "Please specify if pet is vaccinated.";
         }
         break;
-        
+
       case "microchipNo":
         if (value && value.length > 0 && value.length !== 15) {
           error = "Microchip number must be exactly 15 digits.";
         }
         break;
-        
+
       case "instagramLink":
         if (value && !instagramRegex.test(value)) {
           error = "Please enter a valid Instagram URL (ex: https://instagram.com/username)";
         }
         break;
-        
+
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -251,7 +251,7 @@ const AddNewPetPopup = ({
       if (region && region !== "Unknown") loc += loc ? `, ${region}` : region;
       if (!loc) loc = "Unknown Location";
       setLocationDetails(loc);
-    } catch (_) {}
+    } catch (_) { }
   }, [selectedLocation]);
 
   useEffect(() => {
@@ -277,7 +277,7 @@ const AddNewPetPopup = ({
   useEffect(() => {
     if (petData) {
       console.log("PetData received:", petData);
-      
+
       // Extract weight value and unit
       let weightValue = "";
       let weightUnit = "";
@@ -286,7 +286,7 @@ const AddNewPetPopup = ({
         weightValue = weightParts[0] || "";
         weightUnit = weightParts[1] || "";
       }
-      
+
       setFormData({
         petName: petData.petName || "",
         petAge: petData.petAge || "",
@@ -312,7 +312,7 @@ const AddNewPetPopup = ({
         microchipNo: petData.microchipNo || "",
         howmanyTimesBreedingDone: petData.howmanyTimesBreedingDone || "",
       });
-      
+
       // Show existing images from server
       if (petData.morePhotos && petData.morePhotos.length > 0) {
         const imageUrls = petData.morePhotos.map(photo => {
@@ -394,13 +394,13 @@ const AddNewPetPopup = ({
     if (field === "weight") {
       value = value.replace(/[^0-9]/g, "");
     }
-    
+
     if (field === "microchipNo") {
       value = value.replace(/[^0-9]/g, "").slice(0, 15);
       const error = validateField(field, value);
       setErrors((prev) => ({ ...prev, microchipNo: error }));
     }
-    
+
     // Handle Date of Birth Validation
     if (field === "dob") {
       const selectedDate = new Date(value);
@@ -424,22 +424,22 @@ const AddNewPetPopup = ({
         setErrors((prev) => ({ ...prev, dob: "" }));
       }
     }
-    
+
     // Handle Instagram Validation
     if (field === "instagramLink") {
       const error = validateField(field, value);
       setErrors((prev) => ({ ...prev, instagramLink: error }));
     }
-    
+
     // Update State
     setFormData((prev) => ({ ...prev, [field]: value }));
-    
+
     // Validate on change for other fields
     if (!["dob", "instagramLink", "microchipNo"].includes(field)) {
       const error = validateField(field, value);
       setErrors((prev) => ({ ...prev, [field]: error }));
     }
-    
+
     // Auto-fill size from breed
     if (field === "breed" && value !== "select") {
       const selectedBreed = breed.find((b) => b["breedName"] === value);
@@ -473,8 +473,8 @@ const AddNewPetPopup = ({
   const handleVaccinationToggle = (vaccine) => {
     setFormData(prev => {
       const current = prev.howManyVaccinationsDone || [];
-      const updated = current.includes(vaccine) 
-        ? current.filter(v => v !== vaccine) 
+      const updated = current.includes(vaccine)
+        ? current.filter(v => v !== vaccine)
         : [...current, vaccine];
       return { ...prev, howManyVaccinationsDone: updated };
     });
@@ -526,10 +526,10 @@ const AddNewPetPopup = ({
 
       const previewUrl = URL.createObjectURL(croppedFile);
       blobUrlsRef.current.push(previewUrl);
-      
+
       setImageFiles((prev) => [...prev, croppedFile].slice(0, MAX_IMAGES));
       setImagePreviews((prev) => [...prev, previewUrl].slice(0, MAX_IMAGES));
-      
+
       if (errors.images) setErrors((prev) => ({ ...prev, images: "" }));
 
       setFilesToCrop((prevQueue) => {
@@ -578,8 +578,8 @@ const AddNewPetPopup = ({
     if (fileToRemove === "existing") {
       try {
         setApiProcessing({ loader: true, message: `Deleting ${type}...` });
-        const endpoint = isPhoto 
-          ? `vendorPetProfile/deleteMedia/${petData.id}?index=${index}` 
+        const endpoint = isPhoto
+          ? `vendorPetProfile/deleteMedia/${petData.id}?index=${index}`
           : `vendorPetProfile/deleteMedia/${petData.id}?index=${index}`;
         const response = await webApi.delete(endpoint);
 
@@ -647,17 +647,17 @@ const AddNewPetPopup = ({
       blobUrlsRef.current.push(url);
       return url;
     });
-    
+
     setVideoFiles((prev) => [...prev, ...toAdd].slice(0, MAX_VIDEOS));
     setVideoPreviews((prev) => [...prev, ...previews].slice(0, MAX_VIDEOS));
   };
 
   const handleSubmit = async () => {
     setHasSubmitted(true);
-    
+
     // Validate all fields
     const newErrors = {};
-    
+
     if (!formData.petName.trim()) newErrors.petName = "Pet Name is required.";
     if (imageFiles.length === 0) newErrors.images = "Please upload at least 1 image.";
     if (!formData.dob.trim()) newErrors.dob = "Date of Birth is required.";
@@ -671,13 +671,13 @@ const AddNewPetPopup = ({
     if (!formData.vaccinated) newErrors.vaccinated = "Please specify if pet is vaccinated.";
     if (!formData.healthCondition.trim()) newErrors.healthCondition = "Please specify if pet has any health issues.";
     if (!formData.spayedOrNeutered || formData.spayedOrNeutered === "select") newErrors.spayedOrNeutered = "Please specify if pet is spayed or neutered.";
-      if (formData.microchipNo && formData.microchipNo.length > 0) {
-    if (formData.microchipNo.length !== 15) {
-      newErrors.microchipNo = "Microchip number must be exactly 15 digits.";
-    } else if (!/^\d+$/.test(formData.microchipNo)) {
-      newErrors.microchipNo = "Microchip number must contain only digits.";
+    if (formData.microchipNo && formData.microchipNo.length > 0) {
+      if (formData.microchipNo.length !== 15) {
+        newErrors.microchipNo = "Microchip number must be exactly 15 digits.";
+      } else if (!/^\d+$/.test(formData.microchipNo)) {
+        newErrors.microchipNo = "Microchip number must contain only digits.";
+      }
     }
-  }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setTimeout(() => {
@@ -769,7 +769,7 @@ const AddNewPetPopup = ({
   };
 
   const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
-  
+
   const sizeOptions = useMemo(() => {
     if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
       return [formData.size];
@@ -797,15 +797,15 @@ const AddNewPetPopup = ({
           {!!petData ? (
             <div style={{ width: isMobile ? "100%" : "48%" }}>
               <p>Pet Type <span style={{ color: "red" }}>*</span></p>
-              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666", }}>
                 {typeof formData.petType === 'object' ? formData.petType?.petType : formData.petType}
               </div>
             </div>
           ) : (
             <DropDownv1
               options={["select", "Dog", "Cat", "Bird", "Fish", "Small Pet"]}
-              question={"Pet Type *"} 
-              width={isMobile ? "100%" : "48%"} 
+              question={"Pet Type *"}
+              width={isMobile ? "100%" : "48%"}
               backgroundColor="#FFFFFF"
               value={formData.petType}
               onChange={(value) => {
@@ -813,29 +813,29 @@ const AddNewPetPopup = ({
                 if (value && value !== "select") fetchBreeds(value);
                 else setBreedOptions([]);
               }}
-              CustomInputElementAddpet={{ color: "#000000" }} 
+              CustomInputElementAddpet={{ color: "#000000" }}
               error={errors.petType}
             />
           )}
-          
+
           <CustomInputElement2
-            question={"Pet Name *"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Pet Name *"}
+            width={isMobile ? "100%" : "48%"}
             backgroundColor="#FFFFFF"
-            placeholder="Enter Pet Name" 
-            type="text" 
+            placeholder="Enter Pet Name"
+            type="text"
             value={formData.petName}
             onChange={(e) => handleInputChange("petName", e.target.value)}
             onBlur={(e) => handleBlur("petName", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} 
-            error={errors.petName} 
+            custommarrgin={{ marginBottom: "14px" }}
+            error={errors.petName}
             ownMargin={true}
           />
-          
+
           {!!petData ? (
             <div style={{ width: isMobile ? "100%" : "48%" }}>
               <p>Pet Breed <span style={{ color: "red" }}>*</span></p>
-              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666", }}>
                 {formData.breed}
               </div>
             </div>
@@ -853,8 +853,8 @@ const AddNewPetPopup = ({
           )}
 
           <CustomInputElement2
-            question={"Date Of Birth *"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Date Of Birth *"}
+            width={isMobile ? "100%" : "48%"}
             backgroundColor="#FFFFFF"
             type="date"
             value={formData.dob}
@@ -862,37 +862,37 @@ const AddNewPetPopup = ({
             onBlur={(e) => handleBlur("dob", e.target.value)}
             max={maxDate}
             error={errors.dob}
-            custommarrgin={{ marginBottom: "14px" }} 
+            custommarrgin={{ marginBottom: "14px" }}
             ownMargin={true}
           />
-          
+
           {!!petData ? (
             <div style={{ width: isMobile ? "100%" : "48%" }}>
               <p>Gender <span style={{ color: "red" }}>*</span></p>
-              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666",}}>
+              <div style={{ padding: "12px", border: "1px solid #e0e0e0", color: "#666", }}>
                 {formData.petGender}
               </div>
             </div>
           ) : (
             <DropDownv1
-              options={["select", "Male", "Female"]} 
+              options={["select", "Male", "Female"]}
               question={"Gender *"}
-              width={isMobile ? "100%" : "48%"} 
-              backgroundColor="#FFFFFF" 
+              width={isMobile ? "100%" : "48%"}
+              backgroundColor="#FFFFFF"
               value={formData.petGender}
               onChange={(value) => handleInputChange("petGender", value)}
-              CustomInputElementAddpet={{ color: "#000000" }} 
+              CustomInputElementAddpet={{ color: "#000000" }}
               error={errors.petGender}
             />
           )}
-          
+
           <div style={{ width: isMobile ? "100%" : "48%" }}>
             <p>Size <span style={{ color: "red" }}>*</span></p>
             <div style={{ padding: "12px", border: "1px solid #e0e0e0", }}>
               {formData.size || (petData ? "Not specified" : "Select pet breed")}
             </div>
           </div>
-          
+
           <SearchableDropdown
             options={petColors}
             value={formData.color}
@@ -903,70 +903,70 @@ const AddNewPetPopup = ({
             disabled={false}
             isMobile={isMobile}
           />
-          
-     <CustomInputComp
-  question={"Weight *"} 
-  width={isMobile ? "100%" : "48%"} 
-  backgroundColor="#FFFFFF"
-  type="text" 
-  placeholder="Enter Pet Weight (e.g., 12 kg or 25 lb)" 
-  value={formData.weight ? `${formData.weight} ${formData.petWeightIn}` : ""}
-  onChange={(e) => {
-    const value = e.target.value;
-    // Extract number and unit from input
-    const numberMatch = value.match(/\d+/);
-    const unitMatch = value.match(/(kg|lb|KG|LB)/i);
-    
-    if (numberMatch) {
-      const numericValue = numberMatch[0].slice(0, 3);
-      handleInputChange("weight", numericValue);
-    }
-    if (unitMatch) {
-      const unit = unitMatch[0].toLowerCase();
-      handleInputChange("petWeightIn", unit);
-    }
-  }}
-  onBlur={(e) => {
-    handleBlur("weight", formData.weight);
-    if (!formData.petWeightIn && formData.weight) {
-      setErrors((prev) => ({ ...prev, petWeightIn: "Please specify weight unit (kg or lb)" }));
-    }
-  }}
-  custommarrgin={{ marginBottom: "14px" }} 
-  error={errors.weight || errors.petWeightIn} 
-  ownMargin={true}
-  filter={formData.weight ? "weight" : ""} 
-  setFormData={setFormData} 
-  formData={formData}
-/>
-{errors.petWeightIn && !errors.weight && (
-  <span style={{ color: "red", fontSize: "12px", marginTop: "-10px", display: "block" }}>
-    {errors.petWeightIn}
-  </span>
-)}
-          
+
+          <CustomInputComp
+            question={"Weight *"}
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF"
+            type="text"
+            placeholder="Enter Pet Weight (e.g., 12 kg or 25 lb)"
+            value={formData.weight ? `${formData.weight} ${formData.petWeightIn}` : ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Extract number and unit from input
+              const numberMatch = value.match(/\d+/);
+              const unitMatch = value.match(/(kg|lb|KG|LB)/i);
+
+              if (numberMatch) {
+                const numericValue = numberMatch[0].slice(0, 3);
+                handleInputChange("weight", numericValue);
+              }
+              if (unitMatch) {
+                const unit = unitMatch[0].toLowerCase();
+                handleInputChange("petWeightIn", unit);
+              }
+            }}
+            onBlur={(e) => {
+              handleBlur("weight", formData.weight);
+              if (!formData.petWeightIn && formData.weight) {
+                setErrors((prev) => ({ ...prev, petWeightIn: "Please specify weight unit (kg or lb)" }));
+              }
+            }}
+            custommarrgin={{ marginBottom: "14px" }}
+            error={errors.weight || errors.petWeightIn}
+            ownMargin={true}
+            filter={formData.weight ? "weight" : ""}
+            setFormData={setFormData}
+            formData={formData}
+          />
+          {errors.petWeightIn && !errors.weight && (
+            <span style={{ color: "red", fontSize: "12px", marginTop: "-10px", display: "block" }}>
+              {errors.petWeightIn}
+            </span>
+          )}
+
           <DropDownv1
-            options={["select", "Yes", "No"]} 
+            options={["select", "Yes", "No"]}
             question={"Spayed/Neutered *"}
-            width={isMobile ? "100%" : "48%"} 
-            backgroundColor="#FFFFFF" 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF"
             value={formData.spayedOrNeutered}
             onChange={(value) => handleInputChange("spayedOrNeutered", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} 
+            CustomInputElementAddpet={{ color: "#000000" }}
             error={errors.spayedOrNeutered}
           />
-          
+
           <CustomInputElement2
-            question={"Medication *"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Medication *"}
+            width={isMobile ? "100%" : "48%"}
             type="text"
-            backgroundColor="#FFFFFF" 
-            value={formData.medication} 
+            backgroundColor="#FFFFFF"
+            value={formData.medication}
             placeholder="Enter Medication"
             onChange={(e) => handleInputChange("medication", e.target.value)}
             onBlur={(e) => handleBlur("medication", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} 
-            error={errors.medication} 
+            custommarrgin={{ marginBottom: "14px" }}
+            error={errors.medication}
             ownMargin={true}
           />
         </div>
@@ -974,65 +974,65 @@ const AddNewPetPopup = ({
         {/* Section 2: Extra Info */}
         <div className={styles.formDiv2}>
           <CustomInputElement2
-            question={"Health Condition *"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Health Condition *"}
+            width={isMobile ? "100%" : "48%"}
             type="text"
-            backgroundColor="#FFFFFF" 
+            backgroundColor="#FFFFFF"
             value={formData.healthCondition}
             placeholder="Enter Health Conditions"
             onChange={(e) => handleInputChange("healthCondition", e.target.value)}
             onBlur={(e) => handleBlur("healthCondition", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} 
-            error={errors.healthCondition} 
+            custommarrgin={{ marginBottom: "14px" }}
+            error={errors.healthCondition}
             ownMargin={true}
           />
-          
+
           <CustomInputElement2
-            question={"Microchip Number"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Microchip Number"}
+            width={isMobile ? "100%" : "48%"}
             type="text"
-            backgroundColor="#FFFFFF" 
+            backgroundColor="#FFFFFF"
             value={formData.microchipNo || ""}
             placeholder="Enter Microchip Number (15 digits)"
             onChange={(e) => handleInputChange("microchipNo", e.target.value)}
             onBlur={(e) => handleBlur("microchipNo", e.target.value)}
-            custommarrgin={{ marginBottom: "14px"}} 
+            custommarrgin={{ marginBottom: "14px" }}
             error={errors.microchipNo}
             ownMargin={true}
           />
-          
+
           <DropDownv1
-            options={["select", "Yes", "No"]} 
+            options={["select", "Yes", "No"]}
             question={"Vaccinated *"}
-            width={isMobile ? "100%" : "48%"} 
-            backgroundColor="#FFFFFF" 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF"
             value={formData.vaccinated}
             onChange={(value) => handleInputChange("vaccinated", value)}
-            CustomInputElementAddpet={{ color: "#000000" }} 
+            CustomInputElementAddpet={{ color: "#000000" }}
             error={errors.vaccinated}
           />
-          
+
           {formData.vaccinated === "Yes" && (
             <div style={{ width: isMobile ? "100%" : "48%", position: "relative" }} ref={vaccMenuRef}>
               <p>Vaccinations Done</p>
-              <div 
-                className={styles.customSelectHeader} 
+              <div
+                className={styles.customSelectHeader}
                 onClick={() => setShowVaccDropdown(!showVaccDropdown)}
                 style={{ border: "1px solid #d9d9d9", padding: "10px", borderRadius: "8px", cursor: "pointer", background: "#fff" }}
               >
-                {formData.howManyVaccinationsDone.length > 0 
-                  ? `${formData.howManyVaccinationsDone.length} Selected` 
+                {formData.howManyVaccinationsDone.length > 0
+                  ? `${formData.howManyVaccinationsDone.length} Selected`
                   : "Select Vaccinations"}
                 <span style={{ float: "right" }}>{showVaccDropdown ? "▲" : "▼"}</span>
               </div>
-              
+
               {showVaccDropdown && (
                 <div className={styles.checkboxDropdownList} style={{ position: "absolute", zIndex: 10, background: "#fff", width: "100%", border: "1px solid #ddd", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
                   {vaccinationOptions.map(v => (
                     <label key={v} style={{ display: "flex", alignItems: "center", padding: "8px", cursor: "pointer", borderBottom: "1px solid #f0f0f0" }}>
-                      <input 
-                        type="checkbox" 
-                        checked={formData.howManyVaccinationsDone.includes(v)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.howManyVaccinationsDone.includes(v)}
                         onChange={() => handleVaccinationToggle(v)}
                         style={{ marginRight: "10px" }}
                       />
@@ -1043,76 +1043,76 @@ const AddNewPetPopup = ({
               )}
             </div>
           )}
-          
+
           <DropDownv1
-            options={["select", "Yes", "No"]} 
-            question={"KCI"} 
+            options={["select", "Yes", "No"]}
+            question={"KCI"}
             width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" 
+            backgroundColor="#FFFFFF"
             value={formData.kci}
             onChange={(value) => handleInputChange("kci", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          
+
           <CustomInputElement2
-            question={"How many times breeding done earlier?"} 
+            question={"How many times breeding done earlier?"}
             width={isMobile ? "100%" : "48%"}
-            type="number" 
-            backgroundColor="#FFFFFF" 
+            type="number"
+            backgroundColor="#FFFFFF"
             value={formData.howmanyTimesBreedingDone || ""}
             placeholder="Enter Breeding Count"
             onChange={(e) => handleInputChange("howmanyTimesBreedingDone", e.target.value)}
-            custommarrgin={{ marginBottom: "14px" }} 
+            custommarrgin={{ marginBottom: "14px" }}
             ownMargin={true}
           />
-          
+
           <CustomInputElement2
-            question={"Skills"} 
+            question={"Skills"}
             width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" 
-            value={formData.skills} 
+            backgroundColor="#FFFFFF"
+            value={formData.skills}
             placeholder="Enter Skills"
             onChange={(e) => handleInputChange("skills", e.target.value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          
+
           <DropDownv1
-            question={"Championship"} 
+            question={"Championship"}
             options={["select", "Yes", "No"]}
-            width={isMobile ? "100%" : "48%"} 
-            backgroundColor="#FFFFFF" 
+            width={isMobile ? "100%" : "48%"}
+            backgroundColor="#FFFFFF"
             value={formData.championship}
             onChange={(value) => handleInputChange("championship", value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          
+
           <CustomInputElement2
-            question={"Events"} 
+            question={"Events"}
             width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" 
-            value={formData.Events} 
+            backgroundColor="#FFFFFF"
+            value={formData.Events}
             placeholder="Enter Events"
             onChange={(e) => handleInputChange("Events", e.target.value)}
             CustomInputElementAddpet={{ color: "#000000" }}
           />
-          
+
           <CustomInputElement2
-            question={"Instagram Link"} 
-            width={isMobile ? "100%" : "48%"} 
+            question={"Instagram Link"}
+            width={isMobile ? "100%" : "48%"}
             backgroundColor="#FFFFFF"
-            placeholder="URL" 
+            placeholder="URL"
             value={formData.instagramLink}
             onChange={(e) => handleInputChange("instagramLink", e.target.value)}
             onBlur={(e) => handleBlur("instagramLink", e.target.value)}
-            error={errors.instagramLink} 
-            custommarrgin={{ marginBottom: "14px" }} 
+            error={errors.instagramLink}
+            custommarrgin={{ marginBottom: "14px" }}
             ownMargin={true}
           />
-          
+
           <CustomInputElement2
-            question="Additional Information" 
+            question="Additional Information"
             width={isMobile ? "100%" : "48%"}
-            backgroundColor="#FFFFFF" 
+            backgroundColor="#FFFFFF"
             placeholder="Add more information"
             onInputChange={handleVictoriaInfoChange}
             value={formData.additionalInfo}

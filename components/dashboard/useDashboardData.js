@@ -16,7 +16,7 @@ import useStore from "../state/useStore";
 import { WebApimanager } from "../utilities/WebApiManager";
 
 /* ── helpers ────────────────────────────────────────────── */
-const DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 function normaliseTiming(timings) {
   if (!timings) return null;
@@ -24,7 +24,7 @@ function normaliseTiming(timings) {
   DAYS.forEach((d) => {
     const slot = timings[d];
     out[d] = {
-      open:  slot?.open  || "closed",
+      open: slot?.open || "closed",
       close: slot?.close || "closed",
     };
   });
@@ -40,10 +40,10 @@ export default function useDashboardData(options = {}) {
   const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId } = useStore();
 
   /* ── supplementary state ── */
-  const [reviews,        setReviews]        = useState([]);
-  const [ratings,        setRatings]        = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [ratings, setRatings] = useState(null);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsError,   setReviewsError]   = useState(null);
+  const [reviewsError, setReviewsError] = useState(null);
 
   /* ── redirect to login when not authenticated ── */
   useEffect(() => {
@@ -54,12 +54,12 @@ export default function useDashboardData(options = {}) {
   }, [_hasHydrated, jwtToken, userInfo]);
 
   /* ── derive vendor shape from stored userInfo ── */
-  const vendor     = userInfo || null;
-  const companies  = vendor?.vendorCompanies || [];
-  const company    = companies[0] || null;
+  const vendor = userInfo || null;
+  const companies = vendor?.vendorCompanies || [];
+  const company = companies[0] || null;
   // Robust companyId extraction: try compId, id, and companyId from company or vendor
-  const companyId  = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
-  
+  const companyId = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
+
   const [apiBranches, setApiBranches] = useState(null);
 
   useEffect(() => {
@@ -80,20 +80,20 @@ export default function useDashboardData(options = {}) {
       .catch((err) => console.error("Failed to fetch branches by company:", err));
   }, [jwtToken, companyId]);
 
-  const branches   = apiBranches || company?.branches || [];
-  
+  const branches = apiBranches || company?.branches || [];
+
   // Set default branch if none selected
   useEffect(() => {
     if (branches.length > 0 && !selectedBranchId) {
-        setSelectedBranchId(branches[0].id || branches[0]._id);
+      setSelectedBranchId(branches[0].id || branches[0]._id);
     }
   }, [branches, selectedBranchId, setSelectedBranchId]);
 
   const currentBranchId = selectedBranchId || branches[0]?.id || vendor?.branchId || null;
-  const branch     = branches.find(b => b.id === currentBranchId) || branches[0] || null;
-  const timings    = normaliseTiming(branch?.timings);
+  const branch = branches.find(b => b.id === currentBranchId) || branches[0] || null;
+  const timings = normaliseTiming(branch?.timings);
 
-  const branchId   = currentBranchId;
+  const branchId = currentBranchId;
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
@@ -122,8 +122,8 @@ export default function useDashboardData(options = {}) {
 
   return {
     /* ── auth / hydration ── */
-    isHydrated:    _hasHydrated,
-    isLoading:     !_hasHydrated,
+    isHydrated: _hasHydrated,
+    isLoading: !_hasHydrated,
 
     /* ── vendor data (from Zustand / login response) ── */
     vendor,
