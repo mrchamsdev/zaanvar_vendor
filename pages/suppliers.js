@@ -70,18 +70,44 @@ const SuppliersPage = () => {
 
   const handleBulkDelete = async () => {
     setShowDeleteConfirm(false);
+
+    const selectedSuppliers = suppliers.filter(s => selectedIds.includes(s.supplierId));
+    const hasRestrictedSuppliers = selectedSuppliers.some(s => s.hasOrders === true || s.hasOrders === "true");
+
+    if (hasRestrictedSuppliers) {
+      toast.error("this supplier has orders unable to delete supplier");
+      return;
+    }
+
     setLoading(true);
     try {
       let successCount = 0;
+      let errorMsg = null;
       for (const id of selectedIds) {
         const res = await purchaseService.deleteSupplier(jwtToken, id);
-        if (res.status === "success" || res.status === 200) {
+        if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
           successCount++;
+        } else {
+          const msg = res.msg || res.message || (res.data && (res.data.msg || res.data.message));
+          if (msg) {
+            errorMsg = msg;
+          }
         }
       }
-      toast.success(`Successfully deleted ${successCount} supplier(s)`);
-      setSelectedIds([]);
-      fetchSuppliers();
+
+      if (successCount > 0) {
+        toast.success(`Successfully deleted ${successCount} supplier(s)`);
+        setSelectedIds([]);
+        fetchSuppliers();
+      }
+
+      if (errorMsg) {
+        if (errorMsg.includes("SequelizeForeignKeyConstraintError") || errorMsg.includes("foreign key constraint fails")) {
+          toast.error("this supplier has orders unable to delete supplier");
+        } else {
+          toast.error(errorMsg);
+        }
+      }
     } catch (e) {
       console.error(e);
       toast.error("Error during bulk delete");
@@ -97,7 +123,7 @@ const SuppliersPage = () => {
   return (
     <DashboardLayout
       customTopbarRight={(
-        <button 
+        <button
           className={styles.addBtn}
           onClick={() => openManager("Add", null)}
         >
@@ -119,9 +145,9 @@ const SuppliersPage = () => {
               <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
-              <input 
-                type="text" 
-                placeholder="Search suppliers here" 
+              <input
+                type="text"
+                placeholder="Search suppliers here"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -129,15 +155,15 @@ const SuppliersPage = () => {
           </div>
         </div>
 
-        <SupplierList 
-          suppliers={suppliers.filter(s => 
+        <SupplierList
+          suppliers={suppliers.filter(s =>
             s.supplierName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             s.phone?.includes(searchTerm) ||
             String(s.supplierId).includes(searchTerm)
           )}
           loading={loading}
           selectedIds={selectedIds}
-          onToggleSelection={(id) => setSelectedIds(prev => 
+          onToggleSelection={(id) => setSelectedIds(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
           )}
           onSelectAll={(allIds) => {
@@ -163,15 +189,28 @@ const SuppliersPage = () => {
             }
           }}
           onDelete={(id) => {
+            const supplier = suppliers.find(s => s.supplierId === id);
+            if (supplier && (supplier.hasOrders === true || supplier.hasOrders === "true")) {
+              toast.error("this supplier has orders unable to delete supplier");
+              return;
+            }
             setSelectedIds([id]);
             setShowDeleteConfirm(true);
           }}
-          onBulkDelete={() => setShowDeleteConfirm(true)}
+          onBulkDelete={() => {
+            const selectedSuppliers = suppliers.filter(s => selectedIds.includes(s.supplierId));
+            const hasRestrictedSuppliers = selectedSuppliers.some(s => s.hasOrders === true || s.hasOrders === "true");
+            if (hasRestrictedSuppliers) {
+              toast.error("this supplier has orders unable to delete supplier");
+              return;
+            }
+            setShowDeleteConfirm(true);
+          }}
           onAddClick={() => openManager("Add", null)}
         />
 
         {managerConfig && (
-          <SupplierFormManager 
+          <SupplierFormManager
             mode={managerConfig.mode}
             initialData={managerConfig.data}
             onClose={() => {
@@ -184,7 +223,7 @@ const SuppliersPage = () => {
           />
         )}
 
-        <ConfirmationModal 
+        <ConfirmationModal
           isOpen={showDeleteConfirm}
           title="Delete Supplier?"
           message={`Are you sure you want to delete ${selectedIds.length} selected supplier(s)?`}

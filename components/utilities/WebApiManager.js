@@ -15,157 +15,157 @@ export class WebApimanager {
 
   async post(url, data) {
     try {
-      
+
 
       const headers = {
 
-  Authorization: `Bearer ${this.jwtToken}`,
-  "Content-Type": "application/json",
-};
+        Authorization: `Bearer ${this.jwtToken}`,
+        "Content-Type": "application/json",
+      };
 
-const response = await Axios.post(BACKEND_URL + url, data, { headers });
+      const response = await Axios.post(BACKEND_URL + url, data, { headers });
 
-if (response.status >= 200 && response.status < 500) {
+      if (response.status >= 200 && response.status < 500) {
 
-//   const { token, userInfo } = response.data;
+        //   const { token, userInfo } = response.data;
 
-//   // Save the JWT token and userInfo to sessionStorage
-//   sessionStorage.setItem("jwtToken", token); // Save to sessionStorage
-//   sessionStorage.setItem("userInfo", JSON.stringify(userInfo)); // Save userInfo to sessionStorage
+        //   // Save the JWT token and userInfo to sessionStorage
+        //   sessionStorage.setItem("jwtToken", token); // Save to sessionStorage
+        //   sessionStorage.setItem("userInfo", JSON.stringify(userInfo)); // Save userInfo to sessionStorage
 
-//   // Save to Zustand store
-//   this.jwtToken(token); // Save to Zustand
-//   this.setUserInfo({
-//     name: userInfo.name,
-//     email: userInfo.email,
-//     ID: userInfo._id,
-//   });
+        //   // Save to Zustand store
+        //   this.jwtToken(token); // Save to Zustand
+        //   this.setUserInfo({
+        //     name: userInfo.name,
+        //     email: userInfo.email,
+        //     ID: userInfo._id,
+        //   });
 
-  return response.data;
-} else {
-  throw new Error( `Unexpected status code: ${response.status}`);
-}
-} catch (error) {
-//    // swal("Failure", "Something went wrong. Please try again later.", "error");
-throw error;
-}
-}
-async Namegeneratorpost(url, data) {
-  try {
-    
+        return response.data;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
+    } catch (error) {
+      //    // swal("Failure", "Something went wrong. Please try again later.", "error");
+      throw error;
+    }
+  }
+  async Namegeneratorpost(url, data) {
+    try {
 
-    const headers = {
-"Content-Type": "application/json",
-};
 
-const response = await Axios.post(WordpresBACKEND_URL + url, data, { headers });
+      const headers = {
+        "Content-Type": "application/json",
+      };
 
-if (response.status >= 200 && response.status < 500) {
-// console.log("Response data:", response.data);
+      const response = await Axios.post(WordpresBACKEND_URL + url, data, { headers });
 
-//   const { token, userInfo } = response.data;
+      if (response.status >= 200 && response.status < 500) {
+        // console.log("Response data:", response.data);
 
-//   // Save the JWT token and userInfo to sessionStorage
-//   sessionStorage.setItem("jwtToken", token); // Save to sessionStorage
-//   sessionStorage.setItem("userInfo", JSON.stringify(userInfo)); // Save userInfo to sessionStorage
+        //   const { token, userInfo } = response.data;
 
-//   // Save to Zustand store
-//   this.jwtToken(token); // Save to Zustand
-//   this.setUserInfo({
-//     name: userInfo.name,
-//     email: userInfo.email,
-//     ID: userInfo._id,
-//   });
+        //   // Save the JWT token and userInfo to sessionStorage
+        //   sessionStorage.setItem("jwtToken", token); // Save to sessionStorage
+        //   sessionStorage.setItem("userInfo", JSON.stringify(userInfo)); // Save userInfo to sessionStorage
 
-return response.data;
-} else {
-throw new Error(`Unexpected status code: ${response.status}`);
-}
+        //   // Save to Zustand store
+        //   this.jwtToken(token); // Save to Zustand
+        //   this.setUserInfo({
+        //     name: userInfo.name,
+        //     email: userInfo.email,
+        //     ID: userInfo._id,
+        //   });
+
+        return response.data;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
     } catch (error) {
       console.error("imagePost error:", error);
       throw error;
     }
   }
 
-// async get(url) {
-//   try {
-//     const headers = {
-//       Authorization: Bearer  ${this.jwtToken},
+  // async get(url) {
+  //   try {
+  //     const headers = {
+  //       Authorization: Bearer  ${this.jwtToken},
 
-//       "Content-Type": "application/json",
-//     };
+  //       "Content-Type": "application/json",
+  //     };
 
-//     const response = await Axios.get(BACKEND_URL + url, { headers });
+  //     const response = await Axios.get(BACKEND_URL + url, { headers });
 
-//     if (respo
-// nse.status >= 200 && response.status < 500) {
-      
-//       // Handle response data if needed
-//       return response.data;
-//     } else {
-//       throw new Error(Unexpected status code: ${response.status});
-//     }
-//   } catch (error) {
-//     //    // swal("Failure", "Something went wrong. Please try again later.", "error");
-//     throw error;
-//   }
-// }
-async get(url, qs) {
-  const requestKey = `GET:${url}:${JSON.stringify(qs || {})}`;
-  if (pendingRequests.has(requestKey)) {
-    return pendingRequests.get(requestKey);
+  //     if (respo
+  // nse.status >= 200 && response.status < 500) {
+
+  //       // Handle response data if needed
+  //       return response.data;
+  //     } else {
+  //       throw new Error(Unexpected status code: ${response.status});
+  //     }
+  //   } catch (error) {
+  //     //    // swal("Failure", "Something went wrong. Please try again later.", "error");
+  //     throw error;
+  //   }
+  // }
+  async get(url, qs) {
+    const requestKey = `GET:${url}:${JSON.stringify(qs || {})}`;
+    if (pendingRequests.has(requestKey)) {
+      return pendingRequests.get(requestKey);
+    }
+
+    const requestPromise = (async () => {
+      try {
+        let baseURL = BACKEND_URL;
+        let jwttoken = `${this.jwtToken}`;
+        let headers = {
+          Authorization: "Bearer " + jwttoken,
+          "Content-Type": "application/json",
+        };
+        const res = await Axios.get(baseURL + url, {
+          headers,
+          params: qs,
+          timeout: 10000
+        });
+
+        if (res.status >= 200 && res.status < 500) {
+          return res || [];
+        } else {
+          throw new Error(`Unexpected status code: ${res.status}`);
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          error.customErrorMessage = "Apologies! An error occurred. Please log in again to continue.";
+        }
+        throw error;
+      } finally {
+        pendingRequests.delete(requestKey);
+      }
+    })();
+
+    pendingRequests.set(requestKey, requestPromise);
+    return requestPromise;
   }
 
-  const requestPromise = (async () => {
+  async getwordpressSlugData(url, data) {
     try {
-      let baseURL = BACKEND_URL;
-      let jwttoken =`${this.jwtToken}`;
-      let headers = {
-        Authorization: "Bearer " + jwttoken,
+      const headers = {
+        Authorization: "Bearer ",
         "Content-Type": "application/json",
       };
-      const res = await Axios.get(baseURL + url, { 
-        headers, 
-        params: qs,
-        timeout: 10000 
-      });
 
-      if (res.status >= 200 && res.status < 500) {
-        return res || [];
+      const response = await Axios.get(WordpresSlug_URL + url, data, { headers });
+
+      if (response.status >= 200 && response.status < 500) {
+        return response.data;
       } else {
-        throw new Error(`Unexpected status code: ${res.status}`);
+        throw new Error(`Unexpected status code: ${response.status}`);
       }
     } catch (error) {
-      if (error.response && error.response.status === 401) {
-        error.customErrorMessage = "Apologies! An error occurred. Please log in again to continue.";
-      }
+      // swal("Failure", "Something went wrong. Please try again later.", "error");
       throw error;
-    } finally {
-      pendingRequests.delete(requestKey);
-    }
-  })();
-
-  pendingRequests.set(requestKey, requestPromise);
-  return requestPromise;
-}
-
-async getwordpressSlugData(url, data) {
-  try {
-    const headers = {
-      Authorization: "Bearer ",
-      "Content-Type": "application/json",
-    };
-
-    const response = await Axios.get(WordpresSlug_URL + url, data, { headers });
-
-    if (response.status >= 200 && response.status < 500) {
-      return response.data;
-    } else {
-      throw new Error(`Unexpected status code: ${response.status}`);
-    }
-  } catch (error) {
-       // swal("Failure", "Something went wrong. Please try again later.", "error");
-    throw error;
     }
   }
 
@@ -189,162 +189,162 @@ async getwordpressSlugData(url, data) {
         throw new Error(`Unexpected status code: ${response.status}`);
       }
     } catch (error) {
-         // swal("Failure", "Something went wrong. Please try again later.", "error");
+      // swal("Failure", "Something went wrong. Please try again later.", "error");
       throw error;
     }
   }
-async putwithouttoken(url, data) {
-  try {
-    const headers = {
-      Authorization: "Bearer ",
-      "Content-Type": "application/json",
-    };
+  async putwithouttoken(url, data) {
+    try {
+      const headers = {
+        Authorization: "Bearer ",
+        "Content-Type": "application/json",
+      };
 
-    const response = await Axios.put(BACKEND_URL + url, data, { headers });
+      const response = await Axios.put(BACKEND_URL + url, data, { headers });
 
-    if (response.status >= 200 && response.status < 500) {
-      return response.data;
-    } else {
-      throw new Error(`Unexpected status code: ${response.status}`);
-    }
-  } catch (error) {
-       // swal("Failure", "Something went wrong. Please try again later.", "error");
-    throw error;
+      if (response.status >= 200 && response.status < 500) {
+        return response.data;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
+    } catch (error) {
+      // swal("Failure", "Something went wrong. Please try again later.", "error");
+      throw error;
     }
   }
-async getwithouttoken(url, data) {
-  try {
-    const headers = {
-      "Content-Type": "application/json",
-    };
+  async getwithouttoken(url, data) {
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
 
-    const response = await Axios.get(BACKEND_URL + url, data, { 
-      headers,
-      timeout: 10000 // 10 second timeout
-    });
-
-    if (response.status >= 200 && response.status < 500) {
-      return response;
-    } else {
-      throw new Error(`Unexpected status code: ${response.status}`);
-    }
-  } catch (error) {
-    //    // swal("Failure", "Something went wrong. Please try again later.", "error");
-    throw error;
-  }
-}
-
-async delete(url, data) {
-  try {
-    let baseURL = BACKEND_URL;
-    let jwttoken = this.jwtToken;
-    // let jwttoken = Store.get("JWTTOKEN");
-    //   let jwtToken = Store.get("jwtToken");
-    let headers = {
-      Authorization: "Bearer " + jwttoken,
-      // jwtToken: jwtToken,
-      "Content-Type": "application/json",
-    };
-    return await Axios.delete(baseURL + url, {
-      data: JSON.stringify(data),
-      headers,
-    })
-      .then((res) => {
-        if (res.status >= 200 && res.status < 500) {
-          return res;
-        } else {
-          throw new Error(`Unexpected status code: ${res.status}`);
-        }
-      })
-      .catch((error) => {
-        if (error.response && error.response.status === 401) {
-          //Setting a Custom error message if authorization failed
-          error.customErrorMessage =
-            "Apologies! An error occurred. Please log in again to continue.";
-        }
-
-        throw error;
+      const response = await Axios.get(BACKEND_URL + url, data, {
+        headers,
+        timeout: 10000 // 10 second timeout
       });
-  } catch (e) {
-       // swal("Failure", "Something went wrong. Please try again later.", "error");
+
+      if (response.status >= 200 && response.status < 500) {
+        return response;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
+    } catch (error) {
+      //    // swal("Failure", "Something went wrong. Please try again later.", "error");
+      throw error;
+    }
   }
-}
-async put(url, data) {
-  try {
-    let baseURL = BACKEND_URL;
-    let jwttoken = `${this.jwtToken}`;
-    //   let jwttoken = Store.get("JWTTOKEN");
-    //   let jwtToken = Store.get("jwtToken");
-    let headers = {
-      Authorization: "Bearer " + jwttoken,
-      // jwtToken: jwtToken,
-      "Content-Type": "application/json",
-    };
-    return await Axios.put(baseURL + url, data, { headers })
-      .then((res) => {
-        if (res.status >= 200 && res.status < 500) {
-          return res;
-        } else {
-          throw new Error(`Unexpected status code: ${res.status}`);
-        }
+
+  async delete(url, data) {
+    try {
+      let baseURL = BACKEND_URL;
+      let jwttoken = this.jwtToken;
+      // let jwttoken = Store.get("JWTTOKEN");
+      //   let jwtToken = Store.get("jwtToken");
+      let headers = {
+        Authorization: "Bearer " + jwttoken,
+        // jwtToken: jwtToken,
+        "Content-Type": "application/json",
+      };
+      return await Axios.delete(baseURL + url, {
+        data: JSON.stringify(data),
+        headers,
       })
-      .catch((error) => {
-        if (error.response && error.response.status === 401) {
-          //Setting a Custom error message if authorization failed
-          error.customErrorMessage =
-            "Apologies! An error occurred. Please log in again to continue.";
-        }
+        .then((res) => {
+          if (res.status >= 200 && res.status < 500) {
+            return res;
+          } else {
+            throw new Error(`Unexpected status code: ${res.status}`);
+          }
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 401) {
+            //Setting a Custom error message if authorization failed
+            error.customErrorMessage =
+              "Apologies! An error occurred. Please log in again to continue.";
+          }
 
-        throw error;
-      });
-  } catch (e) {
-    // swal(
-    //   'Failure',
-    //   Something went wrong. Please try again after sometime.,
-    //   "error"
-    // );
+          throw error;
+        });
+    } catch (e) {
+      // swal("Failure", "Something went wrong. Please try again later.", "error");
+    }
   }
-}
+  async put(url, data) {
+    try {
+      let baseURL = BACKEND_URL;
+      let jwttoken = `${this.jwtToken}`;
+      //   let jwttoken = Store.get("JWTTOKEN");
+      //   let jwtToken = Store.get("jwtToken");
+      let headers = {
+        Authorization: "Bearer " + jwttoken,
+        // jwtToken: jwtToken,
+        "Content-Type": "application/json",
+      };
+      return await Axios.put(baseURL + url, data, { headers })
+        .then((res) => {
+          if (res.status >= 200 && res.status < 500) {
+            return res;
+          } else {
+            throw new Error(`Unexpected status code: ${res.status}`);
+          }
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 401) {
+            //Setting a Custom error message if authorization failed
+            error.customErrorMessage =
+              "Apologies! An error occurred. Please log in again to continue.";
+          }
+
+          throw error;
+        });
+    } catch (e) {
+      // swal(
+      //   'Failure',
+      //   Something went wrong. Please try again after sometime.,
+      //   "error"
+      // );
+    }
+  }
 
 
 
-// async imagePut(url, data) {
-//     try {
-//       let baseURL = BACKEND_URL;
-//       let jwttoken = ${this.jwtToken};
-//       //   let jwttoken = Store.get("JWTTOKEN");
-//       //   let jwtToken = Store.get("jwtToken");
-//       let headers = {
-//         Authorization: "Bearer " + jwttoken,
-//         // jwtToken: jwtToken,
-//         "Content-Type": "multipart/form-data",
-//       };
-//       return Axios.put(baseURL + url, data, { headers })
-//         .then((res) => {
-//           if (res.status >= 200 && res.status < 500) {
-//             return res;
-//           } else {
-//             throw new Error(Unexpected status code: ${res.status});
-//           }
-//         })
-//         .catch((error) => {
-//           if (error.response && error.response.status === 401) {
-//             //Setting a Custom error message if authorization failed
-//             error.customErrorMessage =
-//               "Apologies! An error occurred. Please log in again to continue.";
-//           }
+  // async imagePut(url, data) {
+  //     try {
+  //       let baseURL = BACKEND_URL;
+  //       let jwttoken = ${this.jwtToken};
+  //       //   let jwttoken = Store.get("JWTTOKEN");
+  //       //   let jwtToken = Store.get("jwtToken");
+  //       let headers = {
+  //         Authorization: "Bearer " + jwttoken,
+  //         // jwtToken: jwtToken,
+  //         "Content-Type": "multipart/form-data",
+  //       };
+  //       return Axios.put(baseURL + url, data, { headers })
+  //         .then((res) => {
+  //           if (res.status >= 200 && res.status < 500) {
+  //             return res;
+  //           } else {
+  //             throw new Error(Unexpected status code: ${res.status});
+  //           }
+  //         })
+  //         .catch((error) => {
+  //           if (error.response && error.response.status === 401) {
+  //             //Setting a Custom error message if authorization failed
+  //             error.customErrorMessage =
+  //               "Apologies! An error occurred. Please log in again to continue.";
+  //           }
 
-//           throw error;
-//         });
-//     } catch (e) {
-//       swal(
-//         Failure,
-//         Something went wrong. Please try again after sometime.,
-//         "error"
-//       );
-//     }
-//   }
-async imagePut(url, data) {
+  //           throw error;
+  //         });
+  //     } catch (e) {
+  //       swal(
+  //         Failure,
+  //         Something went wrong. Please try again after sometime.,
+  //         "error"
+  //       );
+  //     }
+  //   }
+  async imagePut(url, data) {
     try {
       let baseURL = BACKEND_URL;
       let jwttoken = `${this.jwtToken}`;
@@ -369,7 +369,7 @@ async imagePut(url, data) {
             error.customErrorMessage =
               "Apologies! An error occurred. Please log in again to continue.";
           }
-  
+
           throw error;
         });
     } catch (e) {
@@ -379,83 +379,83 @@ async imagePut(url, data) {
   }
   async imagePost(url, data) {
     try {
-      
+
 
       const headers = {
 
-  Authorization: `Bearer ${this.jwtToken}`,
-};
+        Authorization: `Bearer ${this.jwtToken}`,
+      };
 
-const response = await Axios.post(BACKEND_URL + url, data, { headers });
+      const response = await Axios.post(BACKEND_URL + url, data, { headers });
 
-if (response.status >= 200 && response.status < 500) {
+      if (response.status >= 200 && response.status < 500) {
 
-  const { token, userInfo } = response.data;
+        const { token, userInfo } = response.data;
 
-  return response.data;
-} else {
-  throw new Error(`Unexpected status code: ${response.status}`);
-}
+        return response.data;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
     } catch (error) {
       console.error("imagePost error:", error);
       throw error;
     }
   }
-//   async imagePost(url, data) {
-//     try {
-//       let baseURL = BACKEND_URL;
-//       let jwttoken = ${this.jwtToken};
-//       //   let jwttoken = Store.get("JWTTOKEN");
-//       //   let jwtToken = Store.get("jwtToken");
-//       let headers = {
-//         Authorization: "Bearer " + jwttoken,
-//         // jwtToken: jwtToken,
-//         "Content-Type": "multipart/form-data",
-//       };
-//       return Axios.post(baseURL + url, data, { headers })
-//         .then((res) => {
-//           if (res.status >= 200 && res.status < 500) {
-//             return res;
-//           } else {
-//             throw new Error(Unexpected status code: ${res.status});
-//           }
-//         })
-//         .catch((error) => {
-//           if (error.response && error.response.status === 401) {
-//             //Setting a Custom error message if authorization failed
-//             error.customErrorMessage =
-//               "Apologies! An error occurred. Please log in again to continue.";
-//           }
+  //   async imagePost(url, data) {
+  //     try {
+  //       let baseURL = BACKEND_URL;
+  //       let jwttoken = ${this.jwtToken};
+  //       //   let jwttoken = Store.get("JWTTOKEN");
+  //       //   let jwtToken = Store.get("jwtToken");
+  //       let headers = {
+  //         Authorization: "Bearer " + jwttoken,
+  //         // jwtToken: jwtToken,
+  //         "Content-Type": "multipart/form-data",
+  //       };
+  //       return Axios.post(baseURL + url, data, { headers })
+  //         .then((res) => {
+  //           if (res.status >= 200 && res.status < 500) {
+  //             return res;
+  //           } else {
+  //             throw new Error(Unexpected status code: ${res.status});
+  //           }
+  //         })
+  //         .catch((error) => {
+  //           if (error.response && error.response.status === 401) {
+  //             //Setting a Custom error message if authorization failed
+  //             error.customErrorMessage =
+  //               "Apologies! An error occurred. Please log in again to continue.";
+  //           }
 
-//           throw error;
-//         });
-//     } catch (e) {
-//       swal(
-//         Failure,
-//         Something went wrong. Please try again after sometime.,
-//         "error"
-//       );
-//     }
-//   }
+  //           throw error;
+  //         });
+  //     } catch (e) {
+  //       swal(
+  //         Failure,
+  //         Something went wrong. Please try again after sometime.,
+  //         "error"
+  //       );
+  //     }
+  //   }
 
 
-async getwithouturltoken(url, data) {
-  try {
-    const headers = {
-      
-      "Content-Type": "application/json",
-    };
+  async getwithouturltoken(url, data) {
+    try {
+      const headers = {
 
-    const response = await Axios.get(url, data, { headers });
+        "Content-Type": "application/json",
+      };
 
-    if (response.status >= 200 && response.status < 500) {
-      return response;
-    } else {
-      throw new Error(`Unexpected status code: ${response.status}`);
-    }
-  } catch (error) {
-    //    // swal("Failure", "Something went wrong. Please try again later.", "error");
-    throw error;
+      const response = await Axios.get(url, data, { headers });
+
+      if (response.status >= 200 && response.status < 500) {
+        return response;
+      } else {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
+    } catch (error) {
+      //    // swal("Failure", "Something went wrong. Please try again later.", "error");
+      throw error;
     }
   }
 

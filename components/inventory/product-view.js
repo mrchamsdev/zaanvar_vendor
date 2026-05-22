@@ -13,6 +13,20 @@ const ProductView = ({ data, onBack, isSplit }) => {
 
   if (!data) return <div style={{padding: 40, textAlign: 'center'}}>No product data available.</div>;
 
+  const formatExpiryDate = (date) => {
+    if (!date) return "-";
+    if (typeof date === "string" && (date.startsWith("0000-00-00") || date === "0000-00-00")) {
+      return "-";
+    }
+    return date;
+  };
+
+  const formatSourceStatus = (status) => {
+    if (!status) return "-";
+    if (status === "openStock") return "Open Stock";
+    return status;
+  };
+
   // Flatten the category for display
   const renderList = (arr) => {
     if (!arr) return "-";
@@ -278,7 +292,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                         <td>{bill.receivedQuantity}</td>
                         <td>{bill.damagedQuantity}</td>
                         <td>{bill.bill?.receivedDate || "-"}</td>
-                        <td>{bill.expiryDate || "-"}</td>
+                        <td>{formatExpiryDate(bill.expiryDate)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -296,7 +310,6 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <thead>
                     <tr>
                       <th>UPDATED DATE</th>
-                      <th>BATCH NUMBER</th>
                       <th>CURRENT QTY</th>
                       <th>ADD</th>
                       <th>REMOVE</th>
@@ -311,14 +324,13 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     {data.stockHistory.map((stock, idx) => (
                       <tr key={idx}>
                         <td>{stock.createdDate?.split("T")[0] || "-"}</td>
-                        <td>{stock.batchNumber || "-"}</td>
                         <td>{stock.currentQty}</td>
                         <td>{stock.add}</td>
                         <td>{stock.remove}</td>
                         <td>{stock.updatedQty}</td>
                         <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
-                        <td>{stock.sourceStatus || "-"}</td>
-                        <td>{stock.expDate || "-"}</td>
+                        <td>{formatSourceStatus(stock.sourceStatus)}</td>
+                        <td>{formatExpiryDate(stock.expDate)}</td>
                         <td>₹{stock.totalValue}</td>
                       </tr>
                     ))}

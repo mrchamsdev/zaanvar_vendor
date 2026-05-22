@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
