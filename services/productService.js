@@ -141,13 +141,19 @@ export const productService = {
     const webApi = new WebApimanager(jwt);
     try {
       const response = await webApi.get(`vendor/products/stock-reports`, { branchId });
-      return response?.data?.data || {
+      const data = response?.data?.data;
+      if (data) {
+        data.counts = response?.data?.counts;
+      }
+      return data || {
         outOfStock: [],
         lowStock: [],
         expired: [],
+        expiredProducts: [],
         shortExpiry: [],
         damagedBillItems: [],
-        customerDamagedReturns: []
+        customerDamagedReturns: [],
+        damageProducts: []
       };
     } catch (error) {
       console.error("Error fetching stock reports:", error);

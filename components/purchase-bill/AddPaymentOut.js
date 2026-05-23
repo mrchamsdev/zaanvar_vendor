@@ -106,7 +106,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
         setLoading(true);
         try {
-            for (const p of validPayments) {
+            let firstTransactionId = null;
+            for (let i = 0; i < validPayments.length; i++) {
+                const p = validPayments[i];
                 const payload = {
                     amount: Number(p.amountPaid),
                     debitOrCredit: "Debit",
@@ -124,9 +126,16 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     refNo: p.refNo || null
                 };
 
+                if (i > 0 && firstTransactionId) {
+                    payload.transactionRefId = firstTransactionId;
+                }
+
                 const res = await purchaseService.createTransaction(jwtToken, payload);
-                if (res.status === "success" || res.status === "ok") {
-                    const transId = res.data?.suppliersTransactionId;
+                if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
+                    const transId = res.data?.suppliersTransactionId || res.suppliersTransactionId || res.data?.data?.suppliersTransactionId;
+                    if (i === 0 && transId) {
+                        firstTransactionId = transId;
+                    }
                     if (selectedImage && transId) {
                         const formData = new FormData();
                         formData.append("transactionImg", selectedImage);

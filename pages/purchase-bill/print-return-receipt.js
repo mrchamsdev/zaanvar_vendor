@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import { purchaseService } from "../../services/purchaseService";
 import styles from "../../styles/purchase-bill/print-receipt.module.css";
+import { parseApiToLocal } from "../../utilities/date-time-utils";
 
 const PrintReturnReceipt = () => {
     const router = useRouter();
@@ -85,7 +86,7 @@ const PrintReturnReceipt = () => {
                         <div className={styles.labelRow}>Return Details:</div>
                         <div className={styles.valueRow}>
                             <p>No: {data.returnProductsId}</p>
-                            <p>Date: {new Date(data.createdDate).toLocaleDateString('en-GB')}</p>
+                            <p>Date: {(parseApiToLocal(data.returnDate || data.createdDate) || new Date()).toLocaleDateString('en-GB')}</p>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, toApiUtcIso, userTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/add-purchase-return.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2, FiChevronDown } from "react-icons/fi";
@@ -152,7 +152,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     }
                 }
 
-                setReturnDate(data.createdDate ? data.createdDate.split('T')[0] : "");
+                setReturnDate((data.returnDate || data.createdDate) ? (data.returnDate || data.createdDate).split('T')[0] : "");
             }
         } catch (error) {
             console.error("Error fetching return details:", error);
@@ -444,6 +444,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             productsBillId: parseInt(selectedBillId),
             returnReason: returnReason,
             returnAmount: totalAmount,
+            returnDate: toApiUtcIso(returnDate),
+            returnDateTimeZone: userTimeZone(),
             createdBy: userInfo?.userId || 1,
             modifiedBy: userInfo?.userId || 1,
             items: items.map(it => ({

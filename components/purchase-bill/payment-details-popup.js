@@ -85,7 +85,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
         setLoading(true);
         try {
             let firstTransactionId = null;
-            for (const p of validPayments) {
+            for (let i = 0; i < validPayments.length; i++) {
+                const p = validPayments[i];
                 const payload = {
                     amount: Number(p.amountPaid),
                     debitOrCredit: "Debit",
@@ -105,12 +106,19 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
                     transactionImg: "",
                     totalAmount: Number(totalAmount),
-                    balanceAmount: Math.max(0, initialBalance - validPayments.slice(0, validPayments.indexOf(p) + 1).reduce((acc, curr) => acc + Number(curr.amountPaid), 0))
+                    balanceAmount: Math.max(0, initialBalance - validPayments.slice(0, i + 1).reduce((acc, curr) => acc + Number(curr.amountPaid), 0))
                 };
 
+                if (i > 0 && firstTransactionId) {
+                    payload.transactionRefId = firstTransactionId;
+                }
+
                 const res = await purchaseService.createTransaction(jwtToken, payload);
-                if (res.status === "success" || res.status === "ok") {
-                    if (!firstTransactionId) firstTransactionId = res.data?.id;
+                if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
+                    const transId = res.data?.suppliersTransactionId || res.suppliersTransactionId || res.data?.data?.suppliersTransactionId || res.data?.id;
+                    if (i === 0 && transId) {
+                        firstTransactionId = transId;
+                    }
                 }
             }
 

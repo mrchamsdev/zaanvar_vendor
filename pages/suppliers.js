@@ -75,7 +75,7 @@ const SuppliersPage = () => {
     const hasRestrictedSuppliers = selectedSuppliers.some(s => s.hasOrders === true || s.hasOrders === "true");
 
     if (hasRestrictedSuppliers) {
-      toast.error("this supplier has orders unable to delete supplier");
+      toast.error("this supplier has orders so can't delete the supplier");
       return;
     }
 
@@ -103,7 +103,7 @@ const SuppliersPage = () => {
 
       if (errorMsg) {
         if (errorMsg.includes("SequelizeForeignKeyConstraintError") || errorMsg.includes("foreign key constraint fails")) {
-          toast.error("this supplier has orders unable to delete supplier");
+          toast.error("this supplier has orders so can't delete the supplier");
         } else {
           toast.error(errorMsg);
         }
@@ -191,7 +191,7 @@ const SuppliersPage = () => {
           onDelete={(id) => {
             const supplier = suppliers.find(s => s.supplierId === id);
             if (supplier && (supplier.hasOrders === true || supplier.hasOrders === "true")) {
-              toast.error("this supplier has orders unable to delete supplier");
+              toast.error("this supplier has orders so can't delete the supplier");
               return;
             }
             setSelectedIds([id]);
@@ -201,7 +201,7 @@ const SuppliersPage = () => {
             const selectedSuppliers = suppliers.filter(s => selectedIds.includes(s.supplierId));
             const hasRestrictedSuppliers = selectedSuppliers.some(s => s.hasOrders === true || s.hasOrders === "true");
             if (hasRestrictedSuppliers) {
-              toast.error("this supplier has orders unable to delete supplier");
+              toast.error("this supplier has orders so can't delete the supplier");
               return;
             }
             setShowDeleteConfirm(true);

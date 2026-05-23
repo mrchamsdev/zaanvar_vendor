@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -100,7 +100,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
                     totalBalance: isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
-                    date: data.createdDate?.split('T')[0] || toApiDateOnly(new Date()),
+                    date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || "") : (data.userOrderId || ""),
                     description: data.description || "",
                     image: null
@@ -198,20 +198,41 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     transactionRef: formData.referenceNumber,
                     description: formData.description
                 };
+                Object.assign(updatePayload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
                 res = await saleService.updatePayment(jwtToken, paymentId, updatePayload);
             } else {
-                const payload = {
-                    branchId,
-                    vendorCustomerId: formData.vendorCustomerId,
-                    amount: totalPaid,
-                    paymentMethod: payments[0].method,
-                    paymentStatus: "Completed",
-                    paymentFrom: "sale invoice",
-                    createdBy: userInfo?.id || 1,
-                    transactionRef: formData.referenceNumber,
-                    description: formData.description
-                };
-                res = await saleService.createPayment(jwtToken, payload);
+                const validPayments = payments.filter(p => parseFloat(p.amount) > 0);
+                let firstPaymentId = null;
+                
+                for (let i = 0; i < validPayments.length; i++) {
+                    const p = validPayments[i];
+                    const payload = {
+                        branchId,
+                        vendorCustomerId: formData.vendorCustomerId,
+                        amount: parseFloat(p.amount),
+                        paymentMethod: p.method,
+                        paymentStatus: "Completed",
+                        paymentFrom: "sale invoice",
+                        createdBy: userInfo?.userId || userInfo?.id || 1,
+                        transactionRef: formData.referenceNumber,
+                        description: formData.description
+                    };
+                    Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
+
+                    if (i > 0 && firstPaymentId) {
+                        payload.transactionRefId = firstPaymentId;
+                    }
+
+                    res = await saleService.createPayment(jwtToken, payload);
+                    if (res && (res.status === "success" || res.data?.status === "success")) {
+                        const payId = res.data?.paymentId || res.paymentId || res.data?.data?.paymentId;
+                        if (i === 0 && payId) {
+                            firstPaymentId = payId;
+                        }
+                    } else {
+                        break;
+                    }
+                }
             }
 
             console.log("Full Response Object:", res);

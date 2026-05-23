@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -413,7 +413,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
     };
 
     const filteredInvoices = invoices.filter(inv => {
-        const invDate = new Date(inv.createdDate);
+        const invDate = parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date();
         invDate.setHours(0,0,0,0);
 
         let matchesDate = true;
@@ -527,7 +527,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "INVOICE NO", "CUSTOMER NAME", "AMOUNT", "PAID", "BALANCE"];
         const rows = filteredInvoices.map(inv => [
-            `"${new Date(inv.createdDate).toLocaleDateString('en-GB')}"`,
+            `"${(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${inv.userOrderId || inv.invoiceNumber || ''}"`,
             `"${(inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer")).replace(/"/g, '""')}"`,
             `"${inv.totalAmount || 0}"`,
@@ -761,7 +761,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
                                 return (
                                     <tr key={inv.userOrderId || idx}>
-                                        <td>{new Date(inv.createdDate).toLocaleDateString('en-GB')}</td>
+                                        <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                         <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
                                         <td>{partyName}</td>
                                         <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
