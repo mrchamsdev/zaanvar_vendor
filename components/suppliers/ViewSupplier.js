@@ -4,6 +4,7 @@ import { FiX } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
+import { parseApiToLocal } from "../../utilities/date-time-utils";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const { jwtToken } = useStore();
@@ -102,6 +103,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
             <thead style={{ background: '#F5F5F5' }}>
                 <tr>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Order Number</th>
+                    <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>PO Number</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Payment Date</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Previous Paid amount</th>
@@ -111,13 +113,22 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
             </thead>
             <tbody>
                 {transactions.length === 0 ? (
-                    <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
+                    <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
                 ) : (
                     transactions.map((t, idx) => (
                         <tr key={idx} style={{ borderTop: '1px solid #eee' }}>
                             <td style={{ padding: '14px', fontSize: '13px' }}>{String(t.productsBillId || t.requestId || idx).padStart(7, '0')}</td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>
-                                {new Date(t.modifiedDate || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                                {(() => {
+                                    const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
+                                    return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
+                                })()}
+                            </td>
+                            <td style={{ padding: '14px', fontSize: '13px' }}>
+                                {(() => {
+                                    const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
+                                    return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                })()}
                             </td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.totalAmount || "0000000"}</td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amountPaidToSupplier || "0000000"}</td>

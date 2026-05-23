@@ -108,7 +108,7 @@ const ProductsPage = () => {
         setStats({
           total: data.counts.totalBranchProducts || 0,
           expired: data.counts.expiredProducts || 0,
-          damaged: data.counts.damagedBillItems || 0,
+          damaged: data.counts.damageProducts || 0,
           saleReturn: data.counts.damagedReturns || 0
         });
       }
@@ -222,8 +222,8 @@ const ProductsPage = () => {
 
   const handleDelete = () => {
     const selectedProducts = products.filter(p => selectedIds.includes(p.productId));
-    const hasRestrictedProducts = selectedProducts.some(p => 
-      p.hasOrders === true || 
+    const hasRestrictedProducts = selectedProducts.some(p =>
+      p.hasOrders === true ||
       p.hasOrders === "true" ||
       (p.variants && p.variants.some(v => v.hasOrders === true || v.hasOrders === "true"))
     );
@@ -532,11 +532,29 @@ const ProductsPage = () => {
                   </div>
                   <div
                     className={styles.actionItem}
-                    onClick={() => {
-                      const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
-                      setEditProductData(productsToEdit);
-                      setFormMode("Edit");
-                      setIsAddingProduct(true);
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const fullProducts = [];
+                        for (const id of selectedIds) {
+                          const res = await productService.getProductById(jwtToken, id);
+                          let prod = res?.data?.data || res?.data;
+                          if (prod) {
+                            prod = {
+                              ...prod,
+                              productId: prod.productId || prod.id || prod.ID || prod._id
+                            };
+                            fullProducts.push(prod);
+                          }
+                        }
+                        setEditProductData(fullProducts);
+                        setFormMode("Edit");
+                        setIsAddingProduct(true);
+                      } catch (e) {
+                        console.error("Error fetching full product details for edit:", e);
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
                   >
                     <IconEdit /> Edit

@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -409,7 +409,7 @@ const SalesReturnList = ({ onAddClick }) => {
     };
 
     const filteredReturns = returns.filter(r => {
-        const rDate = new Date(r.createdDate);
+        const rDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
         rDate.setHours(0,0,0,0);
 
         let matchesDate = true;
@@ -521,7 +521,7 @@ const SalesReturnList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL SALE RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
-            `"${new Date(r.createdDate).toLocaleDateString('en-GB')}"`,
+            `"${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"SR-${r.customerReturnId}"`,
             `"${(r.customer ? r.customer.firstName + ' ' + r.customer.lastName : 'Walk-in Customer').replace(/"/g, '""')}"`,
             `"${r.totalReturnAmount || 0}"`,
@@ -724,7 +724,7 @@ const SalesReturnList = ({ onAddClick }) => {
                         <tbody>
                             {filteredReturns.map((r, idx) => (
                                 <tr key={idx}>
-                                    <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
+                                    <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                     <td>SR-{r.customerReturnId}</td>
                                     <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
                                     <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>

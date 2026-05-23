@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -158,7 +158,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     phone: customerPhone,
                     vendorCustomerId: data.vendorCustomerId || null,
                     invoiceNumber: data.userOrderId || data.invoiceNumber || "",
-                    invoiceDate: data.createdDate ? data.createdDate.split('T')[0] : "",
+                    invoiceDate: (data.invoiceDate || data.createdDate) ? (data.invoiceDate || data.createdDate).split('T')[0] : "",
                     status: data.status || "Pending"
                 });
 
@@ -171,7 +171,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     return {
                         productId: it.productId,
                         variantId: it.variantId,
-                        productName: it.productName || variant.SKU || "Product",
+                        productName: it.productName || it.product?.productName || variant.SKU || "Product",
                         unit: unitLabel,
                         qty: it.quantity || 0,
                         price: parseFloat(it.sellingPrice || 0),
@@ -359,6 +359,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             createdBy: userInfo?.id || 1,
             modifiedBy: mode === 'edit' ? (userInfo?.id || 1) : null
         };
+
+        Object.assign(payload, dateOnlyWithTimeZone('invoiceDate', formData.invoiceDate));
 
         setLoading(true);
         try {

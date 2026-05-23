@@ -5,6 +5,7 @@ import useStore from "../state/useStore";
 import { toast } from "sonner";
 import PayNowModal from "../purchase-bill/PayNowModal";
 import PurchaseOrderManager from "../purchase-bill/purchase-order-manager";
+import { parseApiToLocal } from "../../utilities/date-time-utils";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
     const { jwtToken } = useStore();
@@ -107,6 +108,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                 <thead className={styles.thead}>
                     <tr>
                         <th className={styles.th}>Order Number</th>
+                        <th className={styles.th}>PO Number</th>
                         <th className={styles.th}>Payment Date</th>
                         <th className={styles.th}>Total amount</th>
                         <th className={styles.th}>Previous Paid amount</th>
@@ -116,13 +118,22 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                 </thead>
                 <tbody>
                     {paymentHistory.length === 0 ? (
-                        <tr><td colSpan="6" className={styles.noData}>No data available</td></tr>
+                        <tr><td colSpan="7" className={styles.noData}>No data available</td></tr>
                     ) : (
                         paymentHistory.map((t, idx) => (
                             <tr key={idx} className={styles.trHistory}>
                                 <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
                                 <td className={styles.td}>
-                                    {new Date(t.modifiedDate || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                                    {(() => {
+                                        const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
+                                        return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
+                                    })()}
+                                </td>
+                                <td className={styles.td}>
+                                    {(() => {
+                                        const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
+                                        return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                    })()}
                                 </td>
                                 <td className={styles.td}>₹ {t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
                                 <td className={styles.td}>₹ {t["previouspaid amount"] || "0.00"}</td>

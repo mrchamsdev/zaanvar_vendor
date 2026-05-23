@@ -1237,23 +1237,21 @@ const ProductForm = ({
         }}
       >
         Variants
-        {!isEdit && (
-          <div className={styles.variantActions}>
-            <button
-              className={styles.pageBtn}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                padding: "6px 16px",
-              }}
-              onClick={addVariant}
-            >
-              <IconPlus /> Add Variant
-            </button>
-          </div>
-        )}
+        <div className={styles.variantActions}>
+          <button
+            className={styles.pageBtn}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              padding: "6px 16px",
+            }}
+            onClick={addVariant}
+          >
+            <IconPlus /> Add Variant
+          </button>
+        </div>
       </div>
 
       {variants.map((variant, index) => {
@@ -1271,8 +1269,8 @@ const ProductForm = ({
               <div style={{ fontWeight: 600, fontSize: 14, color: "#666" }}>
                 Variant #{index + 1}
               </div>
-              {!isEdit && (
-                <div className={styles.variantActions}>
+              <div className={styles.variantActions}>
+                {(!isEdit || !variant.variantId) && (
                   <span
                     className={styles.windowActionIcon}
                     onClick={() => console.log("Scan triggered")}
@@ -1280,16 +1278,16 @@ const ProductForm = ({
                   >
                     <IconScan />
                   </span>
-                  <span
-                    className={styles.windowActionIcon}
-                    style={{ color: "#ff4d4f" }}
-                    onClick={() => removeVariant(index)}
-                    title="Remove Variant"
-                  >
-                    <IconTrash />
-                  </span>
-                </div>
-              )}
+                )}
+                <span
+                  className={styles.windowActionIcon}
+                  style={{ color: "#ff4d4f" }}
+                  onClick={() => removeVariant(index)}
+                  title="Remove Variant"
+                >
+                  <IconTrash />
+                </span>
+              </div>
             </div>
 
             <div className={styles.inputGrid}>
@@ -1301,7 +1299,7 @@ const ProductForm = ({
                       type="text"
                       placeholder="Tablet"
                       value={variant.drugType || ""}
-                      disabled={isEdit}
+                      disabled={isEdit && !!variant.variantId}
                       onChange={(e) =>
                         updateVariant(index, "drugType", e.target.value)
                       }
@@ -1314,14 +1312,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="Enter strength"
                         value={variant.strength || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "strength", e.target.value)
                         }
                       />
                       <select
                         value={variant.unitType || "ml"}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "unitType", e.target.value)
                         }
@@ -1345,7 +1343,7 @@ const ProductForm = ({
                     <select
                       className={`${!variant.packType ? styles.placeholderSelect : ""} ${formErrors[`${index}_packType`] ? styles.errorField : ""}`}
                       value={variant.packType || ""}
-                      disabled={isEdit}
+                      disabled={isEdit && !!variant.variantId}
                       onChange={(e) =>
                         updateVariant(index, "packType", e.target.value)
                       }
@@ -1375,7 +1373,7 @@ const ProductForm = ({
                           type="text"
                           placeholder="Enter count"
                           value={variant.packCount || ""}
-                          disabled={isEdit}
+                          disabled={isEdit && !!variant.variantId}
                           onChange={(e) =>
                             updateVariant(index, "packCount", e.target.value)
                           }
@@ -1409,7 +1407,7 @@ const ProductForm = ({
                     </label>
                     <select
                       value={variant.size || ""}
-                      disabled={isEdit}
+                      disabled={isEdit && !!variant.variantId}
                       onChange={(e) =>
                         updateVariant(index, "size", e.target.value)
                       }
@@ -1443,14 +1441,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.height || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "height", e.target.value)
                         }
                       />
                       <select
                         value={variant.heightUnit || "mm"}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "heightUnit", e.target.value)
                         }
@@ -1470,14 +1468,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.width || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "width", e.target.value)
                         }
                       />
                       <select
                         value={variant.widthUnit || "mm"}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "widthUnit", e.target.value)
                         }
@@ -1497,14 +1495,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.length || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "length", e.target.value)
                         }
                       />
                       <select
                         value={variant.lengthUnit || "mm"}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "lengthUnit", e.target.value)
                         }
@@ -1524,14 +1522,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="0"
                         value={variant.radius || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "radius", e.target.value)
                         }
                       />
                       <select
                         value={variant.radiusUnit || "mm"}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "radiusUnit", e.target.value)
                         }
@@ -1561,14 +1559,14 @@ const ProductForm = ({
                         type="text"
                         placeholder="Enter Unit Measure"
                         value={variant.unitMeasure || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "unitMeasure", e.target.value)
                         }
                       />
                       <select
                         value={variant.unitType || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "unitType", e.target.value)
                         }
@@ -1598,7 +1596,7 @@ const ProductForm = ({
                     formErrors[`${index}_eanUpc`] ? styles.errorField : ""
                   }
                   value={variant.eanUpc || ""}
-                  disabled={isEdit}
+                  disabled={isEdit && !!variant.variantId}
                   onChange={(e) =>
                     updateVariantNumeric(index, "eanUpc", e.target.value, 13)
                   }
@@ -1630,10 +1628,10 @@ const ProductForm = ({
                         6,
                       )
                     }
-                    readOnly={isEdit}
-                    disabled={isEdit}
+                    readOnly={isEdit && !!variant.variantId}
+                    disabled={isEdit && !!variant.variantId}
                   />
-                  {!isEdit && (
+                  {(!isEdit || !variant.variantId) && (
                     <button
                       className={styles.pageBtn}
                       style={{ background: "#eee", whiteSpace: "nowrap" }}
@@ -1747,7 +1745,7 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.variantDescription || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(
                             index,
@@ -1766,7 +1764,7 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.composition || ""}
-                        disabled={isEdit}
+                        disabled={isEdit && !!variant.variantId}
                         onChange={(e) =>
                           updateVariant(index, "composition", e.target.value)
                         }
@@ -1783,7 +1781,7 @@ const ProductForm = ({
                     <textarea
                       placeholder="Type here"
                       value={variant.variantDescription || ""}
-                      disabled={isEdit}
+                      disabled={isEdit && !!variant.variantId}
                       onChange={(e) =>
                         updateVariant(
                           index,
@@ -1812,9 +1810,9 @@ const ProductForm = ({
                       multiple
                       accept="image/*"
                       style={{ display: "none" }}
-                      disabled={isEdit}
+                      disabled={isEdit && !!variant.variantId}
                     />
-                    {!isEdit && (
+                    {(!isEdit || !variant.variantId) && (
                       <div
                         className={styles.uploadItem}
                         onClick={() => fileInputsRef.current[index]?.click()}
@@ -1831,7 +1829,7 @@ const ProductForm = ({
                           src={img.preview}
                           alt={`Variant ${index} Img ${imgIdx}`}
                         />
-                        {!isEdit && (
+                        {(!isEdit || !variant.variantId) && (
                           <button
                             className={styles.removeImageBtn}
                             onClick={(e) => removeImage(e, index, imgIdx)}

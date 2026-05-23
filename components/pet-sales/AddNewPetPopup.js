@@ -777,8 +777,8 @@ const AddNewPetPopup = ({
     }
   };
 
-  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
-
+  const maxDate = useMemo(() => toApiDateOnly(new Date()), []);
+  
   const sizeOptions = useMemo(() => {
     if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
       return [formData.size];

@@ -8,7 +8,7 @@ const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
     // Mock history data since backend might not have this yet
     const history = [
         {
-            date: new Date(data.createdDate).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            date: new Date(data.returnDate || data.createdDate).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
             user: userInfo?.userName || userInfo?.name || "Naveen",
             role: userInfo?.role || "PRIMARY ADMIN",
             changes: [

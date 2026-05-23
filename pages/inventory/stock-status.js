@@ -57,6 +57,13 @@ const StockStatusPage = () => {
     shortExpiry: [],
     damaged: []
   });
+  const [counts, setCounts] = useState({
+    outOfStock: 0,
+    lowStock: 0,
+    expiredProducts: 0,
+    shortExpiry: 0,
+    damageProducts: 0
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -87,14 +94,25 @@ const StockStatusPage = () => {
         setData({
           outOfStock: res.outOfStock || [],
           lowStock: res.lowStock || [],
-          expired: res.expired || [],
+          expired: res.expiredProducts || res.expired || [],
           shortExpiry: res.shortExpiry || [],
-          damaged: (res.customerDamagedReturns || []).map(item => ({ 
+          damaged: (res.damageProducts || res.customerDamagedReturns || []).map(item => ({ 
               ...item, 
               type: 'customerReturn',
               displayQty: item.damagedQty || 0
           }))
         });
+        if (res.counts) {
+          setCounts(res.counts);
+        } else {
+          setCounts({
+            outOfStock: res.outOfStock?.length || 0,
+            lowStock: res.lowStock?.length || 0,
+            expiredProducts: (res.expiredProducts || res.expired)?.length || 0,
+            shortExpiry: res.shortExpiry?.length || 0,
+            damageProducts: (res.damageProducts || res.customerDamagedReturns || []).length
+          });
+        }
       }
     } catch (error) {
       toast.error("Failed to load reports");
@@ -368,15 +386,27 @@ const StockStatusPage = () => {
     <DashboardLayout>
       <div className={styles.container}>
         <div className={styles.tabBar}>
-          {TABS.map(t => (
-            <div 
-              key={t.id} 
-              className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(t.id)}
-            >
-              {t.label} ({data[t.id]?.length || 0})
-            </div>
-          ))}
+          {TABS.map(t => {
+            let countVal = 0;
+            if (t.id === "outOfStock") countVal = counts.outOfStock;
+            else if (t.id === "lowStock") countVal = counts.lowStock;
+            else if (t.id === "expired") countVal = counts.expiredProducts;
+            else if (t.id === "shortExpiry") countVal = counts.shortExpiry;
+            else if (t.id === "damaged") countVal = counts.damageProducts;
+
+            return (
+              <div 
+                key={t.id} 
+                className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab(t.id)}
+              >
+                <span>{t.label}</span>
+                <span className={`${styles.badge} ${activeTab === t.id ? styles.badgeActive : ""}`}>
+                  {countVal || 0}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <div className={styles.contentBody}>

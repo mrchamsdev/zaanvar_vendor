@@ -216,7 +216,13 @@
 }
 
 .paymentEntry .grid {
-    grid-template-columns: 330px 330px;
+    display: grid;
+    grid-template-columns: 200px 200px;
     gap: 32px;
     margin-bottom: 16px;
+}
+
+.refField {
+    width: 200px;
+    margin-top: 8px;
 }

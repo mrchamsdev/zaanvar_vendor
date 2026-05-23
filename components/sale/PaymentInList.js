@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -409,7 +409,7 @@ const PaymentInList = ({ onAddClick }) => {
     };
 
     const filteredPayments = payments.filter(p => {
-        const pDate = new Date(p.createdDate);
+        const pDate = parseApiToLocal(p.paymentDate || p.createdDate) || new Date();
         pDate.setHours(0,0,0,0);
 
         let matchesDate = true;
@@ -521,7 +521,7 @@ const PaymentInList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "CUSTOMER NAME", "PAYMENT TYPE", "TOTAL", "PAID"];
         const rows = filteredPayments.map(p => [
-            `"${new Date(p.createdDate).toLocaleDateString('en-GB')}"`,
+            `"${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${p.userOrderId}"`,
             `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
             `"${p.paymentMethod || "N/A"}"`,
@@ -752,7 +752,7 @@ const PaymentInList = ({ onAddClick }) => {
                         <tbody>
                             {filteredPayments.map((p, idx) => (
                                 <tr key={idx}>
-                                    <td>{new Date(p.createdDate).toLocaleDateString('en-GB')}</td>
+                                    <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                     <td>{p.userOrderId}</td>
                                     <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
                                     <td>{p.paymentMethod || "N/A"}</td>

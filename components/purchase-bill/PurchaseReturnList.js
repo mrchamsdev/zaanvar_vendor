@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-return.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiCheck } from "react-icons/fi";
@@ -408,7 +408,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
     };
 
     const filteredReturns = returns.filter(r => {
-        const transDate = new Date(r.createdDate);
+        const transDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
         const start = new Date(dateRange.startDate);
         const end = new Date(dateRange.endDate);
         start.setHours(0,0,0,0);
@@ -423,7 +423,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
             single.setHours(0,0,0,0);
             from.setHours(0,0,0,0);
             to.setHours(23,59,59,999);
-            const checkDate = new Date(r.createdDate);
+            const checkDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
             checkDate.setHours(0,0,0,0);
 
             if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
@@ -455,12 +455,12 @@ const PurchaseReturnList = ({ onAddClick }) => {
         });
 
         return matchesDate && matchesSearch && matchesColFilters;
-    }).sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+    }).sort((a, b) => (parseApiToLocal(b.returnDate || b.createdDate) || new Date()) - (parseApiToLocal(a.returnDate || a.createdDate) || new Date()));
 
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "RECEIVED", "BALANCE"];
         const rows = filteredReturns.map(r => [
-            `"${new Date(r.createdDate).toLocaleDateString('en-GB')}"`,
+            `"${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${r.returnProductsId || '000'}"`,
             `"${(r.supplierName || "N/A").replace(/"/g, '""')}"`,
             `"${r.totalAmount || 0}"`,
@@ -667,7 +667,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                         <tbody>
                             {filteredReturns.map((r, idx) => (
                                 <tr key={idx}>
-                                    <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
+                                    <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                     <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
                                     <td>{r.supplierName || "N/A"}</td>
                                     <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
