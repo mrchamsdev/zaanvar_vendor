@@ -45,13 +45,13 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     e.preventDefault();
     e.stopPropagation();
     console.log("Add button clicked");
-    
+
     if (typeof setIsAddPopupOpen !== 'function') {
       console.error("setIsAddPopupOpen is not a function! Check parent props.");
       return;
     }
 
-    setEditingPet(null); 
+    setEditingPet(null);
     setIsAddPopupOpen(true);
   };
 
@@ -60,7 +60,7 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     console.log("Add/Edit popup closed, received pet:", savedPet);
     setIsAddPopupOpen(false);
     setEditingPet(null);
-    
+
     // Always refresh data from server to get latest
     if (refreshPets) {
       console.log("Refreshing data after add/edit...");
@@ -69,16 +69,16 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
     }
   };
 
-   // Handle status change success - FIXED to only update the specific pet
+  // Handle status change success - FIXED to only update the specific pet
   const handleStatusChangeSuccess = async (result) => {
     console.log("Status changed, result:", result);
     setShowChangeStatus(false);
-    
+
     if (result) {
       const { status, petId, updatedPet } = result;
-      
+
       console.log("Updating pet with ID:", petId, "to status:", status);
-      
+
       // Update only the specific pet that changed
       setPetList(prevList => {
         const updatedList = prevList.map(pet => {
@@ -86,8 +86,8 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
           if (pet.id === petId || pet._id === petId) {
             console.log("Found matching pet:", pet.petName, "updating status from", pet.petStatus, "to", status);
             // Return the updated pet object
-            return { 
-              ...pet, 
+            return {
+              ...pet,
               petStatus: status,
               ...updatedPet // Merge any other updated fields
             };
@@ -95,14 +95,14 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
           // Return unchanged pet
           return pet;
         });
-        
+
         console.log("Updated list length:", updatedList.length);
         return updatedList;
       });
     }
-    
+
     setSelectedPet(null);
-    
+
     // Optional: Refresh data from server to ensure consistency
     if (refreshPets) {
       console.log("Refreshing data after status change...");
@@ -179,16 +179,16 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
                   </button>
                 </div>
               </span>
-              
+
               <div className={styles.mobileCard} onClick={() => router.push({ pathname: `/my-pets/${pet.id || pet._id}` })}>
                 <div className={styles.mobileCardLeft}>
                   {pet.morePhotos && pet.morePhotos.length > 0 ? (
-                    <Image 
-                      src={`${IMAGE_URL}${pet.morePhotos[0]}`} 
-                      alt={pet.petName} 
-                      width={56} 
-                      height={56} 
-                      className={styles.mobileAvatar} 
+                    <Image
+                      src={`${IMAGE_URL}${pet.morePhotos[0]}`}
+                      alt={pet.petName}
+                      width={56}
+                      height={56}
+                      className={styles.mobileAvatar}
                     />
                   ) : (
                     <div className={styles.mobileAvatarPlaceholder} />
@@ -210,9 +210,9 @@ const MyPets = ({ pets = [], isAddPopupOpen, setIsAddPopupOpen, setEditingPet, r
         ) : (
           <div className={styles.emptyState}>No pets found.</div>
         )}
-        
-        <div 
-          className={styles.addIconContainer} 
+
+        <div
+          className={styles.addIconContainer}
           onClick={handleAddBtnClick}
           style={{ cursor: 'pointer', zIndex: 100 }}
         >

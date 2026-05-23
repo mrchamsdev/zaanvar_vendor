@@ -307,11 +307,25 @@
   transition: opacity 0.2s;
 }
 
-.topBtn:hover { opacity: 0.85; }
+.topBtn:hover {
+  opacity: 0.85;
+}
 
-.topBtnPurple { background: #7c3aed; color: #fff; }
-.topBtnRed    { background: #e11d48; color: #fff; }
-.topBtnGray   { background: #f1f5f9; color: #333; border: 1px solid #e2e8f0; }
+.topBtnPurple {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.topBtnRed {
+  background: #e11d48;
+  color: #fff;
+}
+
+.topBtnGray {
+  background: #f1f5f9;
+  color: #333;
+  border: 1px solid #e2e8f0;
+}
 
 .topAvatar {
   width: clamp(32px, 3vw, 42px);
@@ -351,15 +365,21 @@
   margin-bottom: clamp(18px, 2.5vh, 28px);
 }
 
-.branchRow::-webkit-scrollbar { height: 4px; }
-.branchRow::-webkit-scrollbar-thumb { background: #ddd; border-radius: 999px; }
+.branchRow::-webkit-scrollbar {
+  height: 4px;
+}
+
+.branchRow::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 999px;
+}
 
 .branchCard {
   flex: 0 0 clamp(200px, 22vw, 280px);
   background: #fff;
   border-radius: clamp(12px, 1.2vw, 16px);
   padding: clamp(16px, 2vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -371,7 +391,7 @@
 
 .branchCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
 
 .branchCardMain {
@@ -422,7 +442,7 @@
 }
 
 .branchCardMain .branchLogo {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .branchBadge {
@@ -455,7 +475,7 @@
   background: #fff;
   border-radius: clamp(12px, 1.2vw, 16px);
   padding: clamp(16px, 2vw, 24px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .dashCardTitle {
@@ -475,7 +495,9 @@
   font-size: clamp(12px, 1vw, 14px);
 }
 
-.timingRow:last-child { border-bottom: none; }
+.timingRow:last-child {
+  border-bottom: none;
+}
 
 .timingDay {
   color: #555;
@@ -491,7 +513,9 @@
   font-size: clamp(11px, 0.9vw, 13px);
 }
 
-.timingSep { color: #aaa; }
+.timingSep {
+  color: #aaa;
+}
 
 /* Recent Reviews */
 .reviewItem {
@@ -501,7 +525,9 @@
   border-bottom: 1px solid #f5f5f5;
 }
 
-.reviewItem:last-child { border-bottom: none; }
+.reviewItem:last-child {
+  border-bottom: none;
+}
 
 .reviewAvatar {
   width: clamp(32px, 3vw, 40px);
@@ -516,7 +542,10 @@
   color: #fff;
 }
 
-.reviewBody { flex: 1; min-width: 0; }
+.reviewBody {
+  flex: 1;
+  min-width: 0;
+}
 
 .reviewName {
   font-size: clamp(12px, 1vw, 14px);
@@ -670,7 +699,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .sliderDots {
@@ -722,7 +751,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: width 0.3s, border-radius 0.3s, background 0.3s;
 }
@@ -770,7 +799,7 @@
   background: #fff;
   border-radius: clamp(10px, 1vw, 14px);
   padding: clamp(14px, 1.8vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .detailsCardTitle {
@@ -788,7 +817,9 @@
   gap: 10px;
 }
 
-.detailRow:last-child { border-bottom: none; }
+.detailRow:last-child {
+  border-bottom: none;
+}
 
 .detailIcon {
   width: 28px;
@@ -817,7 +848,7 @@
   background: #fff;
   border-radius: clamp(10px, 1vw, 14px);
   padding: clamp(14px, 1.8vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .addressHeader {
@@ -858,7 +889,7 @@
   background: #fff;
   border-radius: clamp(10px, 1vw, 14px);
   padding: clamp(14px, 1.8vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .branchSelectHeader {
@@ -894,7 +925,7 @@
   background: #fff;
   border-radius: clamp(10px, 1vw, 14px);
   padding: clamp(14px, 1.8vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .timingsHeader {
@@ -925,9 +956,13 @@
   font-size: clamp(12px, 1vw, 14px);
 }
 
-.timingProfileRow:last-child { border-bottom: none; }
+.timingProfileRow:last-child {
+  border-bottom: none;
+}
 
-.timingDayName { color: #555; }
+.timingDayName {
+  color: #555;
+}
 
 .timingStatus {
   display: flex;
@@ -935,16 +970,30 @@
   gap: 6px;
 }
 
-.timingOpen { color: #22c55e; font-weight: 600; }
-.timingUntil { color: #555; }
-.timingTime  { color: #333; font-weight: 500; }
-.timingClosed { color: #ef4444; font-weight: 600; }
+.timingOpen {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.timingUntil {
+  color: #555;
+}
+
+.timingTime {
+  color: #333;
+  font-weight: 500;
+}
+
+.timingClosed {
+  color: #ef4444;
+  font-weight: 600;
+}
 
 .featureGrid {
   background: #fff;
   border-radius: clamp(10px, 1vw, 14px);
   padding: clamp(14px, 1.8vw, 22px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(12px, 1.6vw, 20px);
@@ -1007,7 +1056,7 @@
   background: #fff;
   border-radius: clamp(12px, 1.2vw, 16px);
   padding: clamp(16px, 2vw, 28px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .tsRow {
@@ -1019,7 +1068,9 @@
   gap: clamp(12px, 1.4vw, 20px);
 }
 
-.tsRow:last-child { border-bottom: none; }
+.tsRow:last-child {
+  border-bottom: none;
+}
 
 .tsDay {
   font-size: clamp(13px, 1.1vw, 15px);
@@ -1054,7 +1105,10 @@
   transition: border-color 0.2s;
 }
 
-.tsTimeBox:focus { border-color: #f5790c; background: #fff; }
+.tsTimeBox:focus {
+  border-color: #f5790c;
+  background: #fff;
+}
 
 .tsColon {
   font-size: clamp(14px, 1.2vw, 16px);
@@ -1076,7 +1130,10 @@
   cursor: pointer;
 }
 
-.tsAmPmBox:focus { border-color: #f5790c; background: #fff; }
+.tsAmPmBox:focus {
+  border-color: #f5790c;
+  background: #fff;
+}
 
 .tsTo {
   font-size: clamp(12px, 1vw, 14px);
@@ -1109,7 +1166,9 @@
   transition: background 0.2s;
 }
 
-.tsCancelBtn:hover { background: #f5f6fa; }
+.tsCancelBtn:hover {
+  background: #f5f6fa;
+}
 
 .tsSaveBtn {
   padding: clamp(10px, 1.2vh, 13px) clamp(20px, 2.5vw, 32px);
@@ -1123,7 +1182,9 @@
   transition: background 0.2s;
 }
 
-.tsSaveBtn:hover { background: #333; }
+.tsSaveBtn:hover {
+  background: #333;
+}
 
 /* ── Reviews Page ── */
 .reviewsWrap {
@@ -1143,7 +1204,7 @@
   background: #fff;
   border-radius: clamp(12px, 1.2vw, 16px);
   padding: clamp(16px, 2vw, 24px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .reviewsTitle {
@@ -1158,7 +1219,9 @@
   border-bottom: 1px solid #f0f0f0;
 }
 
-.reviewCard:last-child { border-bottom: none; }
+.reviewCard:last-child {
+  border-bottom: none;
+}
 
 .reviewCardTop {
   display: flex;
@@ -1194,7 +1257,10 @@
   margin-top: 4px;
 }
 
-.reviewCardStars { display: flex; gap: 2px; }
+.reviewCardStars {
+  display: flex;
+  gap: 2px;
+}
 
 .reviewCardDate {
   font-size: clamp(11px, 0.9vw, 13px);
@@ -1239,7 +1305,7 @@
   background: #fff;
   border-radius: clamp(12px, 1.2vw, 16px);
   padding: clamp(16px, 2vw, 24px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: calc(clamp(10px, 1.4vh, 16px) + 60px);
 }
@@ -1302,7 +1368,9 @@
   color: #555;
 }
 
-.distBarNum { min-width: 10px; }
+.distBarNum {
+  min-width: 10px;
+}
 
 .distBarBg {
   flex: 1;
@@ -1312,7 +1380,10 @@
   overflow: hidden;
 }
 
-.distBarFill { height: 100%; border-radius: 999px; }
+.distBarFill {
+  height: 100%;
+  border-radius: 999px;
+}
 
 .distPct {
   min-width: 28px;
@@ -1364,7 +1435,7 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .dashGrid > *:last-child {
+  .dashGrid>*:last-child {
     grid-column: span 2;
   }
 
@@ -1412,7 +1483,7 @@
     grid-template-columns: 1fr;
   }
 
-  .dashGrid > *:last-child {
+  .dashGrid>*:last-child {
     grid-column: span 1;
   }
 

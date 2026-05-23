@@ -31,10 +31,10 @@ export default function Index() {
       const pets = response?.data?.data?.pets || [];
       console.log("Pets data count:", pets.length);
       console.log("Pets data:", pets);
-      
+
       // Force a new array reference
       setMyPetData(() => [...pets]);
-      
+
       return pets;
     } catch (error) {
       console.error("Error fetching pets:", error);
@@ -47,14 +47,14 @@ export default function Index() {
   useEffect(() => {
     FetchAllData();
   }, [FetchAllData]);
-const handleAddEditSuccess = async (success) => {
+  const handleAddEditSuccess = async (success) => {
     if (success) {
       setIsAddPopupOpen(false);
       setEditingPet(null);
-      
+
       if (refreshPets) {
         console.log("Refreshing list after add/edit...");
-        await refreshPets(); 
+        await refreshPets();
       }
     } else {
       setIsAddPopupOpen(false);
@@ -74,8 +74,8 @@ const handleAddEditSuccess = async (success) => {
       logoText="Pet Management"
       sidebarToggleButton={<BackButton />}
     >
-      <MyPets 
-        pets={myPetData} 
+      <MyPets
+        pets={myPetData}
         isAddPopupOpen={isAddPopupOpen}
         setIsAddPopupOpen={setIsAddPopupOpen}
         setEditingPet={setEditingPet}

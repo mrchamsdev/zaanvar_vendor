@@ -101,23 +101,23 @@ const IconLogout = () => (
 
 /* ── Service → Sidebar config (all flat routes) ─────────── */
 const SERVICE_MAP = {
-  Grooming:       { label: "Grooming",  path: "/grooming",   icon: <IconScissors /> },
-  Clinic:         { label: "Clinic",    path: "/clinic",     icon: <IconActivity /> },
-  "Pet Shop":     { label: "Pet Shop",  path: "/pet-shop",   icon: <IconShop />     },
-  Training:       { label: "Training",  path: "/training",   icon: <IconActivity /> },
-  "Day Care":     { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Day Care": { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  Daycare:        { label: "Day care",  path: "/daycare",    icon: <IconHeart />    },
-  "Pet Sales": { 
-    label: "Pet Sale", 
-    path: "/pet-sales",  
+  Grooming: { label: "Grooming", path: "/grooming", icon: <IconScissors /> },
+  Clinic: { label: "Clinic", path: "/clinic", icon: <IconActivity /> },
+  "Pet Shop": { label: "Pet Shop", path: "/pet-shop", icon: <IconShop /> },
+  Training: { label: "Training", path: "/training", icon: <IconActivity /> },
+  "Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  "Pet Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  Daycare: { label: "Day care", path: "/daycare", icon: <IconHeart /> },
+  "Pet Sales": {
+    label: "Pet Sale",
+    path: "/pet-sales",
     icon: <IconDog />,
     subItems: [
       { label: "Pet", path: "/pet-sales?tab=Pets" },
       { label: "Puppy", path: "/pet-sales?tab=Puppies" }
     ]
   },
-  "Pet Training": { label: "Training",  path: "/training",   icon: <IconActivity /> },
+  "Pet Training": { label: "Training", path: "/training", icon: <IconActivity /> },
   Inventory: {
     label: "Inventory",
     path: "/inventory",
@@ -152,41 +152,41 @@ const SERVICE_MAP = {
 };
 
 const BRANCH_SERVICE_MAP = {
-  clinicDetails:    "Clinic",
+  clinicDetails: "Clinic",
   groomingServices: "Grooming",
-  daycares:         "Day Care",
-  petShops:         "Pet Shop",
-  petSales:         "Pet Sales",
-  inventory:        "Inventory",
-  purchaseBills:    "Purchase Bills",
-  sale:             "Sale",
+  daycares: "Day Care",
+  petShops: "Pet Shop",
+  petSales: "Pet Sales",
+  inventory: "Inventory",
+  purchaseBills: "Purchase Bills",
+  sale: "Sale",
 };
 
 function buildMenuFromVendor(userInfo) {
   const base = [
-    { label: "Dashboard",         path: "/dashboard",      icon: <IconGrid />  },
-    { label: "Timing Slots",      path: "/timing-slots",   icon: <IconClock /> },
-    { label: "Reviews & Ratings", path: "/reviews",        icon: <IconStar />  },
-    { label: "Profile",           path: "/profile",        icon: <IconUser />  },
-    { 
-      label: "Inventory", 
-      path: "/inventory", 
+    { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
+    { label: "Timing Slots", path: "/timing-slots", icon: <IconClock /> },
+    { label: "Reviews & Ratings", path: "/reviews", icon: <IconStar /> },
+    { label: "Profile", path: "/profile", icon: <IconUser /> },
+    {
+      label: "Inventory",
+      path: "/inventory",
       icon: <IconPackage />,
-      subItems: SERVICE_MAP["Inventory"].subItems 
+      subItems: SERVICE_MAP["Inventory"].subItems
     },
-    { 
-      label: "Purchase Bills", 
-      path: "/purchase-bill", 
+    {
+      label: "Purchase Bills",
+      path: "/purchase-bill",
       icon: <IconPackage />,
-      subItems: SERVICE_MAP["Purchase Bills"].subItems 
+      subItems: SERVICE_MAP["Purchase Bills"].subItems
     },
-    { 
-      label: "Sale", 
-      path: "/sale", 
+    {
+      label: "Sale",
+      path: "/sale",
       icon: <IconShop />,
-      subItems: SERVICE_MAP["Sale"].subItems 
+      subItems: SERVICE_MAP["Sale"].subItems
     },
-    { label: "Supplier",          path: "/suppliers",      icon: <IconGrid />  },
+    { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
   ];
 
   const serviceSet = new Set();
@@ -203,9 +203,9 @@ function buildMenuFromVendor(userInfo) {
     });
   });
 
-  const seen     = new Set();
+  const seen = new Set();
   base.forEach(b => seen.add(b.path));
-  
+
   const svcItems = [];
   serviceSet.forEach((s) => {
     const cfg = SERVICE_MAP[s];
@@ -251,18 +251,18 @@ function Skeleton() {
 /* ═══════════════════════════════════════════════════════════
  * DashboardLayout
  * ═══════════════════════════════════════════════════════════ */
-const DashboardLayout = ({ 
-  children, 
-  topbarButtons = [], 
+const DashboardLayout = ({
+  children,
+  topbarButtons = [],
   onTopbarAction,
   customTopbarLeft,
   customTopbarRight
 }) => {
-  const router  = useRouter();
+  const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
   const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
 
-  const [sidebarOpen,      setSidebarOpen]      = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { expandedMenus, setExpandedMenus } = useStore();
 
@@ -296,7 +296,7 @@ const DashboardLayout = ({
 
   /* ── avatar ── */
   const firstName = userInfo?.firstName || "";
-  const lastName  = userInfo?.lastName  || "";
+  const lastName = userInfo?.lastName || "";
   const avatarInitial =
     `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase() || "V";
   const avatarImg = userInfo?.profileImage || null;
@@ -322,11 +322,9 @@ const DashboardLayout = ({
 
       {/* ── Sidebar ── */}
       <aside
-        className={`${styles.sidebar} ${
-          sidebarOpen      ? styles.sidebarOpen      : ""
-        } ${
-          sidebarCollapsed ? styles.sidebarCollapsed : ""
-        }`}
+        className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ""
+          } ${sidebarCollapsed ? styles.sidebarCollapsed : ""
+          }`}
       >
         {/* Logo + collapse toggle */}
         <div className={styles.sidebarLogo}>
@@ -360,15 +358,15 @@ const DashboardLayout = ({
                   </Link>
                 ) : (
                   <>
-                    <div 
+                    <div
                       onClick={() => {
                         setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
                       }}
                       className={isActive ? styles.active : ""}
                       title={sidebarCollapsed ? item.label : undefined}
-                      style={{ 
-                        display: "flex", alignItems: "center", cursor: "pointer", 
-                        padding: "12px 16px", borderRadius: "8px", 
+                      style={{
+                        display: "flex", alignItems: "center", cursor: "pointer",
+                        padding: "12px 16px", borderRadius: "8px",
                         background: isActive ? "#000" : "transparent",
                         color: isActive ? "#fff" : "inherit"
                       }}
@@ -381,15 +379,15 @@ const DashboardLayout = ({
                         </>
                       )}
                     </div>
-                    
+
                     {isExpanded && !sidebarCollapsed && (
                       <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
                         {item.subItems.map((sub, i) => {
                           // Clean up paths for comparison since router.asPath includes queries
                           const isSubActive = router.asPath.split('?')[0] === sub.path.split('?')[0] || (router.asPath === "/pet-sales" && i === 0);
                           return (
-                            <Link 
-                              key={sub.path} 
+                            <Link
+                              key={sub.path}
                               href={sub.path}
                               style={{
                                 padding: "8px 16px 8px 45px",
@@ -456,37 +454,36 @@ const DashboardLayout = ({
         <header className={styles.topbar}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
             {customTopbarLeft}
-            
+
             {!customTopbarLeft && branches && branches.length > 0 && (
-                <div className={styles.branchSwitcherContainer}>
-                    <select 
-                        className={styles.branchSwitcher}
-                        value={selectedBranchId || ""} 
-                        onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
-                    >
-                        {branches.length > 1 && <option value="">All Firms</option>}
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
-                        ))}
-                    </select>
-                </div>
+              <div className={styles.branchSwitcherContainer}>
+                <select
+                  className={styles.branchSwitcher}
+                  value={selectedBranchId || ""}
+                  onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
+                >
+                  {branches.length > 1 && <option value="">All Firms</option>}
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
 
           <div className={styles.topbarActions}>
             {customTopbarRight}
-            
+
             {/* Common Buttons if no custom content */}
             {!customTopbarRight && topbarButtons.map((btn, i) => (
               <button
                 key={i}
-                className={`${styles.topBtn} ${
-                  btn.color === "purple"
+                className={`${styles.topBtn} ${btn.color === "purple"
                     ? styles.topBtnPurple
                     : btn.color === "red"
-                    ? styles.topBtnRed
-                    : styles.topBtnGray
-                }`}
+                      ? styles.topBtnRed
+                      : styles.topBtnGray
+                  }`}
                 onClick={() => onTopbarAction && onTopbarAction(btn.action)}
               >
                 {btn.label}
