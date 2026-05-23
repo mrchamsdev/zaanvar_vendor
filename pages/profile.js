@@ -21,7 +21,7 @@ const ChevronDown = () => (
   </svg>
 );
 
-const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 /* ─── address string builder ─────────────────────────────── */
 function buildAddress(addr) {
@@ -37,14 +37,14 @@ function buildAddress(addr) {
 export default function ProfilePage() {
   const { vendor, company, branches } = useDashboardData();
 
-  const [slideIdx,        setSlideIdx]        = useState(0);
-  const [heartFilled,     setHeartFilled]      = useState(false);
-  const [branchOpen,      setBranchOpen]       = useState(false);
-  const [selectedBranch,  setSelectedBranch]   = useState(0);
+  const [slideIdx, setSlideIdx] = useState(0);
+  const [heartFilled, setHeartFilled] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState(0);
 
-  const branch   = branches[selectedBranch] || null;
-  const timings  = branch?.timings || {};
-  const address  = company?.address || null;
+  const branch = branches[selectedBranch] || null;
+  const timings = branch?.timings || {};
+  const address = company?.address || null;
   const branchAddr = branch?.addressDetails || null;
 
   /* Slider images: from branch → company → placeholder */
@@ -53,13 +53,13 @@ export default function ProfilePage() {
     "https://zaanvarprods3.b-cdn.net/media/1773901839732-petdaycare.png",
     "https://zaanvarprods3.b-cdn.net/media/1773901858062-Petgrooming.png",
   ];
- const rawImages = branch?.images?.length ? branch.images
-                   : company?.images?.length ? company.images
-                   : [];
+  const rawImages = branch?.images?.length ? branch.images
+    : company?.images?.length ? company.images
+      : [];
 
   const images = useMemo(() => {
     if (!rawImages.length) return PLACEHOLDERS;
-    
+
     return rawImages.map(img => {
       if (!img) return PLACEHOLDERS[0];
       // If it's already a full URL, return it. Otherwise, prepend IMAGE_URL
@@ -73,27 +73,27 @@ export default function ProfilePage() {
   /* Company creation date */
   const startDate = company?.experienceDateOfCreation || company?.createdAt;
   const dateLabel = startDate
-    ? new Date(startDate).toLocaleDateString("en-IN", { day:"2-digit", month:"2-digit", year:"numeric" })
+    ? new Date(startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
     : "—";
 
   /* Detail rows — all from Zustand userInfo */
   const detailRows = [
-    { emoji:"👤", label:"Name of owner",        value: `${vendor?.firstName||""} ${vendor?.lastName||""}`.trim()||"—" },
-    { emoji:"⚥",  label:"Gender",               value: vendor?.gender||"—" },
-    { emoji:"📧", label:"Email",                 value: vendor?.email||"—" },
-    { emoji:"📱", label:"Mobile",                value: vendor?.phoneNumber||"—" },
-    { emoji:"📍", label:"Company Location",      value: address ? `${address.area||""},${address.city||""}`.replace(/^,|,$/,"").trim()||"—":"—" },
-    { emoji:"🌐", label:"Company Website",       value: company?.socialMediaLinks?.website||"—" },
-    { emoji:"🏢", label:"Business Type",         value: company?.servicesProvided?.join(", ")||"—" },
-    { emoji:"📧", label:"Company Email",         value: company?.email||"—" },
-    { emoji:"📱", label:"Company Mobile Number", value: company?.phoneNo ? `+91 ${company.phoneNo}` : "—" },
+    { emoji: "👤", label: "Name of owner", value: `${vendor?.firstName || ""} ${vendor?.lastName || ""}`.trim() || "—" },
+    { emoji: "⚥", label: "Gender", value: vendor?.gender || "—" },
+    { emoji: "📧", label: "Email", value: vendor?.email || "—" },
+    { emoji: "📱", label: "Mobile", value: vendor?.phoneNumber || "—" },
+    { emoji: "📍", label: "Company Location", value: address ? `${address.area || ""},${address.city || ""}`.replace(/^,|,$/, "").trim() || "—" : "—" },
+    { emoji: "🌐", label: "Company Website", value: company?.socialMediaLinks?.website || "—" },
+    { emoji: "🏢", label: "Business Type", value: company?.servicesProvided?.join(", ") || "—" },
+    { emoji: "📧", label: "Company Email", value: company?.email || "—" },
+    { emoji: "📱", label: "Company Mobile Number", value: company?.phoneNo ? `+91 ${company.phoneNo}` : "—" },
   ];
 
   /* Feature / categories / pets */
-  const featureTypes  = branch?.petShops?.[0]?.categories || []; 
-  
-  const categories    = company?.servicesProvided || [];
-const availablePets = useMemo(() => {
+  const featureTypes = branch?.petShops?.[0]?.categories || [];
+
+  const categories = company?.servicesProvided || [];
+  const availablePets = useMemo(() => {
     return [
       ...(Array.isArray(branch?.petSales?.[0]?.breedsName) ? branch.petSales[0].breedsName : []),
       ...(Array.isArray(branch?.petShops?.[0]?.AvailablePets) ? branch.petShops[0].AvailablePets : []),
@@ -119,7 +119,7 @@ const availablePets = useMemo(() => {
             <img
               src={images[slideIdx] || PLACEHOLDERS[0]}
               alt="Company"
-              style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
             <button className={styles.sliderHeart} onClick={() => setHeartFilled(f => !f)}>
               <HeartIcon filled={heartFilled} />
@@ -131,7 +131,7 @@ const availablePets = useMemo(() => {
                     key={i}
                     className={`${styles.sliderDot} ${i === slideIdx ? styles.sliderDotActive : ""}`}
                     onClick={() => setSlideIdx(i)}
-                    aria-label={`Image ${i+1}`}
+                    aria-label={`Image ${i + 1}`}
                   />
                 ))}
               </div>
@@ -200,7 +200,7 @@ const availablePets = useMemo(() => {
                   >
                     {branches.map((b, i) => (
                       <option key={b.id || i} value={i}>
-                        {b.name || `Branch ${i+1}`}
+                        {b.name || `Branch ${i + 1}`}
                       </option>
                     ))}
                   </select>
@@ -236,7 +236,7 @@ const availablePets = useMemo(() => {
               })()}
             </div>
             {DAYS.map((day) => {
-              const key  = day.toLowerCase();
+              const key = day.toLowerCase();
               const slot = timings[key];
               const open = slot && slot.open !== "closed";
               return (
@@ -266,7 +266,7 @@ const availablePets = useMemo(() => {
                 <div key={i} className={styles.featureItem}>
                   <div className={styles.featureDot}>🐾</div>{item}
                 </div>
-              )) : <span style={{ fontSize:12, color:"#aaa" }}>—</span>}
+              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>
 
             <div className={styles.featureCol}>
@@ -275,7 +275,7 @@ const availablePets = useMemo(() => {
                 <div key={i} className={styles.featureItem}>
                   <div className={styles.featureDot}>🐾</div>{s}
                 </div>
-              )) : <span style={{ fontSize:12, color:"#aaa" }}>—</span>}
+              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>
 
             <div className={styles.featureCol}>
@@ -284,7 +284,7 @@ const availablePets = useMemo(() => {
                 <div key={i} className={styles.featureItem}>
                   <div className={styles.featureDot}>🐕</div>{p}
                 </div>
-              )) : <span style={{ fontSize:12, color:"#aaa" }}>—</span>}
+              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>
           </div>
         </div>

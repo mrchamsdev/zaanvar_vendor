@@ -76,72 +76,73 @@ export default function PetSalesPage() {
       ];
 
   return (
-  <DashboardLayout topbarButtons={activeButtons} onTopbarAction={handleTopbarAction}>
-    <div style={{ padding: "clamp(16px,2vw,32px)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: 700, color: "#111", margin: 0 }}>
-          {activeTab === "Pets" ? "Pet Sale's List View" : "Puppy Sale's List View"}
-        </h2>
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>Loading data...</div>
-      ) : activeTab === "Pets" ? (
-       <MyPets
-          pets={petData}
-          isAddPopupOpen={isAddPetOpen}
-          setIsAddPopupOpen={setIsAddPetOpen}
-          setEditingPet={setEditingPet}  
-       />
-      ) : (
-        <MyPuppins 
-          pets={puppyData} 
-          showForm={isAddPuppyOpen} 
-          setShowForm={setIsAddPuppyOpen} 
-          setEditingPet={setEditingPet}
-          editingPet={editingPet}
-          refreshPets={fetchActiveData}
-        />
-      )}
-    </div>
-
-    {/* Fullscreen Popup using React Portal */}
-    {isAddPetOpen &&
-  createPortal(
-    <div className={popupStyles.popupOverlay}>
-      <div className={popupStyles.popupContainer}>
-        <div className={popupStyles.popupCard}>
-          <AddNewPetPopup
-            closePopup={() => {
-              setIsAddPetOpen(false);
-              setEditingPet(null);
-            }}
-            petData={editingPet}
-          />
+    <DashboardLayout topbarButtons={activeButtons} onTopbarAction={handleTopbarAction}>
+      <div style={{ padding: "clamp(16px,2vw,32px)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, color: "#111", margin: 0 }}>
+            {activeTab === "Pets" ? "Pet Sale's List View" : "Puppy Sale's List View"}
+          </h2>
         </div>
-      </div>
-    </div>,
-    document.body
-  )}
 
-    {isAddPuppyOpen &&
-  createPortal(
-    <div className={popupStyles.popupOverlay}>
-      <div className={popupStyles.popupContainer}>
-        <div className={popupStyles.popupCard}>
-          <AddNewPuppyPopup
-            closePopup={() => {setIsAddPuppyOpen(false);
-              setEditingPet(null);
-            }}
-            petData={editingPet}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>Loading data...</div>
+        ) : activeTab === "Pets" ? (
+          <MyPets
+            pets={petData}
+            isAddPopupOpen={isAddPetOpen}
+            setIsAddPopupOpen={setIsAddPetOpen}
+            setEditingPet={setEditingPet}
           />
-        </div>
+        ) : (
+          <MyPuppins
+            pets={puppyData}
+            showForm={isAddPuppyOpen}
+            setShowForm={setIsAddPuppyOpen}
+            setEditingPet={setEditingPet}
+            editingPet={editingPet}
+            refreshPets={fetchActiveData}
+          />
+        )}
       </div>
-    </div>,
-    document.body
-  )}
-  </DashboardLayout>
-);
+
+      {/* Fullscreen Popup using React Portal */}
+      {isAddPetOpen &&
+        createPortal(
+          <div className={popupStyles.popupOverlay}>
+            <div className={popupStyles.popupContainer}>
+              <div className={popupStyles.popupCard}>
+                <AddNewPetPopup
+                  closePopup={() => {
+                    setIsAddPetOpen(false);
+                    setEditingPet(null);
+                  }}
+                  petData={editingPet}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {isAddPuppyOpen &&
+        createPortal(
+          <div className={popupStyles.popupOverlay}>
+            <div className={popupStyles.popupContainer}>
+              <div className={popupStyles.popupCard}>
+                <AddNewPuppyPopup
+                  closePopup={() => {
+                    setIsAddPuppyOpen(false);
+                    setEditingPet(null);
+                  }}
+                  petData={editingPet}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </DashboardLayout>
+  );
 }
 
 
