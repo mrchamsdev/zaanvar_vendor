@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -6,6 +7,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { saleService } from "../../services/saleService";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import { useRouter } from "next/router";
 
 const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) => {
@@ -45,7 +47,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         returnNo: `SR-${Date.now().toString().slice(-6)}`,
         returnReason: "",
         billDate: "",
-        returnDate: new Date().toISOString().split('T')[0],
+        returnDate: toApiDateOnly(new Date()),
         refundMode: "Card",
         refundReference: `REF-${Date.now().toString().slice(-9)}`
     });
@@ -67,7 +69,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnNo: `SR-${Date.now().toString().slice(-6)}`,
                     returnReason: "",
                     billDate: "",
-                    returnDate: new Date().toISOString().split('T')[0],
+                    returnDate: toApiDateOnly(new Date()),
                     refundMode: "Card",
                     refundReference: `REF-${Date.now().toString().slice(-9)}`
                 });
@@ -297,6 +299,12 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             vendorCustomerId: selectedCustomer.vendorCustomerId,
             refundMode: formData.refundMode,
             refundReference: formData.refundReference,
+            ...(formData.returnDate
+                ? dateOnlyWithTimeZone(
+                    "returnDate",
+                    parseWallClockDate(formData.returnDate) || new Date(formData.returnDate),
+                )
+                : {}),
             createdBy: userInfo?.userId || 1,
             totalReturnAmount: parseFloat(totalReturnAmount.toFixed(2)),
             items: validItems.map(i => ({

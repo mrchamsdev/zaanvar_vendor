@@ -3,6 +3,7 @@ import styles from "../../styles/inventory/product-view.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
+import { parseApiToLocal } from "@/utilities/date-time-utils";
 
 const IconX = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -61,7 +62,9 @@ const StockUpdateView = ({ stockId, onClose }) => {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    const d = parseApiToLocal(dateStr);
+    if (!d) return "-";
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
   };
 
   const branchAddress = data.branch?.addressDetails;

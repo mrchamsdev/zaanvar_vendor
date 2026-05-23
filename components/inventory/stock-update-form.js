@@ -1,4 +1,6 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useRef } from "react";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import styles from "../../styles/inventory/stock-update-form.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
@@ -121,7 +123,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
   const { jwtToken, userInfo } = useStore();
   const { branches, branchId: globalBranchId } = useDashboardData({ skipReviews: true });
   const [branchId, setBranchId] = useState(globalBranchId || "91");
-  const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
+  const [updateDate, setUpdateDate] = useState(toApiDateOnly(new Date()));
   const [products, setProducts] = useState([]);
   const [rows, setRows] = useState([
     { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", sourceStatus: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }
@@ -371,6 +373,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     setSubmitting(true);
     try {
       for (const row of rows) {
+        const createdDateFields = updateDate
+          ? dateOnlyWithTimeZone(
+              "createdDate",
+              parseWallClockDate(updateDate) || new Date(updateDate),
+            )
+          : {};
         const payload = {
           branchId: parseInt(branchId),
           variantId: parseInt(row.variantId),
@@ -381,7 +389,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
           reason: row.reason,
           batchNumber: row.batchNumber,
           createdBy: userInfo?.userId || 123,
-          createdDate: updateDate,
+          ...createdDateFields,
           productsBillItemsId: null,
           consumptionId: null,
           addItem: null,
@@ -456,7 +464,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 className={`${styles.topInput} ${errors.updateDate ? styles.errorField : ""}`}
                 type="date" 
                 value={updateDate} 
-                max={new Date().toISOString().split('T')[0]}
+                max={toApiDateOnly(new Date())}
                 onChange={(e) => {
                     setUpdateDate(e.target.value);
                     if (errors.updateDate) {

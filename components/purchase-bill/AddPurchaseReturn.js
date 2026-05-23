@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/add-purchase-return.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2, FiChevronDown } from "react-icons/fi";
@@ -23,7 +24,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     
     const [returnNo, setReturnNo] = useState("");
     const [billDate, setBillDate] = useState("");
-    const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
+    const [returnDate, setReturnDate] = useState(toApiDateOnly(new Date()));
     const [returnReason, setReturnReason] = useState("");
     const [allReturns, setAllReturns] = useState([]);
 
@@ -472,7 +473,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 setSelectedBillId("");
                 setBillDetails(null);
                 setReturnReason("");
-                setReturnDate(new Date().toISOString().split('T')[0]);
+                setReturnDate(toApiDateOnly(new Date()));
                 setItems([]);
                 setShowProductDropdown(null);
 

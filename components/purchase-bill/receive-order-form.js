@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/receive-order-form.module.css";
 import { purchaseService } from "../../services/purchaseService";
@@ -5,6 +6,7 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import PurchaseOrderSummary from "./purchase-order-summary";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const formatVariantSize = (size) => {
@@ -33,7 +35,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const [orderData, setOrderData] = useState(null);
     
     // Form State
-    const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [receivedDate, setReceivedDate] = useState(toApiDateOnly(new Date()));
     const [items, setItems] = useState([]);
     const [expandedItem, setExpandedItem] = useState(0);
     const [showBreakdown, setShowBreakdown] = useState(true);
@@ -93,7 +95,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 setItems(mapped);
 
                 if (receivedDetails) {
-                    setReceivedDate(receivedDetails.receivedDate || new Date().toISOString().split('T')[0]);
+                    setReceivedDate(receivedDetails.receivedDate || toApiDateOnly(new Date()));
                     setPayBasedOnOrdered(receivedDetails.toggles?.payBasedOnOrdered || false);
                     setDamagedReturnedGoods(receivedDetails.toggles?.damagedReturnedGoods || false);
                     setAddToCreditNote(receivedDetails.toggles?.addToCreditNote || false);
@@ -262,10 +264,14 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 return;
             }
 
+            const receivedDateFields = dateOnlyWithTimeZone(
+                "receivedDate",
+                parseWallClockDate(receivedDate) || new Date(receivedDate),
+            );
             const payload = {
                 productsPurchaseRqstId: requestId,
                 branchId: orderData?.branchId || 91,
-                receivedDate: receivedDate,
+                ...receivedDateFields,
                 amountPaidToSupplier: Number(paidAmount),
                 paymentStatus: paymentStatus,
                 duedate: duedate,
@@ -287,7 +293,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     addToCreditNote: addToCreditNote
                 },
                 bill: {
-                    receivedDate: receivedDate
+                    ...receivedDateFields,
                 },
                 billItems: enteredItems.map(item => ({
                     productId: item.productId,
@@ -403,7 +409,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                     type="date" 
                                                     className={styles.input} 
                                                     value={item.expDate ?? ""}
-                                                    min={new Date().toISOString().split('T')[0]}
+                                                    min={toApiDateOnly(new Date())}
                                                     max="9999-12-31"
                                                     onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
                                                 />
@@ -586,7 +592,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     type="date" 
                                     className={styles.input} 
                                     value={receivedDate} 
-                                    max={new Date().toISOString().split('T')[0]} 
+                                    max={toApiDateOnly(new Date())} 
                                     onChange={(e) => setReceivedDate(e.target.value)} 
                                 />
                             </div>
@@ -750,7 +756,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     type="date" 
                                     className={styles.input} 
                                     value={duedate} 
-                                    min={new Date().toISOString().split('T')[0]}
+                                    min={toApiDateOnly(new Date())}
                                     max="9999-12-31"
                                     onChange={(e) => setDuedate(e.target.value)} 
                                 />

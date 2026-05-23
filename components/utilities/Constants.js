@@ -1,3 +1,5 @@
+import { parseApiToLocal } from "../../utilities/date-time-utils";
+
 //After optimazation URL Bunny dont net url
 const WordpresBACKEND_URL = "https://zaanvarcaching.b-cdn.net/api/";
 // backend url befor optimization
@@ -113,7 +115,8 @@ export {
 };
 export const formatDate = (dateString) => {
   if (!dateString) return "-";
-  const date = new Date(dateString);
+  const date = parseApiToLocal(dateString);
+  if (!date) return "-";
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "2-digit",
