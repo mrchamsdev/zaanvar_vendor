@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
-import { FiX } from "react-icons/fi";
+import { FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
@@ -12,6 +12,38 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const [supplier, setSupplier] = useState(null);
     const [activeTab, setActiveTab] = useState("Purchase Orders");
     const [transactions, setTransactions] = useState([]);
+    const [expandedRows, setExpandedRows] = useState({});
+
+    const toggleRowExpand = (id) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const getDisplayPaymentType = (t) => {
+        const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
+            .map(type => type || "Cash")
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayTotalAmount = (t) => {
+        const mainAmount = parseFloat(t["paid amount"] || t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st["paid amount"] || st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const getDisplayBalanceAmount = (t) => {
+        let val;
+        if (t.splitTransactions && t.splitTransactions.length > 0) {
+            const lastSplit = t.splitTransactions[t.splitTransactions.length - 1];
+            val = lastSplit["balance amount"] || lastSplit.balance || lastSplit.totalBalanceAmount || 0;
+        } else {
+            val = t["balance amount"] || t.balance || t.totalBalanceAmount || 0;
+        }
+        return Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     useEffect(() => {
         if (isOpen && supplierId) {
@@ -107,35 +139,69 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Payment Date</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Previous Paid amount</th>
+                    <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Payment Type</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Paid amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Balance amount</th>
+                    <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600', width: '40px' }}></th>
                 </tr>
             </thead>
             <tbody>
                 {transactions.length === 0 ? (
-                    <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
+                    <tr><td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
                 ) : (
-                    transactions.map((t, idx) => (
-                        <tr key={idx} style={{ borderTop: '1px solid #eee' }}>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>{String(t.productsBillId || t.requestId || idx).padStart(7, '0')}</td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>
-                                {(() => {
-                                    const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
-                                    return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
-                                })()}
-                            </td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>
-                                {(() => {
-                                    const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
-                                    return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
-                                })()}
-                            </td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.totalAmount || "0000000"}</td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amountPaidToSupplier || "0000000"}</td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.amountPaidToSupplier || "0000000"}</td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>₹ {t.balanceAmount || "0000000"}</td>
-                        </tr>
-                    ))
+                    transactions.map((t, idx) => {
+                        const splitsList = [
+                            { paymentType: t.paymentType || "Cash", amount: t["paid amount"] || t.amount || t.amountPaidToSupplier || 0 },
+                            ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0 }))
+                        ];
+                        return (
+                            <React.Fragment key={t.suppliersTransactionId || idx}>
+                                <tr style={{ borderTop: '1px solid #eee' }}>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{String(t.productsBillId || t.requestId || idx).padStart(7, '0')}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>
+                                        {(() => {
+                                            const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
+                                            return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
+                                        })()}
+                                    </td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>
+                                        {(() => {
+                                            const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
+                                            return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                        })()}
+                                    </td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayPaymentType(t)}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {getDisplayBalanceAmount(t)}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>
+                                        {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                            <div 
+                                                onClick={() => toggleRowExpand(t.suppliersTransactionId)}
+                                                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
+                                            >
+                                                {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                                {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
+                                    <tr key={`split-${sIdx}`} style={{ borderTop: '1px solid #eee' }}>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}>{split.paymentType}</td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}></td>
+                                    </tr>
+                                ))}
+                            </React.Fragment>
+                        );
+                    })
                 )}
             </tbody>
         </table>

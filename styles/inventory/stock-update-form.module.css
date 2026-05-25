@@ -158,6 +158,8 @@ select.topInput {
   background-repeat: no-repeat;
   background-position: right 8px center;
   padding-right: 24px;
+  text-align: center;
+  text-align-last: center;
 }
 
 /* Custom Dropdown for Product Name */

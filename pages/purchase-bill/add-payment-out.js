@@ -62,15 +62,27 @@ const PaymentOutFormPage = () => {
                 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(totals.supplierTotalAmount || "000");
-                setPaidAmount(t.amount || "");
                 setDescription(t.transactionInfo || "");
                 
-                setPayments([{
-                    amountPaid: t.amount || "",
-                    paymentType: t.paymentType || "Cash",
-                    refNo: t.refNo || "",
-                    id: Date.now()
-                }]);
+                const splitList = t.splitTransactions || [];
+                const allPayments = [
+                    {
+                        amountPaid: t.amount || "",
+                        paymentType: t.paymentType || "Cash",
+                        refNo: t.referenceNumber || t.refNo || "",
+                        id: t.suppliersTransactionId || Date.now()
+                    },
+                    ...splitList.map((st, idx) => ({
+                        amountPaid: st.amount || "",
+                        paymentType: st.paymentType || "Cash",
+                        refNo: st.referenceNumber || st.refNo || "",
+                        id: st.suppliersTransactionId || (Date.now() + idx + 1)
+                    }))
+                ];
+                
+                setPayments(allPayments);
+                const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+                setPaidAmount(String(totalPaid));
             } else {
                 toast.error("Failed to fetch transaction details");
             }
@@ -86,15 +98,35 @@ const PaymentOutFormPage = () => {
         if (isView) return;
         setSaving(true);
         try {
-            const formData = new FormData();
-            formData.append("amount", Number(paidAmount));
-            formData.append("paymentType", payments[0].paymentType);
-            formData.append("transactionInfo", description);
-            if (selectedFile) {
-                formData.append("transactionImg", selectedFile);
-            }
+            const paymentTypes = payments.map(p => {
+                const typeObj = {
+                    paymentType: p.paymentType,
+                    amount: Number(p.amountPaid)
+                };
+                if (p.refNo && (p.paymentType === 'UPI' || p.paymentType === 'Cheque')) {
+                    typeObj.referenceNumber = p.refNo;
+                }
+                return typeObj;
+            });
 
-            const res = await purchaseService.updateTransaction(jwtToken, id, formData);
+            let res;
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("amount", Number(paidAmount));
+                formData.append("paymentType", payments[0].paymentType);
+                formData.append("transactionInfo", description);
+                formData.append("paymentTypes", JSON.stringify(paymentTypes));
+                formData.append("transactionImg", selectedFile);
+                res = await purchaseService.updateTransaction(jwtToken, id, formData);
+            } else {
+                const payload = {
+                    amount: Number(paidAmount),
+                    paymentType: payments[0].paymentType,
+                    transactionInfo: description,
+                    paymentTypes
+                };
+                res = await purchaseService.updateTransaction(jwtToken, id, payload);
+            }
             console.log("Update response:", res);
             
             if (res.status === 200 || res.data?.status === "success" || res.data?.status === "ok" || res.data?.suppliersTransactionId) {
@@ -254,7 +286,7 @@ const PaymentOutFormPage = () => {
                                     value={p.refNo}
                                     onChange={(e) => {
                                         const newPayments = [...payments];
-                                        newPayments[idx].refNo = e.target.value;
+                                        newPayments[idx].refNo = e.target.value.replace(/[^0-9]/g, '');
                                         setPayments(newPayments);
                                     }}
                                     readOnly={isView}

@@ -15,18 +15,18 @@ const StockUpdateView = ({ stockId, onClose }) => {
   const formatVariantSize = (size) => {
     if (!size) return "";
     if (typeof size === 'string' && size.trim().startsWith('{')) {
-        try {
-            const parsed = JSON.parse(size);
-            const parts = [];
-            if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
-            if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
-            if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
-            if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
-            if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
-            return parts.length > 0 ? parts.join(" x ") : size;
-        } catch (e) {
-            return size;
-        }
+      try {
+        const parsed = JSON.parse(size);
+        const parts = [];
+        if (parsed.height) parts.push(`${parsed.height}${parsed.heightUnit || 'mm'}H`);
+        if (parsed.width) parts.push(`${parsed.width}${parsed.widthUnit || 'mm'}W`);
+        if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
+        if (parsed.radius) parts.push(`R:${parsed.radius}${parsed.radiusUnit || 'mm'}`);
+        if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
+        return parts.length > 0 ? parts.join(" x ") : size;
+      } catch (e) {
+        return size;
+      }
     }
     return size;
   };
@@ -50,15 +50,15 @@ const StockUpdateView = ({ stockId, onClose }) => {
         toast.error("Failed to load stock update details");
       }
     } catch (error) {
-        console.error("Error fetching stock update:", error);
-        toast.error("Error loading details");
+      console.error("Error fetching stock update:", error);
+      toast.error("Error loading details");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
-  if (loading) return <div style={{padding: 40, textAlign: 'center'}}>Loading details...</div>;
-  if (!data) return <div style={{padding: 40, textAlign: 'center'}}>No details found for ID #{stockId}</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading details...</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: 'center' }}>No details found for ID #{stockId}</div>;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -69,23 +69,54 @@ const StockUpdateView = ({ stockId, onClose }) => {
 
   const branchAddress = data.branch?.addressDetails;
 
+  const product = data.product || {};
+  const productName = product.productName || data.itemName || "-";
+  const productCode = product.ProductCode || product.productCode || data.productCode || "-";
+
+  let rawVt = data.variantType || data.variant?.variantType || product.variantType || product.variants?.[0]?.variantType;
+  if (typeof rawVt === 'string') {
+    try {
+      rawVt = JSON.parse(rawVt);
+    } catch (e) {
+      rawVt = {};
+    }
+  }
+  const vt = rawVt || {};
+
+  let size = vt.size && vt.size !== "1" && vt.size !== "undefined" ? vt.size : "";
+  let displayVariant = formatVariantSize(size);
+  const flavor = vt.flavor && vt.flavor !== "undefined" ? vt.flavor : "";
+
+  if (displayVariant && flavor) {
+    displayVariant = `${displayVariant} ${flavor}`.trim();
+  } else if (!displayVariant) {
+    if (vt.packCount || vt.packType) {
+      displayVariant = `${vt.packCount || ""} ${vt.packType || ""}`.trim();
+    } else {
+      displayVariant = data.variant?.variantMeasure || data.variantMeasure || "STND";
+      if (displayVariant === "STND" && typeof (data.variantType || data.variant?.variantType) === 'string') {
+        displayVariant = data.variantType || data.variant?.variantType;
+      }
+    }
+  }
+
   return (
-    <div className={styles.viewContainer} style={{paddingBottom: 40}}>
-     
+    <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
+
 
       {/* Branch Address Card (Premium Style like Screenshot) */}
       <div style={{
-        background: '#f8f9fa', 
-        borderRadius: '12px', 
-        padding: '24px 32px', 
+        background: '#f8f9fa',
+        borderRadius: '12px',
+        padding: '24px 32px',
         marginBottom: '32px',
         border: '1px solid #eee'
       }}>
-        <div style={{color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px'}}>Branch Details</div>
-        <div style={{fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px'}}>{data.branch?.name || "Main Branch"}</div>
-        <div style={{fontSize: '14px', color: '#666', lineHeight: '1.6'}}>
-            {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
-            <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
+        <div style={{ color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px' }}>Branch Details</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>{data.branch?.name || "Main Branch"}</div>
+        <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
+          {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
+          <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
         </div>
       </div>
 
@@ -99,7 +130,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <th>Product Name</th>
               <th>Product Code</th>
               <th>Variants</th>
-              <th>Batch Number</th>
+              <th>Source Status</th>
               <th>Current Qty</th>
               <th>Add</th>
               <th>Remove</th>
@@ -107,32 +138,28 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <th>Reason</th>
               <th>Exp. Date</th>
               <th>Cost Price</th>
-              <th style={{textAlign: 'right'}}>Total (₹)</th>
+              <th style={{ textAlign: 'right' }}>Total (₹)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>{formatDate(data.createdDate)}</td>
-              <td style={{fontWeight: 700, textTransform: 'uppercase'}}>{data.product?.productName}</td>
-              <td>{data.product?.ProductCode || "-"}</td>
-              <td>
-                {(data.variant?.variantType?.size || data.variant?.variantType?.flavor) 
-                  ? `${formatVariantSize(data.variant.variantType.size) || ""} ${data.variant.variantType.flavor || ""}`.trim() 
-                  : (data.variant?.variantType?.packCount || data.variant?.variantType?.packType 
-                    ? `${data.variant.variantType.packCount || ""} ${data.variant.variantType.packType || ""}`.trim() 
-                    : (data.variant?.variantMeasure || "STND"))}
+              <td style={{ fontWeight: 700, textTransform: 'uppercase' }}>{productName}</td>
+              <td>{productCode}</td>
+              <td>{displayVariant}</td>
+              <td style={{ fontWeight: 600, color: '#34495e' }}>
+                {(data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : "-")))}
               </td>
-              <td>{data.billItem?.batchNumber || "------"}</td>
-              <td style={{fontWeight: 600, background: '#f9f9f9'}}>{data.currentQty}</td>
-              <td style={{color: '#27ae60', fontWeight: 700}}>{data.add > 0 ? `+${data.add}` : "0"}</td>
-              <td style={{color: '#e74c3c', fontWeight: 700}}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
-              <td style={{fontWeight: 700}}>{data.updatedQty}</td>
-              <td style={{color: '#E9315D', fontWeight: 700}}>{data.reason?.toUpperCase()}</td>
+              <td style={{ fontWeight: 600, background: '#f9f9f9' }}>{data.currentQty}</td>
+              <td style={{ color: '#27ae60', fontWeight: 700 }}>{data.add > 0 ? `+${data.add}` : "0"}</td>
+              <td style={{ color: '#e74c3c', fontWeight: 700 }}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
+              <td style={{ fontWeight: 700 }}>{data.updatedQty}</td>
+              <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
               <td>{data.billItem?.expiryDate || "------"}</td>
               <td>₹{data.billItem?.costPrice || "0"}</td>
               <td style={{
-                textAlign: 'right', 
-                fontWeight: 700, 
+                textAlign: 'right',
+                fontWeight: 700,
                 color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
               }}>
                 {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}`}
@@ -144,21 +171,21 @@ const StockUpdateView = ({ stockId, onClose }) => {
 
       {/* Total Section Footer */}
       <div style={{
-          marginTop: '32px',
-          paddingTop: '20px',
-          borderTop: '1px solid #eee',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+        marginTop: '32px',
+        paddingTop: '20px',
+        borderTop: '1px solid #eee',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-          <div style={{fontSize: '14px', fontWeight: 700, color: '#333'}}>TOTAL SURPLUS</div>
-          <div style={{
-              fontSize: '24px', 
-              fontWeight: 700, 
-              color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
-          }}>
-              {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}`}
-          </div>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#333' }}>TOTAL SURPLUS</div>
+        <div style={{
+          fontSize: '24px',
+          fontWeight: 700,
+          color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
+        }}>
+          {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}`}
+        </div>
       </div>
     </div>
   );

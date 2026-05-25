@@ -73,6 +73,10 @@ const PrintReceipt = () => {
     if (loading) return <div>Loading...</div>;
     if (!data) return <div>Transaction not found</div>;
 
+    const mainAmount = parseFloat(data.amount || 0);
+    const splitSum = (data.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
+    const totalAmount = mainAmount + splitSum;
+
     const companyName = userInfo?.companyName || "Naveen Business";
 
     return (
@@ -106,13 +110,13 @@ const PrintReceipt = () => {
             <div className={styles.amountRow}>
                 <span>Paid</span>
                 <span>:</span>
-                <span className={styles.amountValue}>₹ {Number(data.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className={styles.amountValue}>₹ {Number(totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <div className={styles.wordsBox}>
                 <div className={styles.labelRow}>Amount in Words:</div>
                 <div className={styles.valueRow}>
-                    {numberToWords(data.amount)}
+                    {numberToWords(totalAmount)}
                 </div>
             </div>
 

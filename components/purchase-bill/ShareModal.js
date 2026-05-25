@@ -35,7 +35,14 @@ const ShareModal = ({ isOpen, onClose, data }) => {
     const email = supplierInfo?.email || data?.email || "";
     const supplierName = supplierInfo?.supplierName || data?.transactionInfo || "Supplier";
 
-    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${data?.amount}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
+    const getDisplayTotalAmount = (t) => {
+        if (!t) return 0;
+        const mainAmount = parseFloat(t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
 
     const handleShare = (type) => {
         let url = "";
