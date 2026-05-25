@@ -2,7 +2,7 @@ import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
@@ -297,6 +297,58 @@ const PaymentInList = ({ onAddClick }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [expandedRows, setExpandedRows] = useState({});
+
+    const toggleRowExpand = (id) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const getDisplayPaymentType = (p) => {
+        if (p.paymentMethods && p.paymentMethods.length > 0) {
+            const types = p.paymentMethods
+                .map(pm => pm.paymentMethod || pm.paymentType || "Cash")
+                .filter((value, index, self) => self.indexOf(value) === index);
+            return types.join(" + ");
+        }
+        const types = [p.paymentMethod || p.paymentType, ...(p.splitTransactions || []).map(st => st.paymentMethod || st.paymentType)]
+            .map(type => type || "Cash")
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayTotalAmount = (p) => {
+        if (p.paymentMethods && p.paymentMethods.length > 0) {
+            return p.paymentMethods.reduce((sum, pm) => sum + parseFloat(pm.amount || 0), 0);
+        }
+        const mainAmount = parseFloat(p.paidAmount || p.amount || p["paid amount"] || 0);
+        const splitSum = (p.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.paidAmount || st.amount || st["paid amount"] || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const getDisplayBalanceAmount = (p) => {
+        if (p.dueAmount !== undefined && p.dueAmount !== null) return p.dueAmount;
+        if (p.splitTransactions && p.splitTransactions.length > 0) {
+            const lastSplit = p.splitTransactions[p.splitTransactions.length - 1];
+            return lastSplit.dueAmount || lastSplit["balance amount"] || lastSplit.balance || 0;
+        }
+        return p["balance amount"] || p.balance || 0;
+    };
+
+    const [customerTotals, setCustomerTotals] = useState([]);
+
+    const getCustomerTotalAmount = (customerId) => {
+        const custObj = customerTotals.find(c => c.vendorCustomerId === customerId);
+        return custObj ? parseFloat(custObj.totalAmount || 0) : 0;
+    };
+
+    const getCustomerBalanceAmount = (customerId) => {
+        const custObj = customerTotals.find(c => c.vendorCustomerId === customerId);
+        return custObj ? parseFloat(custObj.dueAmount || 0) : 0;
+    };
+
     const { branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
     const [filterType, setFilterType] = useState("This Year");
@@ -311,12 +363,13 @@ const PaymentInList = ({ onAddClick }) => {
     const [dateFilterMode, setDateFilterMode] = useState(null);
     const [dateFilterValues, setDateFilterValues] = useState(null);
 
-    const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'partyName', 'amount', 'paid'
+    const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'partyName', 'amount', 'paid', 'balance'
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
         partyName: { mode: 'Contains', value: '' },
         amount: { mode: 'Contains', value: '' },
-        paid: { mode: 'Contains', value: '' }
+        paid: { mode: 'Contains', value: '' },
+        balance: { mode: 'Contains', value: '' }
     });
 
     useEffect(() => {
@@ -351,6 +404,7 @@ const PaymentInList = ({ onAddClick }) => {
             if (res.status === "success") {
                 setPayments(res.data || []);
                 setTotals(res.overallTotals || { totalAmount: 0, paidAmount: 0, dueAmount: 0 });
+                setCustomerTotals(res.totals || []);
             }
         } catch (error) {
             console.error("Error fetching payments:", error);
@@ -454,8 +508,9 @@ const PaymentInList = ({ onAddClick }) => {
             let targetVal = "";
             if (col === 'refNo') targetVal = refNo;
             if (col === 'partyName') targetVal = partyName;
-            if (col === 'amount') targetVal = (p.totalAmount || 0).toString();
-            if (col === 'paid') targetVal = (p.paidAmount || 0).toString();
+            if (col === 'amount') targetVal = getCustomerTotalAmount(p.vendorCustomerId).toString();
+            if (col === 'paid') targetVal = getDisplayTotalAmount(p).toString();
+            if (col === 'balance') targetVal = getCustomerBalanceAmount(p.vendorCustomerId).toString();
 
             if (filter.mode === 'Contains') {
                 if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
@@ -492,7 +547,8 @@ const PaymentInList = ({ onAddClick }) => {
                     refNo: 'Ref No',
                     partyName: 'Customer Name',
                     amount: 'Total',
-                    paid: 'Paid'
+                    paid: 'Paid',
+                    balance: 'Balance'
                 };
                 chips.push({
                     id: col,
@@ -519,14 +575,15 @@ const PaymentInList = ({ onAddClick }) => {
     };
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "CUSTOMER NAME", "PAYMENT TYPE", "TOTAL", "PAID"];
+        const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL", "PAYMENT TYPE", "PAID", "BALANCE"];
         const rows = filteredPayments.map(p => [
             `"${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${p.userOrderId}"`,
             `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
-            `"${p.paymentMethod || "N/A"}"`,
-            `"${p.totalAmount}"`,
-            `"${p.paidAmount}"`
+            `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
+            `"${getDisplayPaymentType(p)}"`,
+            `"${getDisplayTotalAmount(p)}"`,
+            `"${getCustomerBalanceAmount(p.vendorCustomerId)}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -710,9 +767,6 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    PAYMENT TYPE 
-                                </th>
-                                <th style={{position: 'relative'}}>
                                     TOTAL 
                                     <FiFilter 
                                         className={styles.filterIcon} 
@@ -728,6 +782,9 @@ const PaymentInList = ({ onAddClick }) => {
                                             onApply={(mode, val) => setColumnFilters({...columnFilters, amount: {mode, value: val}})}
                                         />
                                     )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PAYMENT TYPE 
                                 </th>
                                 <th style={{position: 'relative'}}>
                                     PAID 
@@ -746,36 +803,86 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
+                                <th style={{position: 'relative'}}>
+                                    BALANCE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'balance' && (
+                                        <GeneralFilterModal 
+                                            type="text"
+                                            label="Balance"
+                                            currentMode={columnFilters.balance.mode}
+                                            currentValue={columnFilters.balance.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPayments.map((p, idx) => (
-                                <tr key={idx}>
-                                    <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                    <td>{p.userOrderId}</td>
-                                    <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
-                                    <td>{p.paymentMethod || "N/A"}</td>
-                                    <td>{Number(p.amount || 0).toLocaleString()}</td>
-                                    <td>{Number(p.amount || 0).toLocaleString()}</td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                            <FiShare2 className={styles.actionIcon} />
-                                            <div style={{position: 'relative'}}>
-                                                <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId, print: 'true' } }); }}>Print</div>
+                            {filteredPayments.map((p, idx) => {
+                                const splitsList = p.paymentMethods && p.paymentMethods.length > 0
+                                    ? p.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                                    : [
+                                        { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
+                                        ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                                      ];
+                                return (
+                                    <React.Fragment key={p.paymentId || idx}>
+                                        <tr>
+                                            <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                            <td>{p.userOrderId}</td>
+                                            <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
+                                            <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                            <td>{getDisplayPaymentType(p)}</td>
+                                            <td>{Number(getDisplayTotalAmount(p)).toLocaleString()}</td>
+                                            <td>{Number(getCustomerBalanceAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                            <td>
+                                                <div className={styles.actions}>
+                                                    <FiShare2 className={styles.actionIcon} />
+                                                    <div style={{position: 'relative'}}>
+                                                        <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                        {activeDropdown === idx && (
+                                                            <div className={styles.dropdownMenu}>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>Open PDF</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId, print: 'true' } }); }}>Print</div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                    {((p.paymentMethods && p.paymentMethods.length > 1) || (p.splitTransactions && p.splitTransactions.length > 0)) && (
+                                                        <div 
+                                                            className={styles.actionIcon} 
+                                                            onClick={() => toggleRowExpand(p.paymentId)} 
+                                                            title="Show Split Payments" 
+                                                            style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}
+                                                        >
+                                                            {expandedRows[p.paymentId] ? <FiChevronUp /> : <FiChevronDown />}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {expandedRows[p.paymentId] && splitsList.map((split, sIdx) => (
+                                            <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>{split.paymentType}</td>
+                                                <td>{Number(split.amount).toLocaleString()}</td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

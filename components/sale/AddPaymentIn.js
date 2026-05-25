@@ -101,15 +101,22 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     totalBalance: isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
-                    referenceNumber: isPayment ? (data.transactionRef || "") : (data.userOrderId || ""),
+                    referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
                     description: data.description || "",
                     image: null
                 });
                 
-                setPayments([{ 
-                    method: data.paymentMethod || "Cash", 
-                    amount: isPayment ? (data.amount || "") : (data.paidAmount || "") 
-                }]);
+                if (data.paymentMethods && data.paymentMethods.length > 0) {
+                    setPayments(data.paymentMethods.map(pm => ({
+                        method: pm.paymentMethod || "Cash",
+                        amount: pm.amount || ""
+                    })));
+                } else {
+                    setPayments([{ 
+                        method: data.paymentMethod || "Cash", 
+                        amount: isPayment ? (data.amount || "") : (data.paidAmount || "") 
+                    }]);
+                }
                 setSearchTerm(data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`);
             }
         } catch (error) {
@@ -192,47 +199,44 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         try {
             let res;
             if (mode === 'edit' && paymentId) {
+                const validPayments = payments.filter(p => parseFloat(p.amount) > 0);
+                const paymentMethods = validPayments.map(p => ({
+                    paymentMethod: p.method,
+                    amount: parseFloat(p.amount),
+                    transactionRef: p.method === "Cash" ? "" : formData.referenceNumber
+                }));
+
                 const updatePayload = {
-                    amount: totalPaid,
-                    paymentMethod: payments[0]?.method || "Cash",
-                    transactionRef: formData.referenceNumber,
-                    description: formData.description
+                    branchId,
+                    vendorCustomerId: formData.vendorCustomerId,
+                    paymentStatus: "Completed",
+                    paymentFrom: "sale invoice",
+                    createdBy: userInfo?.userId || userInfo?.id || 1,
+                    description: formData.description,
+                    paymentMethods
                 };
                 Object.assign(updatePayload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
                 res = await saleService.updatePayment(jwtToken, paymentId, updatePayload);
             } else {
                 const validPayments = payments.filter(p => parseFloat(p.amount) > 0);
-                let firstPaymentId = null;
-                
-                for (let i = 0; i < validPayments.length; i++) {
-                    const p = validPayments[i];
-                    const payload = {
-                        branchId,
-                        vendorCustomerId: formData.vendorCustomerId,
-                        amount: parseFloat(p.amount),
-                        paymentMethod: p.method,
-                        paymentStatus: "Completed",
-                        paymentFrom: "sale invoice",
-                        createdBy: userInfo?.userId || userInfo?.id || 1,
-                        transactionRef: formData.referenceNumber,
-                        description: formData.description
-                    };
-                    Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
+                const paymentMethods = validPayments.map(p => ({
+                    paymentMethod: p.method,
+                    amount: parseFloat(p.amount),
+                    transactionRef: p.method === "Cash" ? "" : formData.referenceNumber
+                }));
 
-                    if (i > 0 && firstPaymentId) {
-                        payload.transactionRefId = firstPaymentId;
-                    }
+                const payload = {
+                    branchId,
+                    vendorCustomerId: formData.vendorCustomerId,
+                    paymentStatus: "Completed",
+                    paymentFrom: "sale invoice",
+                    createdBy: userInfo?.userId || userInfo?.id || 1,
+                    description: formData.description,
+                    paymentMethods
+                };
+                Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
 
-                    res = await saleService.createPayment(jwtToken, payload);
-                    if (res && (res.status === "success" || res.data?.status === "success")) {
-                        const payId = res.data?.paymentId || res.paymentId || res.data?.data?.paymentId;
-                        if (i === 0 && payId) {
-                            firstPaymentId = payId;
-                        }
-                    } else {
-                        break;
-                    }
-                }
+                res = await saleService.createPayment(jwtToken, payload);
             }
 
             console.log("Full Response Object:", res);
