@@ -39,6 +39,19 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
 
     const today = toApiDateOnly(new Date());
 
+    useEffect(() => {
+        if (isOpen && data) {
+            const initialBal = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : (data.totalAmount || 0);
+            setMasterTarget(initialBal);
+            setPayments([{
+                amountPaid: String(initialBal),
+                paymentType: "Cash",
+                referenceNumber: "",
+                id: Date.now()
+            }]);
+        }
+    }, [isOpen, data]);
+
     const handleAddPayment = () => {
         setPayments([...payments, {
             amountPaid: "",
@@ -76,48 +89,64 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     };
 
     const handleSave = async () => {
+        if (Number(masterTarget) <= 0) {
+            toast.error("Please enter a valid Total Amount Paid");
+            return;
+        }
+
         const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
         if (validPayments.length === 0) {
             toast.error("Please enter at least one valid payment amount");
             return;
         }
 
+        if (Math.abs(sessionTotal - Number(masterTarget)) > 0.01) {
+            toast.error(`The sum of payments (₹ ${sessionTotal}) does not match the Total Amount Paid (₹ ${masterTarget})`);
+            return;
+        }
+
         setLoading(true);
         try {
+            const payload = {
+                debitOrCredit: "Debit",
+                paymentFrom: "payment out",
+                ...dateOnlyWithTimeZone(
+                    "userTransactionDate",
+                    parseWallClockDate(amountPaidDate) || new Date(amountPaidDate),
+                ),
+                supplierId: data.supplierId,
+                branchId: data.branchId,
+                createdBy: userInfo?.userId || 1,
+                productsBillId: data.productsBillId,
+                returnProductsId: null,
+                supplierWalletTransactionId: null,
+                transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
+                transactionImg: "",
+                totalAmount: Number(totalAmount),
+                balanceAmount: balanceAmount,
+                paymentTypes: validPayments.map(p => {
+                    const typeObj = {
+                        paymentType: p.paymentType,
+                        amount: Number(p.amountPaid)
+                    };
+                    if (p.referenceNumber && getReferenceLabel(p.paymentType) !== null) {
+                        typeObj.referenceNumber = p.referenceNumber;
+                    }
+                    return typeObj;
+                })
+            };
+
+            const res = await purchaseService.createTransaction(jwtToken, payload);
             let firstTransactionId = null;
-            for (let i = 0; i < validPayments.length; i++) {
-                const p = validPayments[i];
-                const payload = {
-                    amount: Number(p.amountPaid),
-                    debitOrCredit: "Debit",
-                    paymentFrom: "payment out",
-                    paymentType: p.paymentType,
-                    referenceNumber: p.referenceNumber || "",
-                    ...dateOnlyWithTimeZone(
-                        "userTransactionDate",
-                        parseWallClockDate(amountPaidDate) || new Date(amountPaidDate),
-                    ),
-                    supplierId: data.supplierId,
-                    branchId: data.branchId,
-                    createdBy: userInfo?.userId || 1,
-                    productsBillId: data.productsBillId,
-                    returnProductsId: null,
-                    supplierWalletTransactionId: null,
-                    transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
-                    transactionImg: "",
-                    totalAmount: Number(totalAmount),
-                    balanceAmount: Math.max(0, initialBalance - validPayments.slice(0, i + 1).reduce((acc, curr) => acc + Number(curr.amountPaid), 0))
-                };
-
-                if (i > 0 && firstTransactionId) {
-                    payload.transactionRefId = firstTransactionId;
-                }
-
-                const res = await purchaseService.createTransaction(jwtToken, payload);
-                if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
-                    const transId = res.data?.suppliersTransactionId || res.suppliersTransactionId || res.data?.data?.suppliersTransactionId || res.data?.id;
-                    if (i === 0 && transId) {
-                        firstTransactionId = transId;
+            if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
+                const resData = res.data?.data || res.data;
+                if (Array.isArray(resData)) {
+                    firstTransactionId = resData[0]?.suppliersTransactionId;
+                } else if (resData && typeof resData === 'object') {
+                    if (Array.isArray(resData.data)) {
+                        firstTransactionId = resData.data[0]?.suppliersTransactionId;
+                    } else {
+                        firstTransactionId = resData.suppliersTransactionId || resData.data?.suppliersTransactionId || resData.data?.id;
                     }
                 }
             }
@@ -248,7 +277,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         type="text" 
                                         placeholder={`Enter ${getReferenceLabel(payments[0].paymentType).toLowerCase()}`}
                                         value={payments[0].referenceNumber}
-                                        onChange={(e) => handlePaymentChange(payments[0].id, "referenceNumber", e.target.value)}
+                                        onChange={(e) => handlePaymentChange(payments[0].id, "referenceNumber", e.target.value.replace(/[^0-9]/g, ''))}
                                     />
                                 </div>
                             </div>
@@ -293,6 +322,21 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     )}
                                 </div>
                             </div>
+                            {getReferenceLabel(p.paymentType) && (
+                                <div className={styles.row}>
+                                    <div className={styles.field}>
+                                        <label>{getReferenceLabel(p.paymentType)}</label>
+                                        <div className={styles.inputWrapper}>
+                                            <input 
+                                                type="text" 
+                                                placeholder={`Enter ${getReferenceLabel(p.paymentType).toLowerCase()}`}
+                                                value={p.referenceNumber}
+                                                onChange={(e) => handlePaymentChange(p.id, "referenceNumber", e.target.value.replace(/[^0-9]/g, ''))}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
 

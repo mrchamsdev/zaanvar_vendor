@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import PayNowModal from "../purchase-bill/PayNowModal";
 import PurchaseOrderManager from "../purchase-bill/purchase-order-manager";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
     const { jwtToken } = useStore();
@@ -18,6 +19,34 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     const [selectedBillIdForPayment, setSelectedBillIdForPayment] = useState(null);
     const [selectedBillData, setSelectedBillData] = useState(null);
     const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
+    const [expandedRows, setExpandedRows] = useState({});
+    const toggleRowExpand = (id) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const getDisplayPaymentType = (t) => {
+        const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
+            .map(type => type || "Cash")
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayTotalAmount = (t) => {
+        const mainAmount = parseFloat(t["paid amount"] || t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st["paid amount"] || st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const getDisplayBalanceAmount = (t) => {
+        if (t.splitTransactions && t.splitTransactions.length > 0) {
+            const lastSplit = t.splitTransactions[t.splitTransactions.length - 1];
+            return lastSplit["balance amount"] || lastSplit.balance || lastSplit.totalBalanceAmount || "0.00";
+        }
+        return t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00";
+    };
 
     const supplierId = data?.supplierId;
 
@@ -112,35 +141,69 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <th className={styles.th}>Payment Date</th>
                         <th className={styles.th}>Total amount</th>
                         <th className={styles.th}>Previous Paid amount</th>
+                        <th className={styles.th}>Payment Type</th>
                         <th className={styles.th}>Paid amount</th>
                         <th className={styles.th}>Balance amount</th>
+                        <th className={styles.th} style={{ width: '40px' }}></th>
                     </tr>
                 </thead>
                 <tbody>
                     {paymentHistory.length === 0 ? (
-                        <tr><td colSpan="7" className={styles.noData}>No data available</td></tr>
+                        <tr><td colSpan="9" className={styles.noData}>No data available</td></tr>
                     ) : (
-                        paymentHistory.map((t, idx) => (
-                            <tr key={idx} className={styles.trHistory}>
-                                <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
-                                <td className={styles.td}>
-                                    {(() => {
-                                        const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
-                                        return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
-                                    })()}
-                                </td>
-                                <td className={styles.td}>
-                                    {(() => {
-                                        const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
-                                        return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
-                                    })()}
-                                </td>
-                                <td className={styles.td}>₹ {t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["previouspaid amount"] || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["paid amount"] || t.received || t.amount || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00"}</td>
-                            </tr>
-                        ))
+                        paymentHistory.map((t, idx) => {
+                            const splitsList = [
+                                { paymentType: t.paymentType || "Cash", amount: t["paid amount"] || t.amount || 0 },
+                                ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st["paid amount"] || st.amount || 0 }))
+                            ];
+                            return (
+                                <React.Fragment key={t.suppliersTransactionId || idx}>
+                                    <tr className={styles.trHistory}>
+                                        <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
+                                        <td className={styles.td}>
+                                            {(() => {
+                                                const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
+                                                return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
+                                            })()}
+                                        </td>
+                                        <td className={styles.td}>
+                                            {(() => {
+                                                const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
+                                                return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                            })()}
+                                        </td>
+                                        <td className={styles.td}>₹ {Number(t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>₹ {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>{getDisplayPaymentType(t)}</td>
+                                        <td className={styles.td}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>₹ {getDisplayBalanceAmount(t)}</td>
+                                        <td className={styles.td}>
+                                            {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                                <div 
+                                                    onClick={() => toggleRowExpand(t.suppliersTransactionId)}
+                                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
+                                                >
+                                                    {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
+                                        <tr key={`split-${sIdx}`} className={styles.trHistory} style={{ borderBottom: '1px solid #eee' }}>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}>{split.paymentType}</td>
+                                            <td className={styles.td}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                        </tr>
+                                    ))}
+                                </React.Fragment>
+                            );
+                        })
                     )}
                 </tbody>
             </table>

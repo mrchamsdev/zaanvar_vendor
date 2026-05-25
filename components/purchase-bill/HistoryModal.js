@@ -5,6 +5,19 @@ import { FiX } from "react-icons/fi";
 const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
     if (!isOpen || !data) return null;
 
+    const getDisplayPaymentType = (t) => {
+        const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
+            .map(type => type || "Cash")
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayTotalAmount = (t) => {
+        const mainAmount = parseFloat(t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
     // Mock history data since backend might not have this yet
     const history = [
         {
@@ -12,9 +25,9 @@ const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
             user: userInfo?.userName || userInfo?.name || "Naveen",
             role: userInfo?.role || "PRIMARY ADMIN",
             changes: [
-                `For Payment Type ${data.paymentType || 'Cash'}, Amount changed from 0 to ${data.amount}`,
-                `Received Amount changed from 0 to ${data.amount}`,
-                `Total Transaction Value changed from 0 to ${data.amount}`
+                `For Payment Type ${getDisplayPaymentType(data)}, Amount changed from 0 to ${getDisplayTotalAmount(data)}`,
+                `Received Amount changed from 0 to ${getDisplayTotalAmount(data)}`,
+                `Total Transaction Value changed from 0 to ${getDisplayTotalAmount(data)}`
             ]
         }
     ];

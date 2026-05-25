@@ -1,7 +1,7 @@
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { purchaseService } from "../../services/purchaseService";
@@ -322,9 +322,29 @@ const PaymentOutList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [transactions, setTransactions] = useState([]);
+    
+    const getDisplayPaymentType = (t) => {
+        const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
+            .map(type => type || "Cash")
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayTotalAmount = (t) => {
+        const mainAmount = parseFloat(t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
     const [totals, setTotals] = useState(null);
+    const [supplierTotals, setSupplierTotals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    const getSupplierBalance = (supplierId) => {
+        const supplierObj = supplierTotals.find(s => s.supplierId === supplierId);
+        return supplierObj ? parseFloat(supplierObj.totalBalanceAmount || 0) : 0;
+    };
     const [searchTerm, setSearchTerm] = useState("");
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -344,6 +364,14 @@ const PaymentOutList = ({ onAddClick }) => {
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [dateFilterMode, setDateFilterMode] = useState(null);
     const [dateFilterValues, setDateFilterValues] = useState(null);
+
+    const [expandedRows, setExpandedRows] = useState({});
+    const toggleRowExpand = (id) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
 
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'partyName', 'paymentType', 'total', 'paid'
     const [columnFilters, setColumnFilters] = useState({
@@ -383,6 +411,7 @@ const PaymentOutList = ({ onAddClick }) => {
             if (res.status === "success") {
                 setTransactions(res.data || []);
                 setTotals(res.overallTotals || (Array.isArray(res.totals) ? res.totals[0] : (res.totals || null)));
+                setSupplierTotals(res.totals || []);
             }
         } catch (error) {
             console.error("Error fetching transactions:", error);
@@ -480,16 +509,21 @@ const PaymentOutList = ({ onAddClick }) => {
             const filter = columnFilters[key];
             if (!filter.value || (Array.isArray(filter.value) && filter.value.length === 0)) return;
 
+            if (key === 'paymentType' && filter.mode === 'Checklist') {
+                const allTypes = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)].map(type => type || "Cash");
+                const hasMatch = allTypes.some(type => filter.value.includes(type));
+                if (!hasMatch) matchesColFilters = false;
+                return;
+            }
+
             let targetValue = "";
             if (key === 'refNo') targetValue = String(t.suppliersTransactionId);
             else if (key === 'partyName') targetValue = String(t.supplierName || t.transactionInfo || "");
             else if (key === 'paymentType') targetValue = String(t.paymentType || "");
-            else if (key === 'total') targetValue = String(t.amount || 0);
-            else if (key === 'paid') targetValue = String(t.relatedBill?.amountPaidToSupplier || 0);
+            else if (key === 'total') targetValue = String(getSupplierBalance(t.supplierId));
+            else if (key === 'paid') targetValue = String(getDisplayTotalAmount(t));
 
-            if (filter.mode === 'Checklist') {
-                if (!filter.value.includes(targetValue)) matchesColFilters = false;
-            } else if (filter.mode === 'Exact Match') {
+            if (filter.mode === 'Exact Match') {
                 if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
             } else {
                 if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
@@ -500,14 +534,14 @@ const PaymentOutList = ({ onAddClick }) => {
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "PAYMENT TYPE", "TOTAL", "PAID"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAYMENT TYPE", "PAID"];
         const rows = filteredTransactions.map(t => [
             `"${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
             `"${t.suppliersTransactionId}"`,
             `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
-            `"${t.paymentType || "N/A"}"`,
-            `"${t.amount || 0}"`,
-            `"${t.relatedBill?.amountPaidToSupplier || 0}"`
+            `"${getSupplierBalance(t.supplierId)}"`,
+            `"${getDisplayPaymentType(t)}"`,
+            `"${getDisplayTotalAmount(t)}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -688,23 +722,6 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th style={{position: 'relative'}}>
-                                    PAYMENT TYPE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
-                                    />
-                                    {openFilterCol === 'paymentType' && (
-                                        <GeneralFilterModal 
-                                            type="paymentType"
-                                            label="Payment Type"
-                                            currentMode={columnFilters.paymentType.mode}
-                                            currentValue={columnFilters.paymentType.value}
-                                            onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paymentType: {mode, value: val}})}
-                                        />
-                                    )}
-                                </th>
-                                <th style={{position: 'relative'}}>
                                     TOTAL 
                                     <FiFilter 
                                         className={styles.filterIcon} 
@@ -718,6 +735,23 @@ const PaymentOutList = ({ onAddClick }) => {
                                             currentValue={columnFilters.total.value}
                                             onClose={() => setOpenFilterCol(null)}
                                             onApply={(mode, val) => setColumnFilters({...columnFilters, total: {mode, value: val}})}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{position: 'relative'}}>
+                                    PAYMENT TYPE 
+                                    <FiFilter 
+                                        className={styles.filterIcon} 
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'paymentType' && (
+                                        <GeneralFilterModal 
+                                            type="paymentType"
+                                            label="Payment Type"
+                                            currentMode={columnFilters.paymentType.mode}
+                                            currentValue={columnFilters.paymentType.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paymentType: {mode, value: val}})}
                                         />
                                     )}
                                 </th>
@@ -742,67 +776,96 @@ const PaymentOutList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredTransactions.map((t, idx) => (
-                                <tr key={idx}>
-                                    <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
-                                    <td>{t.suppliersTransactionId}</td>
-                                    <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
-                                    <td>{t.paymentType || "N/A"}</td>
-                                    <td>{Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>{Number(t.relatedBill?.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                             <div style={{position: 'relative'}}>
-                                                <FiShare2 
-                                                    className={styles.actionIcon} 
-                                                    onClick={() => {
-                                                        setSelectedTransaction(t);
-                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
-                                                    }}
-                                                />
-                                                {isShareModalOpen === `share-${idx}` && (
-                                                    <ShareModal 
-                                                        isOpen={true}
-                                                        onClose={() => setIsShareModalOpen(false)}
-                                                        data={t}
-                                                    />
-                                                )}
-                                            </div>
-                                            <div style={{position: 'relative'}}>
-                                                <FiMoreVertical 
-                                                    className={styles.actionIcon} 
-                                                    onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
-                                                />
-                                                {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                         <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
-                                                            setActiveDropdown(null);
-                                                         }}>View</div>
-                                                         <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
-                                                            setActiveDropdown(null);
-                                                         }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Print</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            setSelectedTransaction(t);
-                                                            setIsHistoryModalOpen(true);
-                                                            setActiveDropdown(null);
-                                                        }}>View History</div>
+                            {filteredTransactions.map((t, idx) => {
+                                const splitsList = [
+                                    { paymentType: t.paymentType || "Cash", amount: t.amount || 0 },
+                                    ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st.amount || 0 }))
+                                ];
+                                return (
+                                    <React.Fragment key={t.suppliersTransactionId || idx}>
+                                        <tr>
+                                            <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
+                                            <td>{t.suppliersTransactionId}</td>
+                                            <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
+                                            <td>{Number(getSupplierBalance(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td>{getDisplayPaymentType(t)}</td>
+                                            <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td>
+                                                <div className={styles.actions}>
+                                                     <div style={{position: 'relative'}}>
+                                                        <FiShare2 
+                                                            className={styles.actionIcon} 
+                                                            onClick={() => {
+                                                                setSelectedTransaction(t);
+                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
+                                                            }}
+                                                        />
+                                                        {isShareModalOpen === `share-${idx}` && (
+                                                            <ShareModal 
+                                                                isOpen={true}
+                                                                onClose={() => setIsShareModalOpen(false)}
+                                                                data={t}
+                                                            />
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                    <div style={{position: 'relative'}}>
+                                                        <FiMoreVertical 
+                                                            className={styles.actionIcon} 
+                                                            onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
+                                                        />
+                                                        {activeDropdown === idx && (
+                                                            <div className={styles.dropdownMenu}>
+                                                                 <div className={styles.dropdownItem} onClick={() => {
+                                                                    router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
+                                                                    setActiveDropdown(null);
+                                                                 }}>View</div>
+                                                                 <div className={styles.dropdownItem} onClick={() => {
+                                                                    router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
+                                                                    setActiveDropdown(null);
+                                                                 }}>Edit</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
+                                                                    window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
+                                                                    setActiveDropdown(null);
+                                                                }}>Open PDF</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
+                                                                    window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
+                                                                    setActiveDropdown(null);
+                                                                }}>Print</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
+                                                                    setSelectedTransaction(t);
+                                                                    setIsHistoryModalOpen(true);
+                                                                    setActiveDropdown(null);
+                                                                }}>View History</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                     {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                                         <div 
+                                                             className={styles.actionIcon} 
+                                                             onClick={() => toggleRowExpand(t.suppliersTransactionId)} 
+                                                             title="Show Split Payments" 
+                                                             style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}
+                                                         >
+                                                             {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
+                                                         </div>
+                                                     )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
+                                            <tr key={`split-${sIdx}`} style={{borderBottom: '1px solid #eee'}}>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>{split.paymentType}</td>
+                                                <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td></td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

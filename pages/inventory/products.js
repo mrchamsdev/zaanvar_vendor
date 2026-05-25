@@ -109,7 +109,7 @@ const ProductsPage = () => {
           total: data.counts.totalBranchProducts || 0,
           expired: data.counts.expiredProducts || 0,
           damaged: data.counts.damageProducts || 0,
-          saleReturn: data.counts.damagedReturns || 0
+          saleReturn: data.counts.saleReturn || data.counts.damagedReturns || 0
         });
       }
     } catch (e) {

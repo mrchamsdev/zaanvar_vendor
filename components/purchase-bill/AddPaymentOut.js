@@ -106,41 +106,48 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
         setLoading(true);
         try {
-            let firstTransactionId = null;
-            for (let i = 0; i < validPayments.length; i++) {
-                const p = validPayments[i];
-                const payload = {
-                    amount: Number(p.amountPaid),
-                    debitOrCredit: "Debit",
-                    paymentFrom: "payment out",
-                    paymentType: p.paymentType,
-                    branchId: branchId,
-                    supplierId: Number(selectedSupplierId),
-                    ...dateOnlyWithTimeZone(
-                        "userTransactionDate",
-                        parseWallClockDate(transactionDate) || new Date(transactionDate),
-                    ),
-                    transactionInfo: description || "Payment Out recorded",
-                    createdBy: userInfo?.userId || 1,
-                    productsBillId: null,
-                    refNo: p.refNo || null
-                };
+            const payload = {
+                debitOrCredit: "Debit",
+                paymentFrom: "payment out",
+                branchId: branchId,
+                supplierId: Number(selectedSupplierId),
+                ...dateOnlyWithTimeZone(
+                    "userTransactionDate",
+                    parseWallClockDate(transactionDate) || new Date(transactionDate),
+                ),
+                transactionInfo: description || "Split Payment Out recorded",
+                createdBy: userInfo?.userId || 1,
+                productsBillId: null,
+                paymentTypes: validPayments.map(p => {
+                    const typeObj = {
+                        paymentType: p.paymentType,
+                        amount: Number(p.amountPaid)
+                    };
+                    if (p.refNo && (p.paymentType === 'UPI' || p.paymentType === 'Cheque')) {
+                        typeObj.referenceNumber = p.refNo;
+                    }
+                    return typeObj;
+                })
+            };
 
-                if (i > 0 && firstTransactionId) {
-                    payload.transactionRefId = firstTransactionId;
+            const res = await purchaseService.createTransaction(jwtToken, payload);
+            if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
+                const resData = res.data?.data || res.data;
+                let transId = null;
+                if (Array.isArray(resData)) {
+                    transId = resData[0]?.suppliersTransactionId;
+                } else if (resData && typeof resData === 'object') {
+                    if (Array.isArray(resData.data)) {
+                        transId = resData.data[0]?.suppliersTransactionId;
+                    } else {
+                        transId = resData.suppliersTransactionId || resData.data?.suppliersTransactionId;
+                    }
                 }
 
-                const res = await purchaseService.createTransaction(jwtToken, payload);
-                if (res.status === "success" || res.status === "ok" || res.data?.status === "success") {
-                    const transId = res.data?.suppliersTransactionId || res.suppliersTransactionId || res.data?.data?.suppliersTransactionId;
-                    if (i === 0 && transId) {
-                        firstTransactionId = transId;
-                    }
-                    if (selectedImage && transId) {
-                        const formData = new FormData();
-                        formData.append("transactionImg", selectedImage);
-                        await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
-                    }
+                if (selectedImage && transId) {
+                    const formData = new FormData();
+                    formData.append("transactionImg", selectedImage);
+                    await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
                 }
             }
 
@@ -290,7 +297,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                         className={styles.input}
                                         placeholder="****************"
                                         value={p.refNo}
-                                        onChange={(e) => handlePaymentChange(p.id, "refNo", e.target.value)}
+                                        onChange={(e) => handlePaymentChange(p.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
                                     />
                                 </div>
                             )}

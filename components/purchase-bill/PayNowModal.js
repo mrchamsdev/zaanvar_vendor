@@ -137,18 +137,18 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const totalPaidInModal = paymentEntries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
     // Final Summary Values
-    const summaryTotal = isRoundOff ? Math.round(currentEntryAmount) : currentEntryAmount + parseFloat(roundOffValue || 0);
+    const summaryTotal = isRoundOff ? Math.round(totalPaidInModal) : totalPaidInModal + parseFloat(roundOffValue || 0);
     const summaryPaidTotal = previouslyPaid + summaryTotal;
     const summaryPendingAmount = currentBalance - summaryTotal;
 
     useEffect(() => {
         if (isRoundOff) {
-            const diff = Math.round(currentEntryAmount) - currentEntryAmount;
+            const diff = Math.round(totalPaidInModal) - totalPaidInModal;
             setRoundOffValue(diff.toFixed(2));
         } else {
             setRoundOffValue("0");
         }
-    }, [isRoundOff, currentEntryAmount]);
+    }, [isRoundOff, totalPaidInModal]);
 
     const handlePay = async () => {
         console.log("PayNowModal: handlePay called. billDetails:", billDetails);
@@ -179,55 +179,59 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
         setLoading(true);
         try {
-            // According to requirements, we send one request per payment type if multiple exist
-            // and follow the payload structure provided.
             const validEntries = paymentEntries.filter(entry => parseFloat(entry.amount) > 0);
-            let firstTransactionId = null;
+            const currentBillId = 
+                billDetails?.productsBillId || 
+                billDetails?.receiptItems?.[0]?.productsBillId || 
+                billDetails?.receiptItems?.[0]?.productsBillItemsId || 
+                billDetails?.productsPurchaseRqstID || 
+                billId;
+
+            const payload = {
+                debitOrCredit: "Debit",
+                paymentFrom: "payment out",
+                ...dateOnlyWithTimeZone(
+                    "userTransactionDate",
+                    parseWallClockDate(paymentDate) || new Date(paymentDate),
+                ),
+                supplierId: supplierData?.supplierId || billDetails?.supplierId,
+                branchId: branchId,
+                createdBy: userInfo?.userId || 1,
+                productsBillId: parseInt(currentBillId),
+                transactionInfo: description || `Payment for invoice #${currentBillId}`,
+                returnProductsId: null,
+                returnsDeduction: false,
+                paymentTypes: validEntries.map(entry => {
+                    const typeObj = {
+                        paymentType: entry.type,
+                        amount: parseFloat(entry.amount)
+                    };
+                    if (entry.refNo && entry.type !== 'Cash') {
+                        typeObj.referenceNumber = entry.refNo;
+                    }
+                    return typeObj;
+                })
+            };
+
+            const res = await purchaseService.createTransaction(jwtToken, payload);
             
-            for (let i = 0; i < validEntries.length; i++) {
-                const entry = validEntries[i];
-                const currentBillId = 
-                    billDetails?.productsBillId || 
-                    billDetails?.receiptItems?.[0]?.productsBillId || 
-                    billDetails?.receiptItems?.[0]?.productsBillItemsId || 
-                    billDetails?.productsPurchaseRqstID || 
-                    billId;
-
-                const payload = {
-                    amount: parseFloat(entry.amount),
-                    debitOrCredit: "Debit",
-                    paymentFrom: "payment out",
-                    paymentType: entry.type,
-                    ...dateOnlyWithTimeZone(
-                        "userTransactionDate",
-                        parseWallClockDate(paymentDate) || new Date(paymentDate),
-                    ),
-                    supplierId: supplierData?.supplierId || billDetails?.supplierId,
-                    branchId: branchId,
-                    createdBy: userInfo?.userId || 1,
-                    productsBillId: parseInt(currentBillId),
-                    transactionInfo: description || `Payment for invoice #${currentBillId}`,
-                    transactionImg: "", // Will be uploaded separately
-                    returnProductsId: null,
-                    returnsDeduction: false
-                };
-
-                if (i > 0 && firstTransactionId) {
-                    payload.transactionRefId = firstTransactionId;
+            if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
+                const resData = res.data?.data || res.data;
+                let transId = null;
+                if (Array.isArray(resData)) {
+                    transId = resData[0]?.suppliersTransactionId;
+                } else if (resData && typeof resData === 'object') {
+                    if (Array.isArray(resData.data)) {
+                        transId = resData.data[0]?.suppliersTransactionId;
+                    } else {
+                        transId = resData.suppliersTransactionId || resData.data?.suppliersTransactionId;
+                    }
                 }
 
-                const res = await purchaseService.createTransaction(jwtToken, payload);
-                
-                if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
-                    const transId = res.data?.suppliersTransactionId || res.suppliersTransactionId || res.data?.data?.suppliersTransactionId;
-                    if (i === 0 && transId) {
-                        firstTransactionId = transId;
-                    }
-                    if (selectedImage && transId) {
-                        const formData = new FormData();
-                        formData.append("transactionImg", selectedImage);
-                        await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
-                    }
+                if (selectedImage && transId) {
+                    const formData = new FormData();
+                    formData.append("transactionImg", selectedImage);
+                    await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
                 }
             }
 
@@ -460,7 +464,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                                 className={styles.input} 
                                                 placeholder="****************" 
                                                 value={entry.refNo}
-                                                onChange={(e) => updatePayment(entry.id, "refNo", e.target.value)}
+                                                onChange={(e) => updatePayment(entry.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
                                             />
                                         </div>
                                     </div>
