@@ -710,7 +710,7 @@ const PaymentInList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Payments..." />
-            ) : (filteredPayments.length === 0 && !hasFiltersApplied) ? (
+            ) : payments.length === 0 ? (
                 <EmptyState
                     buttonText="Add Payment In"
                     onAddClick={onAddClick}
@@ -833,7 +833,7 @@ const PaymentInList = ({ onAddClick }) => {
                             {filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        Applied filter has no data
+                                        This range data is not there
                                     </td>
                                 </tr>
                             ) : (

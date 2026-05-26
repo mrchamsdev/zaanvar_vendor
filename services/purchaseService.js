@@ -26,7 +26,7 @@ export const purchaseService = {
   getBranchTransactions: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/transactions/branch/${branchId}`);
+      const response = await webApi.get(`vendor/transactions/branch/${branchId}?paymentFrom=payment out`);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching branch transactions:", error);

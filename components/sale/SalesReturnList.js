@@ -463,7 +463,7 @@ const SalesReturnList = ({ onAddClick }) => {
             if (col === 'refNo') targetVal = refNo;
             if (col === 'customerName') targetVal = customerName;
             if (col === 'received') targetVal = (r.totalReturnAmount || 0).toString();
-            if (col === 'balance') targetVal = "0.00";
+            if (col === 'balance') targetVal = (r.dueAmount || 0).toString();
 
             if (filter.mode === 'Contains') {
                 if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
@@ -533,7 +533,7 @@ const SalesReturnList = ({ onAddClick }) => {
             `"SR-${r.customerReturnId}"`,
             `"${(r.customer ? r.customer.firstName + ' ' + r.customer.lastName : 'Walk-in Customer').replace(/"/g, '""')}"`,
             `"${r.totalReturnAmount || 0}"`,
-            `"${totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || '0.00'}"`
+            `"${r.dueAmount || '0.00'}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -628,7 +628,7 @@ const SalesReturnList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Returns..." />
-            ) : (filteredReturns.length === 0 && !hasFiltersApplied) ? (
+            ) : returns.length === 0 ? (
                 <EmptyState
                     buttonText="Add Sales Return"
                     onAddClick={onAddClick}
@@ -731,7 +731,7 @@ const SalesReturnList = ({ onAddClick }) => {
                             {filteredReturns.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className={styles.noDataCell}>
-                                        Applied filter has no data
+                                        This range data is not there
                                     </td>
                                 </tr>
                             ) : (
@@ -741,8 +741,8 @@ const SalesReturnList = ({ onAddClick }) => {
                                     <td>SR-{r.customerReturnId}</td>
                                     <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
                                     <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ color: Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
-                                        {Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <td style={{ color: Number(r.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
+                                        {Number(r.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                     <td>
                                         <div className={styles.actions}>

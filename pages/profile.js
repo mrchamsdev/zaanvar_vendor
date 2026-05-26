@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
+import { IMAGE_URL } from "../components/utilities/Constants";
 
 /* ── icons ── */
 const HeartIcon = ({ filled }) => (
@@ -77,14 +78,16 @@ export default function ProfilePage() {
     : "—";
 
   /* Detail rows — all from Zustand userInfo */
+  const toStr = (v) => (v && typeof v === 'object' ? (v.name || v.label || String(v.id || '')) : (v ?? '')) || '—';
+
   const detailRows = [
     { emoji: "👤", label: "Name of owner", value: `${vendor?.firstName || ""} ${vendor?.lastName || ""}`.trim() || "—" },
-    { emoji: "⚥", label: "Gender", value: vendor?.gender || "—" },
+    { emoji: "⚥", label: "Gender", value: toStr(vendor?.gender) },
     { emoji: "📧", label: "Email", value: vendor?.email || "—" },
     { emoji: "📱", label: "Mobile", value: vendor?.phoneNumber || "—" },
     { emoji: "📍", label: "Company Location", value: address ? `${address.area || ""},${address.city || ""}`.replace(/^,|,$/, "").trim() || "—" : "—" },
     { emoji: "🌐", label: "Company Website", value: company?.socialMediaLinks?.website || "—" },
-    { emoji: "🏢", label: "Business Type", value: company?.servicesProvided?.join(", ") || "—" },
+    { emoji: "🏢", label: "Business Type", value: company?.servicesProvided?.map(s => toStr(s)).join(", ") || "—" },
     { emoji: "📧", label: "Company Email", value: company?.email || "—" },
     { emoji: "📱", label: "Company Mobile Number", value: company?.phoneNo ? `+91 ${company.phoneNo}` : "—" },
   ];
@@ -264,7 +267,7 @@ export default function ProfilePage() {
               <h4>Feature Type</h4>
               {featureTypes.length ? featureTypes.map((item, i) => (
                 <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐾</div>{item}
+                  <div className={styles.featureDot}>🐾</div>{toStr(item)}
                 </div>
               )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>
@@ -273,7 +276,7 @@ export default function ProfilePage() {
               <h4>Categories</h4>
               {categories.length ? categories.map((s, i) => (
                 <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐾</div>{s}
+                  <div className={styles.featureDot}>🐾</div>{toStr(s)}
                 </div>
               )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>
@@ -282,7 +285,7 @@ export default function ProfilePage() {
               <h4>Available pets</h4>
               {availablePets.length ? availablePets.map((p, i) => (
                 <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐕</div>{p}
+                  <div className={styles.featureDot}>🐕</div>{toStr(p)}
                 </div>
               )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
             </div>

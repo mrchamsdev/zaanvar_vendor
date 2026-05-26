@@ -359,13 +359,25 @@ const PurchaseOrdersPage = () => {
             if (response.status === "success") {
                 // If data contains both summary and list, or just a list
                 const data = response.data || [];
+                // Pull top-level summary fields (branchName, counts) from response directly
+                const topLevel = {
+                    branchName: response.branchName || data.branchName,
+                    totalPurchaseRequests: response.totalPurchaseRequests ?? data.totalPurchaseRequests,
+                    paidCount: response.paidCount ?? data.paidCount,
+                    partiallyPaidCount: response.partiallyPaidCount ?? data.partiallyPaidCount,
+                    unpaidCount: response.unpaidCount ?? data.unpaidCount,
+                };
                 if (Array.isArray(data)) {
                     setPurchaseRequests(data);
-                    // Generate local summary if not provided
-                    setSummary(null);
+                    // Keep top-level summary if present
+                    const hasTopLevelSummary = topLevel.totalPurchaseRequests != null;
+                    setSummary(hasTopLevelSummary ? topLevel : null);
                 } else if (data.orders) {
                     setPurchaseRequests(data.orders);
-                    setSummary(data.summary || data); // Store summary if it's an object
+                    setSummary({ ...(data.summary || data), ...topLevel }); // Merge both
+                } else {
+                    // data itself may be the summary object
+                    setSummary({ ...data, ...topLevel });
                 }
             }
         } catch (error) {
@@ -432,8 +444,9 @@ const PurchaseOrdersPage = () => {
     }, [purchaseRequests, searchTerm, columnFilters, dateFilterMode, dateFilterValues]);
 
     const stats = useMemo(() => {
-        if (summary) {
+        if (summary && summary.totalPurchaseRequests != null) {
             return {
+                branchName: summary.branchName || null,
                 total: summary.totalPurchaseRequests || 0,
                 paid: summary.paidCount || 0,
                 unpaid: summary.unpaidCount || 0,
@@ -448,7 +461,7 @@ const PurchaseOrdersPage = () => {
             !item.paymentStatus && item.status !== "accepted"
         ).length;
         const partiallyPaid = purchaseRequests.filter(item => item.paymentStatus === "Partial").length;
-        return { total, paid, unpaid, partiallyPaid };
+        return { branchName: null, total, paid, unpaid, partiallyPaid };
     }, [purchaseRequests, summary]);
 
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);

@@ -344,19 +344,25 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.stockHistory.map((stock, idx) => (
-                      <tr key={idx}>
-                        <td>{stock.createdDate?.split("T")[0] || "-"}</td>
-                        <td>{stock.currentQty}</td>
-                        <td>{stock.add}</td>
-                        <td>{stock.remove}</td>
-                        <td>{stock.updatedQty}</td>
-                        <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
-                        <td>{formatSourceStatus(stock.sourceStatus)}</td>
-                        <td>{formatExpiryDate(stock.expDate)}</td>
-                        <td>₹{stock.totalValue}</td>
-                      </tr>
-                    ))}
+                    {data.stockHistory.map((stock, idx) => {
+                      const isNegative = stock.remove > 0 || (stock.reason?.toLowerCase().includes('damaged') || stock.reason?.toLowerCase().includes('expired') || stock.reason?.toLowerCase().includes('theft') || stock.reason?.toLowerCase().includes('internal purpose') || stock.reason?.toLowerCase().includes('onhold'));
+                      const val = parseFloat(stock.totalValue || 0);
+                      const displayColor = isNegative ? '#e74c3c' : '#27ae60';
+                      const displayText = isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `+ ₹ ${Math.abs(val).toFixed(2)}`;
+                      return (
+                        <tr key={idx}>
+                          <td>{stock.createdDate?.split("T")[0] || "-"}</td>
+                          <td>{stock.currentQty}</td>
+                          <td>{stock.add}</td>
+                          <td>{stock.remove}</td>
+                          <td>{stock.updatedQty}</td>
+                          <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
+                          <td>{formatSourceStatus(stock.sourceStatus)}</td>
+                          <td>{formatExpiryDate(stock.expDate)}</td>
+                          <td style={{ color: displayColor, fontWeight: 600 }}>{displayText}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

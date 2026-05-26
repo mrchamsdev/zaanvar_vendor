@@ -204,7 +204,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     reason: data.reason,
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,
-                    total: parseFloat(data.totalValue || (((data.add || 0) - (data.remove || 0)) * (data.billItem?.costPrice || data.costPrice || 0)) || 0)
+                    total: (() => {
+                        const rawVal = parseFloat(data.totalValue || 0);
+                        const addQty = parseInt(data.add) || 0;
+                        const removeQty = parseInt(data.remove) || 0;
+                        const cost = parseFloat(data.billItem?.costPrice || data.costPrice || 0);
+                        const calcVal = rawVal !== 0 ? rawVal : (addQty - removeQty) * cost;
+                        return removeQty > 0 ? -Math.abs(calcVal) : Math.abs(calcVal);
+                    })()
                 };
                 setRows([mappedRow]);
                 if (data.branchId || data.branch?.id) setBranchId(String(data.branchId || data.branch?.id));

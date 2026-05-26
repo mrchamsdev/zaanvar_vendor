@@ -345,6 +345,10 @@ const PaymentOutList = ({ onAddClick }) => {
         const supplierObj = supplierTotals.find(s => s.supplierId === supplierId);
         return supplierObj ? parseFloat(supplierObj.totalBalanceAmount || 0) : 0;
     };
+    const getSupplierTotalBill = (supplierId) => {
+        const supplierObj = supplierTotals.find(s => s.supplierId === supplierId);
+        return supplierObj ? parseFloat(supplierObj.totalBillAmount || 0) : 0;
+    };
     const [searchTerm, setSearchTerm] = useState("");
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -528,7 +532,7 @@ const PaymentOutList = ({ onAddClick }) => {
             if (key === 'refNo') targetValue = String(t.suppliersTransactionId);
             else if (key === 'partyName') targetValue = String(t.supplierName || t.transactionInfo || "");
             else if (key === 'paymentType') targetValue = String(t.paymentType || "");
-            else if (key === 'total') targetValue = String(getSupplierBalance(t.supplierId));
+            else if (key === 'total') targetValue = String(getSupplierTotalBill(t.supplierId));
             else if (key === 'paid') targetValue = String(getDisplayTotalAmount(t));
 
             if (filter.mode === 'Exact Match') {
@@ -542,13 +546,14 @@ const PaymentOutList = ({ onAddClick }) => {
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "PAYMENT TYPE"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "BALANCE AMOUNT", "PAYMENT TYPE"];
         const rows = filteredTransactions.map(t => [
             `"${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
             `"${t.suppliersTransactionId}"`,
             `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
-            `"${getSupplierBalance(t.supplierId)}"`,
+            `"${getSupplierTotalBill(t.supplierId)}"`,
             `"${getDisplayTotalAmount(t)}"`,
+            `"${t.totalBalanceAmount || 0}"`,
             `"${getDisplayPaymentType(t)}"`
         ]);
 
@@ -667,7 +672,7 @@ const PaymentOutList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Payments..." />
-            ) : (filteredTransactions.length === 0 && !hasFiltersApplied) ? (
+            ) : transactions.length === 0 ? (
                 <EmptyState
                     buttonText="Add Payment Out"
                     onAddClick={onAddClick}
@@ -763,6 +768,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
+                                <th>BALANCE AMOUNT</th>
                                 <th style={{ position: 'relative' }}>
                                     PAYMENT TYPE
                                     <FiFilter
@@ -786,8 +792,8 @@ const PaymentOutList = ({ onAddClick }) => {
                         <tbody>
                             {filteredTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className={styles.noDataCell}>
-                                        Applied filter has no data
+                                    <td colSpan={8} className={styles.noDataCell}>
+                                        This range data is not there
                                     </td>
                                 </tr>
                             ) : (
@@ -802,8 +808,9 @@ const PaymentOutList = ({ onAddClick }) => {
                                             <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
                                             <td>{t.suppliersTransactionId}</td>
                                             <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
-                                            <td>{Number(getSupplierBalance(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td>{Number(t.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td>{getDisplayPaymentType(t)}</td>
                                             <td>
                                                 <div className={styles.actions}>

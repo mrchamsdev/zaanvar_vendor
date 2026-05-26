@@ -331,6 +331,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                     type="date" 
                                     className={styles.input} 
                                     value={paymentDate}
+                                    max={toApiDateOnly(new Date())}
                                     onChange={(e) => setPaymentDate(e.target.value)}
                                     style={{width: '100%'}}
                                 />

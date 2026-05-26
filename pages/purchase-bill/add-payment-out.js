@@ -14,13 +14,13 @@ const PaymentOutFormPage = () => {
     const isView = mode === "view";
     const isEdit = mode === "edit";
     const { jwtToken, userInfo } = useStore();
-    
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    
+
     // Form State
     const [supplierName, setSupplierName] = useState("");
     const [transactionDate, setTransactionDate] = useState("");
@@ -57,17 +57,17 @@ const PaymentOutFormPage = () => {
                 const t = res.data;
                 const totals = res.totals?.[0] || {};
                 setData(t);
-                
+
                 // Supplier lookup
                 const supplier = suppliersList.find(s => s.supplierId === t.supplierId);
                 setSupplierName(supplier ? `${supplier.supplierName} (${supplier.phone || ""})` : (t.transactionInfo || "Supplier"));
-                
+
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(totals.supplierTotalAmount || "000");
                 setTotalBillAmt(totals.totalBillAmount || "");
                 setTotalBalanceAmt(totals.totalBalanceAmount || "");
                 setDescription(t.transactionInfo || "");
-                
+
                 const splitList = t.splitTransactions || [];
                 const allPayments = [
                     {
@@ -83,7 +83,7 @@ const PaymentOutFormPage = () => {
                         id: st.suppliersTransactionId || (Date.now() + idx + 1)
                     }))
                 ];
-                
+
                 setPayments(allPayments);
                 const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
                 setPaidAmount(String(totalPaid));
@@ -132,7 +132,7 @@ const PaymentOutFormPage = () => {
                 res = await purchaseService.updateTransaction(jwtToken, id, payload);
             }
             console.log("Update response:", res);
-            
+
             if (res.status === 200 || res.data?.status === "success" || res.data?.status === "ok" || res.data?.suppliersTransactionId) {
                 toast.success("Transaction updated successfully");
                 setTimeout(() => {
@@ -187,8 +187,8 @@ const PaymentOutFormPage = () => {
                 <div className={styles.gridRow}>
                     <div className={styles.field}>
                         <label>Name / Phone number</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             className={`${styles.input} ${styles.readOnly}`}
                             value={supplierName}
                             readOnly
@@ -196,8 +196,8 @@ const PaymentOutFormPage = () => {
                     </div>
                     <div className={styles.field}>
                         <label>Date</label>
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             className={`${styles.input} ${styles.readOnly}`}
                             value={transactionDate}
                             readOnly
@@ -208,22 +208,19 @@ const PaymentOutFormPage = () => {
                 <div className={styles.gridRow}>
                     <div className={styles.field}>
                         <label>Total Balance Amount</label>
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'relative', width: '100%' }}>
                             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
                                 value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
-                                style={{ paddingLeft: '32px' }}
+                                style={{ paddingLeft: '32px', width: '100%' }}
                                 readOnly
                             />
                         </div>
                     </div>
-                </div>
-
-                <div className={styles.gridRow}>
                     <div className={styles.field}>
-                        <label>Total Balance Amount (Supplier)</label>
+                        <label>Total Bill Amount </label>
                         <input
                             type="text"
                             className={`${styles.input} ${styles.readOnly}`}
@@ -231,6 +228,10 @@ const PaymentOutFormPage = () => {
                             readOnly
                         />
                     </div>
+                </div>
+
+                <div className={styles.gridRow}>
+
                     <div className={styles.field}>
                         <label>Paid Amount</label>
                         <input
@@ -252,7 +253,7 @@ const PaymentOutFormPage = () => {
                                 {isView ? (
                                     <input type="text" className={`${styles.input} ${styles.readOnly}`} value={p.paymentType} readOnly />
                                 ) : (
-                                    <select 
+                                    <select
                                         className={styles.select}
                                         value={p.paymentType}
                                         onChange={(e) => {
@@ -269,11 +270,11 @@ const PaymentOutFormPage = () => {
                             </div>
                             <div className={styles.field}>
                                 <label>Amount Paid</label>
-                                <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-                                    <div style={{position: 'relative', flex: 1}}>
-                                        <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666'}}>₹</span>
-                                        <input 
-                                            type="number" 
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+                                        <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                        <input
+                                            type="number"
                                             className={`${styles.input} ${isView ? styles.readOnly : ""}`}
                                             value={p.amountPaid}
                                             onChange={(e) => {
@@ -282,13 +283,13 @@ const PaymentOutFormPage = () => {
                                                 setPayments(newPayments);
                                             }}
                                             readOnly={isView}
-                                            style={{paddingLeft: '32px'}}
+                                            style={{ paddingLeft: '32px', width: '100%' }}
                                             placeholder="25000"
                                         />
                                     </div>
                                     {!isView && (
-                                        <button 
-                                            className={styles.miniRemove} 
+                                        <button
+                                            className={styles.miniRemove}
                                             onClick={() => setPayments(payments.filter(pay => pay.id !== p.id))}
                                         >
                                             <FiTrash2 />
@@ -298,10 +299,10 @@ const PaymentOutFormPage = () => {
                             </div>
                         </div>
                         {(p.paymentType === 'UPI' || p.paymentType === 'Cheque') && (
-                            <div className={styles.field} style={{marginTop: '12px', maxWidth: 'calc(50% - 30px)'}}>
+                            <div className={styles.field} style={{ marginTop: '12px', maxWidth: 'calc(50% - 30px)' }}>
                                 <label>{p.paymentType === 'UPI' ? 'REFERENCE NUMBER' : 'CHECK NUMBER'}</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     className={`${styles.input} ${isView ? styles.readOnly : ""}`}
                                     value={p.refNo}
                                     onChange={(e) => {
@@ -317,17 +318,17 @@ const PaymentOutFormPage = () => {
                     </div>
                 ))}
 
-                <div 
-                    className={styles.addPaymentLink} 
+                <div
+                    className={styles.addPaymentLink}
                     style={{ display: isView ? 'none' : 'block' }}
                     onClick={() => setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }])}
                 >
                     +ADD ANOTHER PAYMENT
                 </div>
 
-                <div className={styles.field} style={{marginBottom: '24px'}}>
+                <div className={styles.field} style={{ marginBottom: '24px' }}>
                     <label>Add Description</label>
-                    <textarea 
+                    <textarea
                         className={`${styles.textarea} ${isView ? styles.readOnly : ""}`}
                         placeholder="Lorem ipsum dolor sit..."
                         value={description}
@@ -340,31 +341,31 @@ const PaymentOutFormPage = () => {
                 <div className={styles.field}>
                     <label>Add Image</label>
                     <div className={styles.imageUpload}>
-                        <input 
-                            type="file" 
-                            id="fileInput" 
-                            hidden 
-                            onChange={handleFileChange} 
+                        <input
+                            type="file"
+                            id="fileInput"
+                            hidden
+                            onChange={handleFileChange}
                             disabled={isView}
                             accept="image/*"
                         />
-                        <label 
-                            htmlFor="fileInput" 
+                        <label
+                            htmlFor="fileInput"
                             className={styles.uploadTrigger}
-                            style={{cursor: isView ? 'default' : 'pointer'}}
+                            style={{ cursor: isView ? 'default' : 'pointer' }}
                         >
                             Choose file
                         </label>
-                        <span style={{fontSize: '14px', color: '#666', marginLeft: '10px'}}>
+                        <span style={{ fontSize: '14px', color: '#666', marginLeft: '10px' }}>
                             {selectedFile ? selectedFile.name : (data?.transactionImg ? "Image Attached" : "No file Chosen")}
                         </span>
                     </div>
                     {data?.transactionImg && (
-                        <div style={{marginTop: '12px'}}>
-                            <img 
-                                src={data.transactionImg.startsWith('http') ? data.transactionImg : `${VENDOR_API_URL.replace('/api', '')}/${data.transactionImg}`} 
-                                alt="Transaction" 
-                                style={{maxWidth: '300px', borderRadius: '8px', border: '1px solid #ddd'}} 
+                        <div style={{ marginTop: '12px' }}>
+                            <img
+                                src={data.transactionImg.startsWith('http') ? data.transactionImg : `${VENDOR_API_URL.replace('/api', '')}/${data.transactionImg}`}
+                                alt="Transaction"
+                                style={{ maxWidth: '300px', borderRadius: '8px', border: '1px solid #ddd' }}
                             />
                         </div>
                     )}
@@ -372,10 +373,10 @@ const PaymentOutFormPage = () => {
             </div>
 
             <div className={styles.formActions}>
-                <div style={{position: 'relative'}}>
+                <div style={{ position: 'relative' }}>
                     <button className={styles.shareBtn} onClick={() => setIsShareModalOpen(!isShareModalOpen)}>Share</button>
                     {isShareModalOpen && (
-                        <ShareModal 
+                        <ShareModal
                             isOpen={isShareModalOpen}
                             onClose={() => setIsShareModalOpen(false)}
                             data={{

@@ -646,7 +646,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Invoices..." />
-            ) : (filteredInvoices.length === 0 && !hasFiltersApplied) ? (
+            ) : invoices.length === 0 ? (
                 <EmptyState
                     buttonText="Add Sale Invoice"
                     onAddClick={onAddClick}
@@ -766,7 +766,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             {filteredInvoices.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className={styles.noDataCell}>
-                                        Applied filter has no data
+                                        This range data is not there
                                     </td>
                                 </tr>
                             ) : (
