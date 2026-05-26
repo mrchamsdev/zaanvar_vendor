@@ -199,6 +199,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 type="date" 
                                 className={styles.input}
                                 value={transactionDate}
+                                max={toApiDateOnly(new Date())}
                                 onChange={(e) => setTransactionDate(e.target.value)}
                             />
                         </div>
@@ -227,7 +228,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input 
                                 type="text" 
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={supplierTotals?.totalBalanceAmount ? `₹ ${supplierTotals.totalBalanceAmount}` : "₹ 0"}
+                                value={supplierTotals?.totalBillAmount ? `₹ ${Number(supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
                                 readOnly
                             />
                         </div>
@@ -236,7 +237,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input 
                                 type="text" 
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={`₹ ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toFixed(2)}`}
+                                value={`₹ ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 readOnly
                             />
                         </div>

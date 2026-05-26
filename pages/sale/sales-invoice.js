@@ -5,7 +5,7 @@ import SalesInvoiceList from "../../components/sale/SalesInvoiceList";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
-import AddSaleInvoice from "../../components/sale/AddSaleInvoice";
+import SaleInvoiceManager from "../../components/sale/SaleInvoiceManager";
 
 const SalesInvoicePage = () => {
     const router = useRouter();
@@ -13,7 +13,7 @@ const SalesInvoicePage = () => {
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button 
+            <button
                 onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
                 style={{
                     background: '#E93E64',
@@ -28,21 +28,21 @@ const SalesInvoicePage = () => {
                     cursor: 'pointer'
                 }}
             >
-                <FiPlus /> Add Sale
+                <FiPlus /> Add Sale Invoice
             </button>
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );
 
     return (
-        <DashboardLayout 
+        <DashboardLayout
             customTopbarRight={customRight}
         >
-            <SalesInvoiceList 
+            <SalesInvoiceList
                 onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
             />
-            
-            <AddSaleInvoice 
+
+            <SaleInvoiceManager
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 saleId={router.query.id}

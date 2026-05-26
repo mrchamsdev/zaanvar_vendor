@@ -121,6 +121,15 @@ const StockUpdateView = ({ stockId, onClose }) => {
   const displayUpdatedQty = baseQty;
   const displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
 
+  const displayTotalVal = (() => {
+    const rawVal = parseFloat(data.totalValue || 0);
+    const addQty = parseInt(data.add) || 0;
+    const removeQty = parseInt(data.remove) || 0;
+    const cost = parseFloat(data.billItem?.costPrice || data.costPrice || 0);
+    const calcVal = rawVal !== 0 ? rawVal : (addQty - removeQty) * cost;
+    return removeQty > 0 ? -Math.abs(calcVal) : Math.abs(calcVal);
+  })();
+
       return (
         <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
 
@@ -181,9 +190,9 @@ const StockUpdateView = ({ stockId, onClose }) => {
                   <td style={{
                     textAlign: 'right',
                     fontWeight: 700,
-                    color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
+                    color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
                   }}>
-                    {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}`}
+                    {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </td>
                 </tr>
               </tbody>
@@ -203,9 +212,9 @@ const StockUpdateView = ({ stockId, onClose }) => {
             <div style={{
               fontSize: '24px',
               fontWeight: 700,
-              color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
+              color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
             }}>
-              {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}`}
+              {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </div>
           </div>
         </div>

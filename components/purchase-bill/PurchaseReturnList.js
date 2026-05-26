@@ -348,13 +348,17 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 setReturns(data);
                 // Calculate totals if not provided by API
                 if (res.totals) {
-                    setTotals(Array.isArray(res.totals) ? res.totals[0] : res.totals);
+                    const apiTotals = Array.isArray(res.totals) ? res.totals[0] : res.totals;
+                    const localTotalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
+                    setTotals({
+                        totalAmount: apiTotals.totalAmount || apiTotals.totalReturnAmount || data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0),
+                        totalReceived: apiTotals.totalReceived || data.reduce((acc, curr) => acc + Number(curr.received || 0), 0),
+                        totalBalance: localTotalBal
+                    });
                 } else {
                     const totalAmt = data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0);
                     const totalRec = data.reduce((acc, curr) => acc + Number(curr.received || 0), 0);
-                    const totalBal = (res.suppliers && Array.isArray(res.suppliers))
-                        ? res.suppliers.reduce((acc, curr) => acc + Number(curr.balance || 0), 0)
-                        : data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
+                    const totalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
                     setTotals({ totalAmount: totalAmt, totalReceived: totalRec, totalBalance: totalBal });
                 }
             }
@@ -453,7 +457,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
             if (key === 'refNo') targetValue = String(r.returnProductsId);
             else if (key === 'supplierName') targetValue = String(r.supplierName || "");
             else if (key === 'totalAmount') targetValue = String(r.returnAmount || 0);
-            else if (key === 'balance') targetValue = String(r.balance || 0);
+            else if (key === 'balance') targetValue = String(r.totalBalanceAmount || 0);
 
             if (filter.mode === 'Exact Match') {
                 if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
@@ -466,13 +470,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
     }).sort((a, b) => (parseApiToLocal(b.returnDate || b.createdDate) || new Date()) - (parseApiToLocal(a.returnDate || a.createdDate) || new Date()));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "RECEIVED", "BALANCE"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
             `"${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${r.returnProductsId || '000'}"`,
             `"${(r.supplierName || "N/A").replace(/"/g, '""')}"`,
-            `"${r.totalAmount || 0}"`,
-            `"0"`
+            `"${r.returnAmount || 0}"`,
+            `"${r.totalBalanceAmount || 0}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -573,7 +577,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Returns..." />
-            ) : (filteredReturns.length === 0 && !hasFiltersApplied) ? (
+            ) : returns.length === 0 ? (
                 <EmptyState
                     buttonText="Add Purchase Return"
                     onAddClick={onAddClick}
@@ -676,75 +680,75 @@ const PurchaseReturnList = ({ onAddClick }) => {
                             {filteredReturns.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className={styles.noDataCell}>
-                                        Applied filter has no data
+                                        This range data is not there
                                     </td>
                                 </tr>
                             ) : (
                                 filteredReturns.map((r, idx) => (
-                                <tr key={idx}>
-                                    <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                    <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
-                                    <td>{r.supplierName || "N/A"}</td>
-                                    <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
-                                    <td style={{
-                                        fontWeight: '600',
-                                        color: Number(r.balance) < 0 ? '#28a745' : (Number(r.balance) > 0 ? '#E9315D' : 'inherit')
-                                    }}>
-                                        {Math.abs(Number(r.balance || 0)).toLocaleString()}
-                                    </td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                            <div style={{ position: 'relative' }}>
-                                                <FiShare2
-                                                    className={styles.actionIcon}
-                                                    onClick={() => {
-                                                        setSelectedReturn(r);
-                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                    }}
-                                                />
-                                                {isShareModalOpen === `share-${idx}` && (
-                                                    <ShareModal
-                                                        isOpen={true}
-                                                        onClose={() => setIsShareModalOpen(false)}
-                                                        data={r}
+                                    <tr key={idx}>
+                                        <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                        <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
+                                        <td>{r.supplierName || "N/A"}</td>
+                                        <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
+                                        <td style={{
+                                            fontWeight: '600',
+                                            color: Number(r.totalBalanceAmount) < 0 ? '#28a745' : (Number(r.totalBalanceAmount) > 0 ? '#E9315D' : 'inherit')
+                                        }}>
+                                            {Math.abs(Number(r.totalBalanceAmount || 0)).toLocaleString()}
+                                        </td>
+                                        <td>
+                                            <div className={styles.actions}>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiShare2
+                                                        className={styles.actionIcon}
+                                                        onClick={() => {
+                                                            setSelectedReturn(r);
+                                                            setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                        }}
                                                     />
-                                                )}
-                                            </div>
-                                            <div style={{ position: 'relative' }}>
-                                                <FiMoreVertical
-                                                    className={styles.actionIcon}
-                                                    onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
-                                                />
-                                                {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
-                                                            setActiveDropdown(null);
-                                                        }}>View</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                    {isShareModalOpen === `share-${idx}` && (
+                                                        <ShareModal
+                                                            isOpen={true}
+                                                            onClose={() => setIsShareModalOpen(false)}
+                                                            data={r}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiMoreVertical
+                                                        className={styles.actionIcon}
+                                                        onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
+                                                    />
+                                                    {activeDropdown === idx && (
+                                                        <div className={styles.dropdownMenu}>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
+                                                                setActiveDropdown(null);
+                                                            }}>View</div>
+                                                            {/* <div className={styles.dropdownItem} onClick={() => {
                                                             router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
                                                             setActiveDropdown(null);
-                                                        }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}&autoPrint=true`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Print</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            setSelectedReturn(r);
-                                                            setIsHistoryModalOpen(true);
-                                                            setActiveDropdown(null);
-                                                        }}>View History</div>
-                                                    </div>
-                                                )}
+                                                        }}>Edit</div> */}
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}`, '_blank');
+                                                                setActiveDropdown(null);
+                                                            }}>Open PDF</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}&autoPrint=true`, '_blank');
+                                                                setActiveDropdown(null);
+                                                            }}>Print</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                setSelectedReturn(r);
+                                                                setIsHistoryModalOpen(true);
+                                                                setActiveDropdown(null);
+                                                            }}>View History</div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )))}
+                                        </td>
+                                    </tr>
+                                )))}
                         </tbody>
                     </table>
                 </div>

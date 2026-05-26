@@ -240,7 +240,8 @@
 }
 
 .totalLabel {
-    text-align: center;
+    text-align: left !important;
+    padding-left: 24px !important;
     font-size: 12px;
 }
 
