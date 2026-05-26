@@ -26,15 +26,22 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const [paymentEntries, setPaymentEntries] = useState([
         { id: Date.now(), type: "Cash", amount: "", refNo: "" }
     ]);
+    const [topPaidAmount, setTopPaidAmount] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [orderError, setOrderError] = useState("");
     const [amountError, setAmountError] = useState("");
+    const [exceededError, setExceededError] = useState("");
 
     useEffect(() => {
         if (isOpen) {
             setIsSubmitted(false);
             setOrderError("");
             setAmountError("");
+            setExceededError("");
+            setTopPaidAmount("");
+            setPaymentEntries([
+                { id: Date.now(), type: "Cash", amount: "", refNo: "" }
+            ]);
             if (initialBillData) {
                 console.log("PayNowModal: Using initialBillData", initialBillData);
                 // Map the PO/Order data to the billDetails format expected by the modal
@@ -55,6 +62,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const handleOrderChange = (newBillId) => {
         setOrderError("");
         setAmountError("");
+        setExceededError("");
         if (!newBillId) {
             setBillDetails(null);
             return;
@@ -113,18 +121,55 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         }
     };
 
+    const validateAmounts = (entries, topAmount) => {
+        const topVal = parseFloat(topAmount) || 0;
+        const totalSum = entries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+        if (totalSum > topVal) {
+            return "Amount paid should not exceed Paid Amount";
+        }
+        return "";
+    };
+
+    const handleTopPaidAmountChange = (val) => {
+        setTopPaidAmount(val);
+        let updatedEntries = [...paymentEntries];
+        if (paymentEntries.length === 1) {
+            updatedEntries = [{ ...paymentEntries[0], amount: val }];
+            setPaymentEntries(updatedEntries);
+        }
+        
+        const err = validateAmounts(updatedEntries, val);
+        setExceededError(err);
+        if (val && parseFloat(val) > 0) {
+            setAmountError("");
+        }
+    };
+
     const handleAddPayment = () => {
-        setPaymentEntries([...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }]);
+        const newEntries = [...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }];
+        setPaymentEntries(newEntries);
+        const err = validateAmounts(newEntries, topPaidAmount);
+        setExceededError(err);
     };
 
     const handleRemovePayment = (id) => {
         if (paymentEntries.length > 1) {
-            setPaymentEntries(paymentEntries.filter(p => p.id !== id));
+            const newEntries = paymentEntries.filter(p => p.id !== id);
+            setPaymentEntries(newEntries);
+            const err = validateAmounts(newEntries, topPaidAmount);
+            setExceededError(err);
         }
     };
 
     const updatePayment = (id, field, value) => {
-        setPaymentEntries(paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p));
+        const updated = paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p);
+        setPaymentEntries(updated);
+        
+        const err = validateAmounts(updated, topPaidAmount);
+        setExceededError(err);
+        if (field === "amount" && value && parseFloat(value) > 0) {
+            setAmountError("");
+        }
     };
 
     // Calculations
@@ -133,7 +178,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const totalBillAmount = parseFloat(billDetails?.totalAmount || (previouslyPaid + currentBalance));
     
     // Amount currently being entered (top Paid Amount field)
-    const currentEntryAmount = parseFloat(paymentEntries[0]?.amount || 0);
+    const currentEntryAmount = parseFloat(topPaidAmount || 0);
     const totalPaidInModal = paymentEntries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
     // Final Summary Values
@@ -164,13 +209,23 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             setOrderError("");
         }
 
+        const isTopAmountEmpty = !topPaidAmount || parseFloat(topPaidAmount) <= 0;
         const isAmountEmpty = paymentEntries.some(entry => !entry.amount || parseFloat(entry.amount) <= 0);
-        if (isAmountEmpty) {
+        if (isTopAmountEmpty || isAmountEmpty) {
             setAmountError("Amount is required");
-            toast.error("Please enter a payment amount");
+            toast.error("Please enter all payment amounts");
             hasError = true;
         } else {
             setAmountError("");
+        }
+
+        const limitErr = validateAmounts(paymentEntries, topPaidAmount);
+        if (limitErr) {
+            setExceededError(limitErr);
+            toast.error(limitErr);
+            hasError = true;
+        } else {
+            setExceededError("");
         }
 
         if (hasError) {
@@ -321,17 +376,12 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                             <label>Paid Amount</label>
                             <input 
                                 type="number" 
-                                className={`${styles.input} ${amountError ? styles.errorInput : ""}`} 
-                                value={paymentEntries[0]?.amount || ""} 
-                                onChange={(e) => {
-                                    updatePayment(paymentEntries[0]?.id, "amount", e.target.value);
-                                    if (e.target.value && parseFloat(e.target.value) > 0) {
-                                        setAmountError("");
-                                    }
-                                }}
+                                className={`${styles.input} ${amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) ? styles.errorInput : ""}`} 
+                                value={topPaidAmount} 
+                                onChange={(e) => handleTopPaidAmountChange(e.target.value)}
                                 placeholder="0"
                             />
-                            {amountError && (
+                            {amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) && (
                                 <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
                                     {amountError}
                                 </div>
@@ -407,70 +457,79 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
                     {/* Payment Entries */}
                     <div style={{marginTop: '32px'}}>
-                        {paymentEntries.map((entry, index) => (
-                            <div key={entry.id} className={styles.paymentEntry}>
-                                <div className={styles.grid}>
-                                    <div className={styles.field}>
-                                        <label>Payment Type</label>
-                                        <select 
-                                            className={styles.select}
-                                            value={entry.type}
-                                            onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
-                                        >
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Card">Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Bank">Bank Transfer</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label>Amount Paid</label>
-                                        <div style={{display: 'flex', gap: '12px', flexDirection: 'column'}}>
-                                            <div style={{display: 'flex', gap: '12px'}}>
-                                                <input 
-                                                    type="number" 
-                                                    className={`${styles.input} ${amountError && (!entry.amount || parseFloat(entry.amount) <= 0) ? styles.errorInput : ""}`} 
-                                                    placeholder="₹ 25000" 
-                                                    value={entry.amount}
-                                                    onChange={(e) => {
-                                                        updatePayment(entry.id, "amount", e.target.value);
-                                                        if (e.target.value && parseFloat(e.target.value) > 0) {
-                                                            setAmountError("");
-                                                        }
-                                                    }}
-                                                    style={{flex: 1}}
-                                                />
-                                                {paymentEntries.length > 1 && (
-                                                    <button className={styles.miniRemove} onClick={() => handleRemovePayment(entry.id)}>
-                                                        <FiTrash2 />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            {amountError && (!entry.amount || parseFloat(entry.amount) <= 0) && (
+                        {paymentEntries.map((entry, index) => {
+                            const isLast = index === paymentEntries.length - 1;
+                            const hasAmountRequiredError = amountError && (!entry.amount || parseFloat(entry.amount) <= 0);
+                            const showExceededOnAmount = exceededError && isLast;
+                            const showExceededOnType = exceededError && paymentEntries.length > 1 && isLast;
+
+                            return (
+                                <div key={entry.id} className={styles.paymentEntry}>
+                                    <div className={styles.grid}>
+                                        <div className={styles.field}>
+                                            <label>Payment Type</label>
+                                            <select 
+                                                className={`${styles.select} ${showExceededOnType ? styles.errorInput : ""}`}
+                                                value={entry.type}
+                                                onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
+                                            >
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Bank">Bank Transfer</option>
+                                            </select>
+                                            {showExceededOnType && (
                                                 <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
-                                                    {amountError}
+                                                    Exceeds Paid Amount
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
-                                {entry.type !== "Cash" && (
-                                    <div className={styles.refField}>
                                         <div className={styles.field}>
-                                            <label>REFERENCE NUMBER</label>
-                                            <input 
-                                                type="text" 
-                                                className={styles.input} 
-                                                placeholder="****************" 
-                                                value={entry.refNo}
-                                                onChange={(e) => updatePayment(entry.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
-                                            />
+                                            <label>Amount Paid</label>
+                                            <div style={{display: 'flex', gap: '12px', flexDirection: 'column'}}>
+                                                <div style={{display: 'flex', gap: '12px'}}>
+                                                    <input 
+                                                        type="number" 
+                                                        className={`${styles.input} ${hasAmountRequiredError || showExceededOnAmount ? styles.errorInput : ""}`} 
+                                                        placeholder="0" 
+                                                        value={entry.amount}
+                                                        onChange={(e) => {
+                                                            updatePayment(entry.id, "amount", e.target.value);
+                                                        }}
+                                                        style={{flex: 1}}
+                                                    />
+                                                    {paymentEntries.length > 1 && (
+                                                        <button className={styles.miniRemove} onClick={() => handleRemovePayment(entry.id)}>
+                                                            <FiTrash2 />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {(hasAmountRequiredError || showExceededOnAmount) && (
+                                                    <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
+                                                        {hasAmountRequiredError ? amountError : exceededError}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        ))}
+                                    {entry.type !== "Cash" && (
+                                        <div className={styles.refField}>
+                                            <div className={styles.field}>
+                                                <label>REFERENCE NUMBER</label>
+                                                <input 
+                                                    type="text" 
+                                                    className={styles.input} 
+                                                    placeholder="****************" 
+                                                    value={entry.refNo}
+                                                    onChange={(e) => updatePayment(entry.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                         <div className={styles.addPaymentLink} onClick={handleAddPayment}>
                             +ADD ANOTHER PAYMENT
                         </div>

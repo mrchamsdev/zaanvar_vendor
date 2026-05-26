@@ -191,83 +191,80 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
           </div>
 
           <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-        {!splitMode ? (
-          <div className={styles.formWrapper}>
-            {tabs.find(t => t.id === activeTabId) && (
-              tabs.find(t => t.id === activeTabId).mode === "View" ? (
-                <ProductView 
-                  key={activeTabId}
-                  data={tabs.find(t => t.id === activeTabId).data}
-                  onBack={() => closeTab(activeTabId)}
-                  isSplit={splitMode}
-                />
-              ) : (
-                <ProductForm 
-                  key={activeTabId}
-                  initialData={tabs.find(t => t.id === activeTabId).data} 
-                  onSave={() => closeTab(activeTabId)}
-                  onBack={() => closeTab(activeTabId)}
-                />
-              )
-            )}
-          </div>
-        ) : (
-          <>
-            <div className={styles.formWrapper}>
-              {splitTabIds[0] && tabs.find(t => t.id === splitTabIds[0]) ? (
-                (() => {
-                  const tab = tabs.find(t => t.id === splitTabIds[0]);
-                  return (
-                    <>
+            {!splitMode ? (
+              <div className={styles.formWrapper}>
+                {tabs.map(tab => (
+                  <div 
+                    key={tab.id} 
+                    style={{ display: tab.id === activeTabId && !tab.isMinimized ? 'contents' : 'none' }}
+                  >
+                    {tab.mode === "View" ? (
+                      <ProductView 
+                        data={tab.data}
+                        onBack={() => closeTab(tab.id)}
+                        isSplit={splitMode}
+                      />
+                    ) : (
+                      <ProductForm 
+                        initialData={tab.data} 
+                        onSave={() => closeTab(tab.id)}
+                        onBack={() => closeTab(tab.id)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className={styles.formWrapper}>
+                  {tabs.map(tab => (
+                    <div 
+                      key={tab.id} 
+                      style={{ display: tab.id === splitTabIds[0] ? 'contents' : 'none' }}
+                    >
                       <div className={styles.formLabel}>{tab.title}</div>
                       {tab.mode === "View" ? (
                         <ProductView 
-                          key={tab.id}
                           data={tab.data}
                           onBack={() => setSplitTabIds([null, splitTabIds[1]])}
                           isSplit={splitMode}
                         />
                       ) : (
                         <ProductForm 
-                          key={tab.id}
                           initialData={tab.data}
                           onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([null, splitTabIds[1]])}
                         />
                       )}
-                    </>
-                  );
-                })()
-              ) : <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select product</div>}
-            </div>
-            <div className={styles.formWrapper}>
-               {splitTabIds[1] && tabs.find(t => t.id === splitTabIds[1]) ? (
-                (() => {
-                  const tab = tabs.find(t => t.id === splitTabIds[1]);
-                  return (
-                    <>
+                    </div>
+                  ))}
+                  {!splitTabIds[0] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select product</div>}
+                </div>
+                <div className={styles.formWrapper}>
+                  {tabs.map(tab => (
+                    <div 
+                      key={tab.id} 
+                      style={{ display: tab.id === splitTabIds[1] ? 'contents' : 'none' }}
+                    >
                       <div className={styles.formLabel}>{tab.title}</div>
                       {tab.mode === "View" ? (
                         <ProductView 
-                          key={tab.id}
                           data={tab.data}
                           onBack={() => setSplitTabIds([splitTabIds[0], null])}
                           isSplit={splitMode}
                         />
                       ) : (
                         <ProductForm 
-                          key={tab.id}
                           initialData={tab.data}
                           onSave={() => closeTab(tab.id)}
                           onBack={() => setSplitTabIds([splitTabIds[0], null])}
                         />
                       )}
-                    </>
-                  );
-                })()
-              ) : <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select product</div>}
-            </div>
-            </>
+                    </div>
+                  ))}
+                  {!splitTabIds[1] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select product</div>}
+                </div>
+              </>
             )}
           </div>
         </>

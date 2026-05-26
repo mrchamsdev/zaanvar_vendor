@@ -33,18 +33,24 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const { jwtToken, userId } = useStore();
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
-    
+
     // Form State
     const [receivedDate, setReceivedDate] = useState(toApiDateOnly(new Date()));
     const [items, setItems] = useState([]);
-    const [expandedItem, setExpandedItem] = useState(0);
+    const [expandedItems, setExpandedItems] = useState({ 0: true });
+    const toggleItemExpand = (index) => {
+        setExpandedItems(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
     const [showBreakdown, setShowBreakdown] = useState(true);
-    
+
     // Global Toggles & Inputs
     const [payBasedOnOrdered, setPayBasedOnOrdered] = useState(false);
     const [damagedReturnedGoods, setDamagedReturnedGoods] = useState(false);
     const [addToCreditNote, setAddToCreditNote] = useState(true);
-    
+
     const [overallTax, setOverallTax] = useState({ value: 0, type: '%' });
     const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '%' });
     const [previousCredit, setPreviousCredit] = useState(0);
@@ -67,11 +73,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 setOrderData(res.data);
                 const receivedDetails = res.data.receivedDetails;
                 const rawItems = res.data.items || res.data.orderItems || [];
-                
+
                 const mapped = rawItems.map(item => {
                     const productInfo = item.itemDetails || item;
-                    const savedItem = receivedDetails?.items?.find(ri => 
-                        (ri.productId === item.productId || ri.productId === productInfo.productId) && 
+                    const savedItem = receivedDetails?.items?.find(ri =>
+                        (ri.productId === item.productId || ri.productId === productInfo.productId) &&
                         (ri.variantId === item.variantId || ri.variantId === productInfo.variantId)
                     );
                     return {
@@ -80,12 +86,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         variantId: item.variantId || productInfo.variantId,
                         productName: productInfo.productName || "Unknown Product",
                         variantType: productInfo.variantType || productInfo.variant || {},
-                        receivedQty: savedItem ? (savedItem.receivedQty ?? 0) : 0,
-                        damagedQty: savedItem ? (savedItem.damagedQty ?? 0) : 0,
+                        receivedQty: savedItem ? (savedItem.receivedQty ?? "") : "",
+                        damagedQty: savedItem ? (savedItem.damagedQty ?? "") : "",
                         batchNumber: savedItem ? savedItem.batchNumber : "",
                         expDate: savedItem ? savedItem.expDate : "",
                         costPrice: savedItem ? (savedItem.costPrice || "") : (item.costPrice || ""),
-                        mrp: savedItem ? savedItem.mrp : (item.mrp || productInfo.mrp || 0),
+                        mrp: savedItem ? (savedItem.mrp || "") : (item.mrp || productInfo.mrp || ""),
                         tax: savedItem ? savedItem.tax : 0,
                         discount: savedItem ? savedItem.discount : 0,
                         notes: savedItem ? savedItem.notes : "",
@@ -120,14 +126,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
     const handleItemChange = (index, field, value) => {
         let finalValue = value;
-        // For numeric fields, strip leading zero if it's followed by a digit (prevents "02", "05" etc.)
+        // For numeric fields, strip ALL leading zeros (prevents "02", "005", "0100" etc.)
         const numericFields = ["costPrice", "mrp", "receivedQty", "damagedQty", "tax", "discount"];
         if (numericFields.includes(field)) {
             if (typeof value === "string" && value.length > 1 && value.startsWith("0") && value[1] !== ".") {
-                finalValue = value.slice(1);
-            }
-            if (value === "" && (field === "receivedQty" || field === "damagedQty")) {
-                finalValue = 0;
+                finalValue = value.replace(/^0+/, '') || "";
             }
         }
         const newItems = [...items];
@@ -137,7 +140,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
     const totals = useMemo(() => {
         if (!items.length) return { totalCost: 0, subtotal: 0, shortfallAmount: 0, damagedAmount: 0, itemDiscountTotal: 0, itemTaxTotal: 0, grandTotal: 0, discountableAmount: 0 };
-        
+
         let totalOrderValue = 0;
         let grandTotal = 0;
         let shortfallAmount = 0;
@@ -194,12 +197,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             grandTotal += finalProductAmount;
         });
 
-        return { 
-            totalCost: totalOrderValue, 
-            shortfallAmount, 
-            damagedAmount, 
-            itemDiscountTotal, 
-            itemTaxTotal, 
+        return {
+            totalCost: totalOrderValue,
+            shortfallAmount,
+            damagedAmount,
+            itemDiscountTotal,
+            itemTaxTotal,
             grandTotal,
             discountableAmount: discountableAmountSum
         };
@@ -209,14 +212,14 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         const { grandTotal } = totals;
         let discountVal = Number(overallDiscount.value) || 0;
         if (overallDiscount.type === '%') discountVal = (grandTotal * (overallDiscount.value / 100));
-        
+
         let taxVal = Number(overallTax.value) || 0;
         if (overallTax.type === '%') taxVal = ((grandTotal - discountVal) * (overallTax.value / 100));
-        
+
         const subtotal = grandTotal;
         const totalAfterGlobal = subtotal - discountVal + taxVal;
         const finalAmount = totalAfterGlobal - previousCredit;
-        
+
         return { discountVal, taxVal, subtotal, finalAmount };
     }, [totals, overallTax, overallDiscount, previousCredit]);
 
@@ -226,41 +229,91 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         }
     }, [breakdown.finalAmount, paymentStatus]);
 
+    const scrollToFirstError = () => {
+        setTimeout(() => {
+            const firstErrorEl = document.querySelector(`.${styles.inputError}, .${styles.errorInput}`);
+            if (firstErrorEl) {
+                firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstErrorEl.focus?.();
+            }
+        }, 100);
+    };
+
     const handleSave = async () => {
         setIsSubmitted(true);
         setLoading(true);
         console.log("Starting handleSave...");
         try {
-            // Filter only "entered" items (where user provided Cost Price and Received Qty)
-            const enteredItems = items.filter(item => item.costPrice !== "" && item.receivedQty !== "");
-            
+            // Expand all invalid items so their inline errors can render in the DOM simultaneously
+            const newExpanded = { ...expandedItems };
+            let hasAnyItemError = false;
+
+            items.forEach((item, idx) => {
+                const itemHasError = item.costPrice === "" || item.costPrice === undefined || item.costPrice === null || Number(item.costPrice) <= 0 ||
+                                    item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
+                                    item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
+                                    (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0) ||
+                                    (Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ||
+                                    Number(item.receivedQty) > Number(item.qty) ||
+                                    Number(item.damagedQty) > Number(item.receivedQty);
+                if (itemHasError) {
+                    newExpanded[idx] = true;
+                    hasAnyItemError = true;
+                }
+            });
+
+            if (hasAnyItemError) {
+                setExpandedItems(newExpanded);
+            }
+
+            const hasEmptyFields = items.some(
+                item => item.costPrice === "" || item.costPrice === undefined || item.costPrice === null || Number(item.costPrice) <= 0 ||
+                        item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
+                        item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
+                        (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0)
+            );
+
+            if (hasEmptyFields) {
+                setLoading(false);
+                scrollToFirstError();
+                return;
+            }
+
+            const enteredItems = items;
+
             console.log("Entered Items count:", enteredItems.length);
-            
+
             const invalidPrices = enteredItems.filter(item => Number(item.costPrice) > Number(item.mrp));
 
             if (invalidPrices.length > 0) {
-                toast.error("Cost Price cannot be greater than MRP");
                 setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
             const invalidReceived = enteredItems.filter(item => Number(item.receivedQty) > Number(item.qty));
             if (invalidReceived.length > 0) {
-                toast.error("Received Qty cannot be greater than Order Qty");
                 setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
             const invalidDamaged = enteredItems.filter(item => Number(item.damagedQty) > Number(item.receivedQty));
             if (invalidDamaged.length > 0) {
-                toast.error("Damaged Qty cannot be greater than Received Qty");
                 setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
             if (paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0)) {
-                toast.error("Please enter a valid Paid Amount for partial payment");
                 setLoading(false);
+                scrollToFirstError();
+                return;
+            }
+
+            if (!duedate) {
+                setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
@@ -351,10 +404,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         const ordered = parseFloat(item.qty) || 0;
                         const received = parseFloat(item.receivedQty) || 0;
                         const damaged = parseFloat(item.damagedQty) || 0;
-                        
+
                         const baseQty = payBasedOnOrdered ? ordered : received;
                         const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
-                        
+
                         const billableSubtotal = billingQty * cost;
                         const discPercent = parseFloat(item.discount) || 0;
                         const discAmount = (billableSubtotal * discPercent / 100);
@@ -362,15 +415,15 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         const taxPercent = parseFloat(item.tax) || 0;
                         const taxAmount = afterDiscount * (taxPercent / 100);
                         const rowTotal = afterDiscount + taxAmount;
-                        
+
                         const orderedBase = (parseFloat(item.qty) || 0) * cost;
                         const orderedDiscAmount = (orderedBase * discPercent / 100);
                         const orderedAfterDisc = orderedBase - orderedDiscAmount;
                         const rowOrdered = orderedAfterDisc + (orderedAfterDisc * (taxPercent / 100));
-                        
+
                         return (
-                            <div key={index} className={`${styles.productCard} ${expandedItem === index ? styles.productCardActive : ""}`}>
-                                <div className={styles.cardHeader} onClick={() => setExpandedItem(expandedItem === index ? -1 : index)}>
+                            <div key={index} className={`${styles.productCard} ${expandedItems[index] ? styles.productCardActive : ""}`}>
+                                <div className={styles.cardHeader} onClick={() => toggleItemExpand(index)}>
                                     <div className={styles.headerInfo}>
                                         <div className={styles.headerTitleLine}>
                                             <span className={styles.index}>{String(index + 1).padStart(2, '0')}</span>
@@ -385,18 +438,18 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                     </div>
                                     <div className={styles.headerRight}>
                                         <div className={styles.headerTotalValue}>Total Value : <span>₹ {rowTotal.toLocaleString()}</span></div>
-                                        <FiChevronDown className={`${styles.expandIcon} ${expandedItem === index ? styles.expandIconActive : ""}`} />
+                                        <FiChevronDown className={`${styles.expandIcon} ${expandedItems[index] ? styles.expandIconActive : ""}`} />
                                     </div>
                                 </div>
 
-                                {expandedItem === index && (
+                                {expandedItems[index] && (
                                     <div className={styles.cardContent}>
                                         <div className={styles.fieldGrid}>
                                             <div className={styles.fieldGroup}>
                                                 <label className={styles.fieldLabel}>Batch Number</label>
-                                                <input 
-                                                    type="text" 
-                                                    className={styles.input} 
+                                                <input
+                                                    type="text"
+                                                    className={styles.input}
                                                     placeholder="0000"
                                                     value={item.batchNumber ?? ""}
                                                     onChange={(e) => handleItemChange(index, "batchNumber", e.target.value)}
@@ -405,9 +458,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                                             <div className={styles.fieldGroup}>
                                                 <label className={styles.fieldLabel}>Expire Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    className={styles.input} 
+                                                <input
+                                                    type="date"
+                                                    className={styles.input}
                                                     value={item.expDate ?? ""}
                                                     min={toApiDateOnly(new Date())}
                                                     max="9999-12-31"
@@ -416,44 +469,59 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Cost Price</label>
+                                                <label className={styles.fieldLabel}>Cost Price <span style={{ color: '#ff4d4f' }}>*</span></label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol} ${(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ? styles.inputError : ""}`} 
-                                                        value={item.costPrice ?? ""}
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${styles.inputWithSymbol} ${(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) || (item.costPrice !== "" && item.costPrice !== undefined && item.costPrice !== null && Number(item.costPrice) <= 0) || (isSubmitted && (item.costPrice === "" || item.costPrice === undefined || item.costPrice === null)) ? styles.inputError : ""}`}
+                                                        placeholder="0"
+                                                        value={item.costPrice === 0 ? "" : (item.costPrice ?? "")}
+                                                        onFocus={(e) => e.target.select()}
                                                         onChange={(e) => handleItemChange(index, "costPrice", e.target.value)}
                                                     />
                                                 </div>
                                                 {(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) && (
                                                     <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>cost price can not be greater than mrp</span>
                                                 )}
+                                                {((item.costPrice !== "" && item.costPrice !== undefined && item.costPrice !== null && Number(item.costPrice) <= 0) || (isSubmitted && (item.costPrice === "" || item.costPrice === undefined || item.costPrice === null))) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Cost price is required and must be greater than 0</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>MRP</label>
+                                                <label className={styles.fieldLabel}>MRP <span style={{ color: '#ff4d4f' }}>*</span></label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={item.mrp ?? ""}
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${styles.inputWithSymbol} ${(item.mrp !== "" && item.mrp !== undefined && item.mrp !== null && Number(item.mrp) <= 0) || (isSubmitted && (item.mrp === "" || item.mrp === undefined || item.mrp === null)) ? styles.inputError : ""}`}
+                                                        placeholder="0"
+                                                        value={item.mrp === 0 ? "" : (item.mrp ?? "")}
+                                                        onFocus={(e) => e.target.select()}
                                                         onChange={(e) => handleItemChange(index, "mrp", e.target.value)}
                                                     />
                                                 </div>
+                                                {((item.mrp !== "" && item.mrp !== undefined && item.mrp !== null && Number(item.mrp) <= 0) || (isSubmitted && (item.mrp === "" || item.mrp === undefined || item.mrp === null))) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>MRP is required and must be greater than 0</span>
+                                                )}
                                             </div>
 
                                             <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Received Qty.</label>
-                                                <input 
-                                                    type="number" 
-                                                    className={`${styles.input} ${Number(item.receivedQty) > Number(item.qty) ? styles.inputError : ""}`} 
+                                                <label className={styles.fieldLabel}>Received Qty. <span style={{ color: '#ff4d4f' }}>*</span></label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    className={`${styles.input} ${(Number(item.receivedQty) > Number(item.qty)) || (item.receivedQty !== "" && item.receivedQty !== undefined && item.receivedQty !== null && Number(item.receivedQty) <= 0) || (isSubmitted && (item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null)) ? styles.inputError : ""}`}
                                                     value={item.receivedQty ?? ""}
+                                                    onFocus={(e) => e.target.select()}
                                                     onChange={(e) => handleItemChange(index, "receivedQty", e.target.value)}
                                                 />
                                                 {Number(item.receivedQty) > Number(item.qty) && (
                                                     <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>received qty can not be greater than order qty</span>
+                                                )}
+                                                {((item.receivedQty !== "" && item.receivedQty !== undefined && item.receivedQty !== null && Number(item.receivedQty) <= 0) || (isSubmitted && (item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null))) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Received quantity is required and must be greater than 0</span>
                                                 )}
                                             </div>
 
@@ -464,14 +532,19 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                         <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} title="damage quanty will count from recived quantity" />
                                                     </div>
                                                 </div>
-                                                <input 
-                                                    type="number" 
-                                                    className={`${styles.input} ${Number(item.damagedQty) > Number(item.receivedQty) ? styles.inputError : ""}`} 
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    className={`${styles.input} ${(Number(item.damagedQty) > Number(item.receivedQty)) || (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0) ? styles.inputError : ""}`}
                                                     value={item.damagedQty ?? ""}
+                                                    onFocus={(e) => e.target.select()}
                                                     onChange={(e) => handleItemChange(index, "damagedQty", e.target.value)}
                                                 />
                                                 {Number(item.damagedQty) > Number(item.receivedQty) && (
                                                     <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>damaged qty can not be greater than recieved qty</span>
+                                                )}
+                                                {(item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0) && (
+                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Damaged quantity cannot be negative</span>
                                                 )}
                                             </div>
 
@@ -479,9 +552,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>Discountable Amount</label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="text" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                    <input
+                                                        type="text"
+                                                        className={`${styles.input} ${styles.inputWithSymbol}`}
                                                         value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         readOnly
                                                     />
@@ -492,10 +565,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>TAX (%)</label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>%</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${styles.inputWithSymbol}`}
                                                         value={item.tax ?? ""}
+                                                        onFocus={(e) => e.target.select()}
                                                         onChange={(e) => handleItemChange(index, "tax", e.target.value)}
                                                     />
                                                 </div>
@@ -505,10 +579,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>Discount (%)</label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>%</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${styles.inputWithSymbol}`}
                                                         value={item.discount ?? ""}
+                                                        onFocus={(e) => e.target.select()}
                                                         onChange={(e) => handleItemChange(index, "discount", e.target.value)}
                                                     />
                                                 </div>
@@ -518,9 +593,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <label className={styles.fieldLabel}>Amount</label>
                                                 <div className={styles.inputWrapper}>
                                                     <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="text" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
+                                                    <input
+                                                        type="text"
+                                                        className={`${styles.input} ${styles.inputWithSymbol}`}
                                                         value={rowTotal.toFixed(2)}
                                                         readOnly
                                                     />
@@ -542,7 +617,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <span className={styles.summaryLabel}>Total Received Value</span>
                                                 <span className={styles.summaryValue}>₹ {(received * cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
-                                           
+
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Discount Value</span>
                                                 <span className={styles.summaryValue}>₹ - {discAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -567,7 +642,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             <div className={styles.sidebar}>
                 <div className={styles.summarySection}>
                     <h3 className={styles.sidebarTitle}>Purchase Summary</h3>
-                    
+
                     <div className={styles.infoGroup}>
                         <span className={styles.infoLabel}>Supplier</span>
                         <span className={styles.infoValue}>{orderData.supplier?.supplierName}</span>
@@ -588,12 +663,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         <div className={styles.infoGroup}>
                             <span className={styles.infoLabel}>Received date</span>
                             <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
-                                    value={receivedDate} 
-                                    max={toApiDateOnly(new Date())} 
-                                    onChange={(e) => setReceivedDate(e.target.value)} 
+                                <input
+                                    type="date"
+                                    className={styles.input}
+                                    value={receivedDate}
+                                    max={toApiDateOnly(new Date())}
+                                    onChange={(e) => setReceivedDate(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -682,25 +757,26 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         {showBreakdown && (
                             <div className={styles.breakdownContent}>
                                 <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toLocaleString()}</span></div>
-                                
+
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
                                     <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toLocaleString()}</span></div>
                                 )}
-                                
+
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
                                     <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toLocaleString()}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{fontWeight: '700', color: '#000'}}>₹ {totals.discountableAmount.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>₹ {totals.discountableAmount.toLocaleString()}</span></div>
 
                                 <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toLocaleString()}</span></div>
                                 <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toLocaleString()}</span></div>
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span> Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
+
+                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
                                 {Number(previousCredit) > 0 && (
-                                    <div className={styles.breakdownRow}><span>(-) Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
                                 )}
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>₹ {breakdown.finalAmount.toFixed(2)}</span></div>
                             </div>
@@ -726,43 +802,44 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                     {(paymentStatus === "Partial" || paymentStatus === "Full") && (
                         <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.currencySymbol}>₹</span>
-                                <input 
-                                    type="number" 
-                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`} 
-                                    placeholder="00000" 
-                                    value={paidAmount} 
+                                <input
+                                    type="number"
+                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`}
+                                    placeholder="00000"
+                                    value={paidAmount}
                                     readOnly={paymentStatus === "Full"}
                                     onChange={(e) => {
                                         let val = e.target.value;
                                         if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
                                         setPaidAmount(val);
-                                    }} 
+                                    }}
                                 />
                             </div>
                             {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
-                                <span style={{color: '#ff4d4f', fontSize: '11px', marginTop: '4px'}}>Paid amount is required for partial payment</span>
+                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px' }}>Paid amount is required for partial payment</span>
                             )}
                         </div>
                     )}
 
-                    {(paymentStatus === "PayLaterWithRemainder" || paymentStatus === "Partial" || paymentStatus === "Pending") && (
-                        <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Payment Due Date</label>
-                            <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
-                                    value={duedate} 
-                                    min={toApiDateOnly(new Date())}
-                                    max="9999-12-31"
-                                    onChange={(e) => setDuedate(e.target.value)} 
-                                />
-                            </div>
+                    <div className={styles.infoGroup}>
+                        <label className={styles.infoLabel}>Payment Due Date <span style={{ color: '#ff4d4f' }}>*</span></label>
+                        <div className={styles.inputWrapper}>
+                            <input
+                                type="date"
+                                className={`${styles.input} ${isSubmitted && !duedate ? styles.errorInput : ""}`}
+                                value={duedate}
+                                min={toApiDateOnly(new Date())}
+                                max="9999-12-31"
+                                onChange={(e) => setDuedate(e.target.value)}
+                            />
                         </div>
-                    )}
+                        {isSubmitted && !duedate && (
+                            <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>Payment Due Date is required</span>
+                        )}
+                    </div>
 
                     <div className={styles.sidebarActions}>
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>Save</button>

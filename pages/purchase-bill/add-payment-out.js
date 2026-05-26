@@ -25,6 +25,8 @@ const PaymentOutFormPage = () => {
     const [supplierName, setSupplierName] = useState("");
     const [transactionDate, setTransactionDate] = useState("");
     const [totalBalance, setTotalBalance] = useState("000");
+    const [totalBillAmt, setTotalBillAmt] = useState("");
+    const [totalBalanceAmt, setTotalBalanceAmt] = useState("");
     const [paidAmount, setPaidAmount] = useState("");
     const [description, setDescription] = useState("");
     const [payments, setPayments] = useState([{
@@ -62,6 +64,8 @@ const PaymentOutFormPage = () => {
                 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(totals.supplierTotalAmount || "000");
+                setTotalBillAmt(totals.totalBillAmount || "");
+                setTotalBalanceAmt(totals.totalBalanceAmount || "");
                 setDescription(t.transactionInfo || "");
                 
                 const splitList = t.splitTransactions || [];
@@ -204,8 +208,24 @@ const PaymentOutFormPage = () => {
                 <div className={styles.gridRow}>
                     <div className={styles.field}>
                         <label>Total Balance Amount</label>
-                        <input 
-                            type="text" 
+                        <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                            <input
+                                type="text"
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
+                                style={{ paddingLeft: '32px' }}
+                                readOnly
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className={styles.gridRow}>
+                    <div className={styles.field}>
+                        <label>Total Balance Amount (Supplier)</label>
+                        <input
+                            type="text"
                             className={`${styles.input} ${styles.readOnly}`}
                             value={totalBalance}
                             readOnly
@@ -213,8 +233,8 @@ const PaymentOutFormPage = () => {
                     </div>
                     <div className={styles.field}>
                         <label>Paid Amount</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             className={`${styles.input} ${isView ? styles.readOnly : ""}`}
                             value={paidAmount}
                             onChange={(e) => setPaidAmount(e.target.value)}

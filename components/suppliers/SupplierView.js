@@ -34,6 +34,29 @@ const SupplierView = ({ data, onBack, isSplit }) => {
         return types.join(" + ");
     };
 
+    const getDisplayReferenceNumber = (t) => {
+        const refs = [];
+        if (Array.isArray(t.paymentTypes)) {
+            t.paymentTypes.forEach(p => {
+                const ref = p.referenceNumber || p.refNo;
+                if (ref) refs.push(ref);
+            });
+        }
+        const mainRef = t.referenceNumber || t.refNo;
+        if (mainRef && !refs.includes(mainRef)) {
+            refs.push(mainRef);
+        }
+        if (Array.isArray(t.splitTransactions)) {
+            t.splitTransactions.forEach(st => {
+                const ref = st.referenceNumber || st.refNo;
+                if (ref && !refs.includes(ref)) {
+                    refs.push(ref);
+                }
+            });
+        }
+        return refs.length > 0 ? refs.join(", ") : "--";
+    };
+
     const getDisplayTotalAmount = (t) => {
         const mainAmount = parseFloat(t["paid amount"] || t.amount || 0);
         const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st["paid amount"] || st.amount || 0), 0);
@@ -142,6 +165,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <th className={styles.th}>Total amount</th>
                         <th className={styles.th}>Previous Paid amount</th>
                         <th className={styles.th}>Payment Type</th>
+                        <th className={styles.th}>Reference Number</th>
                         <th className={styles.th}>Paid amount</th>
                         <th className={styles.th}>Balance amount</th>
                         <th className={styles.th} style={{ width: '40px' }}></th>
@@ -149,13 +173,27 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                 </thead>
                 <tbody>
                     {paymentHistory.length === 0 ? (
-                        <tr><td colSpan="9" className={styles.noData}>No data available</td></tr>
+                        <tr><td colSpan="10" className={styles.noData}>No data available</td></tr>
                     ) : (
                         paymentHistory.map((t, idx) => {
-                            const splitsList = [
-                                { paymentType: t.paymentType || "Cash", amount: t["paid amount"] || t.amount || 0 },
-                                ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st["paid amount"] || st.amount || 0 }))
-                            ];
+                            const splitsList = Array.isArray(t.paymentTypes) && t.paymentTypes.length > 0
+                                ? t.paymentTypes.map(p => ({
+                                    paymentType: p.paymentType || "Cash",
+                                    amount: p.amount || 0,
+                                    referenceNumber: p.referenceNumber || p.refNo || ""
+                                  }))
+                                : [
+                                    { 
+                                        paymentType: t.paymentType || "Cash", 
+                                        amount: t["paid amount"] || t.amount || 0,
+                                        referenceNumber: t.referenceNumber || t.refNo || ""
+                                    },
+                                    ...(t.splitTransactions || []).map(st => ({ 
+                                        paymentType: st.paymentType || "Cash", 
+                                        amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0,
+                                        referenceNumber: st.referenceNumber || st.refNo || ""
+                                    }))
+                                  ];
                             return (
                                 <React.Fragment key={t.suppliersTransactionId || idx}>
                                     <tr className={styles.trHistory}>
@@ -175,6 +213,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                         <td className={styles.td}>₹ {Number(t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={styles.td}>₹ {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={styles.td}>{getDisplayPaymentType(t)}</td>
+                                        <td className={styles.td}>{getDisplayReferenceNumber(t)}</td>
                                         <td className={styles.td}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={styles.td}>₹ {getDisplayBalanceAmount(t)}</td>
                                         <td className={styles.td}>
@@ -196,6 +235,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
                                             <td className={styles.td}>{split.paymentType}</td>
+                                            <td className={styles.td}>{split.referenceNumber || "--"}</td>
                                             <td className={styles.td}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
@@ -291,8 +331,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     <div className={`${styles.contentArea} ${isSplit ? styles.contentAreaSplit : ""}`}>
                         <div className={styles.contentHeader}>
                             <h3 className={styles.statsTitle}>{activeTab}</h3>
-                            {(activeTab === "Purchase Orders" ? purchaseOrders.length > 0 : paymentHistory.length > 0) && (
-                                <button
+                            <button
                                     onClick={() => {
                                         const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
                                         if (pendingBill) {
@@ -307,7 +346,6 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 >
                                     PAY NOW
                                 </button>
-                            )}
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>

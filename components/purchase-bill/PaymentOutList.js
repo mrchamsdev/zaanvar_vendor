@@ -1,5 +1,5 @@
 import { toApiDateOnly } from "@/utilities/date-time-utils";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -29,7 +29,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -97,8 +97,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
 
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${isStart ? styles.rangeStart : ''} ${isEnd ? styles.rangeEnd : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -134,8 +134,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -152,14 +152,14 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     {type === 'paymentType' ? (
                         <div className={styles.checklistContainer}>
                             {paymentOptions.map(opt => (
-                                <div key={opt} className={styles.checklistItem} 
-                                     onClick={() => {
-                                         if (selectedPayments.includes(opt)) {
-                                             setSelectedPayments(selectedPayments.filter(p => p !== opt));
-                                         } else {
-                                             setSelectedPayments([...selectedPayments, opt]);
-                                         }
-                                     }}>
+                                <div key={opt} className={styles.checklistItem}
+                                    onClick={() => {
+                                        if (selectedPayments.includes(opt)) {
+                                            setSelectedPayments(selectedPayments.filter(p => p !== opt));
+                                        } else {
+                                            setSelectedPayments([...selectedPayments, opt]);
+                                        }
+                                    }}>
                                     <div className={`${styles.checkbox} ${selectedPayments.includes(opt) ? styles.checked : ''}`}>
                                         {selectedPayments.includes(opt) && <FiCheck />}
                                     </div>
@@ -172,12 +172,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                             <span className={styles.modalLabel}>Select Category</span>
                             <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                                 <span>{mode}</span>
-                                <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                                <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                             </div>
                             <span className={styles.modalLabel}>{label}</span>
-                            <input 
-                                type="text" 
-                                className={styles.dateInput} 
+                            <input
+                                type="text"
+                                className={styles.dateInput}
                                 placeholder={`Enter ${label}`}
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
@@ -187,10 +187,10 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             if (type === 'paymentType') setSelectedPayments([]);
-                             else setValue('');
-                             onApply(null, null);
-                             onClose();
+                            if (type === 'paymentType') setSelectedPayments([]);
+                            else setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -228,8 +228,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -246,7 +246,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -283,8 +283,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     )}
 
                     {showCalendar && (
-                        <div style={{position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px'}}>
-                            <CustomDateRangePicker 
+                        <div style={{ position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px' }}>
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -306,9 +306,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -322,7 +322,7 @@ const PaymentOutList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [transactions, setTransactions] = useState([]);
-    
+
     const getDisplayPaymentType = (t) => {
         const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
             .map(type => type || "Cash")
@@ -381,6 +381,14 @@ const PaymentOutList = ({ onAddClick }) => {
         total: { mode: 'Contains', value: '' },
         paid: { mode: 'Contains', value: '' }
     });
+
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => Array.isArray(f.value) ? f.value.length > 0 : f.value)
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
 
     useEffect(() => {
         if (router.query.branchId) {
@@ -479,8 +487,8 @@ const PaymentOutList = ({ onAddClick }) => {
         const transDate = new Date(t.userTransactionDate);
         const start = new Date(dateRange.startDate);
         const end = new Date(dateRange.endDate);
-        start.setHours(0,0,0,0);
-        end.setHours(23,59,59,999);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
 
         let matchesDate = transDate >= start && transDate <= end;
 
@@ -488,11 +496,11 @@ const PaymentOutList = ({ onAddClick }) => {
             const single = new Date(dateFilterValues.single);
             const from = new Date(dateFilterValues.from);
             const to = new Date(dateFilterValues.to);
-            single.setHours(0,0,0,0);
-            from.setHours(0,0,0,0);
-            to.setHours(23,59,59,999);
+            single.setHours(0, 0, 0, 0);
+            from.setHours(0, 0, 0, 0);
+            to.setHours(23, 59, 59, 999);
             const checkDate = new Date(t.userTransactionDate);
-            checkDate.setHours(0,0,0,0);
+            checkDate.setHours(0, 0, 0, 0);
 
             if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
             else if (dateFilterMode === 'Less than') matchesDate = checkDate < single;
@@ -500,7 +508,7 @@ const PaymentOutList = ({ onAddClick }) => {
             else if (dateFilterMode === 'Range') matchesDate = checkDate >= from && checkDate <= to;
         }
 
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
             (t.transactionInfo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
             (String(t.suppliersTransactionId)).toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -534,20 +542,20 @@ const PaymentOutList = ({ onAddClick }) => {
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAYMENT TYPE", "PAID"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "PAYMENT TYPE"];
         const rows = filteredTransactions.map(t => [
             `"${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
             `"${t.suppliersTransactionId}"`,
             `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
             `"${getSupplierBalance(t.supplierId)}"`,
-            `"${getDisplayPaymentType(t)}"`,
-            `"${getDisplayTotalAmount(t)}"`
+            `"${getDisplayTotalAmount(t)}"`,
+            `"${getDisplayPaymentType(t)}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement("a");
         link.setAttribute("href", url);
         link.setAttribute("download", `Purchase_Out_Report_${toApiDateOnly(new Date())}.csv`);
@@ -563,23 +571,23 @@ const PaymentOutList = ({ onAddClick }) => {
     return (
         <div className={styles.container}>
             <h1 className={styles.printOnlyTitle}>Payment Out History</h1>
-            
+
             <div className={styles.filters}>
                 <div className={styles.filterGroup}>
                     <span className={styles.filterLabel}>Filter by :</span>
                     <div className={styles.customSelectWrapper}>
-                        <div 
+                        <div
                             className={styles.customSelectHeader}
                             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                         >
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
                                 {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
-                                    <div 
-                                        key={opt} 
+                                    <div
+                                        key={opt}
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
                                         onClick={() => {
                                             handleFilterChange(opt);
@@ -593,17 +601,17 @@ const PaymentOutList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
-                    <div 
-                        className={styles.dateDisplay} 
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
+                    <div
+                        className={styles.dateDisplay}
                         onClick={() => setShowCustomPicker(!showCustomPicker)}
                     >
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
@@ -636,7 +644,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <span className={styles.paidLabel}>Paid : </span>
                                 <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div className={styles.bottomItem} style={{marginLeft: 'auto'}}>
+                            <div className={styles.bottomItem} style={{ marginLeft: 'auto' }}>
                                 <span className={styles.paidLabel}>Balance : </span>
                                 <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
@@ -649,7 +657,7 @@ const PaymentOutList = ({ onAddClick }) => {
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
                     <button className={styles.iconBtn} onClick={handlePrint} title="Print Report">
                         <FiPrinter />
@@ -659,8 +667,8 @@ const PaymentOutList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Payments..." />
-            ) : filteredTransactions.length === 0 ? (
-                <EmptyState 
+            ) : (filteredTransactions.length === 0 && !hasFiltersApplied) ? (
+                <EmptyState
                     buttonText="Add Payment Out"
                     onAddClick={onAddClick}
                 />
@@ -669,14 +677,14 @@ const PaymentOutList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    DATE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
                                         onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
                                     />
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -687,88 +695,88 @@ const PaymentOutList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    REF NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    REF NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Ref no"
                                             currentMode={columnFilters.refNo.mode}
                                             currentValue={columnFilters.refNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, refNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    SUPPLIER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    SUPPLIER NAME
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.partyName.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'partyName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Supplier Name"
                                             currentMode={columnFilters.partyName.mode}
                                             currentValue={columnFilters.partyName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, partyName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    TOTAL 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    TOTAL
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.total.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'total' ? null : 'total'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'total' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Amount"
                                             currentMode={columnFilters.total.mode}
                                             currentValue={columnFilters.total.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, total: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, total: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    PAYMENT TYPE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
-                                    />
-                                    {openFilterCol === 'paymentType' && (
-                                        <GeneralFilterModal 
-                                            type="paymentType"
-                                            label="Payment Type"
-                                            currentMode={columnFilters.paymentType.mode}
-                                            currentValue={columnFilters.paymentType.value}
-                                            onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paymentType: {mode, value: val}})}
-                                        />
-                                    )}
-                                </th>
-                                <th style={{position: 'relative'}}>
-                                    PAID 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    PAID
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.paid.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'paid' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Paid"
                                             currentMode={columnFilters.paid.mode}
                                             currentValue={columnFilters.paid.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, paid: { mode, value: val } })}
+                                        />
+                                    )}
+                                </th>
+                                <th style={{ position: 'relative' }}>
+                                    PAYMENT TYPE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'paymentType' && (
+                                        <GeneralFilterModal
+                                            type="paymentType"
+                                            label="Payment Type"
+                                            currentMode={columnFilters.paymentType.mode}
+                                            currentValue={columnFilters.paymentType.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, paymentType: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -776,7 +784,14 @@ const PaymentOutList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredTransactions.map((t, idx) => {
+                            {filteredTransactions.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className={styles.noDataCell}>
+                                        Applied filter has no data
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredTransactions.map((t, idx) => {
                                 const splitsList = [
                                     { paymentType: t.paymentType || "Cash", amount: t.amount || 0 },
                                     ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st.amount || 0 }))
@@ -788,41 +803,41 @@ const PaymentOutList = ({ onAddClick }) => {
                                             <td>{t.suppliersTransactionId}</td>
                                             <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
                                             <td>{Number(getSupplierBalance(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td>{getDisplayPaymentType(t)}</td>
                                             <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td>{getDisplayPaymentType(t)}</td>
                                             <td>
                                                 <div className={styles.actions}>
-                                                     <div style={{position: 'relative'}}>
-                                                        <FiShare2 
-                                                            className={styles.actionIcon} 
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiShare2
+                                                            className={styles.actionIcon}
                                                             onClick={() => {
                                                                 setSelectedTransaction(t);
                                                                 setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
                                                             }}
                                                         />
                                                         {isShareModalOpen === `share-${idx}` && (
-                                                            <ShareModal 
+                                                            <ShareModal
                                                                 isOpen={true}
                                                                 onClose={() => setIsShareModalOpen(false)}
                                                                 data={t}
                                                             />
                                                         )}
                                                     </div>
-                                                    <div style={{position: 'relative'}}>
-                                                        <FiMoreVertical 
-                                                            className={styles.actionIcon} 
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiMoreVertical
+                                                            className={styles.actionIcon}
                                                             onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
                                                         />
                                                         {activeDropdown === idx && (
                                                             <div className={styles.dropdownMenu}>
-                                                                 <div className={styles.dropdownItem} onClick={() => {
+                                                                <div className={styles.dropdownItem} onClick={() => {
                                                                     router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
                                                                     setActiveDropdown(null);
-                                                                 }}>View</div>
-                                                                 <div className={styles.dropdownItem} onClick={() => {
+                                                                }}>View</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
                                                                     router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
                                                                     setActiveDropdown(null);
-                                                                 }}>Edit</div>
+                                                                }}>Edit</div>
                                                                 <div className={styles.dropdownItem} onClick={() => {
                                                                     window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
                                                                     setActiveDropdown(null);
@@ -839,21 +854,21 @@ const PaymentOutList = ({ onAddClick }) => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                     {t.splitTransactions && t.splitTransactions.length > 0 && (
-                                                         <div 
-                                                             className={styles.actionIcon} 
-                                                             onClick={() => toggleRowExpand(t.suppliersTransactionId)} 
-                                                             title="Show Split Payments" 
-                                                             style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}
-                                                         >
-                                                             {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
-                                                         </div>
-                                                     )}
+                                                    {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                                        <div
+                                                            className={styles.actionIcon}
+                                                            onClick={() => toggleRowExpand(t.suppliersTransactionId)}
+                                                            title="Show Split Payments"
+                                                            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                                        >
+                                                            {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
                                         {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
-                                            <tr key={`split-${sIdx}`} style={{borderBottom: '1px solid #eee'}}>
+                                            <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
                                                 <td></td>
                                                 <td></td>
                                                 <td></td>
@@ -865,24 +880,24 @@ const PaymentOutList = ({ onAddClick }) => {
                                         ))}
                                     </React.Fragment>
                                 );
-                            })}
+                            }))}
                         </tbody>
                     </table>
                 </div>
             )}
 
             {isAddModalOpen && (
-                <AddPaymentOut 
-                    isOpen={isAddModalOpen} 
-                    onClose={handleCloseAddModal} 
+                <AddPaymentOut
+                    isOpen={isAddModalOpen}
+                    onClose={handleCloseAddModal}
                     onRefresh={fetchTransactions}
                 />
             )}
 
             {isHistoryModalOpen && (
-                <HistoryModal 
-                    isOpen={isHistoryModalOpen} 
-                    onClose={() => setIsHistoryModalOpen(false)} 
+                <HistoryModal
+                    isOpen={isHistoryModalOpen}
+                    onClose={() => setIsHistoryModalOpen(false)}
                     data={selectedTransaction}
                     userInfo={userInfo}
                 />

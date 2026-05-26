@@ -9,7 +9,7 @@ import useStore from "../../components/state/useStore";
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
 import EmptyState from "../../components/utilities/EmptyState";
 import Loader from "../../components/utilities/Loader";
-import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft } from "react-icons/fi";
+import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft, FiX } from "react-icons/fi";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -38,7 +38,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -106,8 +106,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
 
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${isStart ? styles.rangeStart : ''} ${isEnd ? styles.rangeEnd : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -136,8 +136,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -154,12 +154,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
+                    <input
+                        type="text"
+                        className={styles.dateInput}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
@@ -167,9 +167,9 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -207,8 +207,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -225,7 +225,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -262,8 +262,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     )}
 
                     {showCalendar && (
-                        <div style={{position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px'}}>
-                            <CustomDateRangePicker 
+                        <div style={{ position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px' }}>
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -285,9 +285,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -362,7 +362,7 @@ const PurchaseOrdersPage = () => {
                 if (Array.isArray(data)) {
                     setPurchaseRequests(data);
                     // Generate local summary if not provided
-                    setSummary(null); 
+                    setSummary(null);
                 } else if (data.orders) {
                     setPurchaseRequests(data.orders);
                     setSummary(data.summary || data); // Store summary if it's an object
@@ -378,14 +378,14 @@ const PurchaseOrdersPage = () => {
     // Filter and Paginate Data
     const filteredData = useMemo(() => {
         let data = [...purchaseRequests];
-        
+
         // Sort by createdDate descending (recent first)
         data.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
 
         // Global Search
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
-            data = data.filter(item => 
+            data = data.filter(item =>
                 String(item.productsPurchaseRqstID).toLowerCase().includes(s) ||
                 item.supplier?.supplierName?.toLowerCase().includes(s)
             );
@@ -416,7 +416,7 @@ const PurchaseOrdersPage = () => {
             data = data.filter(item => {
                 const itemDate = new Date(item.createdDate).toISOString().split('T')[0];
                 const { single, from, to } = dateFilterValues;
-                
+
                 if (dateFilterMode === 'Equal to') return itemDate === single;
                 if (dateFilterMode === 'Less than') return itemDate < single;
                 if (dateFilterMode === 'Greater than') return itemDate > single;
@@ -441,10 +441,10 @@ const PurchaseOrdersPage = () => {
             };
         }
         const total = purchaseRequests.length;
-        const paid = purchaseRequests.filter(item => 
+        const paid = purchaseRequests.filter(item =>
             item.paymentStatus === "Paid" || (!item.paymentStatus && item.status === "accepted")
         ).length;
-        const unpaid = purchaseRequests.filter(item => 
+        const unpaid = purchaseRequests.filter(item =>
             !item.paymentStatus && item.status !== "accepted"
         ).length;
         const partiallyPaid = purchaseRequests.filter(item => item.paymentStatus === "Partial").length;
@@ -479,6 +479,16 @@ const PurchaseOrdersPage = () => {
         }).format(amount || 0).replace("₹", "₹ ");
     };
 
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value)
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
+
+
+
     return (
         <DashboardLayout
             customTopbarRight={(
@@ -491,7 +501,7 @@ const PurchaseOrdersPage = () => {
         >
             <div className={styles.container}>
                 {managerConfig && (
-                    <PurchaseOrderManager 
+                    <PurchaseOrderManager
                         mode={managerConfig.mode}
                         initialId={managerConfig.id}
                         initialData={managerConfig.initialData}
@@ -511,7 +521,7 @@ const PurchaseOrdersPage = () => {
                                 setManagerConfig(null);
                                 fetchOrders();
                             }
-                        }} 
+                        }}
                     />
                 )}
 
@@ -520,19 +530,19 @@ const PurchaseOrdersPage = () => {
                     <div className={styles.statusTabsRow}>
                         <div className={styles.statusGroup}>
                             <span className={styles.statusLabel}>Overall Status :</span>
-                            <div className={styles.statusBadge}>TOTAL purchase Orders: {String(stats.total).padStart(2, '0')}</div>
+                            <div className={styles.statusBadge}>Total Purchase Orders: {String(stats.total).padStart(2, '0')}</div>
                             <div className={styles.statusBadge}>Total Paid : {String(stats.paid).padStart(2, '0')}</div>
                             <div className={styles.statusBadge}>Total Unpaid : {String(stats.unpaid).padStart(2, '0')}</div>
-                            <div className={styles.statusBadge}>Partially paid : {String(stats.partiallyPaid).padStart(2, '0')}</div>
+                            <div className={styles.statusBadge}>Partially Paid : {String(stats.partiallyPaid).padStart(2, '0')}</div>
                         </div>
                     </div>
 
                     <div className={styles.searchRow}>
                         <div className={styles.searchBox}>
                             <div className={styles.searchIcon}><IconSearch /></div>
-                            <input 
-                                type="text" 
-                                placeholder="Search order number or supplier name" 
+                            <input
+                                type="text"
+                                placeholder="Search order number or supplier name"
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
@@ -543,8 +553,8 @@ const PurchaseOrdersPage = () => {
                 {/* Table Section */}
                 {loading ? (
                     <Loader message="Loading Purchase Orders..." />
-                ) : filteredData.length === 0 ? (
-                    <EmptyState 
+                ) : (filteredData.length === 0 && !hasFiltersApplied) ? (
+                    <EmptyState
                         buttonText="Add Purchase Order"
                         onAddClick={() => openOrder(null, "Add")}
                     />
@@ -553,14 +563,14 @@ const PurchaseOrdersPage = () => {
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th style={{position: 'relative'}}>
+                                    <th style={{ position: 'relative' }}>
                                         ORDER DATE
-                                        <FiFilter 
-                                            className={styles.filterIcon} 
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
                                             onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
                                         />
                                         {isDateFilterOpen && (
-                                            <DateFilterModal 
+                                            <DateFilterModal
                                                 currentMode={dateFilterMode}
                                                 currentDate={dateFilterValues}
                                                 onClose={() => setIsDateFilterOpen(false)}
@@ -571,71 +581,71 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th style={{position: 'relative'}}>
+                                    <th style={{ position: 'relative' }}>
                                         ORDER NO
-                                        <FiFilter 
-                                            className={styles.filterIcon} 
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${columnFilters.orderNo.value ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'orderNo' ? null : 'orderNo'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'orderNo' && (
-                                            <GeneralFilterModal 
+                                            <GeneralFilterModal
                                                 type="text"
                                                 label="Order No"
                                                 currentMode={columnFilters.orderNo.mode}
                                                 currentValue={columnFilters.orderNo.value}
                                                 onClose={() => setOpenFilterCol(null)}
-                                                onApply={(mode, val) => setColumnFilters({...columnFilters, orderNo: {mode, value: val}})}
+                                                onApply={(mode, val) => setColumnFilters({ ...columnFilters, orderNo: { mode, value: val } })}
                                             />
                                         )}
                                     </th>
-                                    <th style={{position: 'relative'}}>
+                                    <th style={{ position: 'relative' }}>
                                         SUPPLIER NAME
-                                        <FiFilter 
-                                            className={styles.filterIcon} 
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${columnFilters.supplierName.value ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'supplierName' && (
-                                            <GeneralFilterModal 
+                                            <GeneralFilterModal
                                                 type="text"
                                                 label="Supplier Name"
                                                 currentMode={columnFilters.supplierName.mode}
                                                 currentValue={columnFilters.supplierName.value}
                                                 onClose={() => setOpenFilterCol(null)}
-                                                onApply={(mode, val) => setColumnFilters({...columnFilters, supplierName: {mode, value: val}})}
+                                                onApply={(mode, val) => setColumnFilters({ ...columnFilters, supplierName: { mode, value: val } })}
                                             />
                                         )}
                                     </th>
-                                    <th style={{position: 'relative'}}>
+                                    <th style={{ position: 'relative' }}>
                                         TO
-                                        <FiFilter 
-                                            className={styles.filterIcon} 
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${columnFilters.to.value ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'to' ? null : 'to'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'to' && (
-                                            <GeneralFilterModal 
+                                            <GeneralFilterModal
                                                 type="text"
                                                 label="Branch"
                                                 currentMode={columnFilters.to.mode}
                                                 currentValue={columnFilters.to.value}
                                                 onClose={() => setOpenFilterCol(null)}
-                                                onApply={(mode, val) => setColumnFilters({...columnFilters, to: {mode, value: val}})}
+                                                onApply={(mode, val) => setColumnFilters({ ...columnFilters, to: { mode, value: val } })}
                                             />
                                         )}
                                     </th>
-                                    <th style={{position: 'relative'}}>
+                                    <th style={{ position: 'relative' }}>
                                         Order Value (₹)
-                                        <FiFilter 
-                                            className={styles.filterIcon} 
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${columnFilters.orderValue.value ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'orderValue' ? null : 'orderValue'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'orderValue' && (
-                                            <GeneralFilterModal 
+                                            <GeneralFilterModal
                                                 type="text"
                                                 label="Order Value"
                                                 currentMode={columnFilters.orderValue.mode}
                                                 currentValue={columnFilters.orderValue.value}
                                                 onClose={() => setOpenFilterCol(null)}
-                                                onApply={(mode, val) => setColumnFilters({...columnFilters, orderValue: {mode, value: val}})}
+                                                onApply={(mode, val) => setColumnFilters({ ...columnFilters, orderValue: { mode, value: val } })}
                                             />
                                         )}
                                     </th>
@@ -644,38 +654,46 @@ const PurchaseOrdersPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedData.map((item) => (
-                                    <tr key={item.productsPurchaseRqstID} onClick={() => openOrder(item.productsPurchaseRqstID, "View")} style={{cursor: 'pointer'}}>
-                                        <td>{formatDate(item.createdDate)}</td>
-                                        <td>{`PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`}</td>
-                                        <td>{item.supplier?.supplierName || "-"}</td>
-                                        <td>{item.branchName || "-"}</td>
-                                        <td>{formatCurrency(item.totalCost)}</td>
-                                        <td>
-                                            <div className={styles.statusBadgeGroup}>
-                                                <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPrimary}>
-                                                    {item.orderStatus || "Pending"}
-                                                </span>
-                                                <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
-                                            </div>
+                                {filteredData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className={styles.noDataCell}>
+                                            Applied filter has no data
                                         </td>
-                                        <td>
-                                            {["order placed", "cancel order", "cancel", "draft"].includes(item.orderStatus?.toLowerCase()) ? (
-                                                <div style={{textAlign: 'center', width: '100%', color: '#ccc', fontWeight: '700', fontSize: '14px'}}>---</div>
-                                            ) : (
+                                    </tr>
+                                ) : (
+                                    paginatedData.map((item) => (
+                                        <tr key={item.productsPurchaseRqstID} onClick={() => openOrder(item.productsPurchaseRqstID, "View")} style={{ cursor: 'pointer' }}>
+                                            <td>{formatDate(item.createdDate)}</td>
+                                            <td>{`PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`}</td>
+                                            <td>{item.supplier?.supplierName || "-"}</td>
+                                            <td>{item.branchName || "-"}</td>
+                                            <td>{formatCurrency(item.totalCost)}</td>
+                                            <td>
                                                 <div className={styles.statusBadgeGroup}>
-                                                    <span className={
-                                                        item.paymentStatus === "Full" || item.paymentStatus === "Paid" ? styles.statusPaid : 
-                                                        (item.paymentStatus === "Partial" ? styles.statusPending : styles.statusPending)
-                                                    }>
-                                                        {(item.paymentStatus === "Full" || item.paymentStatus === "Paid") ? "Paid" : (item.paymentStatus || "Pending")}
+                                                    <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPrimary}>
+                                                        {item.orderStatus || "Pending"}
                                                     </span>
                                                     <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
                                                 </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td>
+                                                {["order placed", "cancel order", "cancel", "draft"].includes(item.orderStatus?.toLowerCase()) ? (
+                                                    <div style={{ textAlign: 'center', width: '100%', color: '#ccc', fontWeight: '700', fontSize: '14px' }}>---</div>
+                                                ) : (
+                                                    <div className={styles.statusBadgeGroup}>
+                                                        <span className={
+                                                            item.paymentStatus === "Full" || item.paymentStatus === "Paid" ? styles.statusPaid :
+                                                                (item.paymentStatus === "Partial" ? styles.statusPending : styles.statusPending)
+                                                        }>
+                                                            {(item.paymentStatus === "Full" || item.paymentStatus === "Paid") ? "Paid" : (item.paymentStatus || "Pending")}
+                                                        </span>
+                                                        <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -687,8 +705,8 @@ const PurchaseOrdersPage = () => {
                         <div className={styles.paginationLeft}>
                             <div className={styles.rowsPerPage}>
                                 Rows per Page
-                                <select 
-                                    value={rowsPerPage} 
+                                <select
+                                    value={rowsPerPage}
                                     onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                                 >
                                     {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
@@ -700,18 +718,18 @@ const PurchaseOrdersPage = () => {
                         </div>
 
                         <div className={styles.paginationRight}>
-                            <div style={{display: 'flex', gap: 12}}>
+                            <div style={{ display: 'flex', gap: 12 }}>
                                 {currentPage > 1 && (
-                                    <button 
-                                        className={styles.pageBtn} 
+                                    <button
+                                        className={styles.pageBtn}
                                         onClick={() => setCurrentPage(prev => prev - 1)}
                                     >
                                         Previous
                                     </button>
                                 )}
                                 {currentPage < totalPages && (
-                                    <button 
-                                        className={`${styles.pageBtn} ${styles.nextBtn}`} 
+                                    <button
+                                        className={`${styles.pageBtn} ${styles.nextBtn}`}
                                         onClick={() => setCurrentPage(prev => prev + 1)}
                                     >
                                         Next

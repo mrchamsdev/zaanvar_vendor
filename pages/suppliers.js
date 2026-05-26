@@ -147,7 +147,7 @@ const SuppliersPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search suppliers here"
+                placeholder="Search by Supplier ID and Name"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -158,9 +158,9 @@ const SuppliersPage = () => {
         <SupplierList
           suppliers={suppliers.filter(s =>
             s.supplierName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.phone?.includes(searchTerm) ||
             String(s.supplierId).includes(searchTerm)
           )}
+          searchTerm={searchTerm}
           loading={loading}
           selectedIds={selectedIds}
           onToggleSelection={(id) => setSelectedIds(prev =>

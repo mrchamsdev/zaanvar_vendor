@@ -69,7 +69,12 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
             return;
         }
         setTabs(newTabs);
-        if (activeTabId === id) setActiveTabId(newTabs[0].id);
+        if (activeTabId === id) {
+            const closedIndex = tabs.findIndex(t => t.id === id);
+            // Try previous tab first, then fallback to next (now at same index), else first
+            const nextActive = newTabs[closedIndex - 1] || newTabs[closedIndex] || newTabs[0];
+            setActiveTabId(nextActive.id);
+        }
         if (splitTabIds.includes(id)) {
             setSplitTabIds(splitTabIds.map(sid => sid === id ? null : sid));
         }

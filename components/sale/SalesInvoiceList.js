@@ -1,6 +1,6 @@
 import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -27,7 +27,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -88,8 +88,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const inRange = isInRange(day);
                     const today = isToday(day);
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${today ? styles.today : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -118,8 +118,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -136,12 +136,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
+                    <input
+                        type="text"
+                        className={styles.dateInput}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
@@ -149,9 +149,9 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -189,8 +189,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -207,7 +207,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -245,13 +245,13 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     {showCalendar && (
                         <div style={{
-                            position: 'absolute', 
-                            top: '0', 
-                            left: '105%', 
+                            position: 'absolute',
+                            top: '0',
+                            left: '105%',
                             zIndex: 3000,
                             minWidth: '280px'
                         }}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -273,9 +273,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -319,6 +319,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
         paid: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
     });
+
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value)
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
 
     useEffect(() => {
         if (router.query.branchId) {
@@ -414,27 +422,27 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
     const filteredInvoices = invoices.filter(inv => {
         const invDate = parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date();
-        invDate.setHours(0,0,0,0);
+        invDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = invDate.getTime() === target.getTime();
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = invDate.getTime() < target.getTime();
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = invDate.getTime() > target.getTime();
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
                 const start = new Date(dateFilterValues.from);
                 const end = new Date(dateFilterValues.to);
-                start.setHours(0,0,0,0);
-                end.setHours(23,59,59,999);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
                 matchesDate = invDate >= start && invDate <= end;
             }
         } else {
@@ -448,7 +456,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
         const invoiceNo = (inv.userOrderId || inv.invoiceNumber || "").toString();
 
         const matchesSearch = partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
+            invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(col => {
@@ -468,7 +476,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                 if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
             }
         });
-        
+
         return matchesDate && matchesSearch && matchesColFilters;
     });
 
@@ -479,7 +487,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
             let label = `Date: ${dateFilterMode}`;
             if (dateFilterValues?.single) label += ` ${new Date(dateFilterValues.single).toLocaleDateString('en-GB')}`;
             if (dateFilterValues?.from) label += ` ${new Date(dateFilterValues.from).toLocaleDateString('en-GB')} - ${new Date(dateFilterValues.to).toLocaleDateString('en-GB')}`;
-            
+
             chips.push({
                 id: 'date',
                 label,
@@ -554,7 +562,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.customSelectWrapper}>
                         <div className={styles.customSelectHeader} onClick={() => setShowFilterDropdown(!showFilterDropdown)}>
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
@@ -568,14 +576,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
                     <div className={styles.dateDisplay} onClick={() => setShowCustomPicker(!showCustomPicker)}>
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
@@ -589,9 +597,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
             <div className={styles.searchBar}>
                 <FiSearch className={styles.searchIcon} />
-                <input 
-                    type="text" 
-                    placeholder="Search customer or invoice number" 
+                <input
+                    type="text"
+                    placeholder="Search customer or invoice number"
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -609,9 +617,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
                         <div className={styles.trendLabel}>vs Last month</div>
                     </div>
                 </div>
-                
+
                 <div className={styles.summaryLine}></div>
-                
+
                 <div className={styles.summaryBottom}>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Paid :</span>
@@ -624,13 +632,11 @@ const SalesInvoiceList = ({ onAddClick }) => {
                 </div>
             </div>
 
-            {renderAppliedFilters()}
-
             <div className={styles.transactionsHeader}>
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
                     <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
                         <FiPrinter />
@@ -640,8 +646,8 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Invoices..." />
-            ) : filteredInvoices.length === 0 ? (
-                <EmptyState 
+            ) : (filteredInvoices.length === 0 && !hasFiltersApplied) ? (
+                <EmptyState
                     buttonText="Add Sale Invoice"
                     onAddClick={onAddClick}
                 />
@@ -650,14 +656,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    DATE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
                                         onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
                                     />
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -668,88 +674,88 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    INVOICE NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    INVOICE NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.invoiceNo.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'invoiceNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Invoice No"
                                             currentMode={columnFilters.invoiceNo.mode}
                                             currentValue={columnFilters.invoiceNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, invoiceNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, invoiceNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    CUSTOMER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    CUSTOMER NAME
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.partyName.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'partyName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Customer Name"
                                             currentMode={columnFilters.partyName.mode}
                                             currentValue={columnFilters.partyName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, partyName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    AMOUNT
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.amount.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'amount' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Amount"
                                             currentMode={columnFilters.amount.mode}
                                             currentValue={columnFilters.amount.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, amount: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, amount: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    PAID 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    PAID
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.paid.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'paid' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Paid"
                                             currentMode={columnFilters.paid.mode}
                                             currentValue={columnFilters.paid.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, paid: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    BALANCE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    BALANCE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Balance"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -757,7 +763,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredInvoices.map((inv, idx) => {
+                            {filteredInvoices.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className={styles.noDataCell}>
+                                        Applied filter has no data
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredInvoices.map((inv, idx) => {
                                 const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
                                 return (
                                     <tr key={inv.userOrderId || idx}>
@@ -770,7 +783,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         <td>
                                             <div className={styles.actions}>
                                                 <FiShare2 className={styles.actionIcon} />
-                                                <div style={{position: 'relative'}}>
+                                                <div style={{ position: 'relative' }}>
                                                     <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                     {activeDropdown === idx && (
                                                         <div className={styles.dropdownMenu}>
@@ -785,7 +798,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         </td>
                                     </tr>
                                 );
-                            })}
+                            }))}
                         </tbody>
                     </table>
                 </div>

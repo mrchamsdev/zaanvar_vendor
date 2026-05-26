@@ -1,5 +1,5 @@
 import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-return.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -28,7 +28,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -96,8 +96,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
 
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${isStart ? styles.rangeStart : ''} ${isEnd ? styles.rangeEnd : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -126,8 +126,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -144,12 +144,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
+                    <input
+                        type="text"
+                        className={styles.dateInput}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
@@ -157,9 +157,9 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -197,8 +197,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -215,7 +215,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -252,8 +252,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     )}
 
                     {showCalendar && (
-                        <div style={{position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px'}}>
-                            <CustomDateRangePicker 
+                        <div style={{ position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px' }}>
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -275,9 +275,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -322,6 +322,14 @@ const PurchaseReturnList = ({ onAddClick }) => {
         balance: { mode: 'Contains', value: '' }
     });
 
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value)
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
+
     useEffect(() => {
         if (router.query.branchId) {
             setSelectedBranchId(router.query.branchId);
@@ -344,7 +352,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 } else {
                     const totalAmt = data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0);
                     const totalRec = data.reduce((acc, curr) => acc + Number(curr.received || 0), 0);
-                    const totalBal = (res.suppliers && Array.isArray(res.suppliers)) 
+                    const totalBal = (res.suppliers && Array.isArray(res.suppliers))
                         ? res.suppliers.reduce((acc, curr) => acc + Number(curr.balance || 0), 0)
                         : data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
                     setTotals({ totalAmount: totalAmt, totalReceived: totalRec, totalBalance: totalBal });
@@ -411,8 +419,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
         const transDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
         const start = new Date(dateRange.startDate);
         const end = new Date(dateRange.endDate);
-        start.setHours(0,0,0,0);
-        end.setHours(23,59,59,999);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
 
         let matchesDate = transDate >= start && transDate <= end;
 
@@ -420,11 +428,11 @@ const PurchaseReturnList = ({ onAddClick }) => {
             const single = new Date(dateFilterValues.single);
             const from = new Date(dateFilterValues.from);
             const to = new Date(dateFilterValues.to);
-            single.setHours(0,0,0,0);
-            from.setHours(0,0,0,0);
-            to.setHours(23,59,59,999);
+            single.setHours(0, 0, 0, 0);
+            from.setHours(0, 0, 0, 0);
+            to.setHours(23, 59, 59, 999);
             const checkDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
-            checkDate.setHours(0,0,0,0);
+            checkDate.setHours(0, 0, 0, 0);
 
             if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
             else if (dateFilterMode === 'Less than') matchesDate = checkDate < single;
@@ -432,7 +440,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
             else if (dateFilterMode === 'Range') matchesDate = checkDate >= from && checkDate <= to;
         }
 
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
             (r.supplierName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
             (String(r.returnProductsId)).toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -470,7 +478,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement("a");
         link.setAttribute("href", url);
         link.setAttribute("download", `Purchase_Return_Report_${toApiDateOnly(new Date())}.csv`);
@@ -486,23 +494,23 @@ const PurchaseReturnList = ({ onAddClick }) => {
     return (
         <div className={styles.container}>
             <h1 className={styles.printOnlyTitle}>Purchase Return History</h1>
-            
+
             <div className={styles.filters}>
                 <div className={styles.filterGroup}>
                     <span className={styles.filterLabel}>Filter by :</span>
                     <div className={styles.customSelectWrapper}>
-                        <div 
+                        <div
                             className={styles.customSelectHeader}
                             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                         >
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
                                 {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
-                                    <div 
-                                        key={opt} 
+                                    <div
+                                        key={opt}
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
                                         onClick={() => {
                                             handleFilterChange(opt);
@@ -516,17 +524,17 @@ const PurchaseReturnList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
-                    <div 
-                        className={styles.dateDisplay} 
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
+                    <div
+                        className={styles.dateDisplay}
                         onClick={() => setShowCustomPicker(!showCustomPicker)}
                     >
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
@@ -542,9 +550,9 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             <div className={styles.searchBar}>
                 <FiSearch className={styles.searchIcon} />
-                <input 
-                    type="text" 
-                    placeholder="Search products here" 
+                <input
+                    type="text"
+                    placeholder="Search products here"
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -555,7 +563,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
                     <button className={styles.iconBtn} onClick={handlePrint} title="Print Report">
                         <FiPrinter />
@@ -565,8 +573,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Returns..." />
-            ) : filteredReturns.length === 0 ? (
-                <EmptyState 
+            ) : (filteredReturns.length === 0 && !hasFiltersApplied) ? (
+                <EmptyState
                     buttonText="Add Purchase Return"
                     onAddClick={onAddClick}
                 />
@@ -575,14 +583,14 @@ const PurchaseReturnList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    DATE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
                                         onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
                                     />
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -593,71 +601,71 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    REF NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    REF NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Ref no"
                                             currentMode={columnFilters.refNo.mode}
                                             currentValue={columnFilters.refNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, refNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    SUPPLIER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    SUPPLIER NAME
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.supplierName.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'supplierName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Supplier Name"
                                             currentMode={columnFilters.supplierName.mode}
                                             currentValue={columnFilters.supplierName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, supplierName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, supplierName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    Total Return Amount 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    Total Return Amount
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.totalAmount.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'totalAmount' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Return Amount"
                                             currentMode={columnFilters.totalAmount.mode}
                                             currentValue={columnFilters.totalAmount.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, totalAmount: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, totalAmount: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    TOTAL BALANCE AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
+                                <th style={{ position: 'relative' }}>
+                                    TOTAL BALANCE AMOUNT
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Balance Amount"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -665,13 +673,20 @@ const PurchaseReturnList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredReturns.map((r, idx) => (
+                            {filteredReturns.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className={styles.noDataCell}>
+                                        Applied filter has no data
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredReturns.map((r, idx) => (
                                 <tr key={idx}>
                                     <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                     <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
                                     <td>{r.supplierName || "N/A"}</td>
                                     <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
-                                    <td style={{ 
+                                    <td style={{
                                         fontWeight: '600',
                                         color: Number(r.balance) < 0 ? '#28a745' : (Number(r.balance) > 0 ? '#E9315D' : 'inherit')
                                     }}>
@@ -679,28 +694,28 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     </td>
                                     <td>
                                         <div className={styles.actions}>
-                                             <div style={{position: 'relative'}}>
-                                                <FiShare2 
-                                                    className={styles.actionIcon} 
+                                            <div style={{ position: 'relative' }}>
+                                                <FiShare2
+                                                    className={styles.actionIcon}
                                                     onClick={() => {
                                                         setSelectedReturn(r);
                                                         setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
                                                     }}
                                                 />
                                                 {isShareModalOpen === `share-${idx}` && (
-                                                    <ShareModal 
+                                                    <ShareModal
                                                         isOpen={true}
                                                         onClose={() => setIsShareModalOpen(false)}
                                                         data={r}
                                                     />
                                                 )}
                                             </div>
-                                            <div style={{position: 'relative'}}>
-                                                <FiMoreVertical 
-                                                    className={styles.actionIcon} 
+                                            <div style={{ position: 'relative' }}>
+                                                <FiMoreVertical
+                                                    className={styles.actionIcon}
                                                     onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
                                                 />
-                                                 {activeDropdown === idx && (
+                                                {activeDropdown === idx && (
                                                     <div className={styles.dropdownMenu}>
                                                         <div className={styles.dropdownItem} onClick={() => {
                                                             router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
@@ -729,7 +744,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>
@@ -747,9 +762,9 @@ const PurchaseReturnList = ({ onAddClick }) => {
             )}
 
             {isHistoryModalOpen && (
-                <HistoryModal 
-                    isOpen={isHistoryModalOpen} 
-                    onClose={() => setIsHistoryModalOpen(false)} 
+                <HistoryModal
+                    isOpen={isHistoryModalOpen}
+                    onClose={() => setIsHistoryModalOpen(false)}
                     data={selectedReturn}
                     userInfo={userInfo}
                 />

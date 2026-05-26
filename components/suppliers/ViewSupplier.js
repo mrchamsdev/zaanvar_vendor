@@ -28,6 +28,29 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         return types.join(" + ");
     };
 
+    const getDisplayReferenceNumber = (t) => {
+        const refs = [];
+        if (Array.isArray(t.paymentTypes)) {
+            t.paymentTypes.forEach(p => {
+                const ref = p.referenceNumber || p.refNo;
+                if (ref) refs.push(ref);
+            });
+        }
+        const mainRef = t.referenceNumber || t.refNo;
+        if (mainRef && !refs.includes(mainRef)) {
+            refs.push(mainRef);
+        }
+        if (Array.isArray(t.splitTransactions)) {
+            t.splitTransactions.forEach(st => {
+                const ref = st.referenceNumber || st.refNo;
+                if (ref && !refs.includes(ref)) {
+                    refs.push(ref);
+                }
+            });
+        }
+        return refs.length > 0 ? refs.join(", ") : "--";
+    };
+
     const getDisplayTotalAmount = (t) => {
         const mainAmount = parseFloat(t["paid amount"] || t.amount || 0);
         const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st["paid amount"] || st.amount || 0), 0);
@@ -140,6 +163,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Total amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Previous Paid amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Payment Type</th>
+                    <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Reference Number</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Paid amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600' }}>Balance amount</th>
                     <th style={{ padding: '14px', textAlign: 'left', fontSize: '11px', color: '#888', fontWeight: '600', width: '40px' }}></th>
@@ -147,13 +171,27 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
             </thead>
             <tbody>
                 {transactions.length === 0 ? (
-                    <tr><td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
+                    <tr><td colSpan="10" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No data available</td></tr>
                 ) : (
                     transactions.map((t, idx) => {
-                        const splitsList = [
-                            { paymentType: t.paymentType || "Cash", amount: t["paid amount"] || t.amount || t.amountPaidToSupplier || 0 },
-                            ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0 }))
-                        ];
+                        const splitsList = Array.isArray(t.paymentTypes) && t.paymentTypes.length > 0
+                            ? t.paymentTypes.map(p => ({
+                                paymentType: p.paymentType || "Cash",
+                                amount: p.amount || 0,
+                                referenceNumber: p.referenceNumber || p.refNo || ""
+                              }))
+                            : [
+                                { 
+                                    paymentType: t.paymentType || "Cash", 
+                                    amount: t["paid amount"] || t.amount || t.amountPaidToSupplier || 0,
+                                    referenceNumber: t.referenceNumber || t.refNo || ""
+                                },
+                                ...(t.splitTransactions || []).map(st => ({ 
+                                    paymentType: st.paymentType || "Cash", 
+                                    amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0,
+                                    referenceNumber: st.referenceNumber || st.refNo || ""
+                                }))
+                              ];
                         return (
                             <React.Fragment key={t.suppliersTransactionId || idx}>
                                 <tr style={{ borderTop: '1px solid #eee' }}>
@@ -173,6 +211,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayPaymentType(t)}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayReferenceNumber(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {getDisplayBalanceAmount(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>
@@ -194,6 +233,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>{split.paymentType}</td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}>{split.referenceNumber || "--"}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
@@ -295,8 +335,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                             <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                     <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{activeTab}</h3>
-                                    {transactions.length > 0 && (
-                                        <button style={{ 
+                                    <button style={{ 
                                             color: '#E9315D', 
                                             border: '1px solid #E9315D', 
                                             background: '#fff', 
@@ -308,7 +347,6 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                         }}>
                                             PAY NOW
                                         </button>
-                                    )}
                                 </div>
 
                                 {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}

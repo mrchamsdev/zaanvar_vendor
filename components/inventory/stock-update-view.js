@@ -100,95 +100,116 @@ const StockUpdateView = ({ stockId, onClose }) => {
     }
   }
 
-  return (
-    <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
+  const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || data.reason === "Open Stock" || data.reason === "openStock" || !data.sourceStatus);
+  const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold");
+
+  const openStockQuantity = data.variant?.stockUpdates?.openStockQuantity ?? data.stockUpdates?.openStockQuantity;
+  const qtyForSale = data.variant?.stockUpdates?.qtyForSale ?? data.stockUpdates?.qtyForSale;
+  const onHoldQuantity = data.variant?.stockUpdates?.onHoldQuantity ?? data.stockUpdates?.onHoldQuantity;
+
+  let baseQty = 0;
+  if (isHold && onHoldQuantity !== undefined && onHoldQuantity !== null) {
+      baseQty = onHoldQuantity;
+  } else if (openStockQuantity !== undefined && openStockQuantity !== null) {
+      baseQty = openStockQuantity;
+  } else if (qtyForSale !== undefined && qtyForSale !== null) {
+      baseQty = qtyForSale;
+  } else {
+      baseQty = data.updatedQty || 0;
+  }
+
+  const displayUpdatedQty = baseQty;
+  const displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
+
+      return (
+        <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
 
 
-      {/* Branch Address Card (Premium Style like Screenshot) */}
-      <div style={{
-        background: '#f8f9fa',
-        borderRadius: '12px',
-        padding: '24px 32px',
-        marginBottom: '32px',
-        border: '1px solid #eee'
-      }}>
-        <div style={{ color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px' }}>Branch Details</div>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>{data.branch?.name || "Main Branch"}</div>
-        <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
-          {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
-          <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
+          {/* Branch Address Card (Premium Style like Screenshot) */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '24px 32px',
+            marginBottom: '32px',
+            border: '1px solid #eee'
+          }}>
+            <div style={{ color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px' }}>Branch Details</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>{data.branch?.name || "Main Branch"}</div>
+            <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
+              {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
+              <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
+            </div>
+          </div>
+
+          {/* Details Table */}
+          <div className={styles.viewSectionTitle}>Update Details</div>
+          <div className={styles.viewTableWrapper}>
+            <table className={styles.viewTable}>
+              <thead>
+                <tr>
+                  <th>Updated Date</th>
+                  <th>Product Name</th>
+                  <th>Product Code</th>
+                  <th>Variants</th>
+                  <th>Source Status</th>
+                  <th>Current Qty</th>
+                  <th>Add</th>
+                  <th>Remove</th>
+                  <th>Updated Qty</th>
+                  <th>Reason</th>
+                  <th>Exp. Date</th>
+                  <th>Cost Price</th>
+                  <th style={{ textAlign: 'right' }}>Total (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{formatDate(data.createdDate)}</td>
+                  <td style={{ fontWeight: 700, textTransform: 'uppercase' }}>{productName}</td>
+                  <td>{productCode}</td>
+                  <td>{displayVariant}</td>
+                  <td style={{ fontWeight: 600, color: '#34495e' }}>
+                    {(data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : "-")))}
+                  </td>
+                  <td style={{ fontWeight: 600, background: '#f9f9f9' }}>{displayCurrentQty}</td>
+                  <td style={{ color: '#27ae60', fontWeight: 700 }}>{data.add > 0 ? `+${data.add}` : "0"}</td>
+                  <td style={{ color: '#e74c3c', fontWeight: 700 }}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
+                  <td style={{ fontWeight: 700 }}>{displayUpdatedQty}</td>
+                  <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
+                  <td>{data.billItem?.expiryDate || "------"}</td>
+                  <td>₹{data.billItem?.costPrice || "0"}</td>
+                  <td style={{
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
+                  }}>
+                    {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}`}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Total Section Footer */}
+          <div style={{
+            marginTop: '32px',
+            paddingTop: '20px',
+            borderTop: '1px solid #eee',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#333' }}>TOTAL SURPLUS</div>
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 700,
+              color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
+            }}>
+              {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}`}
+            </div>
+          </div>
         </div>
-      </div>
+      );
+    };
 
-      {/* Details Table */}
-      <div className={styles.viewSectionTitle}>Update Details</div>
-      <div className={styles.viewTableWrapper}>
-        <table className={styles.viewTable}>
-          <thead>
-            <tr>
-              <th>Updated Date</th>
-              <th>Product Name</th>
-              <th>Product Code</th>
-              <th>Variants</th>
-              <th>Source Status</th>
-              <th>Current Qty</th>
-              <th>Add</th>
-              <th>Remove</th>
-              <th>Updated Qty</th>
-              <th>Reason</th>
-              <th>Exp. Date</th>
-              <th>Cost Price</th>
-              <th style={{ textAlign: 'right' }}>Total (₹)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{formatDate(data.createdDate)}</td>
-              <td style={{ fontWeight: 700, textTransform: 'uppercase' }}>{productName}</td>
-              <td>{productCode}</td>
-              <td>{displayVariant}</td>
-              <td style={{ fontWeight: 600, color: '#34495e' }}>
-                {(data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : "-")))}
-              </td>
-              <td style={{ fontWeight: 600, background: '#f9f9f9' }}>{data.currentQty}</td>
-              <td style={{ color: '#27ae60', fontWeight: 700 }}>{data.add > 0 ? `+${data.add}` : "0"}</td>
-              <td style={{ color: '#e74c3c', fontWeight: 700 }}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
-              <td style={{ fontWeight: 700 }}>{data.updatedQty}</td>
-              <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
-              <td>{data.billItem?.expiryDate || "------"}</td>
-              <td>₹{data.billItem?.costPrice || "0"}</td>
-              <td style={{
-                textAlign: 'right',
-                fontWeight: 700,
-                color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
-              }}>
-                {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 0).toLocaleString()}`}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Total Section Footer */}
-      <div style={{
-        marginTop: '32px',
-        paddingTop: '20px',
-        borderTop: '1px solid #eee',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#333' }}>TOTAL SURPLUS</div>
-        <div style={{
-          fontSize: '24px',
-          fontWeight: 700,
-          color: (data.totalValue || 0) >= 0 ? '#27ae60' : '#e74c3c'
-        }}>
-          {(data.totalValue || 0) >= 0 ? `+ ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}` : `- ₹ ${Math.abs(data.totalValue || 1000).toLocaleString()}`}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default StockUpdateView;
+    export default StockUpdateView;

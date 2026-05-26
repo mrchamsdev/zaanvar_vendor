@@ -50,7 +50,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const [supplierPhone, setSupplierPhone] = useState(initialData?.supplierPhone || "");
     const [orderDate, setOrderDate] = useState(initialData?.orderDate || toApiDateOnly(new Date()));
     const [items, setItems] = useState(initialData?.items || [
-        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: "", mrp: 0 }
+        { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: "", costPrice: "", mrp: 0 }
     ]);
 
     const [formErrors, setFormErrors] = useState({});
@@ -165,7 +165,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: 0, costPrice: "" }]);
+        setItems([...items, { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: "", costPrice: "" }]);
     };
 
     const removeItem = (id) => {
@@ -176,11 +176,11 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
     const updateItem = (index, field, value) => {
         let finalValue = value;
-        // For numeric fields, strip leading zero if it's followed by a digit (prevents "02", "05" etc.)
+        // For numeric fields, strip leading zeros (prevents "02", "05" etc.)
         const numericFields = ["orderQty", "costPrice", "mrp"];
         if (numericFields.includes(field)) {
             if (typeof value === "string" && value.length > 1 && value.startsWith("0") && value[1] !== ".") {
-                finalValue = value.slice(1);
+                finalValue = value.replace(/^0+/, '') || "";
             }
         }
 
@@ -545,8 +545,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 <td>
                                     <input 
                                         className={`${styles.qtyInput} ${formErrors.items?.[index]?.orderQty ? styles.errorField : ""}`} 
-                                        type="number" 
-                                        value={item.orderQty} 
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={item.orderQty === 0 ? "" : item.orderQty} 
                                         onChange={(e) => updateItem(index, "orderQty", e.target.value)}
                                     />
                                     {formErrors.items?.[index]?.orderQty && (

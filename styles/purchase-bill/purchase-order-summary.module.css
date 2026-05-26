@@ -117,6 +117,13 @@
     margin-top: 4px;
 }
 
+.billNumber {
+    font-size: 13px;
+    font-weight: 400;
+    color: #1a1a1a;
+    margin-top: 4px;
+}
+
 .addressSection {
     display: flex;
     gap: 100px;
