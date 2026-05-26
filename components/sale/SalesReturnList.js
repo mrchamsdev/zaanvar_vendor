@@ -1,6 +1,6 @@
 import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -27,7 +27,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -88,8 +88,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const inRange = isInRange(day);
                     const today = isToday(day);
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${today ? styles.today : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -118,8 +118,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -133,28 +133,28 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                 </div>
             ) : (
                 <>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>Select Category</span>
-                    <div className={styles.categorySelect} style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px'}} onClick={() => setShowOptions(true)}>
+                    <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '6px' }}>Select Category</span>
+                    <div className={styles.categorySelect} style={{ marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px' }} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
-                        style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', width: '100%', boxSizing: 'border-box'}}
+                    <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '6px' }}>{label}</span>
+                    <input
+                        type="text"
+                        className={styles.dateInput}
+                        style={{ marginBottom: '12px', padding: '8px 10px', fontSize: '13px', width: '100%', boxSizing: 'border-box' }}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                     />
 
-                    <div className={styles.modalActions} style={{marginTop: '4px', gap: '8px'}}>
-                        <button className={styles.clearBtn} style={{padding: '8px', fontSize: '13px'}} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                    <div className={styles.modalActions} style={{ marginTop: '4px', gap: '8px' }}>
+                        <button className={styles.clearBtn} style={{ padding: '8px', fontSize: '13px' }} onClick={() => {
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
-                        <button className={styles.applyBtn} style={{padding: '8px', fontSize: '13px'}} onClick={handleApply}>Apply</button>
+                        <button className={styles.applyBtn} style={{ padding: '8px', fontSize: '13px' }} onClick={handleApply}>Apply</button>
                     </div>
                 </>
             )}
@@ -190,8 +190,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -205,54 +205,54 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                 </div>
             ) : (
                 <>
-                    <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '6px'}}>Select Category</span>
-                    <div className={styles.categorySelect} style={{marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px'}} onClick={() => setShowOptions(true)}>
+                    <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '6px' }}>Select Category</span>
+                    <div className={styles.categorySelect} style={{ marginBottom: '12px', padding: '8px 10px', fontSize: '13px', minHeight: '34px' }} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
                         <>
-                            <div className={styles.dateInputContainer} style={{marginBottom: '10px'}}>
-                                <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>From</span>
+                            <div className={styles.dateInputContainer} style={{ marginBottom: '10px' }}>
+                                <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '4px' }}>From</span>
                                 <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('from')}>
-                                    <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                    <div className={styles.dateInput} style={{ padding: '6px 10px', minHeight: '34px', fontSize: '12px' }}>
                                         {formatDateForDisplay(dates.from)}
                                     </div>
-                                    <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                    <FiCalendar className={styles.calendarIconOverlay} style={{ fontSize: '14px', right: '10px' }} />
                                 </div>
                             </div>
-                            <div className={styles.dateInputContainer} style={{marginBottom: '12px'}}>
-                                <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>To</span>
+                            <div className={styles.dateInputContainer} style={{ marginBottom: '12px' }}>
+                                <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '4px' }}>To</span>
                                 <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('to')}>
-                                    <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                    <div className={styles.dateInput} style={{ padding: '6px 10px', minHeight: '34px', fontSize: '12px' }}>
                                         {formatDateForDisplay(dates.to)}
                                     </div>
-                                    <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                    <FiCalendar className={styles.calendarIconOverlay} style={{ fontSize: '14px', right: '10px' }} />
                                 </div>
                             </div>
                         </>
                     ) : (
-                        <div className={styles.dateInputContainer} style={{marginBottom: '12px'}}>
-                            <span className={styles.modalLabel} style={{fontSize: '11px', marginBottom: '4px'}}>Select Date</span>
+                        <div className={styles.dateInputContainer} style={{ marginBottom: '12px' }}>
+                            <span className={styles.modalLabel} style={{ fontSize: '11px', marginBottom: '4px' }}>Select Date</span>
                             <div className={styles.dateInputWrapper} onClick={() => setShowCalendar('single')}>
-                                <div className={styles.dateInput} style={{padding: '6px 10px', minHeight: '34px', fontSize: '12px'}}>
+                                <div className={styles.dateInput} style={{ padding: '6px 10px', minHeight: '34px', fontSize: '12px' }}>
                                     {formatDateForDisplay(dates.single)}
                                 </div>
-                                <FiCalendar className={styles.calendarIconOverlay} style={{fontSize: '14px', right: '10px'}} />
+                                <FiCalendar className={styles.calendarIconOverlay} style={{ fontSize: '14px', right: '10px' }} />
                             </div>
                         </div>
                     )}
 
                     {showCalendar && (
                         <div style={{
-                            position: 'absolute', 
-                            top: '0', 
-                            left: '105%', 
+                            position: 'absolute',
+                            top: '0',
+                            left: '105%',
                             zIndex: 3000,
                             minWidth: '280px'
                         }}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -272,13 +272,13 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                         </div>
                     )}
 
-                    <div className={styles.modalActions} style={{marginTop: '4px', gap: '8px'}}>
-                        <button className={styles.clearBtn} style={{padding: '8px', fontSize: '13px'}} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                    <div className={styles.modalActions} style={{ marginTop: '4px', gap: '8px' }}>
+                        <button className={styles.clearBtn} style={{ padding: '8px', fontSize: '13px' }} onClick={() => {
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
-                        <button className={styles.applyBtn} style={{padding: '8px', fontSize: '13px'}} onClick={handleApply}>Apply</button>
+                        <button className={styles.applyBtn} style={{ padding: '8px', fontSize: '13px' }} onClick={handleApply}>Apply</button>
                     </div>
                 </>
             )}
@@ -319,6 +319,14 @@ const SalesReturnList = ({ onAddClick }) => {
         received: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
     });
+
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value)
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
 
     useEffect(() => {
         if (router.query.branchId) {
@@ -410,27 +418,27 @@ const SalesReturnList = ({ onAddClick }) => {
 
     const filteredReturns = returns.filter(r => {
         const rDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
-        rDate.setHours(0,0,0,0);
+        rDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = rDate.getTime() === target.getTime();
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = rDate.getTime() < target.getTime();
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
                 const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
+                target.setHours(0, 0, 0, 0);
                 matchesDate = rDate.getTime() > target.getTime();
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
                 const start = new Date(dateFilterValues.from);
                 const end = new Date(dateFilterValues.to);
-                start.setHours(0,0,0,0);
-                end.setHours(23,59,59,999);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
                 matchesDate = rDate >= start && rDate <= end;
             }
         } else {
@@ -444,7 +452,7 @@ const SalesReturnList = ({ onAddClick }) => {
         const refNo = `SR-${r.customerReturnId}`;
 
         const matchesSearch = customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             refNo.toLowerCase().includes(searchTerm.toLowerCase());
+            refNo.toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(col => {
@@ -463,7 +471,7 @@ const SalesReturnList = ({ onAddClick }) => {
                 if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
             }
         });
-        
+
         return matchesDate && matchesSearch && matchesColFilters;
     });
 
@@ -474,7 +482,7 @@ const SalesReturnList = ({ onAddClick }) => {
             let label = `Date: ${dateFilterMode}`;
             if (dateFilterValues?.single) label += ` ${new Date(dateFilterValues.single).toLocaleDateString('en-GB')}`;
             if (dateFilterValues?.from) label += ` ${new Date(dateFilterValues.from).toLocaleDateString('en-GB')} - ${new Date(dateFilterValues.to).toLocaleDateString('en-GB')}`;
-            
+
             chips.push({
                 id: 'date',
                 label,
@@ -531,7 +539,7 @@ const SalesReturnList = ({ onAddClick }) => {
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement("a");
         link.setAttribute("href", url);
         link.setAttribute("download", `Sales_Return_Report_${toApiDateOnly(new Date())}.csv`);
@@ -546,18 +554,18 @@ const SalesReturnList = ({ onAddClick }) => {
                 <div className={styles.filterGroup}>
                     <span className={styles.filterLabel}>Filter by :</span>
                     <div className={styles.customSelectWrapper}>
-                        <div 
+                        <div
                             className={styles.customSelectHeader}
                             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                         >
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
                                 {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
-                                    <div 
-                                        key={opt} 
+                                    <div
+                                        key={opt}
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
                                         onClick={() => {
                                             handleFilterChange(opt);
@@ -571,17 +579,17 @@ const SalesReturnList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
-                    <div 
-                        className={styles.dateDisplay} 
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
+                    <div
+                        className={styles.dateDisplay}
                         onClick={() => setShowCustomPicker(!showCustomPicker)}
                     >
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
@@ -597,22 +605,20 @@ const SalesReturnList = ({ onAddClick }) => {
 
             <div className={styles.searchBar}>
                 <FiSearch className={styles.searchIcon} />
-                <input 
-                    type="text" 
-                    className={styles.searchInput} 
-                    placeholder="Search products here" 
+                <input
+                    type="text"
+                    className={styles.searchInput}
+                    placeholder="Search products here"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
 
-            {renderAppliedFilters()}
-
             <div className={styles.transactionsHeader}>
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
                     <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
                         <FiPrinter />
@@ -622,8 +628,8 @@ const SalesReturnList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Returns..." />
-            ) : filteredReturns.length === 0 ? (
-                <EmptyState 
+            ) : (filteredReturns.length === 0 && !hasFiltersApplied) ? (
+                <EmptyState
                     buttonText="Add Sales Return"
                     onAddClick={onAddClick}
                 />
@@ -632,14 +638,14 @@ const SalesReturnList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                 <th style={{ position: 'relative' }}>
+                                     DATE
+                                     <FiFilter
+                                         className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                         onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                     />
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -650,71 +656,71 @@ const SalesReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    REF NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                 <th style={{ position: 'relative' }}>
+                                     REF NO
+                                     <FiFilter
+                                         className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
+                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                     />
                                     {openFilterCol === 'refNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Ref No"
                                             currentMode={columnFilters.refNo.mode}
                                             currentValue={columnFilters.refNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, refNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    CUSTOMER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
-                                    />
+                                 <th style={{ position: 'relative' }}>
+                                     CUSTOMER NAME
+                                     <FiFilter
+                                         className={`${styles.filterIcon} ${columnFilters.customerName.value ? styles.filterIconActive : ''}`}
+                                         onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
+                                     />
                                     {openFilterCol === 'customerName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Customer Name"
                                             currentMode={columnFilters.customerName.mode}
                                             currentValue={columnFilters.customerName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, customerName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, customerName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    TOTAL SALE RETURN AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
-                                    />
+                                 <th style={{ position: 'relative' }}>
+                                     TOTAL SALE RETURN AMOUNT
+                                     <FiFilter
+                                         className={`${styles.filterIcon} ${columnFilters.received.value ? styles.filterIconActive : ''}`}
+                                         onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
+                                     />
                                     {openFilterCol === 'received' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Sale Return Amount"
                                             currentMode={columnFilters.received.mode}
                                             currentValue={columnFilters.received.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, received: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, received: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    TOTAL BALANCE AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                 <th style={{ position: 'relative' }}>
+                                     TOTAL BALANCE AMOUNT
+                                     <FiFilter
+                                         className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
+                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                     />
                                     {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total balance amount"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -722,19 +728,26 @@ const SalesReturnList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredReturns.map((r, idx) => (
+                            {filteredReturns.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className={styles.noDataCell}>
+                                        Applied filter has no data
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredReturns.map((r, idx) => (
                                 <tr key={idx}>
                                     <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                     <td>SR-{r.customerReturnId}</td>
                                     <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
-                                    <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ color: Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
-                                        {Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        {Number(totals.find(t => t.vendorCustomerId === r.vendorCustomerId)?.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                     <td>
                                         <div className={styles.actions}>
                                             <FiShare2 className={styles.actionIcon} />
-                                            <div style={{position: 'relative'}}>
+                                            <div style={{ position: 'relative' }}>
                                                 <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                 {activeDropdown === idx && (
                                                     <div className={styles.dropdownMenu}>
@@ -757,7 +770,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>

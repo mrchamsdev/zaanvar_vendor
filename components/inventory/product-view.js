@@ -27,6 +27,27 @@ const ProductView = ({ data, onBack, isSplit }) => {
     return status;
   };
 
+  const getVariantTypeDisplay = (bill) => {
+    const rawSizeVal = bill.variant?.variantType?.size || bill.variant?.size || "";
+    const rawSize = (rawSizeVal && rawSizeVal.toString().toUpperCase() !== "N/A" && rawSizeVal !== "undefined") ? rawSizeVal : "";
+    let parsedSize = null;
+    if (typeof rawSize === 'string' && rawSize.trim().startsWith('{')) {
+        try { parsedSize = JSON.parse(rawSize); } catch (e) {}
+    }
+    
+    if (parsedSize) {
+        const parts = [];
+        if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
+        if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
+        if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
+        if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
+        if (parsedSize.weight) parts.push(`${parsedSize.weight}${parsedSize.weightUnit || 'g'}`);
+        return parts.length > 0 ? parts.join(" x ") : "-";
+    }
+    
+    return rawSize || "-";
+  };
+
   // Flatten the category for display
   const renderList = (arr) => {
     if (!arr) return "-";
@@ -271,6 +292,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       <th>Order No</th>
                       <th>Product Bill ID</th>
                       <th>Supplier Name</th>
+                      <th>Variant Type</th>
                       <th>MRP</th>
                       <th>Cost Price</th>
                       <th>ORDERED</th>
@@ -286,6 +308,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                         <td>#{bill.productsPurchaseRqstId || bill.productsBillId}</td>
                         <td>{bill.productsBillId || "-"}</td>
                         <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
+                        <td>{getVariantTypeDisplay(bill)}</td>
                         <td>₹{bill.mrp}</td>
                         <td>₹{bill.costPrice}</td>
                         <td>{bill.qty}</td>

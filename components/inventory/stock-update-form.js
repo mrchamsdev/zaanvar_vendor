@@ -167,6 +167,27 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             const response = await productService.getStockUpdateById(jwtToken, initialId);
             const data = response?.data?.data || response?.data || response;
             if (data) {
+                const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || data.reason === "Open Stock" || data.reason === "openStock");
+                const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold");
+
+                const openStockQuantity = data.variant?.stockUpdates?.openStockQuantity ?? data.stockUpdates?.openStockQuantity;
+                const qtyForSale = data.variant?.stockUpdates?.qtyForSale ?? data.stockUpdates?.qtyForSale;
+                const onHoldQuantity = data.variant?.stockUpdates?.onHoldQuantity ?? data.stockUpdates?.onHoldQuantity;
+
+                let baseQty = 0;
+                if (isHold && onHoldQuantity !== undefined && onHoldQuantity !== null) {
+                    baseQty = onHoldQuantity;
+                } else if (openStockQuantity !== undefined && openStockQuantity !== null) {
+                    baseQty = openStockQuantity;
+                } else if (qtyForSale !== undefined && qtyForSale !== null) {
+                    baseQty = qtyForSale;
+                } else {
+                    baseQty = data.updatedQty || 0;
+                }
+
+                let updatedQtyVal = baseQty;
+                let currentQtyVal = updatedQtyVal - (data.add || 0) + (data.remove || 0);
+
                 // Map API response to form row using correct keys from StockUpdateView
                 const mappedRow = {
                     id: data.stockUpdateId,
@@ -174,12 +195,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     productName: data.product?.productName || data.itemName,
                     productCode: data.product?.ProductCode || data.productCode || data.product?.productCode,
                     variantId: parseInt(data.variantId || data.variant?.variantId),
-                    sourceStatus: (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : ""))),
+                    sourceStatus: isOS ? "Open Stock" : (isHold ? "Hold Qty" : ""),
                     batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
-                    currentQty: data.currentQty || 0,
+                    currentQty: currentQtyVal,
                     add: data.add || 0,
                     remove: data.remove || 0,
-                    updatedQty: data.updatedQty || ((data.currentQty || 0) + (data.add || 0) - (data.remove || 0)),
+                    updatedQty: updatedQtyVal,
                     reason: data.reason,
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,

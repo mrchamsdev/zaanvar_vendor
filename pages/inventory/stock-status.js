@@ -96,10 +96,13 @@ const StockStatusPage = () => {
           lowStock: res.lowStock || [],
           expired: res.expiredProducts || res.expired || [],
           shortExpiry: res.shortExpiry || [],
-          damaged: (res.damageProducts || res.customerDamagedReturns || []).map(item => ({ 
+          damaged: [
+              ...(res.damageProducts || []),
+              ...(res.customerDamagedReturns || [])
+          ].map(item => ({ 
               ...item, 
-              type: 'customerReturn',
-              displayQty: item.damagedQty || 0
+              type: item.source === 'stock_update' ? 'stock_update' : 'customerReturn',
+              displayQty: item.damagedQty ?? item.qty ?? 0
           }))
         });
         if (res.counts) {
@@ -110,7 +113,7 @@ const StockStatusPage = () => {
             lowStock: res.lowStock?.length || 0,
             expiredProducts: (res.expiredProducts || res.expired)?.length || 0,
             shortExpiry: res.shortExpiry?.length || 0,
-            damageProducts: (res.damageProducts || res.customerDamagedReturns || []).length
+            damageProducts: (res.damageProducts || []).length + (res.customerDamagedReturns || []).length
           });
         }
       }
@@ -329,7 +332,7 @@ const StockStatusPage = () => {
                 <span className={activeTab === "expired" ? styles.statusExpired : styles.statusDamaged}>
                     <div className={styles.statusText}>
                         <IconAlert /> 
-                        {activeTab === "expired" ? "Expired" : "Customer Return"}
+                        {activeTab === "expired" ? "Expired" : (item.source === "stock_update" ? "Stock Update" : "Customer Return")}
                     </div>
                 </span>
               </td>
@@ -357,22 +360,22 @@ const StockStatusPage = () => {
                           🏷 Mark Waste
                       </button>
                   ) : (
-                      <>
-                            {item.consumptionId && (
-                                <button 
-                                  className={`${styles.actionBtn} ${styles.restockBtn}`}
-                                  onClick={() => handleRestore(item.consumptionId)}
-                                >
-                                  <IconRefresh /> Restore
-                                </button>
-                            )}
-                            <button 
-                               className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                               onClick={() => handleMarkWaste(item.consumptionId)}
-                            >
-                               🏷 Mark Waste
-                            </button>
-                      </>
+                       <>
+                             <button 
+                                className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                                onClick={() => handleMarkWaste(item.consumptionId)}
+                             >
+                                🏷 Mark Waste
+                             </button>
+                             {item.consumptionId && (
+                                 <button 
+                                   className={`${styles.actionBtn} ${styles.restockBtn}`}
+                                   onClick={() => handleRestore(item.consumptionId)}
+                                 >
+                                   <IconRefresh /> Restore
+                                 </button>
+                             )}
+                       </>
                   )}
               </div>
             </td>
@@ -461,7 +464,8 @@ const StockStatusPage = () => {
                             row.splice(2, 0, `${days} DAYS`);
                         }
                     } else if (activeTab === "damaged") {
-                        row = [pName, unit, qty, "Damaged"];
+                        const statusVal = item.source === "stock_update" ? "Stock Update" : "Customer Return";
+                        row = [pName, unit, qty, statusVal];
                     }
                     csvRows.push(row.join(","));
                 });
@@ -517,7 +521,7 @@ const StockStatusPage = () => {
                     value={rowsPerPage}
                     onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                   >
-                    {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                    {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredList.length)} - {Math.min(currentPage * rowsPerPage, filteredList.length)} of {filteredList.length} Items</span>
                 </div>

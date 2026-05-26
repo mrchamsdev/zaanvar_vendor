@@ -30,7 +30,8 @@ const SupplierList = ({
   onEdit, 
   onDelete,
   onBulkDelete,
-  onAddClick
+  onAddClick,
+  searchTerm = ""
 }) => {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -51,10 +52,40 @@ const SupplierList = ({
           </table>
         </div>
       ) : suppliers.length === 0 ? (
-        <EmptyState 
-          buttonText="Add Supplier"
-          onAddClick={onAddClick}
-        />
+        searchTerm ? (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>
+                    <input 
+                      type="checkbox" 
+                      className={styles.checkbox}
+                      disabled
+                    />
+                  </th>
+                  <th>Supplier ID</th>
+                  <th>Supplier Type</th>
+                  <th>Supplier Name</th>
+                  <th>Branch Assigned</th>
+                  <th>Total Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: 40, color: '#666', fontWeight: 500 }}>
+                    The search you entered is not matching to any supplier
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState 
+            buttonText="Add Supplier"
+            onAddClick={onAddClick}
+          />
+        )
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
@@ -112,7 +143,7 @@ const SupplierList = ({
             <div className={styles.rowsPerPage}>
               Rows per Page
               <select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
-                {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
               <span>
                 {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, suppliers.length)} of {suppliers.length} Items

@@ -353,7 +353,7 @@ const ProductsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search products here"
+                placeholder="Search products by product code or product name"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />

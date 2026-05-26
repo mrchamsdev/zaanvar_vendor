@@ -83,7 +83,8 @@
 }
 
 .inputField input:focus,
-.inputField select:focus {
+.inputField select:focus,
+.inputField textarea:focus {
   border-color: #E9315D;
 }
 
@@ -163,11 +164,17 @@
   height: 44px;
   /* Same as others */
   box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.dimInputGroup:focus-within {
+  border-color: #E9315D;
 }
 
 .dimInputGroup input {
   flex: 1;
   border: none !important;
+  outline: none !important;
   padding: 10px 12px;
   /* Adjusted for 44px height */
   font-size: 14px;
@@ -177,6 +184,7 @@
 
 .dimInputGroup select {
   border: none !important;
+  outline: none !important;
   background: #eee;
   padding: 0 24px 0 8px;
   font-size: 13px;

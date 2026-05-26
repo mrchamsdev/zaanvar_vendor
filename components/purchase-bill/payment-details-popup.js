@@ -10,6 +10,7 @@ import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-
 const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
     
     // Global States
     const [amountPaidDate, setAmountPaidDate] = useState(toApiDateOnly(new Date()));
@@ -18,33 +19,34 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [imagePreview, setImagePreview] = useState(null);
 
     // Multi-payment state
-    const [masterTarget, setMasterTarget] = useState(0);
+    const [masterTarget, setMasterTarget] = useState("");
     const [payments, setPayments] = useState([{
-        amountPaid: "0",
+        amountPaid: "",
         paymentType: "Cash",
         referenceNumber: "",
         id: Date.now()
     }]);
 
     const sessionTotal = payments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
-    const isOverTarget = sessionTotal > masterTarget;
+    const isOverTarget = sessionTotal > (Number(masterTarget) || 0);
+    const hasMismatch = Number(masterTarget) > 0 && sessionTotal > 0 && Math.abs(sessionTotal - Number(masterTarget)) > 0.01;
 
     // Calculated / Read-only values from props
     const totalAmount = data.totalAmount || 0;
     const previousPaidAmount = data.previousPaidAmount || 0;
     
     const initialBalance = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : totalAmount;
-    const balanceAmount = Math.max(0, initialBalance - masterTarget);
-    const totalAmountPaid = previousPaidAmount + masterTarget;
+    const balanceAmount = Math.max(0, initialBalance - (Number(masterTarget) || 0));
+    const totalAmountPaid = previousPaidAmount + (Number(masterTarget) || 0);
 
     const today = toApiDateOnly(new Date());
 
     useEffect(() => {
         if (isOpen && data) {
-            const initialBal = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : (data.totalAmount || 0);
-            setMasterTarget(initialBal);
+            setIsSubmitted(false);
+            setMasterTarget("");
             setPayments([{
-                amountPaid: String(initialBal),
+                amountPaid: "",
                 paymentType: "Cash",
                 referenceNumber: "",
                 id: Date.now()
@@ -70,8 +72,12 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const handlePaymentChange = (id, field, value) => {
         let cleanedValue = value;
         if (field === "amountPaid") {
+            // Allow only numbers and decimal point
+            cleanedValue = value.replace(/[^0-9.]/g, '');
+            const parts = cleanedValue.split('.');
+            if (parts.length > 2) return;
             // Remove leading zero unless it's followed by a decimal point
-            cleanedValue = value.replace(/^0+(?=\d)/, '');
+            cleanedValue = cleanedValue.replace(/^0+(?=\d)/, '');
         }
         setPayments(payments.map(p => p.id === id ? { ...p, [field]: cleanedValue } : p));
     };
@@ -89,19 +95,18 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     };
 
     const handleSave = async () => {
-        if (Number(masterTarget) <= 0) {
-            toast.error("Please enter a valid Total Amount Paid");
+        setIsSubmitted(true);
+
+        if (!masterTarget || Number(masterTarget) <= 0) {
             return;
         }
 
         const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
         if (validPayments.length === 0) {
-            toast.error("Please enter at least one valid payment amount");
             return;
         }
 
         if (Math.abs(sessionTotal - Number(masterTarget)) > 0.01) {
-            toast.error(`The sum of payments (₹ ${sessionTotal}) does not match the Total Amount Paid (₹ ${masterTarget})`);
             return;
         }
 
@@ -202,7 +207,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                         </div>
                         <div className={styles.field}>
-                            <label>Total Amount Paid</label>
+                            <label>Total Amount Paid *</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input 
@@ -211,10 +216,17 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     value={masterTarget}
                                     onChange={(e) => {
                                         const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        setMasterTarget(val === "" ? 0 : Number(val));
+                                        const parts = val.split('.');
+                                        if (parts.length > 2) return;
+                                        setMasterTarget(val);
                                     }}
                                 />
                             </div>
+                            {isSubmitted && (!masterTarget || Number(masterTarget) <= 0) && (
+                                <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
+                                    Total Amount Paid is required
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -250,20 +262,30 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             </select>
                         </div>
                         <div className={styles.field}>
-                            <label>Amount Paid</label>
+                            <label>Amount Paid *</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input 
                                     type="text" 
+                                    placeholder="0"
                                     value={payments[0].amountPaid} 
                                     onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
                                 />
                             </div>
-                            {isOverTarget && payments.length === 1 && (
-                                <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    Amount paid can not excceded total amount paid
+                            {isSubmitted && !payments.some(p => Number(p.amountPaid) > 0) && (
+                                <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
+                                    Amount Paid is required
                                 </div>
                             )}
+                            {isOverTarget && payments.length === 1 ? (
+                                <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
+                                    Amount paid can not exceeded total amount paid
+                                </div>
+                            ) : (hasMismatch && payments.length === 1 && (
+                                <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
+                                    The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -301,7 +323,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                                 <div className={styles.field}>
                                     <div className={styles.labelWithAction}>
-                                        <label>Amount Paid</label>
+                                        <label>Amount Paid *</label>
                                         <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
                                             <FiTrash2 />
                                         </button>
@@ -309,17 +331,21 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     <div className={styles.inputWrapper}>
                                         <span className={styles.prefix}>₹</span>
                                         <input 
-                                            type="number" 
+                                            type="text" 
                                             placeholder="0" 
                                             value={p.amountPaid}
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
                                         />
                                     </div>
-                                    {isOverTarget && idx === payments.length - 2 && (
+                                    {isOverTarget && idx === payments.length - 2 ? (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            Amount paid can not excceded total amount paid
+                                            Amount paid can not exceeded total amount paid
                                         </div>
-                                    )}
+                                    ) : (hasMismatch && idx === payments.length - 2 && (
+                                        <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
+                                            The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                             {getReferenceLabel(p.paymentType) && (
@@ -382,7 +408,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 </div>
 
                 <div className={styles.footer}>
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading || isOverTarget}>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading || isOverTarget || hasMismatch}>
                         {loading ? "Saving..." : "Save"}
                     </button>
                 </div>
