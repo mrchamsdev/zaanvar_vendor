@@ -19,7 +19,9 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
     const [customers, setCustomers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-    
+    const [errors, setErrors] = useState({});
+    const [formError, setFormError] = useState('');
+
     const [formData, setFormData] = useState({
         vendorCustomerId: "",
         partyName: "",
@@ -32,7 +34,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
     });
 
     const [payments, setPayments] = useState([
-        { method: "Cash", amount: "" }
+        { method: "Cash", amount: "", referenceNumber: "" }
     ]);
 
     useEffect(() => {
@@ -59,15 +61,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
     }, [showCustomerDropdown]);
 
     useEffect(() => {
-        if (!loading && isOpen && mode === 'view' && router.query.print === 'true') {
-            const timer = setTimeout(() => {
-                window.print();
-                const { print, ...rest } = router.query;
-                router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
-            }, 1000);
-            return () => clearTimeout(timer);
+        // Reset errors when modal is closed or mode changes to view
+        if (!isOpen) {
+            setErrors({});
+            setFormError('');
         }
-    }, [loading, isOpen, mode, router.query.print]);
+    }, [isOpen, mode]);
+
 
     const fetchCustomers = async () => {
         try {
@@ -85,7 +85,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         try {
             // Try fetching as a payment record first (since the list now provides paymentId)
             let res = await saleService.getPaymentById(jwtToken, paymentId);
-            
+
             // Fallback to order details if payment fetch fails
             if (res.status === "error" || !res.data) {
                 res = await saleService.getSaleInvoiceById(jwtToken, paymentId);
@@ -94,7 +94,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
             if (res.status === "success" && res.data) {
                 const data = res.data;
                 const isPayment = !!data.paymentId;
-                
+
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
@@ -105,16 +105,18 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     description: data.description || "",
                     image: null
                 });
-                
+
                 if (data.paymentMethods && data.paymentMethods.length > 0) {
                     setPayments(data.paymentMethods.map(pm => ({
                         method: pm.paymentMethod || "Cash",
-                        amount: pm.amount || ""
+                        amount: pm.amount || "",
+                        referenceNumber: pm.referenceNumber || pm.transactionRef || ""
                     })));
                 } else {
-                    setPayments([{ 
-                        method: data.paymentMethod || "Cash", 
-                        amount: isPayment ? (data.amount || "") : (data.paidAmount || "") 
+                    setPayments([{
+                        method: data.paymentMethod || "Cash",
+                        amount: isPayment ? (data.amount || "") : (data.paidAmount || ""),
+                        referenceNumber: isPayment ? (data.referenceNumber || data.transactionRef || "") : ""
                     }]);
                 }
                 setSearchTerm(data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`);
@@ -137,13 +139,14 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
             description: "",
             image: null
         });
-        setPayments([{ method: "Cash", amount: "" }]);
+        setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
         setSearchTerm("");
+        setErrors({});
     };
 
     const filteredCustomers = useMemo(() => {
         if (!searchTerm) return customers;
-        return customers.filter(c => 
+        return customers.filter(c =>
             `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.phoneNumber?.includes(searchTerm)
         );
@@ -158,40 +161,99 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         });
         setSearchTerm(`${customer.firstName} ${customer.lastName}`);
         setShowCustomerDropdown(false);
+        setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
     };
 
     const handleAddPaymentRow = () => {
-        setPayments([...payments, { method: "Cash", amount: "" }]);
+        setPayments([...payments, { method: "Cash", amount: "", referenceNumber: "" }]);
     };
 
     const handleRemovePaymentRow = (index) => {
         const newPayments = payments.filter((_, i) => i !== index);
-        setPayments(newPayments.length > 0 ? newPayments : [{ method: "Cash", amount: 0 }]);
+        setPayments(newPayments.length > 0 ? newPayments : [{ method: "Cash", amount: "", referenceNumber: "" }]);
+
+        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+        const paidAmountNum = parseFloat(formData.paidAmount);
+
+        setErrors(prev => {
+            const updated = {};
+            Object.keys(prev).forEach(key => {
+                if (key.startsWith('paymentAmount_')) {
+                    const idx = parseInt(key.split('_')[1]);
+                    if (idx < index) {
+                        updated[key] = prev[key];
+                    } else if (idx > index) {
+                        updated[`paymentAmount_${idx - 1}`] = prev[key];
+                    }
+                } else {
+                    updated[key] = prev[key];
+                }
+            });
+
+            if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
+                updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+            } else {
+                updated.paymentsTotal = undefined;
+            }
+
+            return updated;
+        });
     };
 
     const handlePaymentChange = (index, field, val) => {
         const newPayments = [...payments];
         let sanitizedVal = val;
         if (field === 'amount') {
-            const num = parseFloat(val);
-            sanitizedVal = isNaN(num) || num === 0 ? "" : num;
+            let cleanVal = val.replace(/[^0-9.]/g, '');
+            const dotCount = (cleanVal.match(/\./g) || []).length;
+            if (dotCount > 1) return;
+            sanitizedVal = cleanVal;
         }
         newPayments[index][field] = sanitizedVal;
         setPayments(newPayments);
-        
-        const total = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
-        setFormData({ ...formData, paidAmount: total || "" });
+
+        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+        const paidAmountNum = parseFloat(formData.paidAmount);
+
+        setErrors(prev => {
+            const updated = {
+                ...prev,
+                [`paymentAmount_${index}`]: undefined
+            };
+            if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
+                updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+            } else {
+                updated.paymentsTotal = undefined;
+            }
+            return updated;
+        });
     };
 
     const handleSave = async () => {
+        const newErrors = {};
         if (!formData.vendorCustomerId) {
-            toast.error("Please select a customer");
-            return;
+            newErrors.vendorCustomerId = "Customer name is required";
         }
 
+        const paidAmountNum = parseFloat(formData.paidAmount);
+        if (!formData.paidAmount || isNaN(paidAmountNum) || paidAmountNum <= 0) {
+            newErrors.paidAmount = "Paid amount is required";
+        }
+
+        payments.forEach((p, idx) => {
+            const pAmountNum = parseFloat(p.amount);
+            if (!p.amount || isNaN(pAmountNum) || pAmountNum <= 0) {
+                newErrors[`paymentAmount_${idx}`] = "Amount paid is required";
+            }
+        });
+
         const totalPaid = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
-        if (totalPaid <= 0) {
-            toast.error("Please enter a valid amount");
+        if (!newErrors.paidAmount && totalPaid > paidAmountNum) {
+            newErrors.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
@@ -203,7 +265,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 const paymentMethods = validPayments.map(p => ({
                     paymentMethod: p.method,
                     amount: parseFloat(p.amount),
-                    transactionRef: p.method === "Cash" ? "" : formData.referenceNumber
+                    transactionRef: p.referenceNumber || "",
+                    referenceNumber: p.referenceNumber || ""
                 }));
 
                 const updatePayload = {
@@ -222,7 +285,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 const paymentMethods = validPayments.map(p => ({
                     paymentMethod: p.method,
                     amount: parseFloat(p.amount),
-                    transactionRef: p.method === "Cash" ? "" : formData.referenceNumber
+                    transactionRef: p.referenceNumber || "",
+                    referenceNumber: p.referenceNumber || ""
                 }));
 
                 const payload = {
@@ -243,7 +307,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
             if (res && (res.status === "success" || res.data?.status === "success")) {
                 toast.success(mode === 'edit' ? "Payment updated successfully" : "Payment added successfully");
                 onRefresh();
-                
+
                 const targetBranchId = router.query.branchId || branchId;
                 router.push(`/sale/payment-in?branchId=${targetBranchId}`).then(() => {
                     onClose();
@@ -277,20 +341,22 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                         <div className={styles.field} style={{ position: 'relative' }}>
                             <label>Name / Phone number</label>
                             <div style={{ position: 'relative' }}>
-                                <input 
-                                    type="text" 
-                                    className={styles.input} 
-                                    placeholder="Select Name" 
+                                <input
+                                    type="text"
+                                    className={`${styles.input} ${errors.vendorCustomerId ? styles.inputError : ''}`}
+                                    placeholder="Select Name"
                                     value={searchTerm}
                                     onFocus={() => setShowCustomerDropdown(true)}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
                                         setShowCustomerDropdown(true);
+                                        setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
                                     }}
                                     disabled={isViewOnly}
                                 />
                                 <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
                             </div>
+                            {errors.vendorCustomerId && <span className={styles.errorMsg}>{errors.vendorCustomerId}</span>}
                             {showCustomerDropdown && filteredCustomers.length > 0 && (
                                 <div className={styles.dropdownList} style={{ top: '100%', width: '100%' }}>
                                     {filteredCustomers.map(c => (
@@ -310,48 +376,64 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
 
                         <div className={styles.field}>
                             <label>Date</label>
-                            <input 
-                                type="date" 
-                                className={styles.input} 
-                                value={formData.date} 
-                                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                            <input
+                                type="date"
+                                className={styles.input}
+                                value={formData.date}
+                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                                 disabled={isViewOnly}
                             />
                         </div>
 
                         <div className={styles.field}>
                             <label>Total Balance Amount</label>
-                            <input 
-                                type="text" 
-                                className={styles.input} 
-                                value={`₹ ${formData.totalBalance}`} 
-                                readOnly 
-                                style={{ background: '#f8f9fa', border: '1px solid #eee' }} 
+                            <input
+                                type="text"
+                                className={styles.input}
+                                value={`₹ ${formData.totalBalance}`}
+                                readOnly
+                                style={{ background: '#f8f9fa', border: '1px solid #eee' }}
                             />
                         </div>
 
                         <div className={styles.field}>
                             <label>Paid Amount</label>
-                            <input 
-                                type="number" 
-                                className={styles.input} 
-                                value={formData.paidAmount} 
+                            <input
+                                type="text"
+                                className={`${styles.input} ${errors.paidAmount ? styles.inputError : ''}`}
+                                value={formData.paidAmount}
                                 onChange={(e) => {
                                     const rawVal = e.target.value;
-                                    const num = parseFloat(rawVal);
-                                    const val = isNaN(num) || num === 0 ? "" : num;
-                                    
-                                    setFormData({ ...formData, paidAmount: val });
+                                    let cleanVal = rawVal.replace(/[^0-9.]/g, '');
+                                    const dotCount = (cleanVal.match(/\./g) || []).length;
+                                    if (dotCount > 1) return;
+
+                                    setFormData({ ...formData, paidAmount: cleanVal });
                                     // Also sync with first payment row if only one row exists
+                                    let newPayments = payments;
                                     if (payments.length === 1) {
-                                        const newPayments = [...payments];
-                                        newPayments[0].amount = val;
+                                        newPayments = [...payments];
+                                        newPayments[0].amount = cleanVal;
                                         setPayments(newPayments);
+                                        setErrors(prev => ({ ...prev, paymentAmount_0: undefined }));
                                     }
+
+                                    const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                                    const num = parseFloat(cleanVal);
+                                    setErrors(prev => {
+                                        const updated = { ...prev, paidAmount: undefined };
+                                        if (!isNaN(num) && totalPaid > num) {
+                                            updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${num})`;
+                                        } else {
+                                            updated.paymentsTotal = undefined;
+                                        }
+                                        return updated;
+                                    });
                                 }}
                                 disabled={isViewOnly}
-                                style={{ background: '#fff', border: '1px solid #eee' }} 
+                                style={{ background: '#fff', border: '1px solid #eee' }}
                             />
+                            {errors.paidAmount && <span className={styles.errorMsg}>{errors.paidAmount}</span>}
                         </div>
                     </div>
 
@@ -363,12 +445,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                                 <div></div>
                             </div>
                             {payments.map((p, idx) => (
-                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', marginBottom: '16px', alignItems: 'center' }}>
-                                    <select 
-                                        className={styles.select} 
-                                        value={p.method} 
+                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', marginBottom: '16px', alignItems: 'start' }}>
+                                    <select
+                                        className={styles.select}
+                                        value={p.method}
                                         onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)}
                                         disabled={isViewOnly}
+                                        style={{ marginTop: '2px' }}
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="UPI">UPI</option>
@@ -376,25 +459,46 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                                         <option value="Cheque">Cheque</option>
                                         <option value="Bank">Bank</option>
                                     </select>
-                                    <input 
-                                        type="number" 
-                                        className={styles.input} 
-                                        placeholder="0" 
-                                        value={p.amount} 
-                                        onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)}
-                                        disabled={isViewOnly}
-                                    />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                                        <input
+                                            type="text"
+                                            className={`${styles.input} ${errors[`paymentAmount_${idx}`] ? styles.inputError : ''}`}
+                                            placeholder="0"
+                                            value={p.amount}
+                                            onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)}
+                                            disabled={isViewOnly}
+                                            style={{ width: '100%' }}
+                                        />
+                                        {errors[`paymentAmount_${idx}`] && <span className={styles.errorMsg}>{errors[`paymentAmount_${idx}`]}</span>}
+
+                                        {(p.method === 'Cheque' || p.method === 'UPI') && (
+                                            <input
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder={p.method === 'Cheque' ? "Cheque No" : "Enter reference number"}
+                                                value={p.referenceNumber || ""}
+                                                onChange={(e) => handlePaymentChange(idx, 'referenceNumber', e.target.value)}
+                                                disabled={isViewOnly}
+                                                style={{ width: '100%', height: '36px', padding: '6px 12px', fontSize: '12px', marginTop: '4px' }}
+                                            />
+                                        )}
+                                    </div>
                                     {!isViewOnly && (
-                                        <FiTrash2 
-                                            style={{ color: '#999', cursor: 'pointer', fontSize: '18px' }} 
+                                        <FiTrash2
+                                            style={{ color: '#999', cursor: 'pointer', fontSize: '18px', marginTop: '12px' }}
                                             onClick={() => handleRemovePaymentRow(idx)}
                                         />
                                     )}
                                 </div>
                             ))}
+                            {errors.paymentsTotal && (
+                                <div className={styles.errorMsg} style={{ marginTop: '-4px', marginBottom: '16px' }}>
+                                    {errors.paymentsTotal}
+                                </div>
+                            )}
                             {!isViewOnly && (
-                                <span 
-                                    className={styles.addBtn} 
+                                <span
+                                    className={styles.addBtn}
                                     style={{ marginTop: '8px' }}
                                     onClick={handleAddPaymentRow}
                                 >
@@ -405,24 +509,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     </div>
 
                     <div style={{ marginTop: '40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-                        <div className={styles.field}>
-                            <label>REFERENCE NUMBER</label>
-                            <input 
-                                type="text" 
-                                className={styles.input} 
-                                placeholder="Enter reference number" 
-                                value={formData.referenceNumber}
-                                onChange={(e) => setFormData({...formData, referenceNumber: e.target.value})}
-                                disabled={isViewOnly}
-                            />
-                        </div>
                         <div className={styles.field} style={{ gridColumn: '1 / -1' }}>
                             <label>Add Description</label>
-                            <textarea 
-                                className={styles.input} 
-                                placeholder="Enter description..." 
+                            <textarea
+                                className={styles.input}
+                                placeholder="Enter description..."
                                 value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 disabled={isViewOnly}
                                 style={{ height: '80px', resize: 'none' }}
                             ></textarea>
@@ -440,7 +533,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Share</button>
                     {isViewOnly && (
-                        <button className={styles.saveBtn} onClick={() => window.print()} style={{ background: '#4285F4' }}>Print</button>
+                        <button className={styles.saveBtn} onClick={() => window.print()} >Print</button>
                     )}
                     {!isViewOnly && (
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>

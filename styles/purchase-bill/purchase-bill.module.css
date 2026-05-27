@@ -666,3 +666,20 @@
 .filterIconActive {
   color: #E9315D !important;
 }
+
+.actions {
+  display: flex;
+  gap: 16px;
+  color: #666;
+  position: relative;
+}
+
+.actionIcon {
+  cursor: pointer;
+  transition: color 0.2s;
+  font-size: 18px;
+}
+
+.actionIcon:hover {
+  color: #1a1a1a;
+}

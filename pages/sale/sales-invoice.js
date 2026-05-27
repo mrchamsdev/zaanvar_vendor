@@ -11,6 +11,40 @@ const SalesInvoicePage = () => {
     const router = useRouter();
     const { branches, branchId } = useDashboardData();
 
+    const [isReady, setIsReady] = React.useState(false);
+    const [isPdf, setIsPdf] = React.useState(false);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('pdf') === 'true') {
+                setIsPdf(true);
+            }
+            setIsReady(true);
+        }
+    }, []);
+
+    if (!isReady) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
+                Loading...
+            </div>
+        );
+    }
+
+    if (isPdf) {
+        const pdfId = router.query.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '');
+        return (
+            <SaleInvoiceManager
+                isOpen={true}
+                mode="view"
+                saleId={pdfId}
+                onClose={() => window.close()}
+                onRefresh={() => {}}
+            />
+        );
+    }
+
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
             <button

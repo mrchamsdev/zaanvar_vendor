@@ -2,50 +2,54 @@ import React from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiX, FiMail, FiMessageSquare } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { purchaseService } from "../../services/purchaseService";
+import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 
 const ShareModal = ({ isOpen, onClose, data, branchId }) => {
     const { jwtToken } = useStore();
-    const [supplierInfo, setSupplierInfo] = React.useState(null);
+    const [customerInfo, setCustomerInfo] = React.useState(null);
 
     React.useEffect(() => {
-        if (isOpen && (data?.supplierId || data?.supplierName)) {
-            const fetchSupplier = async () => {
+        if (isOpen && data?.vendorCustomerId) {
+            const fetchCustomer = async () => {
                 try {
-                    // Reusing getSuppliers might work if it returns all, 
-                    // but we need a specific one or filter from list.
-                    // For now, let's assume we can get it or we filter.
-                    const res = await purchaseService.getSuppliers(jwtToken, data.branchId || branchId);
+                    const res = await saleService.getCustomers(jwtToken, data.branchId || branchId);
                     if (res.status === "success") {
-                        const supplier = res.data.find(s => 
-                            (data.supplierId && s.supplierId === data.supplierId) || 
-                            (data.supplierName && s.supplierName?.toLowerCase() === data.supplierName?.toLowerCase())
-                        );
-                        setSupplierInfo(supplier);
+                        const customer = res.data.find(c => c.vendorCustomerId === data.vendorCustomerId);
+                        setCustomerInfo(customer);
                     }
                 } catch (error) {
-                    console.error("Error fetching supplier for share:", error);
+                    console.error("Error fetching customer for share:", error);
                 }
             };
-            fetchSupplier();
+            fetchCustomer();
         }
     }, [isOpen, data, jwtToken, branchId]);
 
     if (!isOpen) return null;
 
-    const phone = supplierInfo?.phone || data?.phone || "";
-    const email = supplierInfo?.email || data?.email || "";
-    const supplierName = supplierInfo?.supplierName || data?.transactionInfo || "Supplier";
+    const phone = customerInfo?.phoneNumber || data?.customer?.phoneNumber || data?.phone || "";
+    const email = customerInfo?.email || data?.customer?.email || data?.email || "";
+    const customerName = customerInfo ? `${customerInfo.firstName} ${customerInfo.lastName}` : (data?.customer ? `${data.customer.firstName} ${data.customer.lastName}` : "Customer");
 
     const getDisplayTotalAmount = (t) => {
         if (!t) return 0;
-        const mainAmount = parseFloat(t.amount || 0);
-        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
-        return mainAmount + splitSum;
+        return parseFloat(t.totalAmount || t.totalReturnAmount || t.amount || t.paidAmount || 0);
     };
 
-    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
+    const getRefNo = (t) => {
+        if (!t) return "";
+        if (t.customerReturnId) return `SR-${t.customerReturnId}`;
+        return t.userOrderId || t.paymentId || "";
+    };
+
+    const getFormattedDate = (t) => {
+        if (!t) return "";
+        const dateStr = t.invoiceDate || t.returnDate || t.paymentDate || t.createdDate;
+        return dateStr ? new Date(dateStr).toLocaleDateString('en-GB') : "";
+    };
+
+    const message = `Sale Details:\nRef No: ${getRefNo(data)}\nCustomer: ${customerName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${getFormattedDate(data)}`;
 
     const handleShare = (type) => {
         let url = "";
@@ -54,8 +58,7 @@ const ShareModal = ({ isOpen, onClose, data, branchId }) => {
                 url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
                 break;
             case 'email':
-                // Use Gmail web composer for better reliability
-                url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent("Purchase Details")}&body=${encodeURIComponent(message)}`;
+                url = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent("Sale Details")}&body=${encodeURIComponent(message)}`;
                 break;
             case 'sms':
                 url = `sms:${phone}?body=${encodeURIComponent(message)}`;

@@ -113,7 +113,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -377,20 +377,21 @@ const PaymentOutList = ({ onAddClick }) => {
         }));
     };
 
-    const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'partyName', 'paymentType', 'total', 'paid'
+    const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'partyName', 'paymentType', 'total', 'paid', 'balance'
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
         partyName: { mode: 'Contains', value: '' },
         paymentType: { mode: 'Checklist', value: [] },
         total: { mode: 'Contains', value: '' },
-        paid: { mode: 'Contains', value: '' }
+        paid: { mode: 'Contains', value: '' },
+        balance: { mode: 'Contains', value: '' }
     });
 
     const hasFiltersApplied = useMemo(() => {
         return !!(
             searchTerm ||
             dateFilterMode ||
-            Object.values(columnFilters).some(f => Array.isArray(f.value) ? f.value.length > 0 : f.value)
+            Object.values(columnFilters).some(f => Array.isArray(f.value) ? f.value.length > 0 : (f.value !== undefined && f.value !== null && f.value !== ''))
         );
     }, [searchTerm, dateFilterMode, columnFilters]);
 
@@ -519,7 +520,7 @@ const PaymentOutList = ({ onAddClick }) => {
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(key => {
             const filter = columnFilters[key];
-            if (!filter.value || (Array.isArray(filter.value) && filter.value.length === 0)) return;
+            if ((filter.value === undefined || filter.value === null || filter.value === '') || (Array.isArray(filter.value) && filter.value.length === 0)) return;
 
             if (key === 'paymentType' && filter.mode === 'Checklist') {
                 const allTypes = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)].map(type => type || "Cash");
@@ -534,11 +535,37 @@ const PaymentOutList = ({ onAddClick }) => {
             else if (key === 'paymentType') targetValue = String(t.paymentType || "");
             else if (key === 'total') targetValue = String(getSupplierTotalBill(t.supplierId));
             else if (key === 'paid') targetValue = String(getDisplayTotalAmount(t));
+            else if (key === 'balance') targetValue = String(t.totalBalanceAmount || 0);
 
-            if (filter.mode === 'Exact Match') {
-                if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (key === 'total' || key === 'paid' || key === 'balance') {
+                const numTarget = parseFloat(targetValue);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetValue.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
             } else {
-                if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                if (filter.mode === 'Exact Match') {
+                    if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                } else {
+                    if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                }
             }
         });
 
@@ -548,7 +575,7 @@ const PaymentOutList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "BALANCE AMOUNT", "PAYMENT TYPE"];
         const rows = filteredTransactions.map(t => [
-            `"${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
+            `" ${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
             `"${t.suppliersTransactionId}"`,
             `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
             `"${getSupplierTotalBill(t.supplierId)}"`,
@@ -703,7 +730,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     REF NO
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
@@ -720,7 +747,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     SUPPLIER NAME
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.partyName.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'partyName' && (
@@ -737,7 +764,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     TOTAL
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.total.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.total.value !== undefined && columnFilters.total.value !== null && columnFilters.total.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'total' ? null : 'total'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'total' && (
@@ -754,7 +781,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     PAID
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.paid.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'paid' && (
@@ -768,7 +795,23 @@ const PaymentOutList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th>BALANCE AMOUNT</th>
+                                <th style={{ position: 'relative' }}>
+                                    BALANCE AMOUNT
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'balance' && (
+                                        <GeneralFilterModal
+                                            type="text"
+                                            label="Balance Amount"
+                                            currentMode={columnFilters.balance.mode}
+                                            currentValue={columnFilters.balance.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
+                                        />
+                                    )}
+                                </th>
                                 <th style={{ position: 'relative' }}>
                                     PAYMENT TYPE
                                     <FiFilter
@@ -819,7 +862,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                                             className={styles.actionIcon}
                                                             onClick={() => {
                                                                 setSelectedTransaction(t);
-                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? false : `share-${idx}`);
+                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
                                                             }}
                                                         />
                                                         {isShareModalOpen === `share-${idx}` && (
@@ -827,6 +870,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                                                 isOpen={true}
                                                                 onClose={() => setIsShareModalOpen(false)}
                                                                 data={t}
+                                                                branchId={selectedBranchId || defaultBranchId}
                                                             />
                                                         )}
                                                     </div>
