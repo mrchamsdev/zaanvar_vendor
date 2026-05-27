@@ -1,4 +1,3 @@
-
 .overlay {
     position: fixed;
     top: 0;
@@ -66,7 +65,7 @@
 .topGrid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    column-gap: 40px;
+    column-gap: 60px;
     row-gap: 24px;
     margin-bottom: 40px;
 }
@@ -85,8 +84,9 @@
     margin-bottom: 2px;
 }
 
-.input, .select {
-    /* width: 100%; */
+.input,
+.select {
+    width: 100%;
     padding: 14px 16px;
     border: 1px solid #f8f9fa;
     border-radius: 8px;
@@ -97,7 +97,8 @@
     transition: all 0.2s;
 }
 
-.input:focus, .select:focus {
+.input:focus,
+.select:focus {
     border-color: #eee;
     background: #fff;
 }
@@ -152,7 +153,8 @@
     border-right: none;
 }
 
-.tableInput, .tableInputCenter {
+.tableInput,
+.tableInputCenter {
     width: 100%;
     border: none;
     background: transparent;
@@ -297,7 +299,7 @@
     background: #fff;
     border: 1px solid #eee;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     max-height: 300px;
     overflow-y: auto;
@@ -316,4 +318,16 @@
 
 .dropdownItem:last-child {
     border-bottom: none;
+}
+
+.errorMsg {
+    color: #E93E64;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.inputError {
+    border-color: #E93E64 !important;
+    background: #fff5f5;
 }

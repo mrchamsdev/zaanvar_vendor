@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
+import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(() => {
@@ -104,7 +105,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -306,6 +307,10 @@ const SalesInvoiceList = ({ onAddClick }) => {
         endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
     });
 
+    // Share modal state
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+
     // Multi-modal filter state
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [dateFilterMode, setDateFilterMode] = useState(null);
@@ -324,7 +329,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
         return !!(
             searchTerm ||
             dateFilterMode ||
-            Object.values(columnFilters).some(f => f.value)
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
         );
     }, [searchTerm, dateFilterMode, columnFilters]);
 
@@ -461,7 +466,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (!filter.value) return;
+            if (filter.value === undefined || filter.value === null || filter.value === '') return;
 
             let targetVal = "";
             if (col === 'invoiceNo') targetVal = invoiceNo;
@@ -470,10 +475,35 @@ const SalesInvoiceList = ({ onAddClick }) => {
             if (col === 'paid') targetVal = (inv.paidAmount || 0).toString();
             if (col === 'balance') targetVal = (inv.dueAmount || 0).toString();
 
-            if (filter.mode === 'Contains') {
-                if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
-            } else if (filter.mode === 'Exact Match') {
-                if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (col === 'amount' || col === 'paid' || col === 'balance') {
+                const numTarget = parseFloat(targetVal);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetVal.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
+            } else {
+                if (filter.mode === 'Contains') {
+                    if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                } else if (filter.mode === 'Exact Match') {
+                    if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                }
             }
         });
 
@@ -500,7 +530,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (filter.value) {
+            if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 const labels = {
                     invoiceNo: 'Invoice No',
                     partyName: 'Customer Name',
@@ -535,7 +565,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "INVOICE NO", "CUSTOMER NAME", "AMOUNT", "PAID", "BALANCE"];
         const rows = filteredInvoices.map(inv => [
-            `"${(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
+            `" ${(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${inv.userOrderId || inv.invoiceNumber || ''}"`,
             `"${(inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer")).replace(/"/g, '""')}"`,
             `"${inv.totalAmount || 0}"`,
@@ -677,7 +707,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     INVOICE NO
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.invoiceNo.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.invoiceNo.value !== undefined && columnFilters.invoiceNo.value !== null && columnFilters.invoiceNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'invoiceNo' && (
@@ -694,7 +724,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     CUSTOMER NAME
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.partyName.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'partyName' && (
@@ -711,7 +741,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     AMOUNT
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.amount.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'amount' && (
@@ -728,7 +758,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     PAID
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.paid.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'paid' && (
@@ -745,7 +775,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     BALANCE
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
@@ -782,15 +812,46 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
                                         <td>
                                             <div className={styles.actions}>
-                                                <FiShare2 className={styles.actionIcon} />
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiShare2 
+                                                        className={styles.actionIcon} 
+                                                        onClick={() => {
+                                                            setSelectedTransaction(inv);
+                                                            setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                        }}
+                                                    />
+                                                    {isShareModalOpen === `share-${idx}` && (
+                                                        <ShareModal
+                                                            isOpen={true}
+                                                            onClose={() => setIsShareModalOpen(false)}
+                                                            data={inv}
+                                                            branchId={selectedBranchId || defaultBranchId}
+                                                        />
+                                                    )}
+                                                </div>
                                                 <div style={{ position: 'relative' }}>
                                                     <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                     {activeDropdown === idx && (
                                                         <div className={styles.dropdownMenu}>
                                                             <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
                                                             <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>Open PDF</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId, print: 'true' } }); }}>Print</div>
+                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
+                                                            <div className={styles.dropdownItem} onClick={() => { 
+                                                                setActiveDropdown(null); 
+                                                                const printUrl = `${window.location.pathname}?view=true&id=${inv.userOrderId}&print=true&pdf=true`;
+                                                                const iframe = document.createElement('iframe');
+                                                                iframe.style.position = 'fixed';
+                                                                iframe.style.width = '0';
+                                                                iframe.style.height = '0';
+                                                                iframe.style.border = '0';
+                                                                iframe.src = printUrl;
+                                                                document.body.appendChild(iframe);
+                                                                const cleanup = () => {
+                                                                    window.removeEventListener('focus', cleanup);
+                                                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                };
+                                                                window.addEventListener('focus', cleanup);
+                                                            }}>Print</div>
                                                         </div>
                                                     )}
                                                 </div>

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import { saleService } from "../../services/saleService";
 import useDashboardData from "../dashboard/useDashboardData";
+import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(() => {
@@ -104,7 +105,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -307,6 +308,10 @@ const SalesReturnList = ({ onAddClick }) => {
         endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
     });
 
+    // Share modal state
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+
     // Multi-modal filter state
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [dateFilterMode, setDateFilterMode] = useState(null);
@@ -324,7 +329,7 @@ const SalesReturnList = ({ onAddClick }) => {
         return !!(
             searchTerm ||
             dateFilterMode ||
-            Object.values(columnFilters).some(f => f.value)
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
         );
     }, [searchTerm, dateFilterMode, columnFilters]);
 
@@ -457,7 +462,7 @@ const SalesReturnList = ({ onAddClick }) => {
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (!filter.value) return;
+            if (filter.value === undefined || filter.value === null || filter.value === '') return;
 
             let targetVal = "";
             if (col === 'refNo') targetVal = refNo;
@@ -465,10 +470,35 @@ const SalesReturnList = ({ onAddClick }) => {
             if (col === 'received') targetVal = (r.totalReturnAmount || 0).toString();
             if (col === 'balance') targetVal = (r.dueAmount || 0).toString();
 
-            if (filter.mode === 'Contains') {
-                if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
-            } else if (filter.mode === 'Exact Match') {
-                if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (col === 'received' || col === 'balance') {
+                const numTarget = parseFloat(targetVal);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetVal.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
+            } else {
+                if (filter.mode === 'Contains') {
+                    if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                } else if (filter.mode === 'Exact Match') {
+                    if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                }
             }
         });
 
@@ -495,7 +525,7 @@ const SalesReturnList = ({ onAddClick }) => {
 
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (filter.value) {
+            if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 const labels = {
                     refNo: 'Ref No',
                     customerName: 'Customer',
@@ -529,7 +559,7 @@ const SalesReturnList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL SALE RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
-            `"${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
+            `" ${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"SR-${r.customerReturnId}"`,
             `"${(r.customer ? r.customer.firstName + ' ' + r.customer.lastName : 'Walk-in Customer').replace(/"/g, '""')}"`,
             `"${r.totalReturnAmount || 0}"`,
@@ -608,7 +638,7 @@ const SalesReturnList = ({ onAddClick }) => {
                 <input
                     type="text"
                     className={styles.searchInput}
-                    placeholder="Search products here"
+                    placeholder="Search by Ref ID, Customer Name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -658,8 +688,8 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                  <th style={{ position: 'relative' }}>
                                      REF NO
-                                     <FiFilter
-                                         className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
+                                      <FiFilter
+                                          className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                          onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                      />
                                     {openFilterCol === 'refNo' && (
@@ -675,8 +705,8 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                  <th style={{ position: 'relative' }}>
                                      CUSTOMER NAME
-                                     <FiFilter
-                                         className={`${styles.filterIcon} ${columnFilters.customerName.value ? styles.filterIconActive : ''}`}
+                                      <FiFilter
+                                          className={`${styles.filterIcon} ${(columnFilters.customerName.value !== undefined && columnFilters.customerName.value !== null && columnFilters.customerName.value !== '') ? styles.filterIconActive : ''}`}
                                          onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
                                      />
                                     {openFilterCol === 'customerName' && (
@@ -692,8 +722,8 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                  <th style={{ position: 'relative' }}>
                                      TOTAL SALE RETURN AMOUNT
-                                     <FiFilter
-                                         className={`${styles.filterIcon} ${columnFilters.received.value ? styles.filterIconActive : ''}`}
+                                      <FiFilter
+                                          className={`${styles.filterIcon} ${(columnFilters.received.value !== undefined && columnFilters.received.value !== null && columnFilters.received.value !== '') ? styles.filterIconActive : ''}`}
                                          onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
                                      />
                                     {openFilterCol === 'received' && (
@@ -709,8 +739,8 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                  <th style={{ position: 'relative' }}>
                                      TOTAL BALANCE AMOUNT
-                                     <FiFilter
-                                         className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
+                                      <FiFilter
+                                          className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
                                          onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                      />
                                     {openFilterCol === 'balance' && (
@@ -746,7 +776,23 @@ const SalesReturnList = ({ onAddClick }) => {
                                     </td>
                                     <td>
                                         <div className={styles.actions}>
-                                            <FiShare2 className={styles.actionIcon} />
+                                            <div style={{ position: 'relative' }}>
+                                                <FiShare2 
+                                                    className={styles.actionIcon} 
+                                                    onClick={() => {
+                                                        setSelectedTransaction(r);
+                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                    }}
+                                                />
+                                                {isShareModalOpen === `share-${idx}` && (
+                                                    <ShareModal
+                                                        isOpen={true}
+                                                        onClose={() => setIsShareModalOpen(false)}
+                                                        data={r}
+                                                        branchId={selectedBranchId || defaultBranchId}
+                                                    />
+                                                )}
+                                            </div>
                                             <div style={{ position: 'relative' }}>
                                                 <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                 {activeDropdown === idx && (
@@ -759,10 +805,28 @@ const SalesReturnList = ({ onAddClick }) => {
                                                             router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
                                                             setActiveDropdown(null);
                                                         }}>View</div>
-                                                        <div className={styles.dropdownItem}>Generate E-Invoice</div>
+                                                        
                                                         <div className={styles.dropdownItem}>Duplicate</div>
-                                                        <div className={styles.dropdownItem}>Open PDF</div>
-                                                        <div className={styles.dropdownItem}>Print</div>
+                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                            window.open(`${window.location.pathname}?view=true&id=${r.customerReturnId}&pdf=true`, '_blank');
+                                                            setActiveDropdown(null);
+                                                        }}>Open PDF</div>
+                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                            const printUrl = `${window.location.pathname}?view=true&id=${r.customerReturnId}&print=true&pdf=true`;
+                                                            const iframe = document.createElement('iframe');
+                                                            iframe.style.position = 'fixed';
+                                                            iframe.style.width = '0';
+                                                            iframe.style.height = '0';
+                                                            iframe.style.border = '0';
+                                                            iframe.src = printUrl;
+                                                            document.body.appendChild(iframe);
+                                                            const cleanup = () => {
+                                                                window.removeEventListener('focus', cleanup);
+                                                                setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                            };
+                                                            window.addEventListener('focus', cleanup);
+                                                            setActiveDropdown(null);
+                                                        }}>Print</div>
                                                         <div className={styles.dropdownItem}>History</div>
                                                     </div>
                                                 )}

@@ -112,7 +112,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -326,7 +326,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
         return !!(
             searchTerm ||
             dateFilterMode ||
-            Object.values(columnFilters).some(f => f.value)
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
         );
     }, [searchTerm, dateFilterMode, columnFilters]);
 
@@ -451,7 +451,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(key => {
             const filter = columnFilters[key];
-            if (!filter.value) return;
+            if (filter.value === undefined || filter.value === null || filter.value === '') return;
 
             let targetValue = "";
             if (key === 'refNo') targetValue = String(r.returnProductsId);
@@ -459,10 +459,35 @@ const PurchaseReturnList = ({ onAddClick }) => {
             else if (key === 'totalAmount') targetValue = String(r.returnAmount || 0);
             else if (key === 'balance') targetValue = String(r.totalBalanceAmount || 0);
 
-            if (filter.mode === 'Exact Match') {
-                if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (key === 'totalAmount' || key === 'balance') {
+                const numTarget = parseFloat(targetValue);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetValue.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
             } else {
-                if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                if (filter.mode === 'Exact Match') {
+                    if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                } else {
+                    if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                }
             }
         });
 
@@ -472,7 +497,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
-            `"${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
+            `" ${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${r.returnProductsId || '000'}"`,
             `"${(r.supplierName || "N/A").replace(/"/g, '""')}"`,
             `"${r.returnAmount || 0}"`,
@@ -608,7 +633,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     REF NO
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.refNo.value ? styles.filterIconActive : ''}`}
+                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
@@ -625,7 +650,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     SUPPLIER NAME
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.supplierName.value ? styles.filterIconActive : ''}`}
+                                         className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'supplierName' && (
@@ -642,7 +667,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     Total Return Amount
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.totalAmount.value ? styles.filterIconActive : ''}`}
+                                         className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'totalAmount' && (
@@ -659,7 +684,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     TOTAL BALANCE AMOUNT
                                     <FiFilter
-                                        className={`${styles.filterIcon} ${columnFilters.balance.value ? styles.filterIconActive : ''}`}
+                                         className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
@@ -710,7 +735,15 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                         <ShareModal
                                                             isOpen={true}
                                                             onClose={() => setIsShareModalOpen(false)}
-                                                            data={r}
+                                                            data={{
+                                                                ...r,
+                                                                suppliersTransactionId: `SR-${r.returnProductsId}`,
+                                                                supplierName: r.supplierName,
+                                                                amount: r.returnAmount,
+                                                                userTransactionDate: r.returnDate || r.createdDate,
+                                                                branchId: r.branchId || selectedBranchId || defaultBranchId
+                                                            }}
+                                                            branchId={selectedBranchId || defaultBranchId}
                                                         />
                                                     )}
                                                 </div>

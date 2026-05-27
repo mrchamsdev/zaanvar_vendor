@@ -7,8 +7,10 @@ import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
+    const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === "view";
@@ -258,6 +260,19 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         return () => window.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (!loading && isViewOnly && router.query.print === "true") {
+            const timer = setTimeout(() => {
+                window.print();
+                if (router.query.pdf !== "true") {
+                    const { print, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, isViewOnly, router.query.print, router.query.pdf]);
+
     const handleCustomerSearch = (val, type) => {
         if (type === "name") {
             setFormData({ ...formData, partyName: val });
@@ -281,7 +296,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const selectedVariant = variants.length > 0 ? variants[0] : null;
 
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
-        const tax = parseFloat(prod.taxGroupId === 2 ? 18 : prod.taxGroupId === 3 ? 12 : 0);
+        const tax = parseFloat(prod.taxGroupId || 0);
         const qty = ""; // Leave blank so placeholder 0 shows
         const calcQty = getActiveQty(qty);
         const discount = 0;
@@ -423,32 +438,34 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
     const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount;
 
+    const [formError, setFormError] = useState('');
+
     const handleSave = async () => {
         if (!formData.partyName || !formData.phone) {
-            toast.error("Please provide customer name and phone");
+            setFormError("Please provide customer name and phone");
             return;
         }
 
         if (!formData.invoiceDate) {
-            toast.error("Please select an invoice date");
+            setFormError("Please select an invoice date");
             return;
         }
         const todayStr = toApiDateOnly(new Date());
         if (formData.invoiceDate > todayStr) {
-            toast.error("Invoice date cannot be in the future");
+            setFormError("Invoice date cannot be in the future");
             return;
         }
 
         const validItems = items.filter((it) => it.productId);
         if (validItems.length === 0) {
-            toast.error("Please add at least one product");
+            setFormError("Please add at least one product");
             return;
         }
 
         for (const it of validItems) {
             const calcQty = getActiveQty(it.qty);
             if (calcQty > it.availableQty) {
-                toast.error(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
+                setFormError(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
                 return;
             }
         }
@@ -793,7 +810,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                     <input
                                         type="text"
                                         className={styles.input}
-                                        placeholder={p.method === "UPI" ? "Reference Number" : "echeque number"}
+                                        placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
                                         value={p.referenceNumber || ""}
                                         onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
                                         disabled={isViewOnly}

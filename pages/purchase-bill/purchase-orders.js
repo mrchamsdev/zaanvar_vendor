@@ -9,7 +9,8 @@ import useStore from "../../components/state/useStore";
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
 import EmptyState from "../../components/utilities/EmptyState";
 import Loader from "../../components/utilities/Loader";
-import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft, FiX } from "react-icons/fi";
+import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft, FiX, FiShare2 } from "react-icons/fi";
+import ShareModal from "../../components/purchase-bill/ShareModal";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -122,7 +123,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -309,6 +310,8 @@ const PurchaseOrdersPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
 
     const [summary, setSummary] = useState(null);
 
@@ -406,13 +409,30 @@ const PurchaseOrdersPage = () => {
         // Column Filters
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (filter.value) {
+            if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 data = data.filter(item => {
                     let itemVal = '';
                     if (col === 'orderNo') itemVal = String(item.productsPurchaseRqstID);
                     else if (col === 'supplierName') itemVal = item.supplier?.supplierName || '';
                     else if (col === 'to') itemVal = item.branchName || '';
                     else if (col === 'orderValue') itemVal = String(item.totalCost);
+
+                    if (col === 'orderValue') {
+                        const numTarget = parseFloat(itemVal);
+                        const numFilter = parseFloat(filter.value);
+                        const isNumTarget = !isNaN(numTarget);
+                        const isNumFilter = !isNaN(numFilter);
+
+                        if (isNumTarget && isNumFilter) {
+                            if (filter.mode === 'Exact Match') {
+                                return numTarget === numFilter;
+                            } else {
+                                const strTarget = numTarget.toString();
+                                const strFilter = numFilter.toString();
+                                return strTarget.includes(strFilter) || itemVal.toLowerCase().includes(filter.value.toLowerCase());
+                            }
+                        }
+                    }
 
                     if (filter.mode === 'Exact Match') {
                         return itemVal.toLowerCase() === filter.value.toLowerCase();
@@ -496,7 +516,7 @@ const PurchaseOrdersPage = () => {
         return !!(
             searchTerm ||
             dateFilterMode ||
-            Object.values(columnFilters).some(f => f.value)
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
         );
     }, [searchTerm, dateFilterMode, columnFilters]);
 
@@ -597,7 +617,7 @@ const PurchaseOrdersPage = () => {
                                     <th style={{ position: 'relative' }}>
                                         ORDER NO
                                         <FiFilter
-                                            className={`${styles.filterIcon} ${columnFilters.orderNo.value ? styles.filterIconActive : ''}`}
+                                            className={`${styles.filterIcon} ${(columnFilters.orderNo.value !== undefined && columnFilters.orderNo.value !== null && columnFilters.orderNo.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'orderNo' ? null : 'orderNo'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'orderNo' && (
@@ -614,7 +634,7 @@ const PurchaseOrdersPage = () => {
                                     <th style={{ position: 'relative' }}>
                                         SUPPLIER NAME
                                         <FiFilter
-                                            className={`${styles.filterIcon} ${columnFilters.supplierName.value ? styles.filterIconActive : ''}`}
+                                            className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'supplierName' && (
@@ -631,7 +651,7 @@ const PurchaseOrdersPage = () => {
                                     <th style={{ position: 'relative' }}>
                                         TO
                                         <FiFilter
-                                            className={`${styles.filterIcon} ${columnFilters.to.value ? styles.filterIconActive : ''}`}
+                                            className={`${styles.filterIcon} ${(columnFilters.to.value !== undefined && columnFilters.to.value !== null && columnFilters.to.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'to' ? null : 'to'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'to' && (
@@ -648,7 +668,7 @@ const PurchaseOrdersPage = () => {
                                     <th style={{ position: 'relative' }}>
                                         Order Value (₹)
                                         <FiFilter
-                                            className={`${styles.filterIcon} ${columnFilters.orderValue.value ? styles.filterIconActive : ''}`}
+                                            className={`${styles.filterIcon} ${(columnFilters.orderValue.value !== undefined && columnFilters.orderValue.value !== null && columnFilters.orderValue.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'orderValue' ? null : 'orderValue'); setIsDateFilterOpen(false); }}
                                         />
                                         {openFilterCol === 'orderValue' && (
@@ -664,6 +684,7 @@ const PurchaseOrdersPage = () => {
                                     </th>
                                     <th>Purchase Order</th>
                                     <th>Invoice</th>
+                                    <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -703,6 +724,35 @@ const PurchaseOrdersPage = () => {
                                                         <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
                                                     </div>
                                                 )}
+                                            </td>
+                                            <td onClick={(e) => e.stopPropagation()}>
+                                                <div className={styles.actions}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiShare2
+                                                            className={styles.actionIcon}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedTransaction(item);
+                                                                setIsShareModalOpen(isShareModalOpen === `share-${item.productsPurchaseRqstID}` ? null : `share-${item.productsPurchaseRqstID}`);
+                                                            }}
+                                                        />
+                                                        {isShareModalOpen === `share-${item.productsPurchaseRqstID}` && (
+                                                            <ShareModal
+                                                                isOpen={true}
+                                                                onClose={() => setIsShareModalOpen(false)}
+                                                                data={{
+                                                                    ...item,
+                                                                    suppliersTransactionId: `PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`,
+                                                                    supplierId: item.supplier?.supplierId,
+                                                                    supplierName: item.supplier?.supplierName,
+                                                                    amount: item.totalCost,
+                                                                    userTransactionDate: item.createdDate,
+                                                                    branchId: item.branchId || branchId
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

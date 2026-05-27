@@ -237,7 +237,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const selectedVariant = variants.length > 0 ? variants[0] : null;
 
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
-        const tax = parseFloat(prod.taxGroupId === 2 ? 18 : prod.taxGroupId === 3 ? 12 : 0);
+        const tax = parseFloat(prod.taxGroupId || 0);
         const qty = 1;
         const taxAmount = (price * qty * tax) / 100;
 
@@ -635,7 +635,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                         <input
                                             type="text"
                                             className={styles.input}
-                                            placeholder={p.method === "UPI" ? "Reference Number" : "echeque number"}
+                                            placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
                                             value={p.referenceNumber || ""}
                                             onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
                                             disabled={isViewOnly}
@@ -700,7 +700,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
                     {isViewOnly && (
-                        <button className={styles.saveBtn} onClick={() => window.print()} style={{ background: '#4285F4' }}>
+                        <button className={styles.saveBtn} onClick={() => window.print()} >
                             Print Invoice
                         </button>
                     )}

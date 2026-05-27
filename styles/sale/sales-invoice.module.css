@@ -59,7 +59,7 @@
     border: 1px solid #eee;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    z-index: 1000;
     margin-top: 4px;
     overflow: hidden;
 }
@@ -639,4 +639,39 @@
     color: #666;
     font-size: 16px;
     font-weight: 500;
+}
+
+.checklistContainer {
+    margin-bottom: 12px;
+}
+
+.checklistItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.checkbox.checked {
+    background: #E93E64;
+    border-color: #E93E64;
+    color: #fff;
+    font-size: 12px;
+}
+
+.checklistItem span {
+    font-size: 14px;
+    color: #333;
 }
