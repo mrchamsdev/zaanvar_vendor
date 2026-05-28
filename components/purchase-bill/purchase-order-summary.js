@@ -111,7 +111,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
 
             const baseQty = payBasedOnOrdered ? ordered : received;
             // Only deduct damaged from billing if returnsApplicable is true
-            const billingQty = (returnsApplicable && damagedReturnedGoods) ? Math.max(0, baseQty - damaged) : baseQty;
+            const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
             const billableSubtotal = billingQty * cost;
             const discAmount = (billableSubtotal * discountPercent / 100);
@@ -153,9 +153,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             shortfallAmountTotal,
             damagedAmountTotal,
             discountableAmount: grandTotal,
-            discountableBase: returnsApplicable
-                ? (grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal)
-                : (grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal + calculatedDamagedAmountTotal),
+            discountableBase: grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal,
             itemDiscountTotal,
             itemTaxTotal,
             overallDiscountVal,
@@ -172,7 +170,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         <div className={styles.container}>
             <div className={styles.headerCard}>
                 <div className={styles.orderMainInfo}>
-                    <div className={styles.orderNumber}>Purchase Order <span>#{String(purchaseRequestId || "").padStart(6, '0')}</span></div>
+                    <div className={styles.orderNumber}>Purchase Order <span>{String(purchaseRequestId || "").padStart(6, '0')}</span></div>
                     <div className={styles.orderDate}>{formatDate(orderDate)}</div>
 
                     <div className={styles.addressSection}>

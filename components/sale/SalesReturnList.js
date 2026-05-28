@@ -668,12 +668,12 @@ const SalesReturnList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                 <th style={{ position: 'relative' }}>
-                                     DATE
-                                     <FiFilter
-                                         className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                         onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                     />
+                                <th style={{ position: 'relative' }}>
+                                    DATE
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                    />
                                     {isDateFilterOpen && (
                                         <DateFilterModal
                                             currentMode={dateFilterMode}
@@ -686,12 +686,12 @@ const SalesReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                 <th style={{ position: 'relative' }}>
-                                     REF NO
-                                      <FiFilter
-                                          className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
-                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                     />
+                                <th style={{ position: 'relative' }}>
+                                    REF NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                    />
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -703,12 +703,12 @@ const SalesReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                 <th style={{ position: 'relative' }}>
-                                     CUSTOMER NAME
-                                      <FiFilter
-                                          className={`${styles.filterIcon} ${(columnFilters.customerName.value !== undefined && columnFilters.customerName.value !== null && columnFilters.customerName.value !== '') ? styles.filterIconActive : ''}`}
-                                         onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
-                                     />
+                                <th style={{ position: 'relative' }}>
+                                    CUSTOMER NAME
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.customerName.value !== undefined && columnFilters.customerName.value !== null && columnFilters.customerName.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
+                                    />
                                     {openFilterCol === 'customerName' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -720,12 +720,12 @@ const SalesReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                 <th style={{ position: 'relative' }}>
-                                     TOTAL SALE RETURN AMOUNT
-                                      <FiFilter
-                                          className={`${styles.filterIcon} ${(columnFilters.received.value !== undefined && columnFilters.received.value !== null && columnFilters.received.value !== '') ? styles.filterIconActive : ''}`}
-                                         onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
-                                     />
+                                <th style={{ position: 'relative' }}>
+                                    TOTAL SALE RETURN AMOUNT
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.received.value !== undefined && columnFilters.received.value !== null && columnFilters.received.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
+                                    />
                                     {openFilterCol === 'received' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -737,12 +737,12 @@ const SalesReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                 <th style={{ position: 'relative' }}>
-                                     TOTAL BALANCE AMOUNT
-                                      <FiFilter
-                                          className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
-                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                     />
+                                <th style={{ position: 'relative' }}>
+                                    TOTAL BALANCE AMOUNT
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                    />
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -766,75 +766,75 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </tr>
                             ) : (
                                 filteredReturns.map((r, idx) => (
-                                <tr key={idx}>
-                                    <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                    <td>SR-{r.customerReturnId}</td>
-                                    <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
-                                    <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ color: Number(r.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
-                                        {Number(r.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                            <div style={{ position: 'relative' }}>
-                                                <FiShare2 
-                                                    className={styles.actionIcon} 
-                                                    onClick={() => {
-                                                        setSelectedTransaction(r);
-                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                    }}
-                                                />
-                                                {isShareModalOpen === `share-${idx}` && (
-                                                    <ShareModal
-                                                        isOpen={true}
-                                                        onClose={() => setIsShareModalOpen(false)}
-                                                        data={r}
-                                                        branchId={selectedBranchId || defaultBranchId}
+                                    <tr key={idx}>
+                                        <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                        <td>SR-{r.customerReturnId}</td>
+                                        <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
+                                        <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ color: Number(r.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
+                                            {Number(r.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td>
+                                            <div className={styles.actions}>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiShare2
+                                                        className={styles.actionIcon}
+                                                        onClick={() => {
+                                                            setSelectedTransaction(r);
+                                                            setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                        }}
                                                     />
-                                                )}
+                                                    {isShareModalOpen === `share-${idx}` && (
+                                                        <ShareModal
+                                                            isOpen={true}
+                                                            onClose={() => setIsShareModalOpen(false)}
+                                                            data={r}
+                                                            branchId={selectedBranchId || defaultBranchId}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                    {activeDropdown === idx && (
+                                                        <div className={styles.dropdownMenu}>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
+                                                                setActiveDropdown(null);
+                                                            }}>Edit</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
+                                                                setActiveDropdown(null);
+                                                            }}>View</div>
+
+                                                            <div className={styles.dropdownItem}>Duplicate</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                window.open(`${window.location.pathname}?view=true&id=${r.customerReturnId}&pdf=true`, '_blank');
+                                                                setActiveDropdown(null);
+                                                            }}>Open PDF</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                const printUrl = `${window.location.pathname}?view=true&id=${r.customerReturnId}&print=true&pdf=true`;
+                                                                const iframe = document.createElement('iframe');
+                                                                iframe.style.position = 'fixed';
+                                                                iframe.style.width = '0';
+                                                                iframe.style.height = '0';
+                                                                iframe.style.border = '0';
+                                                                iframe.src = printUrl;
+                                                                document.body.appendChild(iframe);
+                                                                const cleanup = () => {
+                                                                    window.removeEventListener('focus', cleanup);
+                                                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                };
+                                                                window.addEventListener('focus', cleanup);
+                                                                setActiveDropdown(null);
+                                                            }}>Print</div>
+                                                            <div className={styles.dropdownItem}>History</div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div style={{ position: 'relative' }}>
-                                                <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
-                                                            setActiveDropdown(null);
-                                                        }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
-                                                            setActiveDropdown(null);
-                                                        }}>View</div>
-                                                        
-                                                        <div className={styles.dropdownItem}>Duplicate</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`${window.location.pathname}?view=true&id=${r.customerReturnId}&pdf=true`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            const printUrl = `${window.location.pathname}?view=true&id=${r.customerReturnId}&print=true&pdf=true`;
-                                                            const iframe = document.createElement('iframe');
-                                                            iframe.style.position = 'fixed';
-                                                            iframe.style.width = '0';
-                                                            iframe.style.height = '0';
-                                                            iframe.style.border = '0';
-                                                            iframe.src = printUrl;
-                                                            document.body.appendChild(iframe);
-                                                            const cleanup = () => {
-                                                                window.removeEventListener('focus', cleanup);
-                                                                setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                                                            };
-                                                            window.addEventListener('focus', cleanup);
-                                                            setActiveDropdown(null);
-                                                        }}>Print</div>
-                                                        <div className={styles.dropdownItem}>History</div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )))}
+                                        </td>
+                                    </tr>
+                                )))}
                         </tbody>
                     </table>
                 </div>

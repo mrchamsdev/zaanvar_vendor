@@ -20,14 +20,14 @@ const IconTrash = () => (
   </svg>
 );
 
-const SupplierList = ({ 
-  suppliers, 
-  loading, 
-  selectedIds, 
-  onToggleSelection, 
-  onSelectAll, 
-  onView, 
-  onEdit, 
+const SupplierList = ({
+  suppliers,
+  loading,
+  selectedIds,
+  onToggleSelection,
+  onSelectAll,
+  onView,
+  onEdit,
   onDelete,
   onBulkDelete,
   onAddClick,
@@ -58,8 +58,8 @@ const SupplierList = ({
               <thead>
                 <tr>
                   <th style={{ width: 40 }}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className={styles.checkbox}
                       disabled
                     />
@@ -81,7 +81,7 @@ const SupplierList = ({
             </table>
           </div>
         ) : (
-          <EmptyState 
+          <EmptyState
             buttonText="Add Supplier"
             onAddClick={onAddClick}
           />
@@ -92,8 +92,8 @@ const SupplierList = ({
             <thead>
               <tr>
                 <th style={{ width: 40 }}>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className={styles.checkbox}
                     checked={suppliers.length > 0 && selectedIds.length === suppliers.length}
                     onChange={() => onSelectAll(suppliers.map(s => s.supplierId))}
@@ -111,8 +111,8 @@ const SupplierList = ({
               {paginatedSuppliers.map((s) => (
                 <tr key={s.supplierId}>
                   <td>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className={styles.checkbox}
                       checked={selectedIds.includes(s.supplierId)}
                       onChange={() => onToggleSelection(s.supplierId)}
@@ -123,10 +123,10 @@ const SupplierList = ({
                   <td>{s.supplierName}</td>
                   <td>{s.branches?.map(b => b.name).join(", ") || "-"}</td>
 
-                  <td style={{ 
-                    color: Number(s.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' : 
-                           Number(s.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : '#333', 
-                    fontWeight: 600 
+                  <td style={{
+                    color: Number(s.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' :
+                      Number(s.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : '#333',
+                    fontWeight: 600
                   }}>
                     ₹{Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
@@ -154,8 +154,8 @@ const SupplierList = ({
           <div className={styles.paginationCenter}>
             {selectedIds.length > 0 && (
               <div className={styles.bulkActionsInline}>
-                <span 
-                  className={styles.bulkCount} 
+                <span
+                  className={styles.bulkCount}
                   onClick={() => onSelectAll([])}
                   style={{ cursor: 'pointer' }}
                   title="Unselect All"
@@ -179,15 +179,15 @@ const SupplierList = ({
           <div className={styles.paginationRight}>
             <div style={{ display: 'flex', gap: 12 }}>
               {currentPage > 1 && (
-                <button 
-                  className={styles.pageBtn} 
+                <button
+                  className={styles.pageBtn}
                   onClick={() => setCurrentPage(prev => prev - 1)}
                 >
                   Previous
                 </button>
               )}
               {currentPage * rowsPerPage < suppliers.length && (
-                <button 
+                <button
                   className={`${styles.pageBtn} ${styles.nextBtn}`}
                   onClick={() => setCurrentPage(prev => prev + 1)}
                 >

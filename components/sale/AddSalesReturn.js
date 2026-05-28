@@ -23,6 +23,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [cartDetails, setCartDetails] = useState(null);
     const [availableItems, setAvailableItems] = useState([]);
+    const [focusedField, setFocusedField] = useState(null);
 
     const formatVariantSize = (size) => {
         if (!size) return "";
@@ -403,8 +404,9 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     alignItems: 'center',
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                    border: errors.customer ? '2px solid red' : '2px solid #ddd'
+                                    background: '#fff',
+                                    border: errors.customer ? '2px solid red' : (showCustomerDropdown ? '2px solid #E93E64' : '2px solid #ddd'),
+                                    boxShadow: 'none'
                                 }}
                             >
                                 <span>{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "Select Name"}</span>
@@ -427,7 +429,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         </div>
                         <div className={styles.field}>
                             <label>Customer Phone Number</label>
-                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{ background: 'transparent', border: '2px solid #ddd' }} />
+                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{ background: '#fff', border: '2px solid #ddd', boxShadow: 'none' }} />
                         </div>
                         <div className={styles.field} style={{ zIndex: showReceiptDropdown ? 100 : 1 }}>
                             <label>Receipt No</label>
@@ -440,18 +442,19 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     alignItems: 'center',
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                    border: errors.receiptNo ? '2px solid red' : '2px solid #ddd'
+                                    background: '#fff',
+                                    border: errors.receiptNo ? '2px solid red' : (showReceiptDropdown ? '2px solid #E93E64' : '2px solid #ddd'),
+                                    boxShadow: 'none'
                                 }}
                             >
-                                <span>{formData.receiptNo ? `Order #${formData.receiptNo}` : "Enter Receipt no"}</span>
+                                <span>{formData.receiptNo ? `Order ${formData.receiptNo}` : "Enter Receipt no"}</span>
                                 {mode === "add" && <FiChevronDown />}
                             </div>
                             {showReceiptDropdown && (
                                 <div className={styles.dropdownList}>
                                     {orders.map(id => (
                                         <div key={id} className={styles.dropdownItem} onClick={() => handleReceiptSelect(id)}>
-                                            Order #{id}
+                                            Order {id}
                                         </div>
                                     ))}
                                 </div>
@@ -464,7 +467,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         </div>
                         <div className={styles.field}>
                             <label>Return No</label>
-                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{ background: 'transparent', border: '2px solid #ddd' }} />
+                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{ background: '#fff', border: '2px solid #ddd', boxShadow: 'none' }} />
                         </div>
                         <div className={styles.field} style={{ gridColumn: 'span 2' }}>
                             <label>Return Reason</label>
@@ -475,7 +478,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 onChange={(e) => setFormData({ ...formData, returnReason: e.target.value })}
                                 placeholder="Enter here"
                                 readOnly={mode === "view"}
-                                style={{ background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd' }}
+                                onFocus={() => setFocusedField('returnReason')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    background: '#fff',
+                                    border: focusedField === 'returnReason' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    boxShadow: 'none'
+                                }}
                             />
                         </div>
                         <div className={styles.field}>
@@ -486,7 +495,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 value={formData.billDate}
                                 onChange={(e) => setFormData({ ...formData, billDate: e.target.value })}
                                 readOnly={mode === "view"}
-                                style={{ background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd', width: '100%' }}
+                                max={toApiDateOnly(new Date())}
+                                onFocus={() => setFocusedField('billDate')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    background: '#fff',
+                                    border: focusedField === 'billDate' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    width: '100%',
+                                    boxShadow: 'none'
+                                }}
                             />
                         </div>
                         <div className={styles.field}>
@@ -497,7 +514,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 value={formData.returnDate}
                                 onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
                                 readOnly={mode === "view"}
-                                style={{ background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd' }}
+                                onFocus={() => setFocusedField('returnDate')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    background: '#fff',
+                                    border: focusedField === 'returnDate' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    boxShadow: 'none'
+                                }}
                             />
                         </div>
                     </div>
@@ -531,8 +554,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                                    border: errors[`itemProduct_${idx}`] ? '1px solid red' : '1px solid #e0e0e0',
+                                                    background: '#fff',
+                                                    border: errors[`itemProduct_${idx}`] ? '1px solid red' : (showProductDropdown === idx ? '1px solid #E93E64' : '1px solid #e0e0e0'),
                                                     borderRadius: '6px',
                                                     cursor: mode === "add" ? 'pointer' : 'default',
                                                     opacity: mode === "add" ? 1 : 0.8
@@ -589,12 +612,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                 <input
                                                     type="number"
                                                     className={styles.input}
+                                                    onFocus={() => setFocusedField(`itemQty_${idx}`)}
+                                                    onBlur={() => setFocusedField(null)}
                                                     style={{
                                                         width: '65px',
                                                         padding: '6px 10px',
                                                         textAlign: 'center',
                                                         background: mode === "edit" ? '#fff' : '#f5f5f5',
-                                                        border: errors[`itemQty_${idx}`] ? '1px solid red' : '1px solid #ddd'
+                                                        border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #ddd'),
+                                                        boxShadow: 'none'
                                                     }}
                                                     value={item.returnQty || ""}
                                                     onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
@@ -618,12 +644,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         <td style={{ textAlign: 'center' }}>
                                             <select
                                                 className={styles.unitSelect}
+                                                onFocus={() => setFocusedField(`itemCondition_${idx}`)}
+                                                onBlur={() => setFocusedField(null)}
                                                 style={{
                                                     textAlign: 'center',
-                                                    background: mode === "view" ? 'transparent' : '#fff',
-                                                    border: mode === "view" ? 'none' : '1px solid #e0e0e0',
+                                                    background: '#fff',
+                                                    border: mode === "view" ? 'none' : (focusedField === `itemCondition_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
                                                     borderRadius: '4px',
-                                                    padding: '10px 5px'
+                                                    padding: '10px 5px',
+                                                    boxShadow: 'none'
                                                 }}
                                                 value={item.returnCondition || "Resellable"}
                                                 onChange={(e) => updateReturnCondition(idx, e.target.value)}

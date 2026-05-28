@@ -11,13 +11,13 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const { jwtToken, userInfo } = useStore();
     const branchId = userInfo?.branchId || 91;
     const [loading, setLoading] = useState(false);
-    
+
     // Header Data
     const [billDetails, setBillDetails] = useState(null);
     const [paymentDate, setPaymentDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
-    
+
     // Round off
     const [isRoundOff, setIsRoundOff] = useState(false);
     const [roundOffValue, setRoundOffValue] = useState("0");
@@ -84,12 +84,12 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         try {
             console.log("PayNowModal: Fetching bill with ID:", billId);
             let res = await purchaseService.getBillById(jwtToken, billId);
-            
+
             // If fetching by Bill ID fails with 404, it might be a Purchase Request ID
             if (res.status === "error" || !res.data) {
                 console.log("PayNowModal: Bill not found, trying Purchase Request Summary for ID:", billId);
                 const poRes = await purchaseService.getPurchaseRequestSummary(jwtToken, billId);
-                
+
                 if (poRes.status === "success" && poRes.data?.productsBillId) {
                     const actualBillId = poRes.data.productsBillId;
                     console.log("PayNowModal: Found linked Bill ID:", actualBillId);
@@ -137,7 +137,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             updatedEntries = [{ ...paymentEntries[0], amount: val }];
             setPaymentEntries(updatedEntries);
         }
-        
+
         const err = validateAmounts(updatedEntries, val);
         setExceededError(err);
         if (val && parseFloat(val) > 0) {
@@ -164,7 +164,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const updatePayment = (id, field, value) => {
         const updated = paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p);
         setPaymentEntries(updated);
-        
+
         const err = validateAmounts(updated, topPaidAmount);
         setExceededError(err);
         if (field === "amount" && value && parseFloat(value) > 0) {
@@ -176,7 +176,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const previouslyPaid = parseFloat(billDetails?.amountPaidToSupplier || 0);
     const currentBalance = parseFloat(billDetails?.balanceAmount || 0);
     const totalBillAmount = parseFloat(billDetails?.totalAmount || (previouslyPaid + currentBalance));
-    
+
     // Amount currently being entered (top Paid Amount field)
     const currentEntryAmount = parseFloat(topPaidAmount || 0);
     const totalPaidInModal = paymentEntries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
@@ -198,7 +198,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const handlePay = async () => {
         console.log("PayNowModal: handlePay called. billDetails:", billDetails);
         setIsSubmitted(true);
-        
+
         let hasError = false;
         if (!billDetails?.productsBillId && !billDetails?.productsPurchaseRqstID) {
             console.log("PayNowModal: Validation failed - no order selected");
@@ -235,11 +235,11 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         setLoading(true);
         try {
             const validEntries = paymentEntries.filter(entry => parseFloat(entry.amount) > 0);
-            const currentBillId = 
-                billDetails?.productsBillId || 
-                billDetails?.receiptItems?.[0]?.productsBillId || 
-                billDetails?.receiptItems?.[0]?.productsBillItemsId || 
-                billDetails?.productsPurchaseRqstID || 
+            const currentBillId =
+                billDetails?.productsBillId ||
+                billDetails?.receiptItems?.[0]?.productsBillId ||
+                billDetails?.receiptItems?.[0]?.productsBillItemsId ||
+                billDetails?.productsPurchaseRqstID ||
                 billId;
 
             const payload = {
@@ -269,7 +269,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             };
 
             const res = await purchaseService.createTransaction(jwtToken, payload);
-            
+
             if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
                 const resData = res.data?.data || res.data;
                 let transId = null;
@@ -317,23 +317,23 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     <div className={styles.headerGrid}>
                         <div className={styles.field}>
                             <label>Supplier Name</label>
-                            <input 
-                                type="text" 
-                                className={`${styles.input} ${styles.readOnly}`} 
-                                value={supplierData?.supplierName || billDetails?.vendor?.supplierName || "N/A"} 
-                                readOnly 
+                            <input
+                                type="text"
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={supplierData?.supplierName || billDetails?.vendor?.supplierName || "N/A"}
+                                readOnly
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Payment Date</label>
-                            <div style={{position: 'relative'}}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="date"
+                                    className={styles.input}
                                     value={paymentDate}
                                     max={toApiDateOnly(new Date())}
                                     onChange={(e) => setPaymentDate(e.target.value)}
-                                    style={{width: '100%'}}
+                                    style={{ width: '100%' }}
                                 />
                             </div>
                         </div>
@@ -342,14 +342,19 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     {/* Bill Stats */}
                     <div className={styles.col5}>
                         <div className={styles.field}>
-                            <label>Order Number <span style={{color: '#ff4d4f'}}>*</span></label>
-                            <select 
+                            <label>Order Number <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <select
                                 className={`${styles.select} ${orderError ? styles.errorInput : ""}`}
                                 value={billDetails?.productsBillId || billDetails?.productsPurchaseRqstID || ""}
                                 onChange={(e) => handleOrderChange(e.target.value)}
                             >
                                 <option value="">Select Order</option>
-                                {allOrders?.filter(o => o.orderStatus === 'received').map(order => (
+                                {allOrders?.filter(o =>
+                                    o.orderStatus === 'received' &&
+                                    o.paymentStatus !== 'Full' &&
+                                    o.paymentStatus !== 'Paid' &&
+                                    parseFloat(o.balanceAmount || 0) > 0
+                                ).map(order => (
                                     <option key={order.productsPurchaseRqstID} value={order.productsBillId || order.productsPurchaseRqstID}>
                                         PO-{String(order.productsPurchaseRqstID).padStart(5, '0')}
                                     </option>
@@ -375,10 +380,10 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
                         <div className={styles.field}>
                             <label>Paid Amount</label>
-                            <input 
-                                type="number" 
-                                className={`${styles.input} ${amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) ? styles.errorInput : ""}`} 
-                                value={topPaidAmount} 
+                            <input
+                                type="number"
+                                className={`${styles.input} ${amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) ? styles.errorInput : ""}`}
+                                value={topPaidAmount}
                                 onChange={(e) => handleTopPaidAmountChange(e.target.value)}
                                 placeholder="0"
                             />
@@ -395,10 +400,10 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         <div className={styles.summaryCol}>
                             <div className={styles.field}>
                                 <label>Add Description</label>
-                                <textarea 
-                                    className={styles.textarea} 
-                                    rows={2} 
-                                    placeholder="Lorem ipsum dolor sit..." 
+                                <textarea
+                                    className={styles.textarea}
+                                    rows={2}
+                                    placeholder="Enter Descrition"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
@@ -407,13 +412,13 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                 <label>Add Image</label>
                                 <div className={styles.imageUpload}>
                                     <label htmlFor="modalImage" className={styles.uploadTrigger}>Choose file</label>
-                                    <input 
-                                        type="file" 
-                                        id="modalImage" 
-                                        style={{display: 'none'}} 
+                                    <input
+                                        type="file"
+                                        id="modalImage"
+                                        style={{ display: 'none' }}
                                         onChange={(e) => setSelectedImage(e.target.files[0])}
                                     />
-                                    <span style={{fontSize: '12px', color: '#666'}}>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>
                                         {selectedImage ? selectedImage.name : "No file Choosen"}
                                     </span>
                                 </div>
@@ -421,20 +426,20 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
 
                         <div className={styles.summaryCol}>
-                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px'}}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                 <div className={styles.field}>
                                     <label>Round Off</label>
                                     <div className={styles.roundOffContainer}>
-                                        <input 
-                                            type="checkbox" 
-                                            className={styles.checkbox} 
+                                        <input
+                                            type="checkbox"
+                                            className={styles.checkbox}
                                             checked={isRoundOff}
                                             onChange={(e) => setIsRoundOff(e.target.checked)}
                                         />
-                                        <input 
-                                            type="number" 
-                                            className={styles.input} 
-                                            value={roundOffValue} 
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            value={roundOffValue}
                                             onChange={(e) => setRoundOffValue(e.target.value)}
                                             placeholder="0"
                                         />
@@ -457,7 +462,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     </div>
 
                     {/* Payment Entries */}
-                    <div style={{marginTop: '32px'}}>
+                    <div style={{ marginTop: '32px' }}>
                         {paymentEntries.map((entry, index) => {
                             const isLast = index === paymentEntries.length - 1;
                             const hasAmountRequiredError = amountError && (!entry.amount || parseFloat(entry.amount) <= 0);
@@ -469,7 +474,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                     <div className={styles.grid}>
                                         <div className={styles.field}>
                                             <label>Payment Type</label>
-                                            <select 
+                                            <select
                                                 className={`${styles.select} ${showExceededOnType ? styles.errorInput : ""}`}
                                                 value={entry.type}
                                                 onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
@@ -488,17 +493,17 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                         </div>
                                         <div className={styles.field}>
                                             <label>Amount Paid</label>
-                                            <div style={{display: 'flex', gap: '12px', flexDirection: 'column'}}>
-                                                <div style={{display: 'flex', gap: '12px'}}>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${hasAmountRequiredError || showExceededOnAmount ? styles.errorInput : ""}`} 
-                                                        placeholder="0" 
+                                            <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', gap: '12px' }}>
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${hasAmountRequiredError || showExceededOnAmount ? styles.errorInput : ""}`}
+                                                        placeholder="0"
                                                         value={entry.amount}
                                                         onChange={(e) => {
                                                             updatePayment(entry.id, "amount", e.target.value);
                                                         }}
-                                                        style={{flex: 1}}
+                                                        style={{ flex: 1 }}
                                                     />
                                                     {paymentEntries.length > 1 && (
                                                         <button className={styles.miniRemove} onClick={() => handleRemovePayment(entry.id)}>
@@ -514,14 +519,14 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                             </div>
                                         </div>
                                     </div>
-                                    {entry.type !== "Cash" && (
+                                    {entry.type !== "Cash" && entry.type !== "Bank" && (
                                         <div className={styles.refField}>
                                             <div className={styles.field}>
                                                 <label>REFERENCE NUMBER</label>
-                                                <input 
-                                                    type="text" 
-                                                    className={styles.input} 
-                                                    placeholder="****************" 
+                                                <input
+                                                    type="text"
+                                                    className={styles.input}
+                                                    placeholder="****************"
                                                     value={entry.refNo}
                                                     onChange={(e) => updatePayment(entry.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
                                                 />

@@ -168,6 +168,7 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
         const product = response.data.data;
         setFormData({
           ...product,
+          gst: product.taxGroupId || product.gst || "",
           petType: Array.isArray(product.petType) ? product.petType : (product.petType ? JSON.parse(product.petType) : []),
         });
         if (product.images) {
@@ -267,6 +268,11 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
       Object.keys(formData).forEach(key => {
         if (key === 'petType') {
           data.append(key, JSON.stringify(formData[key]));
+        } else if (key === 'gst') {
+          data.append('gst', formData[key] || "");
+          data.append('taxGroupId', parseFloat(formData.gst) || 0);
+        } else if (key === 'taxGroupId') {
+          // Skip the stale taxGroupId key retrieved from backend to avoid overwriting our update
         } else {
           data.append(key, formData[key] || "");
         }

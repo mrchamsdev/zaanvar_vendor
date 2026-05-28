@@ -801,65 +801,65 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 </tr>
                             ) : (
                                 filteredInvoices.map((inv, idx) => {
-                                const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
-                                return (
-                                    <tr key={inv.userOrderId || idx}>
-                                        <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                        <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
-                                        <td>{partyName}</td>
-                                        <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
-                                        <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
-                                        <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
-                                        <td>
-                                            <div className={styles.actions}>
-                                                <div style={{ position: 'relative' }}>
-                                                    <FiShare2 
-                                                        className={styles.actionIcon} 
-                                                        onClick={() => {
-                                                            setSelectedTransaction(inv);
-                                                            setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                        }}
-                                                    />
-                                                    {isShareModalOpen === `share-${idx}` && (
-                                                        <ShareModal
-                                                            isOpen={true}
-                                                            onClose={() => setIsShareModalOpen(false)}
-                                                            data={inv}
-                                                            branchId={selectedBranchId || defaultBranchId}
+                                    const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
+                                    return (
+                                        <tr key={inv.userOrderId || idx}>
+                                            <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                            <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
+                                            <td>{partyName}</td>
+                                            <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
+                                            <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
+                                            <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
+                                            <td>
+                                                <div className={styles.actions}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiShare2
+                                                            className={styles.actionIcon}
+                                                            onClick={() => {
+                                                                setSelectedTransaction(inv);
+                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                            }}
                                                         />
-                                                    )}
+                                                        {isShareModalOpen === `share-${idx}` && (
+                                                            <ShareModal
+                                                                isOpen={true}
+                                                                onClose={() => setIsShareModalOpen(false)}
+                                                                data={inv}
+                                                                branchId={selectedBranchId || defaultBranchId}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                        {activeDropdown === idx && (
+                                                            <div className={styles.dropdownMenu}>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
+                                                                    setActiveDropdown(null);
+                                                                    const printUrl = `${window.location.pathname}?view=true&id=${inv.userOrderId}&print=true&pdf=true`;
+                                                                    const iframe = document.createElement('iframe');
+                                                                    iframe.style.position = 'fixed';
+                                                                    iframe.style.width = '0';
+                                                                    iframe.style.height = '0';
+                                                                    iframe.style.border = '0';
+                                                                    iframe.src = printUrl;
+                                                                    document.body.appendChild(iframe);
+                                                                    const cleanup = () => {
+                                                                        window.removeEventListener('focus', cleanup);
+                                                                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                    };
+                                                                    window.addEventListener('focus', cleanup);
+                                                                }}>Print</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div style={{ position: 'relative' }}>
-                                                    <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                    {activeDropdown === idx && (
-                                                        <div className={styles.dropdownMenu}>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { 
-                                                                setActiveDropdown(null); 
-                                                                const printUrl = `${window.location.pathname}?view=true&id=${inv.userOrderId}&print=true&pdf=true`;
-                                                                const iframe = document.createElement('iframe');
-                                                                iframe.style.position = 'fixed';
-                                                                iframe.style.width = '0';
-                                                                iframe.style.height = '0';
-                                                                iframe.style.border = '0';
-                                                                iframe.src = printUrl;
-                                                                document.body.appendChild(iframe);
-                                                                const cleanup = () => {
-                                                                    window.removeEventListener('focus', cleanup);
-                                                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                                                                };
-                                                                window.addEventListener('focus', cleanup);
-                                                            }}>Print</div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            }))}
+                                            </td>
+                                        </tr>
+                                    );
+                                }))}
                         </tbody>
                     </table>
                 </div>

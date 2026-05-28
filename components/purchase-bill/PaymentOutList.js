@@ -841,97 +841,97 @@ const PaymentOutList = ({ onAddClick }) => {
                                 </tr>
                             ) : (
                                 filteredTransactions.map((t, idx) => {
-                                const splitsList = [
-                                    { paymentType: t.paymentType || "Cash", amount: t.amount || 0 },
-                                    ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st.amount || 0 }))
-                                ];
-                                return (
-                                    <React.Fragment key={t.suppliersTransactionId || idx}>
-                                        <tr>
-                                            <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
-                                            <td>{t.suppliersTransactionId}</td>
-                                            <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
-                                            <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td>{Number(t.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td>{getDisplayPaymentType(t)}</td>
-                                            <td>
-                                                <div className={styles.actions}>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <FiShare2
-                                                            className={styles.actionIcon}
-                                                            onClick={() => {
-                                                                setSelectedTransaction(t);
-                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                            }}
-                                                        />
-                                                        {isShareModalOpen === `share-${idx}` && (
-                                                            <ShareModal
-                                                                isOpen={true}
-                                                                onClose={() => setIsShareModalOpen(false)}
-                                                                data={t}
-                                                                branchId={selectedBranchId || defaultBranchId}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <FiMoreVertical
-                                                            className={styles.actionIcon}
-                                                            onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
-                                                        />
-                                                        {activeDropdown === idx && (
-                                                            <div className={styles.dropdownMenu}>
-                                                                <div className={styles.dropdownItem} onClick={() => {
-                                                                    router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
-                                                                    setActiveDropdown(null);
-                                                                }}>View</div>
-                                                                <div className={styles.dropdownItem} onClick={() => {
-                                                                    router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
-                                                                    setActiveDropdown(null);
-                                                                }}>Edit</div>
-                                                                <div className={styles.dropdownItem} onClick={() => {
-                                                                    window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
-                                                                    setActiveDropdown(null);
-                                                                }}>Open PDF</div>
-                                                                <div className={styles.dropdownItem} onClick={() => {
-                                                                    window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
-                                                                    setActiveDropdown(null);
-                                                                }}>Print</div>
-                                                                <div className={styles.dropdownItem} onClick={() => {
+                                    const splitsList = [
+                                        { paymentType: t.paymentType || "Cash", amount: t.amount || 0 },
+                                        ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st.amount || 0 }))
+                                    ];
+                                    return (
+                                        <React.Fragment key={t.suppliersTransactionId || idx}>
+                                            <tr>
+                                                <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
+                                                <td>{t.suppliersTransactionId}</td>
+                                                <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
+                                                <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{Number(t.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{getDisplayPaymentType(t)}</td>
+                                                <td>
+                                                    <div className={styles.actions}>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <FiShare2
+                                                                className={styles.actionIcon}
+                                                                onClick={() => {
                                                                     setSelectedTransaction(t);
-                                                                    setIsHistoryModalOpen(true);
-                                                                    setActiveDropdown(null);
-                                                                }}>View History</div>
+                                                                    setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                                }}
+                                                            />
+                                                            {isShareModalOpen === `share-${idx}` && (
+                                                                <ShareModal
+                                                                    isOpen={true}
+                                                                    onClose={() => setIsShareModalOpen(false)}
+                                                                    data={t}
+                                                                    branchId={selectedBranchId || defaultBranchId}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <FiMoreVertical
+                                                                className={styles.actionIcon}
+                                                                onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
+                                                            />
+                                                            {activeDropdown === idx && (
+                                                                <div className={styles.dropdownMenu}>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
+                                                                        setActiveDropdown(null);
+                                                                    }}>View</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
+                                                                        setActiveDropdown(null);
+                                                                    }}>Edit</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
+                                                                        setActiveDropdown(null);
+                                                                    }}>Open PDF</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
+                                                                        setActiveDropdown(null);
+                                                                    }}>Print</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        setSelectedTransaction(t);
+                                                                        setIsHistoryModalOpen(true);
+                                                                        setActiveDropdown(null);
+                                                                    }}>View History</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                                            <div
+                                                                className={styles.actionIcon}
+                                                                onClick={() => toggleRowExpand(t.suppliersTransactionId)}
+                                                                title="Show Split Payments"
+                                                                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                                            >
+                                                                {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {t.splitTransactions && t.splitTransactions.length > 0 && (
-                                                        <div
-                                                            className={styles.actionIcon}
-                                                            onClick={() => toggleRowExpand(t.suppliersTransactionId)}
-                                                            title="Show Split Payments"
-                                                            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                                                        >
-                                                            {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
-                                            <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td>{split.paymentType}</td>
-                                                <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td></td>
+                                                </td>
                                             </tr>
-                                        ))}
-                                    </React.Fragment>
-                                );
-                            }))}
+                                            {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
+                                                <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>{split.paymentType}</td>
+                                                    <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    <td></td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
+                                    );
+                                }))}
                         </tbody>
                     </table>
                 </div>
@@ -958,3 +958,4 @@ const PaymentOutList = ({ onAddClick }) => {
 };
 
 export default PaymentOutList;
+

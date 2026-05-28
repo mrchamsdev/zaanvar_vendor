@@ -43,7 +43,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
     const [allProducts, setAllProducts] = useState([]);
-    
+
     // Form State
     const [branchId, setBranchId] = useState(initialData?.branchId || currentBranchId || "");
     const [supplierId, setSupplierId] = useState(initialData?.supplierId || "");
@@ -64,25 +64,25 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
     const tableRef = useRef(null);
     const supplierRef = useRef(null);
-    
+
     // Sync branchId with global store when in Add mode
     useEffect(() => {
         if (!requestId && !initialData?.branchId && currentBranchId) {
             setBranchId(currentBranchId);
         }
     }, [currentBranchId, requestId, initialData]);
-    
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             const isSearchClick = event.target.closest(`.${styles.productSearchWrapper}`);
             const isVariantClick = event.target.closest(`.${styles.variantCell}`);
             const isSupplierClick = supplierRef.current && supplierRef.current.contains(event.target);
-            
+
             if (!isSearchClick && !isVariantClick) {
                 setFocusedItemIndex(null);
                 setFocusedVariantIndex(null);
             }
-            
+
             if (!isSupplierClick) {
                 setIsSupplierDropdownOpen(false);
             }
@@ -102,7 +102,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     useEffect(() => {
         if (initialData?.restockItem && suppliers.length > 0 && allProducts.length > 0) {
             const { productId, variantId } = initialData.restockItem;
-            
+
             // 1. Select Supplier if provided
             if (initialData.supplierId) {
                 setSupplierId(initialData.supplierId);
@@ -117,7 +117,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 const variant = variants.find(v => v.variantId === variantId) || variants[0] || {};
                 const vt = variant.variantType || {};
                 const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
-                
+
                 const newItems = [{
                     id: Date.now(),
                     productId: product.productId,
@@ -156,7 +156,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
         setSupplierId(id);
         const supplier = suppliers.find(s => String(s.supplierId) === String(id));
         setSupplierPhone(supplier ? supplier.phone : "");
-        
+
         if (formErrors.supplierId) {
             const newErrors = { ...formErrors };
             delete newErrors.supplierId;
@@ -205,7 +205,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
         const variant = variants[0] || {};
         const vt = variant.variantType || {};
         const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
-        
+
         const newItems = [...items];
         newItems[index] = {
             ...newItems[index],
@@ -215,7 +215,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             variant: variantDisplay,
             currentStock: variant.currentQty || 0,
             variantId: variant.variantId,
-            costPrice: "", 
+            costPrice: "",
             mrp: variant.mrp || 0,
             taxGroupId: variant.taxGroupId || 1, // Default or from data
             allVariants: variants
@@ -233,7 +233,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const selectVariant = (itemIndex, variant) => {
         const vt = variant.variantType || {};
         const variantDisplay = [vt.packType, formatVariantSize(vt.size), vt.flavor].filter(Boolean).join(" - ") || variant.variantMeasure || "--";
-        
+
         const newItems = [...items];
         newItems[itemIndex] = {
             ...newItems[itemIndex],
@@ -315,18 +315,18 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 }))
             };
 
-            const res = requestId 
+            const res = requestId
                 ? await purchaseService.updatePurchaseOrder(jwtToken, requestId, payload)
                 : await purchaseService.createPurchaseOrder(jwtToken, payload);
 
             console.log("Submit Response:", res);
             if (res.status === "success" || res.status === "ok" || res.status === 200) {
                 toast.success(type === "Drafted" ? "Order Saved as Draft" : "Order Placed Successfully");
-                
+
                 // Trigger navigation and refresh
                 console.log("Invoking onSave callback");
                 if (onSave) onSave();
-                
+
                 // Fallback direct navigation
                 router.push("/purchase-bill?tab=Orders");
             } else {
@@ -342,7 +342,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     return (
         <div className={styles.formContainer}>
             <div className={styles.poNumberHeader}>
-                PO Number <span className={styles.poId}>#{String(orderNumber || 1).padStart(6, '0')}</span>
+                PO Number <span className={styles.poId}>{String(orderNumber || 1).padStart(6, '0')}</span>
             </div>
 
             <div className={styles.section}>
@@ -351,8 +351,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Selected Branch</label>
                         <div style={{ position: 'relative' }}>
-                            <select 
-                                className={`${styles.select} ${styles.input}`} 
+                            <select
+                                className={`${styles.select} ${styles.input}`}
                                 value={branchId}
                                 onChange={(e) => setBranchId(e.target.value)}
                                 style={{ appearance: 'none', width: '100%', paddingRight: '40px' }}
@@ -363,20 +363,20 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 ))}
                             </select>
                             <div className={styles.dropdownIcon}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                             </div>
                         </div>
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>
-                        <div 
-                            className={`${styles.supplierSearchWrapper} ${formErrors.supplierId ? styles.errorField : ""}`} 
+                        <div
+                            className={`${styles.supplierSearchWrapper} ${formErrors.supplierId ? styles.errorField : ""}`}
                             onClick={() => setIsSupplierDropdownOpen(true)}
                         >
-                            <input 
-                                className={styles.input} 
-                                type="text" 
-                                placeholder="Name Supplier" 
+                            <input
+                                className={styles.input}
+                                type="text"
+                                placeholder="Name Supplier"
                                 value={supplierSearchQuery || (suppliers.find(s => String(s.supplierId) === String(supplierId))?.supplierName || "")}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -394,7 +394,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 e.stopPropagation();
                                 setIsSupplierDropdownOpen(!isSupplierDropdownOpen);
                             }}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                             </div>
                         </div>
                         {formErrors.supplierId && <div className={styles.errorMessage}>{formErrors.supplierId}</div>}
@@ -403,9 +403,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 {suppliers
                                     .filter(s => !supplierSearchQuery || s.supplierName.toLowerCase().includes(supplierSearchQuery.toLowerCase()))
                                     .map(s => (
-                                        <div 
-                                            key={s.supplierId} 
-                                            className={styles.productOption} 
+                                        <div
+                                            key={s.supplierId}
+                                            className={styles.productOption}
                                             onClick={() => {
                                                 handleSupplierChange({ target: { value: s.supplierId } });
                                                 setSupplierSearchQuery(s.supplierName);
@@ -415,8 +415,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                             <span className={styles.productOptionName}>{s.supplierName}</span>
                                         </div>
                                     ))}
-                                <div 
-                                    className={styles.productOption} 
+                                <div
+                                    className={styles.productOption}
                                     style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
                                     onClick={() => router.push(`/suppliers?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
                                 >
@@ -431,10 +431,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     </div>
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Date of Order</label>
-                        <input 
-                            className={`${styles.input} ${formErrors.orderDate ? styles.errorField : ""}`} 
-                            type="date" 
-                            value={orderDate} 
+                        <input
+                            className={`${styles.input} ${formErrors.orderDate ? styles.errorField : ""}`}
+                            type="date"
+                            value={orderDate}
                             max={toApiDateOnly(new Date())}
                             onChange={(e) => {
                                 setOrderDate(e.target.value);
@@ -443,7 +443,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                     delete newErrors.orderDate;
                                     setFormErrors(newErrors);
                                 }
-                            }} 
+                            }}
                         />
                         {formErrors.orderDate && <div className={styles.errorMessage}>{formErrors.orderDate}</div>}
                     </div>
@@ -454,33 +454,33 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 <table className={styles.table} ref={tableRef}>
                     <thead>
                         <tr>
-                            <th style={{textAlign: 'center'}}>S.NO</th>
+                            <th style={{ textAlign: 'center' }}>S.NO</th>
                             <th>PRODUCT NAME</th>
-                            <th style={{textAlign: 'center'}}>PRODUCT CODE</th>
-                            <th style={{textAlign: 'center'}}>VARIANT</th>
-                            <th style={{textAlign: 'center'}}>CURRENT STOCK</th>
-                            <th style={{textAlign: 'center'}}>Order QTY</th>
-                            <th style={{textAlign: 'center'}}>COST PRICE</th>
+                            <th style={{ textAlign: 'center' }}>PRODUCT CODE</th>
+                            <th style={{ textAlign: 'center' }}>VARIANT</th>
+                            <th style={{ textAlign: 'center' }}>CURRENT STOCK</th>
+                            <th style={{ textAlign: 'center' }}>Order QTY</th>
+                            <th style={{ textAlign: 'center' }}>COST PRICE</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((item, index) => (
                             <tr key={item.id}>
-                                <td style={{textAlign: 'center', fontWeight: '700'}}>{String(index + 1).padStart(2, '0')}</td>
-                                <td className={styles.productSearchWrapper} style={{minWidth: '250px', position: 'relative'}}>
-                                    <input 
-                                        className={styles.tableInput} 
-                                        type="text" 
-                                        placeholder="SELECT PRODUCT" 
+                                <td style={{ textAlign: 'center', fontWeight: '700' }}>{String(index + 1).padStart(2, '0')}</td>
+                                <td className={styles.productSearchWrapper} style={{ minWidth: '250px', position: 'relative' }}>
+                                    <input
+                                        className={styles.tableInput}
+                                        type="text"
+                                        placeholder="SELECT PRODUCT"
                                         value={item.productName}
                                         onFocus={() => {
                                             setFocusedItemIndex(index);
                                         }}
                                         onChange={(e) => updateItem(index, "productName", e.target.value)}
                                     />
-                                    <div style={{position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4}}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                                    <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                                     </div>
                                     {focusedItemIndex === index && (
                                         <div className={styles.productDropdown}>
@@ -492,8 +492,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                                         <span className={styles.productOptionCode}>{p.ProductCode}</span>
                                                     </div>
                                                 ))}
-                                            <div 
-                                                className={styles.productOption} 
+                                            <div
+                                                className={styles.productOption}
                                                 style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
                                                 onClick={() => router.push(`/inventory/products?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
                                             >
@@ -503,28 +503,28 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                     )}
                                 </td>
                                 <td>
-                                    <input 
-                                        className={styles.tableInput} 
-                                        type="text" 
-                                        placeholder="--" 
+                                    <input
+                                        className={styles.tableInput}
+                                        type="text"
+                                        placeholder="--"
                                         value={item.productCode === "--" ? "" : item.productCode}
-                                        style={{textAlign: 'center'}}
+                                        style={{ textAlign: 'center' }}
                                         readOnly
                                     />
                                 </td>
-                                <td 
-                                    className={`${styles.variantCell} ${formErrors.items?.[index]?.variant ? styles.errorField : ""}`} 
-                                    style={{textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer'}} 
+                                <td
+                                    className={`${styles.variantCell} ${formErrors.items?.[index]?.variant ? styles.errorField : ""}`}
+                                    style={{ textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer' }}
                                     onClick={() => setFocusedVariantIndex(index)}
                                 >
                                     {item.variant || "--"}
                                     {item.allVariants?.length > 1 && (
-                                        <div style={{position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4}}>
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg>
+                                        <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }}>
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                                         </div>
                                     )}
                                     {formErrors.items?.[index]?.variant && (
-                                        <div className={styles.errorMessage} style={{position: 'absolute', bottom: '2px', left: 0, width: '100%', textAlign: 'center'}}>Required</div>
+                                        <div className={styles.errorMessage} style={{ position: 'absolute', bottom: '2px', left: 0, width: '100%', textAlign: 'center' }}>Required</div>
                                     )}
                                     {focusedVariantIndex === index && item.allVariants?.length > 1 && (
                                         <div className={styles.productDropdown}>
@@ -541,36 +541,36 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                         </div>
                                     )}
                                 </td>
-                                <td style={{textAlign: 'center', fontWeight: '700'}}>{item.currentStock || 0}</td>
+                                <td style={{ textAlign: 'center', fontWeight: '700' }}>{item.currentStock || 0}</td>
                                 <td>
-                                    <input 
-                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.orderQty ? styles.errorField : ""}`} 
+                                    <input
+                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.orderQty ? styles.errorField : ""}`}
                                         type="number"
                                         min="0"
                                         placeholder="0"
-                                        value={item.orderQty === 0 ? "" : item.orderQty} 
+                                        value={item.orderQty === 0 ? "" : item.orderQty}
                                         onChange={(e) => updateItem(index, "orderQty", e.target.value)}
                                     />
                                     {formErrors.items?.[index]?.orderQty && (
-                                        <div className={styles.errorMessage} style={{textAlign: 'center'}}>Required</div>
+                                        <div className={styles.errorMessage} style={{ textAlign: 'center' }}>Required</div>
                                     )}
                                 </td>
                                 <td>
-                                    <input 
+                                    <input
                                         className={`${styles.qtyInput} ${formErrors.items?.[index]?.costPrice ? styles.errorField : ""}`}
                                         type="number"
                                         step="0.01"
                                         placeholder="0.00"
-                                        value={item.costPrice} 
+                                        value={item.costPrice}
                                         onChange={(e) => updateItem(index, "costPrice", e.target.value)}
                                     />
                                     {Number(item.costPrice) > Number(item.mrp) && item.mrp > 0 && (
                                         <div className={styles.errorMessage} style={{ fontSize: '9px', marginTop: '6px', lineHeight: '1.2', display: 'block', textAlign: 'center' }}>
-                                            Cost Price cannot be greater than MRP: {item.mrp}
+                                            Cost Price should not be more than MRP: {item.mrp}
                                         </div>
                                     )}
                                 </td>
-                                <td style={{width: '60px', textAlign: 'center'}}>
+                                <td style={{ width: '60px', textAlign: 'center' }}>
                                     {items.length > 1 && (
                                         <button className={styles.deleteBtn} onClick={() => removeItem(item.id)}>
                                             <IconTrash />
@@ -588,8 +588,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 <button className={styles.draftBtn} disabled={loading} onClick={() => handleSubmit("Drafted")}>
                     Save as Draft
                 </button>
-                <button 
-                    className={`${styles.placeOrderBtn} ${items.some(i => i.productId) ? styles.placeOrderBtnActive : ""}`} 
+                <button
+                    className={`${styles.placeOrderBtn} ${items.some(i => i.productId) ? styles.placeOrderBtnActive : ""}`}
                     disabled={loading}
                     onClick={() => handleSubmit("Order Placed")}
                 >

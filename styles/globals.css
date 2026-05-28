@@ -1,17 +1,20 @@
-
-html, body {
-  font-family: 'Poppins' ;
+html,
+body {
+  font-family: 'Poppins';
   font-display: swap;
   margin: 0px;
   /* Hide scrollbars globally but allow scrolling */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 /* Hide scrollbars for Chrome, Safari and Opera */
 *::-webkit-scrollbar {
   display: none;
 }
+
 /* p{
   margin: 0px;
 } */
@@ -31,32 +34,112 @@ textarea {
   text-transform: capitalize;
 }
 
+input[type="date"] {
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
 button {
-  background: none;       /* remove background */
-  border: none;           /* remove border */
-  padding: 0;             /* remove default padding */
-  margin: 0;              /* remove default margin */
-  font: inherit;          /* inherit font styles from parent */
-  color: inherit;         /* inherit text color */
-  cursor: pointer;        /* keep pointer on hover */
-  outline: none;          /* remove default focus outline */
+  background: none;
+  /* remove background */
+  border: none;
+  /* remove border */
+  padding: 0;
+  /* remove default padding */
+  margin: 0;
+  /* remove default margin */
+  font: inherit;
+  /* inherit font styles from parent */
+  color: inherit;
+  /* inherit text color */
+  cursor: pointer;
+  /* keep pointer on hover */
+  outline: none;
+  /* remove default focus outline */
 }
 
 :root {
   --primary-orange: #F5790C;
   --secondary-orange: #FCDDC2;
   --primary-blue: #1FBFC2;
-  --background-color:#fff; 
-  --primary-black:#131313;
-scrollbar-width: none;
+  --background-color: #fff;
+  --primary-black: #131313;
+  scrollbar-width: none;
   /* Note: If you want to override the value, update it here only once */
-  --header-background-color: #F9FAFC; /* header background color */
+  --header-background-color: #F9FAFC;
+  /* header background color */
 
   --secondary-blue: rgba(31, 191, 194, 0.10);
-  --header-text-color:#131313;
-  --header-secondary-text-color:#727271;
-  --underline-color:#EFEFEF; 
-  --icon-background-color:#F5790C1A; 
-  
+  --header-text-color: #131313;
+  --header-secondary-text-color: #727271;
+  --underline-color: #EFEFEF;
+  --icon-background-color: #F5790C1A;
+
   /* Add more as needed */
+}
+
+@media print {
+
+  /* Hide screen-only controls when printing */
+  aside,
+  header,
+  nav,
+  button,
+  iframe,
+  [class*="sidebar"],
+  [class*="topbar"],
+  [class*="tabBar"],
+  [class*="minimizedBar"],
+  [class*="windowActions"],
+  [class*="actions"],
+  [class*="footer"] {
+    display: none !important;
+  }
+
+  /* Reset layout containers to flow normally in print media */
+  html,
+  body,
+  main,
+  [class*="mainArea"],
+  [class*="dashWrap"],
+  [class*="taskManager"],
+  [class*="formWrapper"],
+  [class*="formContent"] {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Hide background elements when any overlay or taskManager is printing */
+  body:has([class*="overlay"]) aside,
+  body:has([class*="overlay"]) header,
+  body:has([class*="overlay"]) [class*="container"]>[class*="topSection"],
+  body:has([class*="overlay"]) [class*="container"]>[class*="tableWrapper"],
+  body:has([class*="overlay"]) [class*="container"]>[class*="pagination"],
+  body:has([class*="overlay"]) [class*="container"]>*:not([class*="overlay"]),
+
+  body:has([class*="taskManager"]) aside,
+  body:has([class*="taskManager"]) header,
+  body:has([class*="taskManager"]) [class*="container"]>[class*="topSection"],
+  body:has([class*="taskManager"]) [class*="container"]>[class*="tableWrapper"],
+  body:has([class*="taskManager"]) [class*="container"]>[class*="pagination"],
+  body:has([class*="taskManager"]) [class*="container"]>*:not([class*="taskManager"]) {
+    display: none !important;
+  }
 }

@@ -107,7 +107,7 @@
 .tabBtnActive {
     background: #fff;
     color: #E9315D;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .contentArea {
@@ -198,10 +198,21 @@
     font-size: 12px;
 }
 
-.statusGreen { color: #27AE60; }
-.statusOrange { color: #F5790C; }
-.statusRed { color: #E9315D; }
-.statusGrey { color: #999; }
+.statusGreen {
+    color: #27AE60;
+}
+
+.statusOrange {
+    color: #F5790C;
+}
+
+.statusRed {
+    color: #E9315D;
+}
+
+.statusGrey {
+    color: #999;
+}
 
 .subText {
     font-size: 11px;

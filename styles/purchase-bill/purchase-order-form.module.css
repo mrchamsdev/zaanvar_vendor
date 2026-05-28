@@ -407,6 +407,12 @@
     align-items: center;
     height: 44px;
     box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.supplierSearchWrapper:hover,
+.supplierSearchWrapper:focus-within {
+    border-color: #E9315D;
 }
 
 .dropdownIcon {

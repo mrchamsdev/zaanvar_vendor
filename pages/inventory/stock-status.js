@@ -354,30 +354,30 @@ const StockStatusPage = () => {
                   </button>
                 ) : activeTab === "expired" ? (
                   (item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste')) ? (
-                      <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <IconRefresh /> Completed
-                      </span>
+                    <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <IconRefresh /> Completed
+                    </span>
                   ) : (
-                      <button
-                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                        onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
-                      >
-                        🏷 Mark Waste
-                      </button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                      onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
+                    >
+                      🏷 Mark Waste
+                    </button>
                   )
                 ) : (
                   <>
                     {(item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste')) ? (
-                         <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                             <IconRefresh /> Completed
-                         </span>
+                      <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <IconRefresh /> Completed
+                      </span>
                     ) : (
-                        <button
-                          className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                          onClick={() => handleMarkWaste(item.consumptionId)}
-                        >
-                          🏷 Mark Waste
-                        </button>
+                      <button
+                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                        onClick={() => handleMarkWaste(item.consumptionId)}
+                      >
+                        🏷 Mark Waste
+                      </button>
                     )}
                     {item.consumptionId && (
                       <button
@@ -458,16 +458,16 @@ const StockStatusPage = () => {
               filteredList.forEach(item => {
                 const details = item.productDetails || {};
                 const pName = `"${details.productName || item.productName || "Unknown"}"`;
-                
+
                 const vt = item.variantType || {};
                 const formattedSize = formatVariantSize(vt.size);
                 const unitParts = [];
                 if (formattedSize) unitParts.push(formattedSize);
                 if (vt.flavor) unitParts.push(vt.flavor);
                 if (vt.packType) unitParts.push(vt.packType);
-                
-                let unit = unitParts.length > 0 
-                  ? unitParts.join(" ") 
+
+                let unit = unitParts.length > 0
+                  ? unitParts.join(" ")
                   : (vt.packCount ? `${vt.packCount} UNIT` : (item.variantMeasure || "STND"));
                 unit = `"${unit}"`;
 

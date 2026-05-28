@@ -73,6 +73,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
 
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (isOpen) {
@@ -123,6 +124,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             availableVariants: []
         }]);
         setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+        setErrors({});
     };
 
     const fetchInitialData = async () => {
@@ -215,12 +217,18 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         if (type === 'name') {
             setFormData({ ...formData, partyName: val });
             setShowCustomerDropdown(true);
+            if (errors.partyName) {
+                setErrors(prev => ({ ...prev, partyName: null }));
+            }
             // Just updating the name, phone update happens on selection from dropdown usually
             // But if there's an exact match, we can fill it
             const exact = customers.find(c => `${c.firstName} ${c.lastName}`.toLowerCase() === val.toLowerCase());
             if (exact) setFormData(prev => ({ ...prev, phone: exact.phoneNumber, vendorCustomerId: exact.vendorCustomerId }));
         } else {
             setFormData({ ...formData, phone: val });
+            if (errors.phone) {
+                setErrors(prev => ({ ...prev, phone: null }));
+            }
             // Auto-select customer if 10 digits are entered
             if (val.length === 10) {
                 const found = customers.find(c => c.phoneNumber === val);
@@ -259,6 +267,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             amount: (price * qty) + taxAmount,
             availableQty: availableQty,
             availableVariants: variants, // Store for the unit dropdown
+            productError: null,
             error: qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
@@ -303,7 +312,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             qty: val === "" ? "" : qty,
             taxAmount: taxAmount,
             amount: (it.price * qty) + taxAmount,
-            error: qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null
+            qtyError: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null),
+            error: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null)
         };
         setItems(newItems);
     };
@@ -333,23 +343,51 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount;
 
     const handleSave = async () => {
-        if (!formData.partyName || !formData.phone) {
-            toast.error("Please provide customer name and phone");
+        const validationErrors = {};
+        if (!formData.partyName) {
+            validationErrors.partyName = "Customer name is required";
+        }
+        if (!formData.phone) {
+            validationErrors.phone = "Phone number is required";
+        }
+        if (!formData.invoiceDate) {
+            validationErrors.invoiceDate = "Invoice date is required";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (formData.invoiceDate > todayStr) {
+                validationErrors.invoiceDate = "Invoice date cannot be in the future";
+            }
+        }
+
+        const updatedItems = items.map(it => {
+            const itemErrors = {};
+            if (!it.productId) {
+                itemErrors.product = "Please select a product";
+            }
+            const qtyVal = parseFloat(it.qty) || 0;
+            if (qtyVal <= 0) {
+                itemErrors.qty = "Quantity must be greater than 0";
+            } else if (qtyVal > it.availableQty) {
+                itemErrors.qty = `Cannot exceed quantity (${it.availableQty})`;
+            }
+            return {
+                ...it,
+                productError: itemErrors.product || null,
+                qtyError: itemErrors.qty || null,
+                error: itemErrors.qty || null
+            };
+        });
+
+        const hasItemErrors = updatedItems.some(it => it.productError || it.qtyError);
+        const hasFormErrors = Object.keys(validationErrors).length > 0;
+
+        if (hasFormErrors || hasItemErrors) {
+            setErrors(validationErrors);
+            setItems(updatedItems);
             return;
         }
 
         const validItems = items.filter(it => it.productId);
-        if (validItems.length === 0) {
-            toast.error("Please add at least one product");
-            return;
-        }
-
-        for (const it of validItems) {
-            if (it.qty > it.availableQty) {
-                toast.error(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
-                return;
-            }
-        }
 
         const payload = {
             branchId,
@@ -457,6 +495,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     </div>
                                 )}
                             </div>
+                            {errors.partyName && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.partyName}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Phone Number</label>
@@ -468,6 +511,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                 onChange={(e) => handleCustomerSearch(e.target.value, 'phone')}
                                 disabled={isViewOnly}
                             />
+                            {errors.phone && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.phone}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Invoice No</label>
@@ -475,7 +523,17 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         </div>
                         <div className={styles.field}>
                             <label>Invoice Date</label>
-                            <input type="date" className={styles.input} value={formData.invoiceDate} onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })} disabled={isViewOnly} />
+                            <input type="date" className={styles.input} value={formData.invoiceDate} onChange={(e) => {
+                                setFormData({ ...formData, invoiceDate: e.target.value });
+                                if (errors.invoiceDate) {
+                                    setErrors(prev => ({ ...prev, invoiceDate: null }));
+                                }
+                            }} disabled={isViewOnly} />
+                            {errors.invoiceDate && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.invoiceDate}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -503,21 +561,34 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <tr key={idx}>
                                         <td>{String(idx + 1).padStart(2, '0')}</td>
                                         <td style={{ position: 'relative', width: '28%' }}>
-                                            <div className={styles.searchableDropdown}>
+                                            <div className={styles.searchableDropdown} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
                                                 <input
                                                     type="text"
                                                     className={styles.tableInput}
+                                                    style={{ paddingRight: '20px' }}
                                                     placeholder="Select product"
                                                     value={it.productName}
                                                     onChange={(e) => {
                                                         const newItems = [...items];
                                                         newItems[idx].productName = e.target.value;
+                                                        newItems[idx].productError = null;
                                                         setItems(newItems);
                                                         setShowProductDropdown(idx);
                                                     }}
                                                     onFocus={() => setShowProductDropdown(idx)}
                                                     disabled={isViewOnly}
                                                 />
+                                                {!isViewOnly && (
+                                                    <FiChevronDown
+                                                        size={14}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '8px',
+                                                            pointerEvents: 'none',
+                                                            color: '#999'
+                                                        }}
+                                                    />
+                                                )}
                                                 {showProductDropdown === idx && !isViewOnly && (
                                                     <div className={styles.dropdownList}>
                                                         {products
@@ -526,7 +597,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                                 return !search || (p.productName || "").toLowerCase().includes(search);
                                                             })
                                                             .map((p) => (
-                                                                <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
+                                                                 <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
                                                                     <span style={{ fontWeight: '600' }}>{p.productName}</span>
                                                                 </div>
                                                             ))
@@ -534,6 +605,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                     </div>
                                                 )}
                                             </div>
+                                            {it.productError && (
+                                                <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', fontWeight: '500' }}>
+                                                    {it.productError}
+                                                </div>
+                                            )}
                                         </td>
                                         <td style={{ minWidth: "120px" }}>
                                             {isViewOnly ? (
@@ -581,14 +657,14 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                             <input
                                                 type="number"
                                                 className={styles.tableInputCenter}
-                                                style={it.error ? { border: '1px solid #ff4d4f', background: '#fffcfc' } : {}}
+                                                style={it.error || it.qtyError ? { border: '1px solid #ff4d4f', background: '#fffcfc' } : {}}
                                                 value={it.qty === 0 ? "" : it.qty}
                                                 onChange={(e) => handleQtyChange(idx, e.target.value)}
                                                 disabled={isViewOnly}
                                             />
-                                            {it.error && (
+                                            {(it.error || it.qtyError) && (
                                                 <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap' }}>
-                                                    {it.error}
+                                                    {it.qtyError || it.error}
                                                 </div>
                                             )}
                                         </td>
@@ -623,6 +699,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                             <label style={{ fontWeight: '700' }}>Payment Details</label>
                             {payments.map((p, idx) => (
                                 <div key={idx} className={styles.paymentRow} style={{ gridTemplateColumns: p.method === "UPI" || p.method === "Cheque" ? "1fr 1fr 1.2fr" : "1fr 1fr" }}>
+
                                     <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly}>
                                         <option value="Cash">Cash</option>
                                         <option value="UPI">UPI</option>

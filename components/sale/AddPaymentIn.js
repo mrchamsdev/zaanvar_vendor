@@ -1,6 +1,6 @@
 import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
 import { FiX, FiCalendar, FiChevronDown, FiTrash2 } from "react-icons/fi";
 import { saleService } from "../../services/saleService";
@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
+import { IMAGE_URL } from "../utilities/Constants";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) => {
     const router = useRouter();
@@ -21,6 +22,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
+    const [selectedImage, setSelectedImage] = useState(null);
+    const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         vendorCustomerId: "",
@@ -32,6 +35,23 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         description: "",
         image: null
     });
+
+    const imagePreviewUrl = useMemo(() => {
+        if (selectedImage) {
+            try {
+                return URL.createObjectURL(selectedImage);
+            } catch (e) {
+                return null;
+            }
+        }
+        if (formData.image && typeof formData.image === 'string') {
+            if (formData.image.startsWith('http')) {
+                return formData.image;
+            }
+            return IMAGE_URL ? `${IMAGE_URL}${formData.image}` : formData.image;
+        }
+        return null;
+    }, [selectedImage, formData.image]);
 
     const [payments, setPayments] = useState([
         { method: "Cash", amount: "", referenceNumber: "" }
@@ -103,7 +123,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
                     description: data.description || "",
-                    image: null
+                    image: data.paymentImg || data.transactionImg || data.image || null
                 });
 
                 if (data.paymentMethods && data.paymentMethods.length > 0) {
@@ -141,6 +161,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         });
         setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
         setSearchTerm("");
+        setSelectedImage(null);
         setErrors({});
     };
 
@@ -305,6 +326,35 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
 
             console.log("Full Response Object:", res);
             if (res && (res.status === "success" || res.data?.status === "success")) {
+                let createdPaymentId = paymentId;
+                if (!createdPaymentId) {
+                    const resData = res.data?.data || res.data;
+                    if (Array.isArray(resData)) {
+                        createdPaymentId = resData[0]?.paymentId;
+                    } else if (resData && typeof resData === 'object') {
+                        if (Array.isArray(resData.data)) {
+                            createdPaymentId = resData.data[0]?.paymentId;
+                        } else {
+                            createdPaymentId = resData.paymentId || resData.data?.paymentId || resData.id || resData.data?.id;
+                        }
+                    }
+                }
+
+                if (selectedImage && createdPaymentId) {
+                    try {
+                        const imgFormData = new FormData();
+                        imgFormData.append("paymentImg", selectedImage);
+                        imgFormData.append("transactionImg", selectedImage);
+                        imgFormData.append("image", selectedImage);
+                        imgFormData.append("vendorCustomerId", formData.vendorCustomerId);
+                        imgFormData.append("branchId", branchId);
+                        imgFormData.append("createdBy", userInfo?.userId || userInfo?.id || 1);
+                        await saleService.uploadPaymentImage(jwtToken, createdPaymentId, imgFormData);
+                    } catch (uploadErr) {
+                        console.error("Error uploading payment image during save:", uploadErr);
+                    }
+                }
+
                 toast.success(mode === 'edit' ? "Payment updated successfully" : "Payment added successfully");
                 onRefresh();
 
@@ -339,7 +389,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 <div className={styles.modalContent} style={{ padding: '32px 40px' }}>
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field} style={{ position: 'relative' }}>
-                            <label>Name / Phone number</label>
+                            <label>Select Customer</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
@@ -392,7 +442,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                                 className={styles.input}
                                 value={`₹ ${formData.totalBalance}`}
                                 readOnly
-                                style={{ background: '#f8f9fa', border: '1px solid #eee' }}
+                                style={{ border: '1px solid #eee' }}
                             />
                         </div>
 
@@ -431,7 +481,6 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                                     });
                                 }}
                                 disabled={isViewOnly}
-                                style={{ background: '#fff', border: '1px solid #eee' }}
                             />
                             {errors.paidAmount && <span className={styles.errorMsg}>{errors.paidAmount}</span>}
                         </div>
@@ -522,9 +571,79 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                         </div>
                         <div className={styles.field}>
                             <label>Add Image</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <button style={{ background: '#666', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Choose file</button>
-                                <span style={{ color: '#999', fontSize: '13px' }}>No file Chosen</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        style={{
+                                            background: '#666',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '10px 20px',
+                                            borderRadius: '6px',
+                                            cursor: isViewOnly ? 'default' : 'pointer',
+                                            fontSize: '13px',
+                                            fontWeight: '600'
+                                        }}
+                                        disabled={isViewOnly}
+                                    >
+                                        Choose file
+                                    </button>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                setSelectedImage(file);
+                                            }
+                                        }}
+                                        accept="image/*"
+                                        disabled={isViewOnly}
+                                    />
+                                    <span style={{ color: '#999', fontSize: '13px' }}>
+                                        {selectedImage ? selectedImage.name : (formData.image && typeof formData.image === 'string' ? formData.image.split('/').pop() : "No file Chosen")}
+                                    </span>
+                                    {selectedImage && !isViewOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedImage(null);
+                                                if (fileInputRef.current) {
+                                                    fileInputRef.current.value = "";
+                                                }
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#ff4d4f',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                padding: 0
+                                            }}
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+                                {imagePreviewUrl && (
+                                    <div style={{ position: 'relative', marginTop: '8px' }}>
+                                        <img
+                                            src={imagePreviewUrl}
+                                            alt="Preview"
+                                            style={{
+                                                maxWidth: '120px',
+                                                maxHeight: '120px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #ddd',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

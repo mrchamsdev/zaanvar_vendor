@@ -144,6 +144,17 @@ export const purchaseService = {
     }
   },
 
+  getTransactionHistory: async (jwt, transactionId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/transactions/${transactionId}/history`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching transaction history:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
   updateTransaction: async (jwt, id, data) => {
     const webApi = new WebApimanager(jwt);
     try {
