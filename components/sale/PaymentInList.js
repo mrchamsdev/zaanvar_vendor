@@ -2,13 +2,14 @@ import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import ShareModal from "./ShareModal";
+import HistoryModal from "../purchase-bill/HistoryModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(() => {
@@ -321,7 +322,7 @@ import Loader from "../utilities/Loader";
 
 const PaymentInList = ({ onAddClick }) => {
     const router = useRouter();
-    const { jwtToken } = useStore();
+    const { jwtToken, userInfo } = useStore();
     const [payments, setPayments] = useState([]);
     const [totals, setTotals] = useState({ totalAmount: 0, paidAmount: 0, dueAmount: 0 });
     const [loading, setLoading] = useState(true);
@@ -392,6 +393,7 @@ const PaymentInList = ({ onAddClick }) => {
     // Share modal state
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     // Multi-modal filter state
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
@@ -632,7 +634,7 @@ const PaymentInList = ({ onAddClick }) => {
                 };
                 chips.push({
                     id: col,
-                    label: col === 'paymentType' 
+                    label: col === 'paymentType'
                         ? `${labels[col]}: ${filter.value.join(', ')}`
                         : `${labels[col] || col}: ${filter.mode} "${filter.value}"`,
                     onRemove: () => setColumnFilters({ ...columnFilters, [col]: col === 'paymentType' ? { mode: 'Checklist', value: [] } : { mode: 'Contains', value: '' } })
@@ -753,7 +755,7 @@ const PaymentInList = ({ onAddClick }) => {
                         <span className={styles.summaryValue}>₹{Number(totals.totalAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className={styles.summaryTrend}>
-                        <span className={styles.trendValue}>0% <FiSearch className={styles.trendIcon} style={{ transform: 'rotate(-45deg)' }} /></span>
+                        <span className={styles.trendValue}>0% <FiArrowUpRight className={styles.trendIcon} /></span>
                         <span className={styles.trendLabel}>vs Last month</span>
                     </div>
                 </div>
@@ -926,98 +928,112 @@ const PaymentInList = ({ onAddClick }) => {
                                 </tr>
                             ) : (
                                 filteredPayments.map((p, idx) => {
-                                const splitsList = p.paymentMethods && p.paymentMethods.length > 0
-                                    ? p.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
-                                    : [
-                                        { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
-                                        ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
-                                    ];
-                                return (
-                                    <React.Fragment key={p.paymentId || idx}>
-                                        <tr>
-                                            <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                            <td>{p.userOrderId}</td>
-                                            <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
-                                            <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
-                                            <td>{getDisplayPaymentType(p)}</td>
-                                            <td>{Number(getDisplayTotalAmount(p)).toLocaleString()}</td>
-                                            <td>{Number(getCustomerBalanceAmount(p.vendorCustomerId)).toLocaleString()}</td>
-                                            <td>
-                                                <div className={styles.actions}>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <FiShare2 
-                                                            className={styles.actionIcon} 
-                                                            onClick={() => {
-                                                                setSelectedTransaction(p);
-                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                            }}
-                                                        />
-                                                        {isShareModalOpen === `share-${idx}` && (
-                                                            <ShareModal
-                                                                isOpen={true}
-                                                                onClose={() => setIsShareModalOpen(false)}
-                                                                data={p}
-                                                                branchId={selectedBranchId || defaultBranchId}
+                                    const splitsList = p.paymentMethods && p.paymentMethods.length > 0
+                                        ? p.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                                        : [
+                                            { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
+                                            ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                                        ];
+                                    return (
+                                        <React.Fragment key={p.paymentId || idx}>
+                                            <tr>
+                                                <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                                <td>{p.userOrderId}</td>
+                                                <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
+                                                <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                                <td>{getDisplayPaymentType(p)}</td>
+                                                <td>{Number(getDisplayTotalAmount(p)).toLocaleString()}</td>
+                                                <td>{Number(getCustomerBalanceAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                                <td>
+                                                    <div className={styles.actions}>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <FiShare2
+                                                                className={styles.actionIcon}
+                                                                onClick={() => {
+                                                                    setSelectedTransaction(p);
+                                                                    setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                                }}
                                                             />
-                                                        )}
-                                                    </div>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                        {activeDropdown === idx && (
-                                                            <div className={styles.dropdownMenu}>
-                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
-                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
-                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${p.paymentId}&pdf=true`, '_blank'); }}>Open PDF</div>
-                                                                <div className={styles.dropdownItem} onClick={() => { 
-                                                                    setActiveDropdown(null); 
-                                                                    const printUrl = `${window.location.pathname}?view=true&id=${p.paymentId}&print=true&pdf=true`;
-                                                                    const iframe = document.createElement('iframe');
-                                                                    iframe.style.position = 'fixed';
-                                                                    iframe.style.width = '0';
-                                                                    iframe.style.height = '0';
-                                                                    iframe.style.border = '0';
-                                                                    iframe.src = printUrl;
-                                                                    document.body.appendChild(iframe);
-                                                                    const cleanup = () => {
-                                                                        window.removeEventListener('focus', cleanup);
-                                                                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                                                                    };
-                                                                    window.addEventListener('focus', cleanup);
-                                                                }}>Print</div>
+                                                            {isShareModalOpen === `share-${idx}` && (
+                                                                <ShareModal
+                                                                    isOpen={true}
+                                                                    onClose={() => setIsShareModalOpen(false)}
+                                                                    data={p}
+                                                                    branchId={selectedBranchId || defaultBranchId}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                            {activeDropdown === idx && (
+                                                                <div className={styles.dropdownMenu}>
+                                                                    <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${p.paymentId}&pdf=true`, '_blank'); }}>Open PDF</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        setActiveDropdown(null);
+                                                                        const printUrl = `${window.location.pathname}?view=true&id=${p.paymentId}&print=true&pdf=true`;
+                                                                        const iframe = document.createElement('iframe');
+                                                                        iframe.style.position = 'fixed';
+                                                                        iframe.style.width = '0';
+                                                                        iframe.style.height = '0';
+                                                                        iframe.style.border = '0';
+                                                                        iframe.src = printUrl;
+                                                                        document.body.appendChild(iframe);
+                                                                        const cleanup = () => {
+                                                                            window.removeEventListener('focus', cleanup);
+                                                                            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                        };
+                                                                        window.addEventListener('focus', cleanup);
+                                                                    }}>Print</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        setSelectedTransaction(p);
+                                                                        setIsHistoryModalOpen(true);
+                                                                        setActiveDropdown(null);
+                                                                    }}>View History</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {((p.paymentMethods && p.paymentMethods.length > 1) || (p.splitTransactions && p.splitTransactions.length > 0)) && (
+                                                            <div
+                                                                className={styles.actionIcon}
+                                                                onClick={() => toggleRowExpand(p.paymentId)}
+                                                                title="Show Split Payments"
+                                                                style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                                            >
+                                                                {expandedRows[p.paymentId] ? <FiChevronUp /> : <FiChevronDown />}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {((p.paymentMethods && p.paymentMethods.length > 1) || (p.splitTransactions && p.splitTransactions.length > 0)) && (
-                                                        <div
-                                                            className={styles.actionIcon}
-                                                            onClick={() => toggleRowExpand(p.paymentId)}
-                                                            title="Show Split Payments"
-                                                            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-                                                        >
-                                                            {expandedRows[p.paymentId] ? <FiChevronUp /> : <FiChevronDown />}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {expandedRows[p.paymentId] && splitsList.map((split, sIdx) => (
-                                            <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                                <td>{split.paymentType}</td>
-                                                <td>{Number(split.amount).toLocaleString()}</td>
-                                                <td></td>
-                                                <td></td>
+                                                </td>
                                             </tr>
-                                        ))}
-                                    </React.Fragment>
-                                );
-                            }))}
+                                            {expandedRows[p.paymentId] && splitsList.map((split, sIdx) => (
+                                                <tr key={`split-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>{split.paymentType}</td>
+                                                    <td>{Number(split.amount).toLocaleString()}</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
+                                    );
+                                }))}
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {isHistoryModalOpen && (
+                <HistoryModal
+                    isOpen={isHistoryModalOpen}
+                    onClose={() => setIsHistoryModalOpen(false)}
+                    data={selectedTransaction}
+                    userInfo={userInfo}
+                />
             )}
         </div>
     );

@@ -505,7 +505,7 @@
 
 .floatingShareCard {
     position: absolute;
-    bottom: 120%;
+    top: 0%;
     right: 0;
     background: #fff;
     border-radius: 12px;
@@ -527,6 +527,32 @@
     transform: translateY(-50%) rotate(45deg);
     border-right: 1px solid #eee;
     border-bottom: 1px solid #eee;
+}
+
+.floatingShareCardBelow {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 5000;
+    width: 200px;
+    padding: 12px;
+    border: 1px solid #eee;
+}
+
+.floatingShareCardBelow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    transform: translateY(-50%) rotate(45deg);
+    border-left: 1px solid #eee;
+    border-top: 1px solid #eee;
 }
 
 .shareContent {
@@ -607,6 +633,18 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: #f5f5f5;
+    color: #333;
 }
 
 .gridRow {
@@ -1243,18 +1281,18 @@
     border-bottom-right-radius: 50%;
 }
 
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
+.field input:not(.readOnly):not([readonly]):focus,
+.field select:not(.readOnly):focus,
+.field textarea:not(.readOnly):not([readonly]):focus {
     outline: none !important;
-    border-color: #333 !important;
+    border-color: #E9315D !important;
     box-shadow: none !important;
 }
 
-.field input:hover,
-.field select:hover,
-.field textarea:hover {
-    border-color: #333 !important;
+.field input:not(.readOnly):not([readonly]):hover,
+.field select:not(.readOnly):hover,
+.field textarea:not(.readOnly):not([readonly]):hover {
+    border-color: #E9315D !important;
 }
 
 /* ── Filter Modals ───────────────────────────────────────── */

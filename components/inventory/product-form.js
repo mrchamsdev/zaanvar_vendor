@@ -564,7 +564,7 @@ const ProductForm = ({
         subCategoryId: { subCategory: subCategory },
         productType: productType,
         productPetType: { petType: selectedPetTypes.join(" and ") },
-        taxGroupId: parseInt(gst) || 0,
+        taxGroupId: parseFloat(gst) || 0,
         hsnCode: hsnCode,
         extraAttributes: {
           prescriptionRequired: true,

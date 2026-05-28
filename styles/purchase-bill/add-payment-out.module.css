@@ -66,7 +66,7 @@
 
 .input {
     padding: 12px 16px;
-    border: none;
+    border: 1px solid #ddd;
     background: #F9F9F9;
     border-radius: 8px;
     font-size: 14px;
@@ -74,12 +74,13 @@
     color: #333;
     width: 300px;
     box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s;
 }
 
 
 .select {
     padding: 12px 36px 12px 16px;
-    border: none;
+    border: 1px solid #ddd;
     background: #F9F9F9;
     border-radius: 8px;
     font-size: 14px;
@@ -91,11 +92,12 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
+    transition: border-color 0.2s, background-color 0.2s;
 }
 
 .textarea {
     padding: 12px 16px;
-    border: none;
+    border: 1px solid #ddd;
     background: #F9F9F9;
     border-radius: 8px;
     font-size: 14px;
@@ -103,15 +105,24 @@
     color: #333;
     width: 664px;
     min-height: 44px;
+    transition: border-color 0.2s, background-color 0.2s;
 }
 
 .input::placeholder {
     color: #999;
 }
 
-.input:focus, .select:focus, .textarea:focus {
+.input:not(.readOnly):focus,
+.select:not(.readOnly):focus,
+.textarea:not(.readOnly):focus {
     border-color: #E9315D;
-    background: #fff;
+    background-color: #fff;
+}
+
+.input:not(.readOnly):hover,
+.select:not(.readOnly):hover,
+.textarea:not(.readOnly):hover {
+    border-color: #E9315D;
 }
 
 .readOnly {
@@ -237,9 +248,7 @@
     border-color: #e9315d;
 }
 
-.closeBtn {
-    display: none; /* In full page view we might not need it or move it */
-}
+
 
 .inputError {
     border: 1px solid #E9315D !important;

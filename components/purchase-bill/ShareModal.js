@@ -5,7 +5,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 
-const ShareModal = ({ isOpen, onClose, data, branchId }) => {
+const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
     const { jwtToken } = useStore();
     const [supplierInfo, setSupplierInfo] = React.useState(null);
 
@@ -78,34 +78,52 @@ const ShareModal = ({ isOpen, onClose, data, branchId }) => {
     };
 
     return (
-        <div className={styles.floatingShareCard} style={data?.position || {}}>
-            <div className={styles.shareContent}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className={styles.shareTitle}>Share</span>
-                    <FiX style={{ cursor: 'pointer', color: '#999' }} onClick={onClose} />
-                </div>
-                <div className={styles.shareIconsRow}>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('email')}>
-                        <div className={`${styles.iconCircle} ${styles.emailCircle}`}>
-                            <FiMail />
-                        </div>
-                        <span className={styles.iconLabel}>Email</span>
+        <>
+            <div 
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 4999,
+                    background: 'transparent',
+                    cursor: 'default'
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
+            />
+            <div className={showBelow ? styles.floatingShareCardBelow : styles.floatingShareCard} style={data?.position || {}}>
+                <div className={styles.shareContent}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className={styles.shareTitle}>Share</span>
+                        <FiX style={{ cursor: 'pointer', color: '#999' }} onClick={onClose} />
                     </div>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('whatsapp')}>
-                        <div className={`${styles.iconCircle} ${styles.whatsappCircle}`}>
-                            <FaWhatsapp />
+                    <div className={styles.shareIconsRow}>
+                        <div className={styles.shareIconItem} onClick={() => handleShare('email')}>
+                            <div className={`${styles.iconCircle} ${styles.emailCircle}`}>
+                                <FiMail />
+                            </div>
+                            <span className={styles.iconLabel}>Email</span>
                         </div>
-                        <span className={styles.iconLabel}>WhatsApp</span>
-                    </div>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('sms')}>
-                        <div className={`${styles.iconCircle} ${styles.smsCircle}`}>
-                            <FiMessageSquare />
+                        <div className={styles.shareIconItem} onClick={() => handleShare('whatsapp')}>
+                            <div className={`${styles.iconCircle} ${styles.whatsappCircle}`}>
+                                <FaWhatsapp />
+                            </div>
+                            <span className={styles.iconLabel}>WhatsApp</span>
                         </div>
-                        <span className={styles.iconLabel}>SMS</span>
+                        <div className={styles.shareIconItem} onClick={() => handleShare('sms')}>
+                            <div className={`${styles.iconCircle} ${styles.smsCircle}`}>
+                                <FiMessageSquare />
+                            </div>
+                            <span className={styles.iconLabel}>SMS</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

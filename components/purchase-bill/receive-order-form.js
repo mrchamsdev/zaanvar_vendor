@@ -250,12 +250,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
             items.forEach((item, idx) => {
                 const itemHasError = item.costPrice === "" || item.costPrice === undefined || item.costPrice === null || Number(item.costPrice) <= 0 ||
-                                    item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
-                                    item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
-                                    (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0) ||
-                                    (Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ||
-                                    Number(item.receivedQty) > Number(item.qty) ||
-                                    Number(item.damagedQty) > Number(item.receivedQty);
+                    item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
+                    item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
+                    (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0) ||
+                    (Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ||
+                    Number(item.receivedQty) > Number(item.qty) ||
+                    Number(item.damagedQty) > Number(item.receivedQty);
                 if (itemHasError) {
                     newExpanded[idx] = true;
                     hasAnyItemError = true;
@@ -268,9 +268,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
             const hasEmptyFields = items.some(
                 item => item.costPrice === "" || item.costPrice === undefined || item.costPrice === null || Number(item.costPrice) <= 0 ||
-                        item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
-                        item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
-                        (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0)
+                    item.mrp === "" || item.mrp === undefined || item.mrp === null || Number(item.mrp) <= 0 ||
+                    item.receivedQty === "" || item.receivedQty === undefined || item.receivedQty === null || Number(item.receivedQty) <= 0 ||
+                    (item.damagedQty !== "" && item.damagedQty !== undefined && item.damagedQty !== null && Number(item.damagedQty) < 0)
             );
 
             if (hasEmptyFields) {
@@ -417,9 +417,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         const rowTotal = afterDiscount + taxAmount;
 
                         const orderedBase = (parseFloat(item.qty) || 0) * cost;
-                        const orderedDiscAmount = (orderedBase * discPercent / 100);
-                        const orderedAfterDisc = orderedBase - orderedDiscAmount;
-                        const rowOrdered = orderedAfterDisc + (orderedAfterDisc * (taxPercent / 100));
+                        const rowOrdered = orderedBase;
 
                         return (
                             <div key={index} className={`${styles.productCard} ${expandedItems[index] ? styles.productCardActive : ""}`}>
@@ -619,7 +617,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
 
                                             <div className={styles.summaryItem}>
-                                                <span className={styles.summaryLabel}>Total Discount Value</span>
+                                                <span className={styles.summaryLabel}>Total Discount Amount</span>
                                                 <span className={styles.summaryValue}>₹ - {discAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
@@ -746,7 +744,6 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 setPreviousCredit(val);
                             }} />
                         </div>
-                        <span className={styles.balanceText}>Balance : ₹ 0</span>
                     </div>
 
                     <div className={styles.breakdownContainer}>

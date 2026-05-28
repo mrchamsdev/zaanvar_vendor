@@ -167,10 +167,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
               className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
               onClick={() => setActiveTabId(tab.id)}
             >
-              <span className={styles.tabText}>
-                <span className={styles.fullTitle}>{tab.title}</span>
-                <span className={styles.shortTitle}>{tab.shortTitle}</span>
-              </span>
+              <span>{tab.title}</span>
               <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
             </div>
           ))}
@@ -179,7 +176,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
           <div className={styles.windowActions}>
             <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
             <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-            <span className={styles.windowActionIcon} onClick={(e) => closeTab(activeTabId, e)} title="Close Tab"><IconX /></span>
+            <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
           </div>
         </div>
       )}

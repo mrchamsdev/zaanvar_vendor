@@ -112,6 +112,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 setReturnNo(data.returnProductsId);
                 setReturnReason(data.returnReason || "");
 
+                const isAutomatedReturn = data.returnReason === "Automated return for damaged goods at receipt";
+
                 if (data.productsBill) {
                     setBillDate(data.productsBill.createdDate ? data.productsBill.createdDate.split('T')[0] : "");
                     // Set supplier details from bill
@@ -147,22 +149,22 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             // Update mapped items with actual receivedQty from bill
                             const mappedItems = (data.items || []).map(it => {
                                 const billItem = (billData.billItems || []).find(bi => bi.productsBillItemsId === it.productsBillItemsId);
-                                const discountPercent = billItem ? parseFloat(billItem.discount || 0) : parseFloat(it.discount || 0);
+                                const discountPercent = isAutomatedReturn ? 0 : (billItem ? parseFloat(billItem.discount || 0) : parseFloat(it.discount || 0));
                                 const costPrice = parseFloat(it.costPrice || 0);
                                 const returnQty = it.qty;
                                 const subtotal = returnQty * costPrice;
-                                const discountAmount = (subtotal * discountPercent) / 100;
+                                const discountAmount = isAutomatedReturn ? 0 : ((subtotal * discountPercent) / 100);
                                 const amtAfterDiscount = subtotal - discountAmount;
-                                const taxPercent = billItem ? parseFloat(billItem.taxGroupId || 0) : 0;
-                                const taxAmount = (amtAfterDiscount * taxPercent) / 100;
-                                const finalAmount = amtAfterDiscount + taxAmount;
+                                const taxPercent = isAutomatedReturn ? 0 : (billItem ? parseFloat(billItem.taxGroupId || 0) : 0);
+                                const taxAmount = isAutomatedReturn ? 0 : ((amtAfterDiscount * taxPercent) / 100);
+                                const finalAmount = isAutomatedReturn ? parseFloat(it.amount || 0) : (amtAfterDiscount + taxAmount);
 
                                 return {
                                     productsBillItemsId: it.productsBillItemsId,
                                     productId: it.productId,
                                     productName: it.productName || "Product",
                                     variantSize: billItem ? getVariantSizeDisplay(billItem.variant) : "-",
-                                    sourceStatus: it.sourceStatus || "",
+                                    sourceStatus: it.sourceStatus === "openStock" ? "Open Stock" : (it.sourceStatus === "hold" ? "Hold Stock" : (it.sourceStatus === "damaged" ? "Damaged" : (it.sourceStatus || ""))),
                                     receivedQty: billItem ? parseInt(billItem.receivedQuantity) || 0 : it.qty,
                                     included: billItem ? parseInt(billItem.included) || 0 : 0,
                                     excluded: billItem ? parseInt(billItem.excluded) || 0 : 0,
@@ -187,16 +189,17 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                         const mappedItems = (data.items || []).map(it => {
                             const costPrice = parseFloat(it.costPrice || 0);
                             const returnQty = it.qty;
-                            const discountPercent = parseFloat(it.discount || 0);
+                            const discountPercent = isAutomatedReturn ? 0 : parseFloat(it.discount || 0);
                             const subtotal = returnQty * costPrice;
-                            const discountAmount = (subtotal * discountPercent) / 100;
+                            const discountAmount = isAutomatedReturn ? 0 : ((subtotal * discountPercent) / 100);
                             const amtAfterDiscount = subtotal - discountAmount;
+                            const finalAmount = isAutomatedReturn ? parseFloat(it.amount || 0) : amtAfterDiscount;
                             return {
                                 productsBillItemsId: it.productsBillItemsId,
                                 productId: it.productId,
                                 productName: it.productName || "Product",
                                 variantSize: "-",
-                                sourceStatus: it.sourceStatus || "",
+                                sourceStatus: it.sourceStatus === "openStock" ? "Open Stock" : (it.sourceStatus === "hold" ? "Hold Stock" : (it.sourceStatus === "damaged" ? "Damaged" : (it.sourceStatus || ""))),
                                 receivedQty: it.qty,
                                 included: 0,
                                 excluded: 0,
@@ -209,7 +212,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 discountAmount: discountAmount,
                                 tax: 0,
                                 taxAmount: 0,
-                                amount: amtAfterDiscount
+                                amount: finalAmount
                             };
                         });
                         setItems(mappedItems);
@@ -496,12 +499,16 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
     const availableProducts = useMemo(() => {
         if (!billDetails || !billDetails.billItems) return [];
-        return billDetails.billItems;
+        const selectedIds = items.map(item => item.productsBillItemsId).filter(Boolean);
+        return billDetails.billItems.filter(bi => !selectedIds.includes(bi.productsBillItemsId));
     }, [billDetails, items]);
 
     const availableProductsForDropdown = (currentIndex) => {
         if (!billDetails || !billDetails.billItems) return [];
-        return billDetails.billItems;
+        const selectedIds = items
+            .map((item, idx) => idx !== currentIndex ? item.productsBillItemsId : null)
+            .filter(Boolean);
+        return billDetails.billItems.filter(bi => !selectedIds.includes(bi.productsBillItemsId));
     };
 
     const totalQty = items.reduce((acc, it) => acc + (parseInt(it.returnQty) || 0), 0);
@@ -809,7 +816,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 {items.map((item, idx) => (
                                     <tr key={idx}>
                                         <td className={styles.snoCol}>{(idx + 1).toString().padStart(2, '0')}</td>
-                                        <td className={styles.productCol} style={{ position: 'relative', verticalAlign: 'top' }}>
+                                        <td className={styles.productCol} style={{ position: 'relative', verticalAlign: 'middle' }}>
                                             <div
                                                 className={styles.productSelectBox}
                                                 onClick={() => !isViewOnly && setShowProductDropdown(showProductDropdown === idx ? null : idx)}
@@ -862,10 +869,10 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ verticalAlign: 'top', minWidth: '100px', fontWeight: '500', paddingTop: '10px' }}>
+                                        <td style={{ verticalAlign: 'middle', minWidth: '100px', fontWeight: '500' }}>
                                             {item.variantSize || "-"}
                                         </td>
-                                        <td style={{ minWidth: '120px', verticalAlign: 'top' }}>
+                                        <td style={{ minWidth: '120px', verticalAlign: 'middle' }}>
                                             <select
                                                 className={styles.input}
                                                 style={{ border: item.sourceError ? '1px solid #ff4d4f' : '1px solid #eee', width: '100%', background: 'transparent' }}

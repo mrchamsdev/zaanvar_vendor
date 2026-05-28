@@ -586,22 +586,28 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                     </td>
                                                     <td>
                                                         <div id={`field_${index}_sourceStatus`}>
-                                                            <select
-                                                                className={`${styles.tableSelect} ${errors[`${index}_sourceStatus`] ? styles.errorField : ""}`}
-                                                                value={row.sourceStatus}
-                                                                onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
-                                                                disabled={mode === "View"}
-                                                            >
-                                                                <option value="">SELECT SOURCE</option>
-                                                                <option value="Open Stock">Open Stock</option>
-                                                                {(() => {
-                                                                    const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
-                                                                    if (row.sourceStatus === "Hold Qty" || variant?.stockUpdates?.onHoldQuantity > 0) {
-                                                                        return <option value="Hold Qty">Hold Qty</option>;
-                                                                    }
-                                                                    return null;
-                                                                })()}
-                                                            </select>
+                                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                                <select
+                                                                    className={`${styles.tableSelect} ${errors[`${index}_sourceStatus`] ? styles.errorField : ""}`}
+                                                                    style={{ paddingRight: '28px', appearance: 'none', WebkitAppearance: 'none', backgroundImage: 'none' }}
+                                                                    value={row.sourceStatus}
+                                                                    onChange={(e) => updateRowField(index, 'sourceStatus', e.target.value)}
+                                                                    disabled={mode === "View"}
+                                                                >
+                                                                    <option value="">SELECT SOURCE</option>
+                                                                    <option value="Open Stock">Open Stock</option>
+                                                                    {(() => {
+                                                                        const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                                                                        if (row.sourceStatus === "Hold Qty" || variant?.stockUpdates?.onHoldQuantity > 0) {
+                                                                            return <option value="Hold Qty">Hold Qty</option>;
+                                                                        }
+                                                                        return null;
+                                                                    })()}
+                                                                </select>
+                                                                <span style={{ position: 'absolute', right: '6px', pointerEvents: 'none', display: 'flex', alignItems: 'center', color: '#999' }}>
+                                                                    <IconChevronDown />
+                                                                </span>
+                                                            </div>
                                                             {errors[`${index}_sourceStatus`] && <span className={styles.errorText}>{errors[`${index}_sourceStatus`]}</span>}
                                                         </div>
                                                     </td>

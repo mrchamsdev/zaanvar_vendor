@@ -17,83 +17,38 @@
 }
 
 .tabBar {
+  background: #fff;
+  padding: 10px 20px 0 20px;
   display: flex;
-  align-items: center;
-  background: var(--header-background-color);
-  padding: 12px 12px 0; /* Reduced padding and removed bottom to align tabs */
-  gap: 0;
-  border-bottom: 1px solid var(--underline-color);
+  align-items: flex-end;
+  gap: 8px;
+  border-bottom: 2px solid #f1f1f1;
+  flex-shrink: 0;
   pointer-events: auto;
-  overflow: hidden; /* Contain shrinking tabs */
-  height: 52px;
-  box-sizing: border-box;
 }
 
 .tab {
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+  font-size: 14px;
+  color: #888;
+  cursor: pointer;
   display: flex;
   align-items: center;
+  gap: 10px;
+  border: 1px solid #eee;
+  border-bottom: none;
+  transition: all 0.2s;
+  min-width: 150px;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  max-width: 200px;
-  min-width: 40px; /* Chrome-like shrinking */
-  flex: 0 1 200px; /* Grow to max, but shrink as needed */
-  color: var(--header-secondary-text-color);
-  position: relative;
-  border: none;
-  border-radius: 8px 8px 0 0;
-  margin-top: 8px;
-  transition: all 0.2s ease;
-  overflow: hidden;
-  container-type: inline-size; /* Enable container queries for adaptive titles */
-}
-
-/* Vertical Separator for Inactive Tabs */
-.tab:not(.tabActive)::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: var(--underline-color);
 }
 
 .tabActive {
-  display: flex;
-  justify-content: space-between;
-  background: var(--background-color);
-  color: var(--primary-black);
-  font-weight: 500;
-  margin-top: 0;
-  padding-top: 10px;
-  z-index: 2;
-}
-
-/* The "Flow" Curves for Active Tab using brand variables */
-.tabActive::before,
-.tabActive::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  pointer-events: none;
-}
-
-.tabActive::before {
-  left: -16px;
-  border-bottom-right-radius: 12px;
-  box-shadow: 6px 6px 0 6px var(--background-color);
-}
-
-.tabActive::after {
-  right: -16px;
-  border-bottom-left-radius: 12px;
-  box-shadow: -6px 6px 0 6px var(--background-color);
+  background: #fff;
+  color: #E9315D;
+  font-weight: 600;
+  border-top: 3px solid #E9315D;
 }
 
 .tabIcon {
@@ -133,62 +88,37 @@
 }
 
 .tabClose {
-  opacity: 0.5;
-  padding: 2px;
-  border-radius: 4px;
+  opacity: 0.4;
+  cursor: pointer;
 }
 
 .tabClose:hover {
-  background: #eee;
   opacity: 1;
 }
 
 .addTabBtn {
-  background: transparent;
-  color: var(--header-secondary-text-color);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  padding: 10px 15px;
+  margin-bottom: 5px;
   border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-  margin-top: 0;
+  background: #f1f1f1;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 18px;
-  transition: background 0.2s;
-  flex-shrink: 0; /* Never hide the add button */
-}
-
-.addTabBtn:hover {
-  background: var(--underline-color);
-  color: var(--primary-black);
 }
 
 .windowActions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
-  color: #555;
-  padding: 0 8px 8px;
-  flex-shrink: 0; /* Keep actions visible even with many tabs */
-  align-items: center;
+  gap: 15px;
+  padding-bottom: 10px;
 }
 
 .windowActionIcon {
   cursor: pointer;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s;
+  opacity: 0.5;
 }
 
 .windowActionIcon:hover {
-  background: rgba(0,0,0,0.05);
-  color: #000;
+  opacity: 1;
 }
 
 .managerHeader {

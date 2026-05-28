@@ -79,6 +79,17 @@ export const saleService = {
     }
   },
 
+  getPaymentHistory: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/payments/${id}/history`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
   createPayment: async (jwt, data) => {
     const webApi = new WebApimanager(jwt);
     try {
@@ -97,6 +108,17 @@ export const saleService = {
       return response || { status: "error" };
     } catch (error) {
       console.error("Error updating payment:", error);
+      return { status: "error" };
+    }
+  },
+
+  uploadPaymentImage: async (jwt, paymentId, formData) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.imagePut(`vendor/payments/${paymentId}`, formData);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error uploading payment image:", error);
       return { status: "error" };
     }
   },

@@ -254,16 +254,20 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
                 <span className={styles.fullTitle}>{tab.title}</span>
                 <span className={styles.shortTitle}>{tab.shortTitle}</span>
               </span>
-              <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
+              {tab.mode !== "view" && (
+                <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
+              )}
             </div>
           ))}
-          {tabs.length < 15 && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
+          {tabs.length < 15 && activeTab?.mode !== "view" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
 
-          <div className={styles.windowActions}>
-            <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-            <span className={styles.windowActionIcon} onClick={(e) => closeTab(activeTabId, e)} title="Close Tab"><IconX /></span>
-          </div>
+          {activeTab?.mode !== "view" && (
+            <div className={styles.windowActions}>
+              <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
+              <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+              <span className={styles.windowActionIcon} onClick={(e) => closeTab(activeTabId, e)} title="Close Tab"><IconX /></span>
+            </div>
+          )}
         </div>
       )}
 

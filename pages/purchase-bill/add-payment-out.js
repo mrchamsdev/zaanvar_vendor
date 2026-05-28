@@ -330,7 +330,7 @@ const PaymentOutFormPage = () => {
                     <label>Add Description</label>
                     <textarea
                         className={`${styles.textarea} ${isView ? styles.readOnly : ""}`}
-                        placeholder="Lorem ipsum dolor sit..."
+                        placeholder="Enter Descrition"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         readOnly={isView}

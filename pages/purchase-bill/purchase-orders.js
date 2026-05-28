@@ -506,10 +506,9 @@ const PurchaseOrdersPage = () => {
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0
-        }).format(amount || 0).replace("₹", "₹ ");
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(amount || 0);
     };
 
     const hasFiltersApplied = useMemo(() => {
@@ -695,7 +694,7 @@ const PurchaseOrdersPage = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    paginatedData.map((item) => (
+                                    paginatedData.map((item, idx) => (
                                         <tr key={item.productsPurchaseRqstID} onClick={() => openOrder(item.productsPurchaseRqstID, "View")} style={{ cursor: 'pointer' }}>
                                             <td>{formatDate(item.createdDate)}</td>
                                             <td>{`PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`}</td>
@@ -707,7 +706,7 @@ const PurchaseOrdersPage = () => {
                                                     <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPrimary}>
                                                         {item.orderStatus || "Pending"}
                                                     </span>
-                                                    <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
+                                                    <span className={styles.statusSecondary}>{formatDate(item.orderDate || item.createdDate)}</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -740,6 +739,7 @@ const PurchaseOrdersPage = () => {
                                                             <ShareModal
                                                                 isOpen={true}
                                                                 onClose={() => setIsShareModalOpen(false)}
+                                                                showBelow={idx < 2}
                                                                 data={{
                                                                     ...item,
                                                                     suppliersTransactionId: `PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`,

@@ -181,19 +181,19 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     paymentType: p.paymentType || "Cash",
                                     amount: p.amount || 0,
                                     referenceNumber: p.referenceNumber || p.refNo || ""
-                                  }))
+                                }))
                                 : [
-                                    { 
-                                        paymentType: t.paymentType || "Cash", 
+                                    {
+                                        paymentType: t.paymentType || "Cash",
                                         amount: t["paid amount"] || t.amount || 0,
                                         referenceNumber: t.referenceNumber || t.refNo || ""
                                     },
-                                    ...(t.splitTransactions || []).map(st => ({ 
-                                        paymentType: st.paymentType || "Cash", 
+                                    ...(t.splitTransactions || []).map(st => ({
+                                        paymentType: st.paymentType || "Cash",
                                         amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0,
                                         referenceNumber: st.referenceNumber || st.refNo || ""
                                     }))
-                                  ];
+                                ];
                             return (
                                 <React.Fragment key={t.suppliersTransactionId || idx}>
                                     <tr className={styles.trHistory}>
@@ -218,7 +218,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                         <td className={styles.td}>₹ {getDisplayBalanceAmount(t)}</td>
                                         <td className={styles.td}>
                                             {t.splitTransactions && t.splitTransactions.length > 0 && (
-                                                <div 
+                                                <div
                                                     onClick={() => toggleRowExpand(t.suppliersTransactionId)}
                                                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
                                                 >
@@ -332,20 +332,20 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                         <div className={styles.contentHeader}>
                             <h3 className={styles.statsTitle}>{activeTab}</h3>
                             <button
-                                    onClick={() => {
-                                        const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
-                                        if (pendingBill) {
-                                            setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
-                                            setSelectedBillData(pendingBill);
-                                            setIsPayNowModalOpen(true);
-                                        } else {
-                                            toast.info("No pending payments found");
-                                        }
-                                    }}
-                                    className={styles.payNowBtn}
-                                >
-                                    PAY NOW
-                                </button>
+                                onClick={() => {
+                                    const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
+                                    if (pendingBill) {
+                                        setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
+                                        setSelectedBillData(pendingBill);
+                                        setIsPayNowModalOpen(true);
+                                    } else {
+                                        toast.info("No pending payments found");
+                                    }
+                                }}
+                                className={styles.payNowBtn}
+                            >
+                                PAY NOW
+                            </button>
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>

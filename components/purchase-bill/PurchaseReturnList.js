@@ -633,7 +633,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     REF NO
                                     <FiFilter
-                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'refNo' && (
@@ -650,7 +650,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     SUPPLIER NAME
                                     <FiFilter
-                                         className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'supplierName' && (
@@ -667,7 +667,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     Total Return Amount
                                     <FiFilter
-                                         className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'totalAmount' && (
@@ -684,7 +684,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 <th style={{ position: 'relative' }}>
                                     TOTAL BALANCE AMOUNT
                                     <FiFilter
-                                         className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
                                     />
                                     {openFilterCol === 'balance' && (
@@ -811,3 +811,4 @@ const PurchaseReturnList = ({ onAddClick }) => {
 };
 
 export default PurchaseReturnList;
+

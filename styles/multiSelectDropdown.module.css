@@ -32,11 +32,11 @@
 }
 
 .dropdown:hover {
-  border-color: #333;
+  border-color: #E9315D;
 }
 
 .dropdown:focus-within {
-  border-color: #333;
+  border-color: #E9315D;
   outline: none;
 }
 
@@ -122,7 +122,7 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #ff6b35;
+  border-color: #E9315D;
 }
 
 .dropdown-item {

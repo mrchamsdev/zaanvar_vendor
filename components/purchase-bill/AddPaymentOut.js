@@ -115,7 +115,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     "userTransactionDate",
                     parseWallClockDate(transactionDate) || new Date(transactionDate),
                 ),
-                transactionInfo: description || "Split Payment Out recorded",
+                transactionInfo: description || "",
                 createdBy: userInfo?.userId || 1,
                 productsBillId: null,
                 paymentTypes: validPayments.map(p => {
@@ -174,13 +174,13 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
                 <div className={styles.modalContent}>
                     {/* Supplier Selection */}
-                    <div className={styles.field} style={{marginBottom: '32px'}}>
+                    <div className={styles.field} style={{ marginBottom: '32px' }}>
                         <label>Name / Phone number</label>
-                        <select 
+                        <select
                             className={styles.select}
                             value={selectedSupplierId}
                             onChange={(e) => handleSupplierChange(e.target.value)}
-                            style={{width: '624px'}}
+                            style={{ width: '624px' }}
                         >
                             <option value="">Select Name</option>
                             {suppliers.map(s => (
@@ -195,8 +195,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     <div className={styles.gridRow}>
                         <div className={styles.field}>
                             <label>Amount paid date</label>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 className={styles.input}
                                 value={transactionDate}
                                 max={toApiDateOnly(new Date())}
@@ -205,8 +205,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount Paid</label>
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
                                 placeholder="0"
                                 value={editablePaidAmount}
@@ -225,8 +225,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     <div className={styles.gridRow}>
                         <div className={styles.field}>
                             <label>Total Amount</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
                                 value={supplierTotals?.totalBillAmount ? `₹ ${Number(supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
                                 readOnly
@@ -234,8 +234,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
                                 value={`₹ ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 readOnly
@@ -249,7 +249,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <div className={styles.gridRow}>
                                 <div className={styles.field}>
                                     <label>Payment Type</label>
-                                    <select 
+                                    <select
                                         className={styles.select}
                                         value={p.paymentType}
                                         onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}
@@ -261,10 +261,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 </div>
                                 <div className={styles.field}>
                                     <label>Amount Paid</label>
-                                    <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
-                                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-                                            <input 
-                                                type="number" 
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                            <input
+                                                type="number"
                                                 className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
                                                 placeholder="0"
                                                 value={p.amountPaid}
@@ -291,10 +291,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
                             {/* Reference Number */}
                             {(p.paymentType === 'Cheque' || p.paymentType === 'UPI') && (
-                                <div className={styles.field} style={{marginBottom: '24px'}}>
+                                <div className={styles.field} style={{ marginBottom: '24px' }}>
                                     <label>{p.paymentType === 'Cheque' ? 'CHECK NUMBER' : 'REFERENCE NUMBER'}</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className={styles.input}
                                         placeholder="****************"
                                         value={p.refNo}
@@ -306,12 +306,12 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     ))}
 
                     <div style={{
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                         marginBottom: '32px'
                     }}>
-                        <div className={styles.addPaymentLink} onClick={handleAddPayment} style={{margin: 0}}>
+                        <div className={styles.addPaymentLink} onClick={handleAddPayment} style={{ margin: 0 }}>
                             +ADD ANOTHER PAYMENT
                         </div>
                         {Number(editablePaidAmount) > 0 && (
@@ -322,26 +322,26 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 gap: '4px'
                             }}>
                                 <div style={{
-                                    fontSize: '14px', 
-                                    fontWeight: '700', 
+                                    fontSize: '14px',
+                                    fontWeight: '700',
                                     color: !isUnbalanced ? '#22c55e' : '#E93E64'
                                 }}>
-                                    { (Number(editablePaidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ ' }
-                                    { Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toFixed(2) }
+                                    {(Number(editablePaidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ '}
+                                    {Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toFixed(2)}
                                 </div>
-                                <div style={{fontSize: '11px', color: '#999'}}>
-                                    Total Allocated: ₹ { currentTotalAllocated.toFixed(2) } / ₹ { Number(editablePaidAmount).toFixed(2) }
+                                <div style={{ fontSize: '11px', color: '#999' }}>
+                                    Total Allocated: ₹ {currentTotalAllocated.toFixed(2)} / ₹ {Number(editablePaidAmount).toFixed(2)}
                                 </div>
                             </div>
                         )}
                     </div>
 
                     {/* Description */}
-                    <div className={styles.field} style={{marginBottom: '32px'}}>
+                    <div className={styles.field} style={{ marginBottom: '32px' }}>
                         <label>Add Description</label>
-                        <textarea 
+                        <textarea
                             className={styles.textarea}
-                            placeholder="Lorem ipsum dolor sit..."
+                            placeholder="Enter Descrition"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={1}
@@ -353,14 +353,14 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         <label>Add Image</label>
                         <div className={styles.imageUpload}>
                             <label htmlFor="paymentImage" className={styles.uploadTrigger}>Choose file</label>
-                            <input 
+                            <input
                                 id="paymentImage"
-                                type="file" 
-                                style={{display: 'none'}}
+                                type="file"
+                                style={{ display: 'none' }}
                                 onChange={(e) => setSelectedImage(e.target.files[0])}
                                 accept="image/*"
                             />
-                            <span style={{fontSize: '14px', color: '#999', marginLeft: '12px'}}>
+                            <span style={{ fontSize: '14px', color: '#999', marginLeft: '12px' }}>
                                 {selectedImage ? selectedImage.name : "No file Choosen"}
                             </span>
                         </div>

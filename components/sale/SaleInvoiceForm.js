@@ -122,6 +122,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             }
         ]);
         setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+        setErrors({});
     };
 
     const populateForm = (data) => {
@@ -277,10 +278,16 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         if (type === "name") {
             setFormData({ ...formData, partyName: val });
             setShowCustomerDropdown(true);
+            if (errors.partyName) {
+                setErrors((prev) => ({ ...prev, partyName: null }));
+            }
             const exact = customers.find((c) => `${c.firstName} ${c.lastName}`.toLowerCase() === val.toLowerCase());
             if (exact) setFormData((prev) => ({ ...prev, phone: exact.phoneNumber, vendorCustomerId: exact.vendorCustomerId }));
         } else {
             setFormData({ ...formData, phone: val });
+            if (errors.phone) {
+                setErrors((prev) => ({ ...prev, phone: null }));
+            }
             if (val.length === 10) {
                 const found = customers.find((c) => c.phoneNumber === val);
                 if (found) {
@@ -322,6 +329,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             amount: amount,
             availableQty: availableQty,
             availableVariants: variants,
+            productError: null,
             error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
@@ -378,7 +386,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             amount: amount,
-            error: calcQty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null
+            qtyError: calcQty <= 0 ? "Quantity must be greater than 0" : (calcQty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null),
+            error: calcQty <= 0 ? "Quantity must be greater than 0" : (calcQty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null)
         };
         setItems(newItems);
     };
@@ -438,38 +447,55 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
     const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount;
 
-    const [formError, setFormError] = useState('');
+    const [errors, setErrors] = useState({});
 
     const handleSave = async () => {
-        if (!formData.partyName || !formData.phone) {
-            setFormError("Please provide customer name and phone");
-            return;
+        const validationErrors = {};
+        if (!formData.partyName) {
+            validationErrors.partyName = "Customer name is required";
+        }
+        if (!formData.phone) {
+            validationErrors.phone = "Phone number is required";
+        }
+        if (!formData.invoiceDate) {
+            validationErrors.invoiceDate = "Invoice date is required";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (formData.invoiceDate > todayStr) {
+                validationErrors.invoiceDate = "Invoice date cannot be in the future";
+            }
         }
 
-        if (!formData.invoiceDate) {
-            setFormError("Please select an invoice date");
-            return;
-        }
-        const todayStr = toApiDateOnly(new Date());
-        if (formData.invoiceDate > todayStr) {
-            setFormError("Invoice date cannot be in the future");
+        const updatedItems = items.map(it => {
+            const itemErrors = {};
+            if (!it.productId) {
+                itemErrors.product = "Please select a product";
+            }
+            const qtyVal = parseFloat(it.qty) || 0;
+            if (qtyVal <= 0) {
+                itemErrors.qty = "Quantity must be greater than 0";
+            } else if (qtyVal > it.availableQty) {
+                itemErrors.qty = `Cannot exceed quantity (${it.availableQty})`;
+            }
+            return {
+                ...it,
+                productError: itemErrors.product || null,
+                qtyError: itemErrors.qty || null,
+                error: itemErrors.qty || null
+            };
+        });
+
+        const hasItemErrors = updatedItems.some(it => it.productError || it.qtyError);
+        const hasFormErrors = Object.keys(validationErrors).length > 0;
+
+        if (hasFormErrors || hasItemErrors) {
+            setErrors(validationErrors);
+            setItems(updatedItems);
+            toast.error("Please fill in all required fields correctly.");
             return;
         }
 
         const validItems = items.filter((it) => it.productId);
-        if (validItems.length === 0) {
-            setFormError("Please add at least one product");
-            return;
-        }
-
-        for (const it of validItems) {
-            const calcQty = getActiveQty(it.qty);
-            if (calcQty > it.availableQty) {
-                setFormError(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
-                return;
-            }
-        }
-
         const payload = {
             branchId,
             invoiceNumber: formData.invoiceNumber,
@@ -580,6 +606,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 </div>
                             )}
                         </div>
+                        {errors.partyName && (
+                            <div style={{ color: "#ff4d4f", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+                                {errors.partyName}
+                            </div>
+                        )}
                     </div>
                     <div className={styles.field}>
                         <label>Phone Number</label>
@@ -591,6 +622,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             onChange={(e) => handleCustomerSearch(e.target.value, "phone")}
                             disabled={isViewOnly}
                         />
+                        {errors.phone && (
+                            <div style={{ color: "#ff4d4f", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+                                {errors.phone}
+                            </div>
+                        )}
                     </div>
                     {mode !== "add" && (
                         <div className={styles.field}>
@@ -609,9 +645,19 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             className={styles.input}
                             value={formData.invoiceDate}
                             max={toApiDateOnly(new Date())}
-                            onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, invoiceDate: e.target.value });
+                                if (errors.invoiceDate) {
+                                    setErrors(prev => ({ ...prev, invoiceDate: null }));
+                                }
+                            }}
                             disabled={isViewOnly}
                         />
+                        {errors.invoiceDate && (
+                            <div style={{ color: "#ff4d4f", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>
+                                {errors.invoiceDate}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -650,21 +696,34 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <tr key={idx}>
                                     <td>{String(idx + 1).padStart(2, "0")}</td>
                                     <td style={{ position: "relative", width: "28%" }}>
-                                        <div className={styles.searchableDropdown}>
+                                        <div className={styles.searchableDropdown} style={{ display: "flex", alignItems: "center", position: "relative" }}>
                                             <input
                                                 type="text"
                                                 className={styles.tableInput}
+                                                style={{ paddingRight: "20px" }}
                                                 placeholder="Select product"
                                                 value={it.productName}
                                                 onChange={(e) => {
                                                     const newItems = [...items];
                                                     newItems[idx].productName = e.target.value;
+                                                    newItems[idx].productError = null;
                                                     setItems(newItems);
                                                     setShowProductDropdown(idx);
                                                 }}
                                                 onFocus={() => setShowProductDropdown(idx)}
                                                 disabled={isViewOnly}
                                             />
+                                            {!isViewOnly && (
+                                                <FiChevronDown
+                                                    size={14}
+                                                    style={{
+                                                        position: "absolute",
+                                                        right: "8px",
+                                                        pointerEvents: "none",
+                                                        color: "#999"
+                                                    }}
+                                                />
+                                            )}
                                             {showProductDropdown === idx && !isViewOnly && (
                                                 <div className={styles.dropdownList}>
                                                     {products
@@ -680,6 +739,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                                 </div>
                                             )}
                                         </div>
+                                        {it.productError && (
+                                            <div style={{ color: "#ff4d4f", fontSize: "10px", marginTop: "4px", fontWeight: "500" }}>
+                                                {it.productError}
+                                            </div>
+                                        )}
                                     </td>
                                     <td style={{ minWidth: "120px" }}>
                                         {isViewOnly ? (
@@ -727,15 +791,15 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                         <input
                                             type="number"
                                             className={styles.tableInputCenter}
-                                            style={it.error ? { border: "1px solid #ff4d4f", background: "#fffcfc" } : {}}
+                                            style={it.error || it.qtyError ? { border: "1px solid #ff4d4f", background: "#fffcfc" } : {}}
                                             placeholder="0"
                                             value={it.qty === "" || it.qty === 0 || it.qty === "0" ? "" : it.qty}
                                             onChange={(e) => handleQtyChange(idx, e.target.value)}
                                             disabled={isViewOnly}
                                         />
-                                        {it.error && (
+                                        {(it.error || it.qtyError) && (
                                             <div style={{ color: "#ff4d4f", fontSize: "10px", marginTop: "4px", textAlign: "center", fontWeight: "500", whiteSpace: "nowrap" }}>
-                                                {it.error}
+                                                {it.qtyError || it.error}
                                             </div>
                                         )}
                                     </td>
@@ -790,31 +854,42 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     <div className={styles.paymentList}>
                         <label style={{ fontWeight: "700" }}>Payment Details</label>
                         {payments.map((p, idx) => (
-                            <div key={idx} className={styles.paymentRow} style={{ gridTemplateColumns: p.method === "UPI" || p.method === "Cheque" ? "1fr 1fr 1.2fr" : "1fr 1fr" }}>
-                                <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
-                                    <option value="Cash">Cash</option>
-                                    <option value="UPI">UPI</option>
-                                    <option value="Card">Card</option>
-                                    <option value="Cheque">Cheque</option>
-                                    <option value="Bank">Bank</option>
-                                </select>
-                                <input
-                                    type="number"
-                                    className={styles.input}
-                                    value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
-                                    placeholder="0"
-                                    onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
-                                    disabled={isViewOnly}
-                                />
+                            <div key={idx} className={styles.paymentEntry}>
+                                <div className={styles.paymentRow} style={{ gridTemplateColumns: "1fr 1fr" }}>
+                                    <div className={styles.field}>
+                                        <label>payment type</label>
+                                        <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Bank">Bank</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label>amount paid</label>
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
+                                            placeholder="0"
+                                            onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
+                                            disabled={isViewOnly}
+                                        />
+                                    </div>
+                                </div>
                                 {(p.method === "UPI" || p.method === "Cheque") && (
-                                    <input
-                                        type="text"
-                                        className={styles.input}
-                                        placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
-                                        value={p.referenceNumber || ""}
-                                        onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                        disabled={isViewOnly}
-                                    />
+                                    <div className={styles.field} style={{ marginTop: "12px" }}>
+                                        <label>{p.method === "Cheque" ? "check no" : "reference number"}</label>
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            placeholder="****************"
+                                            value={p.referenceNumber || ""}
+                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                            disabled={isViewOnly}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         ))}

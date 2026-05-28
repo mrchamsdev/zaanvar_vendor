@@ -11,7 +11,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
-    
+
     // Global States
     const [amountPaidDate, setAmountPaidDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
@@ -34,7 +34,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     // Calculated / Read-only values from props
     const totalAmount = data.totalAmount || 0;
     const previousPaidAmount = data.previousPaidAmount || 0;
-    
+
     const initialBalance = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : totalAmount;
     const balanceAmount = Math.max(0, initialBalance - (Number(masterTarget) || 0));
     const totalAmountPaid = previousPaidAmount + (Number(masterTarget) || 0);
@@ -198,21 +198,21 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Amount paid date</label>
                             <div className={styles.inputWrapper}>
-                                    <input 
-                                        type="date" 
-                                        value={amountPaidDate} 
-                                        max={today}
-                                        onChange={(e) => setAmountPaidDate(e.target.value)} 
-                                    />
-                                </div>
+                                <input
+                                    type="date"
+                                    value={amountPaidDate}
+                                    max={today}
+                                    onChange={(e) => setAmountPaidDate(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount Paid *</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
-                                <input 
-                                    type="text" 
-                                    placeholder="0" 
+                                <input
+                                    type="text"
+                                    placeholder="0"
                                     value={masterTarget}
                                     onChange={(e) => {
                                         const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -252,8 +252,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     <div className={styles.row}>
                         <div className={styles.field}>
                             <label>Payment Type</label>
-                            <select 
-                                value={payments[0].paymentType} 
+                            <select
+                                value={payments[0].paymentType}
                                 onChange={(e) => handlePaymentChange(payments[0].id, "paymentType", e.target.value)}
                             >
                                 {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
@@ -265,10 +265,10 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <label>Amount Paid *</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     placeholder="0"
-                                    value={payments[0].amountPaid} 
+                                    value={payments[0].amountPaid}
                                     onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
                                 />
                             </div>
@@ -295,8 +295,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <div className={styles.field}>
                                 <label>{getReferenceLabel(payments[0].paymentType)}</label>
                                 <div className={styles.inputWrapper}>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder={`Enter ${getReferenceLabel(payments[0].paymentType).toLowerCase()}`}
                                         value={payments[0].referenceNumber}
                                         onChange={(e) => handlePaymentChange(payments[0].id, "referenceNumber", e.target.value.replace(/[^0-9]/g, ''))}
@@ -312,8 +312,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <div className={styles.row}>
                                 <div className={styles.field}>
                                     <label>Payment Type #{idx + 2}</label>
-                                    <select 
-                                        value={p.paymentType} 
+                                    <select
+                                        value={p.paymentType}
                                         onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}
                                     >
                                         {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
@@ -330,9 +330,9 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     </div>
                                     <div className={styles.inputWrapper}>
                                         <span className={styles.prefix}>₹</span>
-                                        <input 
-                                            type="text" 
-                                            placeholder="0" 
+                                        <input
+                                            type="text"
+                                            placeholder="0"
                                             value={p.amountPaid}
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
                                         />
@@ -353,8 +353,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     <div className={styles.field}>
                                         <label>{getReferenceLabel(p.paymentType)}</label>
                                         <div className={styles.inputWrapper}>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 placeholder={`Enter ${getReferenceLabel(p.paymentType).toLowerCase()}`}
                                                 value={p.referenceNumber}
                                                 onChange={(e) => handlePaymentChange(p.id, "referenceNumber", e.target.value.replace(/[^0-9]/g, ''))}
@@ -372,8 +372,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
 
                     <div className={styles.field}>
                         <label>Add Description</label>
-                        <textarea 
-                            placeholder="Lorem ipsum dolor sit..." 
+                        <textarea
+                            placeholder="Enter Descrition"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
@@ -385,10 +385,10 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <label htmlFor="transactionImage" className={styles.uploadTrigger}>
                                 Choose file
                             </label>
-                            <input 
+                            <input
                                 id="transactionImage"
-                                type="file" 
-                                accept="image/*" 
+                                type="file"
+                                accept="image/*"
                                 onChange={handleImageChange}
                                 style={{ display: 'none' }}
                             />
@@ -399,7 +399,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         {imagePreview && (
                             <div className={styles.previewContainer}>
                                 <img src={imagePreview} alt="Preview" className={styles.preview} />
-                                <button className={styles.removeImg} onClick={() => {setSelectedImage(null); setImagePreview(null);}}>
+                                <button className={styles.removeImg} onClick={() => { setSelectedImage(null); setImagePreview(null); }}>
                                     <FiX />
                                 </button>
                             </div>

@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   z-index: 2000;
   display: flex;
@@ -102,7 +102,8 @@ select.topInput {
 .tableContainer {
   margin-top: 40px;
   overflow-x: auto;
-  padding-bottom: 200px; /* Buffer for dropdowns */
+  padding-bottom: 200px;
+  /* Buffer for dropdowns */
   margin-bottom: -200px;
 }
 
@@ -204,7 +205,7 @@ select.topInput {
   min-width: 280px;
   background: #fff;
   border: 1px solid #ddd;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   z-index: 1000;
   border-radius: 4px;
   max-height: 250px;
@@ -311,18 +312,53 @@ select.topInput {
   color: #ff4d4f !important;
 }
 
-.colProd { min-width: 200px; }
-.colCode { min-width: 120px; }
-.colBatch { min-width: 100px; }
-.colVar { min-width: 100px; }
-.colSource { min-width: 130px; }
-.colQty { min-width: 100px; }
-.colReason { min-width: 150px; }
-.colSmall { min-width: 70px; }
-.colExp { min-width: 100px; }
-.colCost { min-width: 100px; }
-.colTotal { min-width: 120px; }
-.colAction { width: 40px; }
+.colProd {
+  min-width: 200px;
+}
+
+.colCode {
+  min-width: 120px;
+}
+
+.colBatch {
+  min-width: 100px;
+}
+
+.colVar {
+  min-width: 100px;
+}
+
+.colSource {
+  min-width: 160px;
+}
+
+.colQty {
+  min-width: 100px;
+}
+
+.colReason {
+  min-width: 150px;
+}
+
+.colSmall {
+  min-width: 70px;
+}
+
+.colExp {
+  min-width: 100px;
+}
+
+.colCost {
+  min-width: 100px;
+}
+
+.colTotal {
+  min-width: 120px;
+}
+
+.colAction {
+  width: 40px;
+}
 
 .errorField {
   border: 1px solid #ff4d4f !important;
@@ -333,13 +369,13 @@ select.topInput {
 }
 
 .disabledPlaceholder {
-    color: #ccc;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    padding: 8px;
-    background: #f9f9f9;
-    border-radius: 4px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  padding: 8px;
+  background: #f9f9f9;
+  border-radius: 4px;
 }
 
 .errorText {
@@ -352,27 +388,29 @@ select.topInput {
 }
 
 .disabledDropdown {
-    opacity: 1 !important;
-    background: #f9f9f9 !important;
-    cursor: default !important;
+  opacity: 1 !important;
+  background: #f9f9f9 !important;
+  cursor: default !important;
 }
 
 .disabledDropdown .dropdownTrigger {
-    cursor: default !important;
-    background: #f9f9f9 !important;
-    border-color: #eee !important;
+  cursor: default !important;
+  background: #f9f9f9 !important;
+  border-color: #eee !important;
 }
 
 .disabledDropdown input {
-    background: #f9f9f9 !important;
-    color: #333 !important;
-    cursor: default !important;
+  background: #f9f9f9 !important;
+  color: #333 !important;
+  cursor: default !important;
 }
 
-.topInput:disabled, .tableSelect:disabled, .tableInput:disabled {
-    background: #f9f9f9 !important;
-    color: #333 !important;
-    cursor: default !important;
-    border-color: #eee !important;
-    -webkit-text-fill-color: #333 !important;
+.topInput:disabled,
+.tableSelect:disabled,
+.tableInput:disabled {
+  background: #f9f9f9 !important;
+  color: #333 !important;
+  cursor: default !important;
+  border-color: #eee !important;
+  -webkit-text-fill-color: #333 !important;
 }
