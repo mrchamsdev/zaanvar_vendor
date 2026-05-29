@@ -223,7 +223,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>VRIANT</th>
                             <th>ORDER QTY</th>
                             <th>RECEIVED QTY</th>
-                            <th>SHORTFALL QTY</th>
+                            { !returnsApplicable && <th>SHORTFALL QTY</th> }
                             <th>DAMAGED GOODS</th>
                             <th>BATCH NUMBER</th>
                             <th>EXPIRY DATE</th>
@@ -265,7 +265,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                             {/* <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span> */}
                                         </div>
                                     </td>
-                                    <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>
+                                    { !returnsApplicable && <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td> }
                                     <td>{damaged}</td>
                                     <td>{item.batchNumber || "------"}</td>
                                     <td>{(() => { const d = item.expDate || item.expiryDate; return (d && !/^0+[-/]0+[-/]0+$/.test(d)) ? formatDate(d) : "–"; })()}</td>
@@ -315,7 +315,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <span>Total Ordered Cost</span>
                             <span>₹ {breakdown.totalCost.toLocaleString()}</span>
                         </div>
-                        {breakdown.shortfallAmountTotal > 0 && (
+                        { !returnsApplicable && breakdown.shortfallAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Shortfall Amount</span>
                                 <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString()}</span>

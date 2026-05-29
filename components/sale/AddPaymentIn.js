@@ -118,7 +118,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
-                    totalBalance: isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0),
+                    // Use dueAtTime if available; fallback to existing logic
+                    totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),

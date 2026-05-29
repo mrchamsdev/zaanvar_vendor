@@ -580,7 +580,7 @@ const PaymentOutList = ({ onAddClick }) => {
             `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
             `"${getSupplierTotalBill(t.supplierId)}"`,
             `"${getDisplayTotalAmount(t)}"`,
-            `"${t.totalBalanceAmount || 0}"`,
+            `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`,
             `"${getDisplayPaymentType(t)}"`
         ]);
 
@@ -853,7 +853,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                                 <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
                                                 <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td>{Number(t.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(t)}</td>
                                                 <td>
                                                     <div className={styles.actions}>
