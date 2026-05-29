@@ -797,10 +797,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                                     <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                     {activeDropdown === idx && (
                                                         <div className={styles.dropdownMenu}>
-                                                            <div className={styles.dropdownItem} onClick={() => {
-                                                                router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
-                                                                setActiveDropdown(null);
-                                                            }}>Edit</div>
+
                                                             <div className={styles.dropdownItem} onClick={() => {
                                                                 router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.customerReturnId } }, undefined, { shallow: true });
                                                                 setActiveDropdown(null);
@@ -827,7 +824,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                                                 window.addEventListener('focus', cleanup);
                                                                 setActiveDropdown(null);
                                                             }}>Print</div>
-                                                            <div className={styles.dropdownItem}>History</div>
+
                                                         </div>
                                                     )}
                                                 </div>

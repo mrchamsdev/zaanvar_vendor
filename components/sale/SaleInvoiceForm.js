@@ -1,8 +1,9 @@
 import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
-import { FiCalendar, FiChevronDown, FiTrash2 } from "react-icons/fi";
+import { FiCalendar, FiChevronDown, FiTrash2, FiPrinter } from "react-icons/fi";
 import { saleService } from "../../services/saleService";
+import SalePaymentDetailsPopup from "./SalePaymentDetailsPopup";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
@@ -92,6 +93,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
+    const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [saleInvoiceData, setSaleInvoiceData] = useState(null);
 
     const resetForm = () => {
         setFormData({
@@ -126,6 +129,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     };
 
     const populateForm = (data) => {
+        setSaleInvoiceData(data);
         const customerName = data.customer ? `${data.customer.firstName} ${data.customer.lastName}`.trim() : (data.partyName || "");
         const customerPhone = data.customer?.phoneNumber || data.phone || "";
 
@@ -447,6 +451,23 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
     const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount;
 
+    const prefillData = useMemo(() => {
+        if (!saleInvoiceData) return null;
+        return {
+            userOrderId: saleInvoiceData.userOrderId,
+            customer: saleInvoiceData.customer || {
+                vendorCustomerId: saleInvoiceData.vendorCustomerId,
+                firstName: saleInvoiceData.partyName || "",
+                lastName: "",
+                phoneNumber: saleInvoiceData.phone || ""
+            },
+            totalAmount: totalBillAmount,
+            paidAmount: totalPaidAmount,
+            dueAmount: balanceAmount,
+            cartItems: saleInvoiceData.cartItems || []
+        };
+    }, [saleInvoiceData, totalBillAmount, totalPaidAmount, balanceAmount]);
+
     const [errors, setErrors] = useState({});
 
     const handleSave = async () => {
@@ -682,9 +703,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 {!isViewOnly && <th rowSpan="2"></th>}
                             </tr>
                             <tr>
-                                <th className={styles.subHeader}>
-                                    WITHOUT TAX <FiChevronDown size={10} />
-                                </th>
+                                <th className={styles.subHeader}></th>
                                 <th className={styles.subHeader}>%</th>
                                 <th className={styles.subHeader}>AMOUNT</th>
                                 <th className={styles.subHeader}>%</th>
@@ -954,9 +973,18 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     Cancel
                 </button>
                 {isViewOnly && (
-                    <button className={styles.saveBtn} onClick={() => window.print()} >
-                        Print Invoice
-                    </button>
+                    <>
+                        <button 
+                            className={styles.saveBtn} 
+                            onClick={() => setPaymentModalOpen(true)} 
+                            style={{ marginRight: '12px', background: '#000' }}
+                        >
+                            Make Payment
+                        </button>
+                        <button className={styles.saveBtn} onClick={() => window.print()} >
+                            Print Invoice
+                        </button>
+                    </>
                 )}
                 {!isViewOnly && (
                     <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
@@ -964,6 +992,28 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     </button>
                 )}
             </div>
+
+            {isPaymentModalOpen && (
+                <SalePaymentDetailsPopup
+                    isOpen={isPaymentModalOpen}
+                    onClose={() => setPaymentModalOpen(false)}
+                    onRefresh={() => {
+                        if (saleId) {
+                            fetchSaleDetails(saleId);
+                        } else if (formData.userOrderId) {
+                            fetchSaleDetails(formData.userOrderId);
+                        }
+                    }}
+                    data={{
+                        totalAmount: totalBillAmount,
+                        previousPaidAmount: totalPaidAmount,
+                        balanceAmount: balanceAmount,
+                        vendorCustomerId: formData.vendorCustomerId || (saleInvoiceData && saleInvoiceData.vendorCustomerId),
+                        branchId: branchId,
+                        userOrderId: saleId || formData.userOrderId
+                    }}
+                />
+            )}
         </div>
     );
 };

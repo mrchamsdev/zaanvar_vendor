@@ -8,7 +8,6 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import AddPaymentOut from "./AddPaymentOut";
 import ShareModal from "./ShareModal";
-import HistoryModal from "./HistoryModal";
 import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
@@ -295,7 +294,6 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
-    const [selectedReturn, setSelectedReturn] = useState(null);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const { branches, branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
@@ -312,7 +310,6 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [dateFilterValues, setDateFilterValues] = useState(null);
 
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'supplierName', 'received', 'balance'
     const [columnFilters, setColumnFilters] = useState({
@@ -770,11 +767,6 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                                 window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}&autoPrint=true`, '_blank');
                                                                 setActiveDropdown(null);
                                                             }}>Print</div>
-                                                            <div className={styles.dropdownItem} onClick={() => {
-                                                                setSelectedReturn(r);
-                                                                setIsHistoryModalOpen(true);
-                                                                setActiveDropdown(null);
-                                                            }}>View History</div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -798,14 +790,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 </div>
             )}
 
-            {isHistoryModalOpen && (
-                <HistoryModal
-                    isOpen={isHistoryModalOpen}
-                    onClose={() => setIsHistoryModalOpen(false)}
-                    data={selectedReturn}
-                    userInfo={userInfo}
-                />
-            )}
+
         </div>
     );
 };
