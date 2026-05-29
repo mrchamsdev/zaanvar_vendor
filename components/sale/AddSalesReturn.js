@@ -49,9 +49,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         returnNo: `SR-${Date.now().toString().slice(-6)}`,
         returnReason: "",
         billDate: "",
-        returnDate: toApiDateOnly(new Date()),
-        refundMode: "Card",
-        refundReference: `REF-${Date.now().toString().slice(-9)}`
+        returnDate: toApiDateOnly(new Date())
     });
 
     const [items, setItems] = useState([]);
@@ -71,9 +69,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnNo: `SR-${Date.now().toString().slice(-6)}`,
                     returnReason: "",
                     billDate: "",
-                    returnDate: toApiDateOnly(new Date()),
-                    refundMode: "Card",
-                    refundReference: `REF-${Date.now().toString().slice(-9)}`
+                    returnDate: toApiDateOnly(new Date())
                 });
                 setItems([]);
                 setSelectedCustomer(null);
@@ -106,9 +102,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnNo: `SR-${data.customerReturnId}`,
                     returnReason: data.returnReason || "",
                     billDate: data.createdDate?.split('T')[0] || "",
-                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || "",
-                    refundMode: data.refundMode || "Card",
-                    refundReference: data.refundReference || ""
+                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
                 });
 
                 // Fetch customer to get phone etc.
@@ -334,8 +328,6 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             userOrderId: parseInt(formData.receiptNo),
             branchId,
             vendorCustomerId: selectedCustomer.vendorCustomerId,
-            refundMode: formData.refundMode,
-            refundReference: formData.refundReference,
             returnReason: formData.returnReason,
             ...(formData.returnDate
                 ? dateOnlyWithTimeZone(
