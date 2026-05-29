@@ -208,7 +208,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
         from: currentDate?.from || '',
         to: currentDate?.to || ''
     });
-    const [showCalendar, setShowCalendar] = useState(null); // 'single', 'from', 'to'
+    const [showCalendar, setShowCalendar] = useState(null);
 
     const options = ['Equal to', 'Less than', 'Greater than', 'Range'];
 

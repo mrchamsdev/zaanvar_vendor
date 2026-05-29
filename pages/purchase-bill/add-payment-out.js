@@ -220,13 +220,17 @@ const PaymentOutFormPage = () => {
                         </div>
                     </div>
                     <div className={styles.field}>
-                        <label>Total Bill Amount </label>
-                        <input
-                            type="text"
-                            className={`${styles.input} ${styles.readOnly}`}
-                            value={totalBalance}
-                            readOnly
-                        />
+                        <label>Total Bill Amount</label>
+                        <div style={{ position: 'relative', width: '100%' }}>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                            <input
+                                type="text"
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                                style={{ paddingLeft: '32px', width: '100%' }}
+                                readOnly
+                            />
+                        </div>
                     </div>
                 </div>
 

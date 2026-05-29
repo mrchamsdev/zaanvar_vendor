@@ -314,10 +314,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
         // Handle reason change: Clear invalid fields
         if (field === 'reason') {
-            if (value === "Open Stock") {
-                newRows[index].remove = 0;
-            } else if (value && value !== "Miscount") {
-                // It's a removal reason (Damage, Theft, OnHold, etc.)
+            if (value && value !== "Miscount") {
+                // It's a removal reason (Damage, Theft, OnHold, Open Stock, etc.)
                 newRows[index].add = 0;
             }
         }
@@ -454,13 +452,11 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
     // Dynamic Column Visibility Logic
     const anyMiscount = rows.some(r => r.reason === "Miscount");
-    const anyOpenStock = rows.some(r => r.reason === "Open Stock");
-    const anyOnHold = rows.some(r => r.reason === "OnHold");
-    const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired"].includes(r.reason));
+    const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired", "OnHold", "Open Stock"].includes(r.reason));
     const anyEmptyReason = rows.some(r => !r.reason);
 
-    const showAddColumn = anyEmptyReason || anyMiscount || anyOpenStock;
-    const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval || anyOnHold;
+    const showAddColumn = anyEmptyReason || anyMiscount;
+    const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval;
 
     return (
         <>
@@ -625,7 +621,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                     </td>
                                                     {showAddColumn && (
                                                         <td>
-                                                            {(row.reason === "Open Stock" || row.reason === "Miscount" || !row.reason) ? (
+                                                            {(row.reason === "Miscount" || !row.reason) ? (
                                                                 <input
                                                                     id={`field_${index}_add`}
                                                                     className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`}
@@ -643,19 +639,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                     )}
                                                     {showRemoveColumn && (
                                                         <td>
-                                                            {(row.reason !== "Open Stock" || row.reason === "OnHold" || !row.reason) ? (
-                                                                <input
-                                                                    id={`field_${index}_remove`}
-                                                                    className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`}
-                                                                    type="number"
-                                                                    value={row.remove || ""}
-                                                                    onChange={(e) => updateRowField(index, 'remove', e.target.value)}
-                                                                    placeholder="0"
-                                                                    disabled={mode === "View"}
-                                                                />
-                                                            ) : (
-                                                                <div className={styles.disabledPlaceholder}>--</div>
-                                                            )}
+                                                            <input
+                                                                id={`field_${index}_remove`}
+                                                                className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`}
+                                                                type="number"
+                                                                value={row.remove || ""}
+                                                                onChange={(e) => updateRowField(index, 'remove', e.target.value)}
+                                                                placeholder="0"
+                                                                disabled={mode === "View"}
+                                                            />
                                                             {errors[`${index}_remove`] && <span className={styles.errorText}>{errors[`${index}_remove`]}</span>}
                                                         </td>
                                                     )}

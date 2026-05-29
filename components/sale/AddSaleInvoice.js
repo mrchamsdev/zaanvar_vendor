@@ -551,7 +551,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     {!isViewOnly && <th rowSpan="2"></th>}
                                 </tr>
                                 <tr>
-                                    <th className={styles.subHeader}>WITHOUT TAX <FiChevronDown size={10} /></th>
+                                    <th className={styles.subHeader}></th>
                                     <th className={styles.subHeader}>%</th>
                                     <th className={styles.subHeader}>AMOUNT</th>
                                 </tr>

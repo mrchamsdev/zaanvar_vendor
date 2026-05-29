@@ -10,7 +10,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { IMAGE_URL } from "../utilities/Constants";
 
-const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) => {
+const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
@@ -33,7 +33,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
         date: toApiDateOnly(new Date()),
         referenceNumber: "",
         description: "",
-        image: null
+        image: null,
+        userOrderId: ""
     });
 
     const imagePreviewUrl = useMemo(() => {
@@ -60,13 +61,37 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
     useEffect(() => {
         if (isOpen) {
             fetchCustomers();
-            if (mode !== 'add' && paymentId) {
+            if (prefill && Object.keys(prefill).length > 0) {
+                const customer = prefill.customer || {};
+                const custName = customer.firstName ? `${customer.firstName} ${customer.lastName}`.trim() : (prefill.partyName || "");
+                const dueAmt = parseFloat(prefill.dueAmount || 0);
+
+                setFormData({
+                    vendorCustomerId: customer.vendorCustomerId || prefill.vendorCustomerId || "",
+                    partyName: custName,
+                    totalBalance: dueAmt.toFixed(2),
+                    paidAmount: dueAmt > 0 ? dueAmt.toFixed(2) : "",
+                    date: toApiDateOnly(new Date()),
+                    referenceNumber: prefill.userOrderId ? prefill.userOrderId.toString() : "",
+                    description: `Payment for Invoice #${prefill.userOrderId}`,
+                    image: null,
+                    userOrderId: prefill.userOrderId || ""
+                });
+                setPayments([{
+                    method: "Cash",
+                    amount: dueAmt > 0 ? dueAmt.toFixed(2) : "",
+                    referenceNumber: ""
+                }]);
+                setSearchTerm(custName);
+                setSelectedImage(null);
+                setErrors({});
+            } else if (mode !== 'add' && paymentId) {
                 fetchPaymentDetails();
             } else {
                 resetForm();
             }
         }
-    }, [isOpen, mode, paymentId]);
+    }, [isOpen, mode, paymentId, prefill]);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -124,7 +149,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
                     description: data.description || "",
-                    image: data.paymentImg || data.transactionImg || data.image || null
+                    image: data.paymentImg || data.transactionImg || data.image || null,
+                    userOrderId: data.userOrderId || (isPayment ? data.order?.userOrderId : "") || ""
                 });
 
                 if (data.paymentMethods && data.paymentMethods.length > 0) {
@@ -158,7 +184,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
             date: toApiDateOnly(new Date()),
             referenceNumber: "",
             description: "",
-            image: null
+            image: null,
+            userOrderId: ""
         });
         setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
         setSearchTerm("");
@@ -298,7 +325,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     paymentFrom: "sale invoice",
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
-                    paymentMethods
+                    paymentMethods,
+                    userOrderId: formData.userOrderId ? parseInt(formData.userOrderId) : null
                 };
                 Object.assign(updatePayload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
                 res = await saleService.updatePayment(jwtToken, paymentId, updatePayload);
@@ -318,7 +346,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                     paymentFrom: "sale invoice",
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
-                    paymentMethods
+                    paymentMethods,
+                    userOrderId: formData.userOrderId ? parseInt(formData.userOrderId) : null
                 };
                 Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
 
@@ -359,10 +388,14 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 toast.success(mode === 'edit' ? "Payment updated successfully" : "Payment added successfully");
                 onRefresh();
 
-                const targetBranchId = router.query.branchId || branchId;
-                router.push(`/sale/payment-in?branchId=${targetBranchId}`).then(() => {
+                if (prefill) {
                     onClose();
-                });
+                } else {
+                    const targetBranchId = router.query.branchId || branchId;
+                    router.push(`/sale/payment-in?branchId=${targetBranchId}`).then(() => {
+                        onClose();
+                    });
+                }
             } else {
                 const errorMsg = res?.message || res?.data?.message || "Failed to save payment";
                 toast.error(errorMsg);
@@ -388,6 +421,57 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                 </div>
 
                 <div className={styles.modalContent} style={{ padding: '32px 40px' }}>
+                    {prefill && (
+                        <div style={{
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            marginBottom: '32px',
+                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
+                        }}>
+                            <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>Invoice Summary (Order #${prefill.userOrderId})</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
+                                <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Bill</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Rs ${parseFloat(prefill.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Paid</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e8e3e' }}>Rs ${parseFloat(prefill.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Balance Due</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: parseFloat(prefill.dueAmount || 0) > 0 ? '#d93025' : '#1e8e3e' }}>Rs ${parseFloat(prefill.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
+                            {prefill.cartItems && prefill.cartItems.length > 0 && (
+                                <div>
+                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px' }}>Items Summary</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {prefill.cartItems.map((item, index) => (
+                                            <div key={index} style={{
+                                                background: '#fff',
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '6px',
+                                                padding: '6px 12px',
+                                                fontSize: '13px',
+                                                color: '#334155',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}>
+                                                <span style={{ fontWeight: '600' }}>${item.productName || item.product?.productName}</span>
+                                                <span style={{ color: '#64748b' }}>x${item.qty || item.quantity}</span>
+                                                <span style={{ fontWeight: '600', color: '#0f172a' }}>Rs ${parseFloat(item.amount || item.itemTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field} style={{ position: 'relative' }}>
                             <label>Select Customer</label>
@@ -397,15 +481,17 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId }) =
                                     className={`${styles.input} ${errors.vendorCustomerId ? styles.inputError : ''}`}
                                     placeholder="Select Name"
                                     value={searchTerm}
-                                    onFocus={() => setShowCustomerDropdown(true)}
+                                    onFocus={() => { if (!prefill) setShowCustomerDropdown(true); }}
                                     onChange={(e) => {
-                                        setSearchTerm(e.target.value);
-                                        setShowCustomerDropdown(true);
-                                        setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
+                                        if (!prefill) {
+                                            setSearchTerm(e.target.value);
+                                            setShowCustomerDropdown(true);
+                                            setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
+                                        }
                                     }}
-                                    disabled={isViewOnly}
+                                    disabled={isViewOnly || !!prefill}
                                 />
-                                <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                                {!isViewOnly && !prefill && <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />}
                             </div>
                             {errors.vendorCustomerId && <span className={styles.errorMsg}>{errors.vendorCustomerId}</span>}
                             {showCustomerDropdown && filteredCustomers.length > 0 && (
