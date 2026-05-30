@@ -67,7 +67,15 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         }
     }, [supplierId, jwtToken]);
 
+    const lastSupplierIdRef = useRef(null);
+
     useEffect(() => {
+        const currentSupplierId = initialData?.supplierId || "new";
+        if (lastSupplierIdRef.current !== currentSupplierId) {
+            isInitialized.current = false;
+            lastSupplierIdRef.current = currentSupplierId;
+        }
+
         if (isInitialized.current) return;
         isInitialized.current = true;
 

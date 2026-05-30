@@ -132,14 +132,25 @@ button {
   body:has([class*="overlay"]) [class*="container"]>[class*="topSection"],
   body:has([class*="overlay"]) [class*="container"]>[class*="tableWrapper"],
   body:has([class*="overlay"]) [class*="container"]>[class*="pagination"],
-  body:has([class*="overlay"]) [class*="container"]>*:not([class*="overlay"]),
+  body:has([class*="overlay"]) [class*="container"]>*:not([class*="overlay"]):not([class*="overlay"] *),
 
   body:has([class*="taskManager"]) aside,
   body:has([class*="taskManager"]) header,
   body:has([class*="taskManager"]) [class*="container"]>[class*="topSection"],
   body:has([class*="taskManager"]) [class*="container"]>[class*="tableWrapper"],
   body:has([class*="taskManager"]) [class*="container"]>[class*="pagination"],
-  body:has([class*="taskManager"]) [class*="container"]>*:not([class*="taskManager"]) {
+  body:has([class*="taskManager"]) [class*="container"]>*:not([class*="taskManager"]):not([class*="taskManager"] *) {
     display: none !important;
+  }
+}
+
+/* Adjust page container height when task manager is minimized in the footer */
+body:has(.task-manager-minimized) [class*="container"] {
+  height: calc(100vh - 65px - 60px) !important;
+}
+
+@media (max-width: 768px) {
+  body:has(.task-manager-minimized) [class*="container"] {
+    height: calc(100vh - 65px - 50px) !important;
   }
 }

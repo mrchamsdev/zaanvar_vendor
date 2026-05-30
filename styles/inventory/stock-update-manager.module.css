@@ -31,6 +31,15 @@
     gap: 8px;
     border-bottom: 2px solid #f1f1f1;
     flex-shrink: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabBar::-webkit-scrollbar {
+    display: none;
 }
 
 .tab {
@@ -48,6 +57,7 @@
     transition: all 0.2s;
     min-width: 150px;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .tabActive {
@@ -73,6 +83,7 @@
     background: #f1f1f1;
     border-radius: 8px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .windowActions {
@@ -80,6 +91,13 @@
     display: flex;
     gap: 15px;
     padding-bottom: 10px;
+    position: sticky;
+    right: -20px;
+    margin-right: -20px;
+    background: #fff;
+    padding-left: 15px;
+    padding-right: 20px;
+    z-index: 10;
 }
 
 .windowActionIcon {
@@ -224,5 +242,77 @@
     .minimizedItem {
         min-width: 140px;
         padding: 6px 12px;
+    }
+}
+
+.minimizedMode {
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+    justify-content: flex-end;
+}
+
+.minimizedMode .minimizedBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    background: #fff;
+    border-top: 1px solid #eee;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 20px;
+    gap: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+    z-index: 2100;
+    box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.minimizedMode .minimizedBar::-webkit-scrollbar {
+    display: none;
+}
+
+.minimizedMode .minimizedItem {
+    pointer-events: auto;
+    box-shadow: none;
+    border: 1px solid #eee !important;
+    border-radius: 8px !important;
+    background: #f8f9fa !important;
+    min-width: 200px !important;
+    flex-shrink: 0;
+    transform: none !important;
+}
+
+.minimizedMode .minimizedItem:hover {
+    background-color: #f1f3f5 !important;
+    transform: none !important;
+}
+
+.minimizedMode .minimizedTitle {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #444 !important;
+    max-width: none !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .minimizedMode .minimizedBar {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: 50px;
+        padding: 0 10px;
     }
 }

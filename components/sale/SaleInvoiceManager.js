@@ -35,16 +35,22 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
   const [splitTabIds, setSplitTabIds] = useState([null, null]);
 
   const lastProcessedPropRef = useRef(null);
+  const visibleTabs = tabs.filter(t => !t.isMinimized);
+  const isAnyVisible = visibleTabs.length > 0;
+  const minimizedTabs = tabs.filter(t => t.isMinimized);
 
-  // Lock body scroll when popup is open
+  // Lock body scroll when popup is open and tab is visible
   useEffect(() => {
     if (!isOpen) return;
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = "hidden";
+    if (isAnyVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
     return () => {
-      document.body.style.overflow = originalStyle;
+      document.body.style.overflow = "auto";
     };
-  }, [isOpen]);
+  }, [isOpen, isAnyVisible]);
 
   const fetchInvoiceDetails = async (sid, tabId) => {
     try {
@@ -233,147 +239,75 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
   }, []);
 
   const activeTab = tabs.find(t => t.id === activeTabId);
-  const visibleTabs = tabs.filter(t => !t.isMinimized);
-  const isAnyVisible = visibleTabs.length > 0;
-  const minimizedTabs = tabs.filter(t => t.isMinimized);
 
   if (!isOpen) return null;
 
   return (
-    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""}`} style={{ paddingBottom: minimizedTabs.length > 0 ? "60px" : "0" }}>
-      {/* Tab Bar - Only show when a tab is actively being worked on */}
-      {isAnyVisible && (
-        <div className={styles.tabBar}>
-          {visibleTabs.map(tab => (
-            <div 
-              key={tab.id} 
-              className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
-              onClick={() => setActiveTabId(tab.id)}
-            >
-              <span className={styles.tabText}>
-                <span className={styles.fullTitle}>{tab.title}</span>
-                <span className={styles.shortTitle}>{tab.shortTitle}</span>
-              </span>
-              {tab.mode !== "view" && (
-                <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
-              )}
-            </div>
-          ))}
-          {tabs.length < 15 && activeTab?.mode !== "view" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
+    <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`}>
+      <div className={`${styles.tabBar} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
+        {visibleTabs.map(tab => (
+          <div
+            key={tab.id}
+            className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
+            onClick={() => setActiveTabId(tab.id)}
+          >
+            <span>{tab.title}</span>
+            <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
+          </div>
+        ))}
+        {mode === "add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
 
-          {activeTab?.mode !== "view" && (
-            <div className={styles.windowActions}>
-              <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-              <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-              <span className={styles.windowActionIcon} onClick={(e) => closeTab(activeTabId, e)} title="Close Tab"><IconX /></span>
-            </div>
-          )}
+        <div className={styles.windowActions}>
+          <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
+          <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+          <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
         </div>
-      )}
+      </div>
 
-      {isAnyVisible && activeTab && !activeTab.isMinimized && (
-        <>
-          <div className={styles.managerHeader}>
-            {activeTab.mode === "add" ? "Add" : activeTab.mode === "view" ? "View" : "Edit"} Sale Invoice
+      <div className={`${styles.managerHeader} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
+        Sale Invoice Details
+      </div>
+
+      <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
+        {tabs.map(tab => {
+          const isVisible = splitMode ? splitTabIds.includes(tab.id) : activeTabId === tab.id;
+          const isMinimized = tab.isMinimized;
+
+          return (
+            <div
+              key={tab.id}
+              className={styles.formWrapper}
+              style={{ display: (isVisible && !isMinimized) ? 'flex' : 'none' }}
+            >
+              <SaleInvoiceForm 
+                mode={tab.mode}
+                saleId={tab.saleId}
+                tabId={tab.id}
+                initialData={tab.data}
+                onSave={() => {
+                  onRefresh();
+                  closeTab(tab.id);
+                }}
+                onCancel={() => closeTab(tab.id)}
+                onTitleChange={handleTitleChange}
+              />
+            </div>
+          );
+        })}
+        {splitMode && splitTabIds.some(id => id === null) && (
+          <div className={styles.formWrapper}>
+            <div className={styles.placeholder}>Select Sale Invoice from Tabs</div>
           </div>
+        )}
+      </div>
 
-          <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-            {!splitMode ? (
-              <div className={styles.formWrapper}>
-                {tabs.map(tab => (
-                  <div 
-                    key={tab.id} 
-                    style={{ display: tab.id === activeTabId && !tab.isMinimized ? "contents" : "none" }}
-                  >
-                    <SaleInvoiceForm 
-                      mode={tab.mode}
-                      saleId={tab.saleId}
-                      tabId={tab.id}
-                      initialData={tab.data}
-                      onSave={() => {
-                        onRefresh();
-                        closeTab(tab.id);
-                      }}
-                      onCancel={() => closeTab(tab.id)}
-                      onTitleChange={handleTitleChange}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <>
-                <div className={styles.formWrapper}>
-                  {tabs.map(tab => (
-                    <div 
-                      key={tab.id} 
-                      style={{ display: tab.id === splitTabIds[0] ? "contents" : "none" }}
-                    >
-                      <div className={styles.formLabel}>{tab.title}</div>
-                      <SaleInvoiceForm 
-                        mode={tab.mode}
-                        saleId={tab.saleId}
-                        tabId={tab.id}
-                        initialData={tab.data}
-                        onSave={() => {
-                          onRefresh();
-                          closeTab(tab.id);
-                        }}
-                        onCancel={() => closeTab(tab.id)}
-                        onTitleChange={handleTitleChange}
-                      />
-                    </div>
-                  ))}
-                  {!splitTabIds[0] && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#888" }}>Select Sale Invoice</div>}
-                </div>
-                <div className={styles.formWrapper}>
-                  {tabs.map(tab => (
-                    <div 
-                      key={tab.id} 
-                      style={{ display: tab.id === splitTabIds[1] ? "contents" : "none" }}
-                    >
-                      <div className={styles.formLabel}>{tab.title}</div>
-                      <SaleInvoiceForm 
-                        mode={tab.mode}
-                        saleId={tab.saleId}
-                        tabId={tab.id}
-                        initialData={tab.data}
-                        onSave={() => {
-                          onRefresh();
-                          closeTab(tab.id);
-                        }}
-                        onCancel={() => closeTab(tab.id)}
-                        onTitleChange={handleTitleChange}
-                      />
-                    </div>
-                  ))}
-                  {!splitTabIds[1] && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#888" }}>Select Sale Invoice</div>}
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Minimized Bar */}
       <div className={styles.minimizedBar}>
         {minimizedTabs.map(tab => (
           <div key={tab.id} className={styles.minimizedItem} onClick={() => toggleMinimize(tab.id)}>
             <span className={styles.minimizedTitle}>{tab.title}</span>
             <div className={styles.minimizedActions}>
-              <button 
-                className={styles.minimizedActionBtn} 
-                onClick={(e) => { e.stopPropagation(); toggleMinimize(tab.id); }}
-                title="Maximize"
-              >
-                <IconMaximize />
-              </button>
-              <button 
-                className={styles.minimizedActionBtn} 
-                onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
-                title="Close"
-              >
-                <IconX />
-              </button>
+              <button className={styles.minimizedActionBtn} onClick={(e) => { e.stopPropagation(); toggleMinimize(tab.id); }}><IconMaximize /></button>
+              <button className={styles.minimizedActionBtn} onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}><IconX /></button>
             </div>
           </div>
         ))}

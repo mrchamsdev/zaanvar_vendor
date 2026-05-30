@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/purchase-bill/purchase-order-manager.module.css";
 import PurchaseOrderForm from "./purchase-order-form";
 import PurchaseOrderDetails from "./purchase-order-details";
@@ -27,31 +27,85 @@ const IconX = () => (
 );
 
 const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initialData, totalOrders = 0 }) => {
-    // Lock body scroll
-    useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = 'auto'; };
-    }, []);
+    const [tabs, setTabs] = useState([]);
 
-    const [tabs, setTabs] = useState([
-        { 
-            id: initialId || '1', 
-            title: mode === "View" ? `Order Details #${initialId}` : `Purchase Order #${totalOrders + 1}`, 
-            orderNumber: mode === "View" ? initialId : (totalOrders + 1),
-            isMinimized: false, 
-            data: initialData || {}, 
-            mode: mode 
-        }
-    ]);
-
-    const [activeTabId, setActiveTabId] = useState(initialId || '1');
+    const [activeTabId, setActiveTabId] = useState(null);
     const [splitMode, setSplitMode] = useState(false);
-    const [splitTabIds, setSplitTabIds] = useState(['1', null]);
+    const [splitTabIds, setSplitTabIds] = useState([null, null]);
+
+    const lastProcessedPropRef = useRef(null);
+    const visibleTabs = tabs.filter(t => !t.isMinimized);
+    const isAnyVisible = visibleTabs.length > 0;
+    const minimizedTabs = tabs.filter(t => t.isMinimized);
+
+    // Lock body scroll only when at least one tab is visible
+    useEffect(() => {
+        if (isAnyVisible) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => { document.body.style.overflow = 'auto'; };
+    }, [isAnyVisible]);
+
+    // Handle updates to props dynamically (reactive tab addition/activation)
+    useEffect(() => {
+        const propKey = `${mode}-${initialId || "new"}`;
+        if (lastProcessedPropRef.current === propKey) {
+            return;
+        }
+        lastProcessedPropRef.current = propKey;
+
+        if (mode === "Add") {
+            const existingAddTab = tabs.find(t => t.mode === "Add" && !t.data?.productsPurchaseRqstID);
+            if (existingAddTab) {
+                setActiveTabId(existingAddTab.id);
+                setTabs(prev => prev.map(t => t.id === existingAddTab.id ? { ...t, isMinimized: false } : t));
+            } else {
+                const newId = String(Date.now());
+                const nextNum = totalOrders + tabs.length + 1;
+                const newTab = {
+                    id: newId,
+                    title: `Purchase Order ${nextNum}`,
+                    orderNumber: nextNum,
+                    isMinimized: false,
+                    data: initialData || {},
+                    mode: "Add"
+                };
+                setTabs(prev => [...prev, newTab]);
+                setActiveTabId(newId);
+                if (splitMode && !splitTabIds[1]) {
+                    setSplitTabIds([splitTabIds[0], newId]);
+                }
+            }
+        } else if ((mode === "View" || mode === "Receive") && initialId) {
+            const tabId = String(initialId);
+            const existingTab = tabs.find(t => String(t.id) === String(tabId));
+            if (existingTab) {
+                setActiveTabId(tabId);
+                setTabs(prev => prev.map(t => t.id === tabId ? { ...t, isMinimized: false, mode: mode, data: initialData } : t));
+            } else {
+                const newTab = {
+                    id: tabId,
+                    title: mode === "View" ? `Order Details ${String(initialId).padStart(6, '0')}` : `Receive Order ${String(initialId).padStart(6, '0')}`,
+                    orderNumber: initialId,
+                    isMinimized: false,
+                    data: initialData || {},
+                    mode: mode
+                };
+                setTabs(prev => [...prev, newTab]);
+                setActiveTabId(tabId);
+                if (splitMode && !splitTabIds[1]) {
+                    setSplitTabIds([splitTabIds[0], tabId]);
+                }
+            }
+        }
+    }, [mode, initialId, initialData]);
 
     const addTab = () => {
         const newId = String(Date.now());
         const nextNum = totalOrders + tabs.length + 1;
-        const newTab = { id: newId, title: `Purchase Order #${nextNum}`, orderNumber: nextNum, isMinimized: false, data: {}, mode: "Add" };
+        const newTab = { id: newId, title: `Purchase Order ${nextNum}`, orderNumber: nextNum, isMinimized: false, data: {}, mode: "Add" };
         setTabs([...tabs, newTab]);
         setActiveTabId(newId);
         if (splitMode && !splitTabIds[1]) {
@@ -85,7 +139,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
         if (!targetTab) return;
 
         const isNowMinimizing = !targetTab.isMinimized;
-        
+
         setTabs(prev => prev.map(t => t.id === id ? { ...t, isMinimized: isNowMinimizing } : t));
 
         if (isNowMinimizing) {
@@ -111,15 +165,12 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     };
 
     const activeTab = tabs.find(t => t.id === activeTabId);
-    const visibleTabs = tabs.filter(t => !t.isMinimized);
-    const isAnyVisible = visibleTabs.length > 0;
-    const minimizedTabs = tabs.filter(t => t.isMinimized);
 
     const renderForm = (tab, onBack) => {
         if (!tab) return null;
         if (tab.mode === "View") {
             return (
-                <PurchaseOrderDetails 
+                <PurchaseOrderDetails
                     key={tab.id}
                     requestId={tab.id}
                     onSave={onSave}
@@ -132,7 +183,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
         }
         if (tab.mode === "Receive") {
             return (
-                <ReceiveOrderForm 
+                <ReceiveOrderForm
                     key={tab.id}
                     requestId={tab.id}
                     onSave={() => {
@@ -144,7 +195,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
             );
         }
         return (
-            <PurchaseOrderForm 
+            <PurchaseOrderForm
                 key={tab.id}
                 initialData={tab.data}
                 orderNumber={tab.orderNumber}
@@ -158,11 +209,11 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
     };
 
     return (
-        <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.minimizedMode : ""}`}>
+        <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`}>
             <div className={`${styles.tabBar} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
                 {visibleTabs.map(tab => (
-                    <div 
-                        key={tab.id} 
+                    <div
+                        key={tab.id}
                         className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
                         onClick={() => setActiveTabId(tab.id)}
                     >
@@ -182,16 +233,16 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
             <div className={`${styles.managerHeader} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
                 Purchase Order Details
             </div>
-            
+
             <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
                 {tabs.map(tab => {
                     const isVisible = splitMode ? splitTabIds.includes(tab.id) : activeTabId === tab.id;
                     const isMinimized = tab.isMinimized;
-                    
+
                     return (
-                        <div 
-                            key={tab.id} 
-                            className={styles.formWrapper} 
+                        <div
+                            key={tab.id}
+                            className={styles.formWrapper}
                             style={{ display: (isVisible && !isMinimized) ? 'flex' : 'none' }}
                         >
                             {renderForm(tab, () => closeTab(tab.id))}

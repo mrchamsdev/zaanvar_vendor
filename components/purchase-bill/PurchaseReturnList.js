@@ -609,7 +609,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     DATE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
@@ -627,7 +627,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     REF NO
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
@@ -644,7 +644,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     SUPPLIER NAME
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
@@ -661,7 +661,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     Total Return Amount
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
@@ -678,7 +678,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     TOTAL BALANCE AMOUNT
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
