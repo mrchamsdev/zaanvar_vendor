@@ -413,3 +413,57 @@
     font-weight: 800;
     color: #000;
 }
+
+@media print {
+    .breakdownContent {
+        max-height: 1000px !important;
+        opacity: 1 !important;
+        padding: 16px !important;
+        border-top: 1px solid #f8f8f8 !important;
+        display: flex !important;
+    }
+    
+    .breakdownIcon {
+        display: none !important;
+    }
+
+    .tableContainer {
+        overflow-x: visible !important;
+        width: 100% !important;
+    }
+
+    .table {
+        min-width: 100% !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    .table th, .table td {
+        font-size: 8px !important;
+        padding: 4px 2px !important;
+        word-break: break-all !important;
+        white-space: normal !important;
+    }
+
+    .totalLabelCell {
+        font-size: 9px !important;
+        padding: 6px 4px !important;
+    }
+
+    .totalValueCell {
+        padding: 6px 4px !important;
+    }
+
+    .totalValueWrapper {
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+
+    @page {
+        size: landscape;
+        margin: 5mm;
+    }
+}

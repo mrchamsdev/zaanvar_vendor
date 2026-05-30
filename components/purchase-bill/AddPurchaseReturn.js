@@ -172,6 +172,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     openStockQuantity: billItem ? (billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0))) || 0 : 0,
                                     onHoldQuantity: billItem ? parseInt(billItem.onHoldQuantity) || 0 : 0,
                                     currentQty: billItem?.stockUpdates?.[0]?.updatedQty ?? billItem?.stockUpdates?.[0]?.currentQty ?? it.qty,
+                                    returnableQty: billItem ? parseInt(billItem.returnableQty) || 0 : (parseInt(it.returnableQty) || 0),
                                     returnQty: it.qty,
                                     costPrice: costPrice,
                                     discount: discountPercent,
@@ -438,6 +439,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             openStockQuantity: billItem.openStockQuantity !== undefined ? parseInt(billItem.openStockQuantity) : (parseInt(billItem.totalQuantity || 0) - parseInt(billItem.excluded || 0)) || 0,
             onHoldQuantity: parseInt(billItem.onHoldQuantity) || 0,
             currentQty: billItem.stockUpdates?.[0]?.updatedQty ?? billItem.stockUpdates?.[0]?.currentQty ?? 0,
+            returnableQty: parseInt(billItem.returnableQty) || 0,
             returnQty: 0,
             costPrice: costPrice,
             discount: discountPercent,
@@ -478,10 +480,10 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         const newItems = [...items];
         newItems[index].returnQty = val === "" ? "" : qty;
 
-        const maxAllowed = getMaxQty(item);
+        const maxAllowed = item.returnableQty || 0;
         // Track error but allow the value in state so it can be seen/corrected
         if (qty > maxAllowed) {
-            newItems[index].error = `Cannot exceed quantity (${maxAllowed})`;
+            newItems[index].error = `Cannot exceed returnable quantity (${maxAllowed})`;
         } else {
             newItems[index].error = null;
         }
@@ -566,9 +568,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     updatedItem.error = "Must be greater than 0";
                     itemHasError = true;
                 } else {
-                    const maxAllowed = getMaxQty(it);
+                    const maxAllowed = it.returnableQty || 0;
                     if (qty > maxAllowed) {
-                        updatedItem.error = `Cannot exceed quantity (${maxAllowed})`;
+                        updatedItem.error = `Cannot exceed returnable quantity (${maxAllowed})`;
                         itemHasError = true;
                     } else {
                         updatedItem.error = null;

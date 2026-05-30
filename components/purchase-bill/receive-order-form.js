@@ -109,7 +109,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                     setOverallDiscount(receivedDetails.overallDiscount || { value: 0, type: '₹' });
                     setPreviousCredit(receivedDetails.previousCredit || 0);
                     setPaymentStatus(receivedDetails.paymentStatus || "Pending");
-                    setPaidAmount(receivedDetails.paidAmount || 0);
+                    setPaidAmount(receivedDetails.paidAmount ? Number(receivedDetails.paidAmount).toFixed(2) : 0);
                     setDuedate(receivedDetails.duedate || "");
                 }
             } else {
@@ -225,7 +225,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
     useEffect(() => {
         if (paymentStatus === "Full") {
-            setPaidAmount(breakdown.finalAmount);
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
         }
     }, [breakdown.finalAmount, paymentStatus]);
 
@@ -311,7 +311,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 return;
             }
 
-            if (!duedate) {
+            if (paymentStatus !== "Full" && !duedate) {
                 setLoading(false);
                 scrollToFirstError();
                 return;
@@ -327,7 +327,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 ...receivedDateFields,
                 amountPaidToSupplier: Number(paidAmount),
                 paymentStatus: paymentStatus,
-                duedate: duedate,
+                duedate: paymentStatus === "Full" ? null : duedate,
                 returnsApplicable: damagedReturnedGoods,
                 createdBy: userId || 1,
                 additionalDetails: items[0]?.notes || "Purchase order received",
@@ -809,6 +809,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                         if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
                                         setPaidAmount(val);
                                     }}
+                                    onBlur={() => {
+                                        if (paidAmount) {
+                                            setPaidAmount(Number(paidAmount).toFixed(2));
+                                        }
+                                    }}
                                 />
                             </div>
                             {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
@@ -817,22 +822,24 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         </div>
                     )}
 
-                    <div className={styles.infoGroup}>
-                        <label className={styles.infoLabel}>Payment Due Date <span style={{ color: '#ff4d4f' }}>*</span></label>
-                        <div className={styles.inputWrapper}>
-                            <input
-                                type="date"
-                                className={`${styles.input} ${isSubmitted && !duedate ? styles.errorInput : ""}`}
-                                value={duedate}
-                                min={toApiDateOnly(new Date())}
-                                max="9999-12-31"
-                                onChange={(e) => setDuedate(e.target.value)}
-                            />
+                    {paymentStatus !== "Full" && (
+                        <div className={styles.infoGroup}>
+                            <label className={styles.infoLabel}>Payment Due Date <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <div className={styles.inputWrapper}>
+                                <input
+                                    type="date"
+                                    className={`${styles.input} ${isSubmitted && !duedate ? styles.errorInput : ""}`}
+                                    value={duedate}
+                                    min={toApiDateOnly(new Date())}
+                                    max="9999-12-31"
+                                    onChange={(e) => setDuedate(e.target.value)}
+                                />
+                            </div>
+                            {isSubmitted && !duedate && (
+                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>Payment Due Date is required</span>
+                            )}
                         </div>
-                        {isSubmitted && !duedate && (
-                            <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>Payment Due Date is required</span>
-                        )}
-                    </div>
+                    )}
 
                     <div className={styles.sidebarActions}>
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>Save</button>

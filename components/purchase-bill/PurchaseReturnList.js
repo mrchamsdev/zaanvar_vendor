@@ -489,7 +489,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
         });
 
         return matchesDate && matchesSearch && matchesColFilters;
-    }).sort((a, b) => (parseApiToLocal(b.returnDate || b.createdDate) || new Date()) - (parseApiToLocal(a.returnDate || a.createdDate) || new Date()));
+    }).sort((a, b) => Number(b.returnProductsId || 0) - Number(a.returnProductsId || 0));
 
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
@@ -628,7 +628,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    REF NO
+                                    RETURN ID
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
@@ -644,6 +644,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
+                                <th>BILL NO</th>
                                 <th>
                                     SUPPLIER NAME
                                     <FiFilter
@@ -701,7 +702,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                         <tbody>
                             {filteredReturns.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className={styles.noDataCell}>
+                                    <td colSpan={7} className={styles.noDataCell}>
                                         This range data is not there
                                     </td>
                                 </tr>
@@ -710,6 +711,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     <tr key={idx}>
                                         <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                         <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
+                                        <td>{r.productsBillId || "N/A"}</td>
                                         <td>{r.supplierName || "N/A"}</td>
                                         <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
                                         <td style={{

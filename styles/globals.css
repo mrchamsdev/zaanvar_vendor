@@ -113,7 +113,10 @@ button {
   [class*="dashWrap"],
   [class*="taskManager"],
   [class*="formWrapper"],
-  [class*="formContent"] {
+  [class*="formContent"],
+  [class*="tableContainer"],
+  [class*="tableWrapper"],
+  [class*="table"] {
     position: static !important;
     overflow: visible !important;
     height: auto !important;
