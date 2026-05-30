@@ -66,9 +66,9 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     const getDisplayBalanceAmount = (t) => {
         if (t.splitTransactions && t.splitTransactions.length > 0) {
             const lastSplit = t.splitTransactions[t.splitTransactions.length - 1];
-            return lastSplit["balance amount"] || lastSplit.balance || lastSplit.totalBalanceAmount || "0.00";
+            return lastSplit.totalBalanceAmount || lastSplit["balance amount"] || lastSplit.balance || "0.00";
         }
-        return t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00";
+        return t.totalBalanceAmount || t["balance amount"] || t.balance || "0.00";
     };
 
     const supplierId = data?.supplierId;
