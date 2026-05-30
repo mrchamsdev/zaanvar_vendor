@@ -966,31 +966,31 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div className={styles.footer}>
-                <button className={styles.shareBtn} onClick={onCancel}>
-                    Cancel
-                </button>
-                {isViewOnly && (
-                    <>
-                        <button 
-                            className={styles.saveBtn} 
-                            onClick={() => setPaymentModalOpen(true)} 
-                            style={{ marginRight: '12px', background: '#000' }}
-                        >
-                            Make Payment
-                        </button>
-                        <button className={styles.saveBtn} onClick={() => window.print()} >
-                            Print Invoice
-                        </button>
-                    </>
-                )}
-                {!isViewOnly && (
-                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                        {loading ? "Saving..." : "Save Invoice"}
+                <div className={styles.footer}>
+                    <button className={styles.shareBtn} onClick={onCancel}>
+                        Cancel
                     </button>
-                )}
+                    {isViewOnly && (
+                        <>
+                            <button
+                                className={styles.saveBtn}
+                                onClick={() => setPaymentModalOpen(true)}
+                                style={{ marginRight: '12px', background: '#000' }}
+                            >
+                                Make Payment
+                            </button>
+                            <button className={styles.saveBtn} onClick={() => window.print()} >
+                                Print Invoice
+                            </button>
+                        </>
+                    )}
+                    {!isViewOnly && (
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                            {loading ? "Saving..." : "Save Invoice"}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {isPaymentModalOpen && (

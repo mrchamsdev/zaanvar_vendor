@@ -796,7 +796,7 @@ const PaymentInList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     DATE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
@@ -814,7 +814,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     REF NO
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
@@ -831,7 +831,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     CUSTOMER NAME
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
@@ -848,7 +848,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     TOTAL
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
@@ -865,7 +865,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     PAYMENT TYPE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
@@ -882,7 +882,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     PAID
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
@@ -899,7 +899,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     BALANCE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}

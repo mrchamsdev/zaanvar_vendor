@@ -8,7 +8,8 @@
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  pointer-events: none; /* Allow clicks to pass through if not active */
+  pointer-events: none;
+  /* Allow clicks to pass through if not active */
 }
 
 .managerActive {
@@ -17,14 +18,24 @@
 }
 
 .tabBar {
+  /* width: max-content; */
   background: #fff;
   padding: 10px 20px 0 20px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 4px;
   border-bottom: 2px solid #f1f1f1;
   flex-shrink: 0;
   pointer-events: auto;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
@@ -42,6 +53,7 @@
   transition: all 0.2s;
   min-width: 150px;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .tabActive {
@@ -82,6 +94,7 @@
   .fullTitle {
     display: none;
   }
+
   .shortTitle {
     display: block;
   }
@@ -103,6 +116,7 @@
   background: #f1f1f1;
   border-radius: 8px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .windowActions {
@@ -110,6 +124,10 @@
   display: flex;
   gap: 15px;
   padding-bottom: 10px;
+  background: #fff;
+  padding-left: 15px;
+  padding-top: 15px;
+  z-index: 10;
 }
 
 .windowActionIcon {
@@ -141,7 +159,7 @@
 
 .formWrapper {
   flex: 1;
-  overflow: visible;  
+  overflow: visible;
   padding: 32px 16px 0px 16px;
   display: flex;
   flex-direction: column;
@@ -165,7 +183,8 @@
   flex: 1;
   width: 50%;
   border-right: 1px solid #e0e0e0;
-  overflow: hidden; /* Prevent form from expanding the width */
+  overflow: hidden;
+  /* Prevent form from expanding the width */
 }
 
 .splitMode .formWrapper:last-child {
@@ -179,14 +198,15 @@
   display: flex;
   gap: 12px;
   z-index: 10000;
-  pointer-events: auto; /* Required to capture clicks on transparent overlay */
+  pointer-events: auto;
+  /* Required to capture clicks on transparent overlay */
 }
 
 .minimizedItem {
   background: #fff;
-  padding: 10px 20px;
+  padding: 5px 10px;
   border-radius: 10px 10px 0 0;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -239,4 +259,65 @@
 .minimizedActionBtn[title="Close"]:hover {
   background: #fee2e2;
   color: #ef4444;
+}
+
+.minimizedMode .minimizedBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 20px;
+  gap: 15px;
+  overflow-x: auto;
+  white-space: nowrap;
+  z-index: 10000;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.minimizedMode .minimizedBar::-webkit-scrollbar {
+  display: none;
+}
+
+.minimizedMode .minimizedItem {
+  pointer-events: auto;
+  box-shadow: none;
+  border: 1px solid #eee !important;
+  border-radius: 8px !important;
+  background: #f8f9fa !important;
+  min-width: 200px !important;
+  flex-shrink: 0;
+  transform: none !important;
+}
+
+.minimizedMode .minimizedItem:hover {
+  background-color: #f1f3f5 !important;
+  transform: none !important;
+}
+
+.minimizedMode .minimizedTitle {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #444 !important;
+  max-width: none !important;
+}
+
+@media (max-width: 768px) {
+  .minimizedMode .minimizedBar {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    height: 50px;
+    padding: 0 10px;
+  }
 }

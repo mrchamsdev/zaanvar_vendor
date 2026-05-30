@@ -595,7 +595,7 @@ const PurchaseOrdersPage = () => {
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th style={{ position: 'relative' }}>
+                                    <th>
                                         ORDER DATE
                                         <FiFilter
                                             className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
@@ -613,7 +613,7 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th style={{ position: 'relative' }}>
+                                    <th>
                                         ORDER NO
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.orderNo.value !== undefined && columnFilters.orderNo.value !== null && columnFilters.orderNo.value !== '') ? styles.filterIconActive : ''}`}
@@ -630,7 +630,7 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th style={{ position: 'relative' }}>
+                                    <th>
                                         SUPPLIER NAME
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
@@ -647,7 +647,7 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th style={{ position: 'relative' }}>
+                                    <th>
                                         TO
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.to.value !== undefined && columnFilters.to.value !== null && columnFilters.to.value !== '') ? styles.filterIconActive : ''}`}
@@ -664,8 +664,8 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th style={{ position: 'relative' }}>
-                                        Order Value (₹)
+                                    <th>
+                                        Order Value
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.orderValue.value !== undefined && columnFilters.orderValue.value !== null && columnFilters.orderValue.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'orderValue' ? null : 'orderValue'); setIsDateFilterOpen(false); }}

@@ -102,7 +102,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                 if (receivedDetails) {
                     setReceivedDate(receivedDetails.receivedDate || toApiDateOnly(new Date()));
-                    setPayBasedOnOrdered(receivedDetails.toggles?.payBasedOnOrdered || false);
+                    setPayBasedOnOrdered(receivedDetails.toggles?.payBasedOnOrdered || receivedDetails.shortFallApplicable || false);
                     setDamagedReturnedGoods(receivedDetails.toggles?.damagedReturnedGoods || false);
                     setAddToCreditNote(receivedDetails.toggles?.addToCreditNote || false);
                     setOverallTax(receivedDetails.overallTax || { value: 0, type: '%' });
@@ -340,11 +340,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 itemTaxAmount: Number(totals.itemTaxTotal),
                 damagedAmount: Number(totals.damagedAmount),
                 shortfallAmount: Number(totals.shortfallAmount),
-                toggles: {
-                    payBasedOnOrdered: payBasedOnOrdered,
-                    damagedReturnedGoods: damagedReturnedGoods,
-                    addToCreditNote: addToCreditNote
-                },
+                shortFallApplicable: payBasedOnOrdered ? true : false,
                 bill: {
                     ...receivedDateFields,
                 },
@@ -753,20 +749,20 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         </div>
                         {showBreakdown && (
                             <div className={styles.breakdownContent}>
-                                <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toFixed(2)}</span></div>
 
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toLocaleString()}</span></div>
+                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toFixed(2)}</span></div>
                                 )}
 
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toLocaleString()}</span></div>
+                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toFixed(2)}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>₹ {totals.discountableAmount.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>₹ {totals.discountableAmount.toFixed(2)}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toLocaleString()}</span></div>
-                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span> Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>

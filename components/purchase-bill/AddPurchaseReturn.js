@@ -859,7 +859,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                                     <td>{getVariantSizeDisplay(bi.variant)}</td>
                                                                     <td>{bi.qty}</td>
                                                                     <td>{bi.receivedQuantity}</td>
-                                                                    <td>{bi.stockUpdates?.[0]?.updatedQty ?? bi.stockUpdates?.[0]?.currentQty ?? 0}</td>
+                                                                    <td>{bi.totalQuantity || 0}</td>
                                                                     <td>{bi.damagedQuantity}</td>
                                                                     <td>{bi.returnableQty || 0}</td>
                                                                 </tr>

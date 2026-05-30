@@ -105,6 +105,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
             <PurchaseOrderForm 
                 initialData={initialData} 
                 requestId={requestId} // Pass requestId to indicate it's an update
+                orderNumber={orderData?.purchaseRequestId}
                 onSave={() => {
                     if (onSave) onSave();
                     if (onClose) onClose();

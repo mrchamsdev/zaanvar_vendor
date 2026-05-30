@@ -89,7 +89,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     const breakdown = React.useMemo(() => {
         const itemsList = items || [];
         const toggles = receivedDetails.toggles || {};
-        const payBasedOnOrdered = toggles.payBasedOnOrdered || false;
+        const payBasedOnOrdered = toggles.payBasedOnOrdered || receivedDetails.shortFallApplicable || false;
         const damagedReturnedGoods = toggles.damagedReturnedGoods || false;
 
         let totalOrderValue = 0;
@@ -289,7 +289,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     </tbody>
                     <tfoot>
                         <tr className={styles.tableFooter}>
-                            <td colSpan={15} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
+                            <td colSpan={returnsApplicable ? 14 : 15} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
                             <td className={styles.totalValueCell}>
                                 <div className={styles.totalValueWrapper}>
                                     <span>₹</span>
@@ -313,31 +313,31 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                     <div className={`${styles.breakdownContent} ${showBreakdown ? styles.breakdownContentActive : ""}`}>
                         <div className={styles.breakdownRow}>
                             <span>Total Ordered Cost</span>
-                            <span>₹ {breakdown.totalCost.toLocaleString()}</span>
+                            <span>₹ {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        { !returnsApplicable && breakdown.shortfallAmountTotal > 0 && (
+                        { !breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Shortfall Amount</span>
-                                <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString()}</span>
+                                <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         {returnsApplicable && breakdown.damagedAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Damaged Amount</span>
-                                <span>- ₹ {breakdown.damagedAmountTotal.toLocaleString()}</span>
+                                <span>- ₹ {breakdown.damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRow}>
                             <span>Discountable Amount</span>
-                            <span style={{ fontWeight: '700', color: '#000' }}>₹ {breakdown.discountableBase.toLocaleString()}</span>
+                            <span style={{ fontWeight: '700', color: '#000' }}>₹ {breakdown.discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Discount</span>
-                            <span>- ₹ {breakdown.itemDiscountTotal.toLocaleString()}</span>
+                            <span>- ₹ {breakdown.itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Tax</span>
-                            <span>₹ {breakdown.itemTaxTotal.toLocaleString()}</span>
+                            <span>₹ {breakdown.itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownDivider} />
                         <div className={styles.breakdownRow}>
@@ -356,7 +356,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                         {breakdown.previousCredit > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span>Previous Credit</span>
-                                <span>- ₹ {breakdown.previousCredit.toLocaleString()}</span>
+                                <span>- ₹ {breakdown.previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRowTotal}>

@@ -599,6 +599,9 @@ const ProductForm = ({
                   radiusUnit: v.radiusUnit || "mm",
                 });
               }
+              if (DIRECT_MEASURE_TYPES.includes(v.packType) || (PACKAGING_TYPES.includes(v.packType) && v.packType !== "PACKS (Pac)")) {
+                return `${v.unitMeasure || ""}${v.unitType || ""}`;
+              }
               return v.size || `${v.unitMeasure || ""}${v.unitType || ""}`;
             })(),
           },
@@ -661,6 +664,9 @@ const ProductForm = ({
                       lengthUnit: v.lengthUnit || "mm",
                       radiusUnit: v.radiusUnit || "mm",
                     });
+                  }
+                  if (DIRECT_MEASURE_TYPES.includes(v.packType) || (PACKAGING_TYPES.includes(v.packType) && v.packType !== "PACKS (Pac)")) {
+                    return `${v.unitMeasure || ""}${v.unitType || ""}`;
                   }
                   return v.size || `${v.unitMeasure || ""}${v.unitType || ""}`;
                 })(),
@@ -1101,7 +1107,7 @@ const ProductForm = ({
             Pet Type <span>*</span>
           </label>
           <div
-            className={`${styles.multiSelectContainer} ${formErrors.petType ? styles.errorField : ""}`}
+            className={`${styles.multiSelectContainer} ${isPetDropdownOpen ? styles.multiSelectActive : ""} ${formErrors.petType ? styles.errorField : ""}`}
             ref={petDropdownRef}
             onClick={() => setIsPetDropdownOpen(!isPetDropdownOpen)}
           >

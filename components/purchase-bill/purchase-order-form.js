@@ -342,7 +342,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     return (
         <div className={styles.formContainer}>
             <div className={styles.poNumberHeader}>
-                PO Number <span className={styles.poId}>{String(orderNumber || 1).padStart(6, '0')}</span>
+                PO Number <span className={styles.poId}>{orderNumber || 1}</span>
             </div>
 
             <div className={styles.section}>

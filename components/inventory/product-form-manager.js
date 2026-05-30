@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/inventory/product-form-manager.module.css";
 import ProductForm from "./product-form";
 import ProductView from "./product-view";
@@ -26,41 +26,120 @@ const IconX = () => (
 );
 
 const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
-  // Lock body scroll when popup is open
-  useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, []);
+  const [tabs, setTabs] = useState([]);
 
-  const [tabs, setTabs] = useState(() => {
-    if (Array.isArray(initialData) && initialData.length > 0) {
-      return initialData.map((prod, idx) => ({
-        id: String(idx + 1),
-        title: prod.productName || `Product ${idx + 1}`,
-        shortTitle: prod.productName ? prod.productName.substring(0, 3) : `P${idx + 1}`,
-        isMinimized: false,
-        data: prod,
-        mode: mode
-      }));
-    }
-    return [
-      { 
-        id: '1', 
-        title: initialData?.productName || (mode === "Add" ? 'Product 1' : 'Edit Product'), 
-        shortTitle: initialData?.productName ? initialData.productName.substring(0, 3) : (mode === "Add" ? 'P1' : 'Edit'),
-        isMinimized: false, 
-        data: initialData || {},
-        mode: mode
-      }
-    ];
-  });
-
-  const [activeTabId, setActiveTabId] = useState('1');
+  const [activeTabId, setActiveTabId] = useState(null);
   const [splitMode, setSplitMode] = useState(false);
-  const [splitTabIds, setSplitTabIds] = useState(['1', null]);
+  const [splitTabIds, setSplitTabIds] = useState([null, null]);
+
+  const lastProcessedPropRef = useRef(null);
+  const activeTab = tabs.find(t => t.id === activeTabId);
+  const visibleTabs = tabs.filter(t => !t.isMinimized);
+  const isAnyVisible = visibleTabs.length > 0;
+  const minimizedTabs = tabs.filter(t => t.isMinimized);
+
+  // Lock body scroll when active, unlock when minimized
+  useEffect(() => {
+    if (isAnyVisible) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isAnyVisible]);
+
+  // React to prop changes (dynamically add/edit/view tabs when list buttons are clicked)
+  useEffect(() => {
+    const firstProductId = Array.isArray(initialData)
+      ? initialData.map(p => p.productId).join(",")
+      : (initialData?.productId || "new");
+    const propKey = `${mode}-${firstProductId}`;
+
+    if (lastProcessedPropRef.current === propKey) {
+      return;
+    }
+    lastProcessedPropRef.current = propKey;
+
+    if (Array.isArray(initialData) && initialData.length > 0) {
+      const newTabs = [...tabs];
+      let lastTabId = activeTabId;
+
+      initialData.forEach((p, idx) => {
+        const tabId = p.productId ? `product_${p.productId}` : `new_${Date.now()}_${idx}`;
+        const existingTab = newTabs.find(t => t.id === tabId);
+
+        if (existingTab) {
+          existingTab.isMinimized = false;
+          existingTab.mode = mode;
+          existingTab.data = p;
+          lastTabId = tabId;
+        } else {
+          const defaultTitle = p.productName || `Product ${newTabs.length + 1}`;
+          newTabs.push({
+            id: tabId,
+            title: defaultTitle,
+            shortTitle: defaultTitle.substring(0, 3),
+            isMinimized: false,
+            data: p,
+            mode: mode
+          });
+          lastTabId = tabId;
+        }
+      });
+
+      setTabs(newTabs);
+      setActiveTabId(lastTabId);
+    } else {
+      if (mode === "Add") {
+        const existingAddTab = tabs.find(t => t.mode === "Add" && !t.data?.productId);
+        if (existingAddTab) {
+          setActiveTabId(existingAddTab.id);
+          setTabs(prev => prev.map(t => t.id === existingAddTab.id ? { ...t, isMinimized: false } : t));
+        } else {
+          const newId = String(Date.now());
+          const nextNum = tabs.length + 1;
+          const newTab = {
+            id: newId,
+            title: `Product ${nextNum}`,
+            shortTitle: `P${nextNum}`,
+            isMinimized: false,
+            data: {},
+            mode: "Add"
+          };
+          setTabs(prev => [...prev, newTab]);
+          setActiveTabId(newId);
+          if (splitMode && !splitTabIds[1]) {
+            setSplitTabIds([splitTabIds[0], newId]);
+          }
+        }
+      } else if ((mode === "Edit" || mode === "View") && initialData?.productId) {
+        const productId = initialData.productId;
+        const tabId = `product_${productId}`;
+        const existingTab = tabs.find(t => t.id === tabId);
+        if (existingTab) {
+          setActiveTabId(tabId);
+          setTabs(prev => prev.map(t => t.id === tabId ? { ...t, isMinimized: false, mode: mode, data: initialData } : t));
+        } else {
+          const defaultTitle = initialData.productName || `${mode} Product`;
+          const newTab = {
+            id: tabId,
+            title: defaultTitle,
+            shortTitle: defaultTitle.substring(0, 3),
+            isMinimized: false,
+            data: initialData,
+            mode: mode
+          };
+          setTabs(prev => [...prev, newTab]);
+          setActiveTabId(tabId);
+          if (splitMode && !splitTabIds[1]) {
+            setSplitTabIds([splitTabIds[0], tabId]);
+          }
+        }
+      }
+    }
+  }, [mode, initialData]);
 
   const addTab = () => {
     const newId = String(Date.now());
@@ -151,13 +230,8 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
     setSplitMode(!splitMode);
   };
 
-  const activeTab = tabs.find(t => t.id === activeTabId);
-  const visibleTabs = tabs.filter(t => !t.isMinimized);
-  const isAnyVisible = visibleTabs.length > 0;
-  const minimizedTabs = tabs.filter(t => t.isMinimized);
-
   return (
-    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""}`} style={{ paddingBottom: minimizedTabs.length > 0 ? '60px' : '0' }}>
+    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`} style={{ paddingBottom: minimizedTabs.length > 0 ? '60px' : '0' }}>
       {/* Tab Bar - Only show when a tab is actively being worked on */}
       {isAnyVisible && (
         <div className={styles.tabBar}>
@@ -171,7 +245,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData }) => {
               <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
             </div>
           ))}
-          {mode === "Add" && tabs.length < 15 && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
+          {mode === "Add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
 
           <div className={styles.windowActions}>
             <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>

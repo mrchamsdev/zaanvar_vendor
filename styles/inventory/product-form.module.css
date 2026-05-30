@@ -379,6 +379,11 @@
   position: relative;
   box-sizing: border-box;
   font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.multiSelectActive {
+  border-color: #E9315D !important;
 }
 
 .multiSelectValues {
@@ -452,7 +457,7 @@
 }
 
 .optionItem:hover {
-  background-color: #0066cc !important;
+  background-color: #E9315D !important;
   color: #ffffff !important;
 }
 

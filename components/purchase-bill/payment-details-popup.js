@@ -125,7 +125,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 productsBillId: data.productsBillId,
                 returnProductsId: null,
                 supplierWalletTransactionId: null,
-                transactionInfo: description || `Payment against Purchase Order #${String(data.purchaseRequestId).padStart(6, '0')}`,
+                transactionInfo: description || `Payment against Purchase Order ${String(data.purchaseRequestId).padStart(6, '0')}`,
                 transactionImg: "",
                 totalAmount: Number(totalAmount),
                 balanceAmount: balanceAmount,

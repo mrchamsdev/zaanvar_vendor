@@ -686,7 +686,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     DATE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
@@ -704,7 +704,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     INVOICE NO
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.invoiceNo.value !== undefined && columnFilters.invoiceNo.value !== null && columnFilters.invoiceNo.value !== '') ? styles.filterIconActive : ''}`}
@@ -721,7 +721,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     CUSTOMER NAME
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
@@ -738,7 +738,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     AMOUNT
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
@@ -755,7 +755,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     PAID
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
@@ -772,7 +772,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{ position: 'relative' }}>
+                                <th>
                                     BALANCE
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}

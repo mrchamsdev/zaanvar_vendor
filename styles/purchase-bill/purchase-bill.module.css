@@ -332,11 +332,11 @@
 
 /* ── Filter Modals ───────────────────────────────────────── */
 .filterIcon {
-  margin-left: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   color: #999;
-  vertical-align: middle;
+  float: right;
+  margin-top: 2px;
   transition: color 0.2s;
 }
 
