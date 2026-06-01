@@ -103,8 +103,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const day = i + 1;
                     const selected = isSelected(day);
                     const inRange = isInRange(day);
-                    const isStart = new Date(year, month, day).toISOString().split('T')[0] === startDate;
-                    const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
+                    const isStart = toApiDateOnly(new Date(year, month, day)) === startDate;
+                    const isEnd = toApiDateOnly(new Date(year, month, day)) === endDate;
 
                     return (
                         <div
@@ -446,7 +446,7 @@ const PurchaseOrdersPage = () => {
         // Date Filter
         if (dateFilterMode && dateFilterValues) {
             data = data.filter(item => {
-                const itemDate = new Date(item.createdDate).toISOString().split('T')[0];
+                const itemDate = toApiDateOnly(new Date(item.createdDate));
                 const { single, from, to } = dateFilterValues;
 
                 if (dateFilterMode === 'Equal to') return itemDate === single;

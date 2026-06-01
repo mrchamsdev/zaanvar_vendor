@@ -609,7 +609,7 @@ const ProductForm = ({
           sizeType: {
             type: "Count",
           },
-          numberOfPieces: Number(v.packCount) || 1,
+          numberOfPieces: (PACKAGING_TYPES.includes(v.packType) || SIZE_TYPES.includes(v.packType)) ? (Number(v.packCount) || 1) : 0,
           drugType: v.drugType || "Tablet",
           strength: v.strength || "",
           productComposition: v.composition || "",
@@ -676,7 +676,7 @@ const ProductForm = ({
               productComposition: v.composition || "",
               variantMeasure: 1, // Default as per example
               strength: v.strength || "N/A",
-              numberOfPieces: Number(v.packCount) || 1,
+              numberOfPieces: (PACKAGING_TYPES.includes(v.packType) || SIZE_TYPES.includes(v.packType)) ? (Number(v.packCount) || 1) : 0,
               eanUpcNumber: v.eanUpc || "", // Providing both as per example
               drugType:
                 v.drugType ||
@@ -1766,7 +1766,6 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.variantDescription || ""}
-                        disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                         onChange={(e) =>
                           updateVariant(
                             index,
@@ -1785,7 +1784,6 @@ const ProductForm = ({
                       <textarea
                         placeholder="Type here"
                         value={variant.composition || ""}
-                        disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                         onChange={(e) =>
                           updateVariant(index, "composition", e.target.value)
                         }
@@ -1802,7 +1800,6 @@ const ProductForm = ({
                     <textarea
                       placeholder="Type here"
                       value={variant.variantDescription || ""}
-                      disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                       onChange={(e) =>
                         updateVariant(
                           index,
@@ -1831,34 +1828,29 @@ const ProductForm = ({
                       multiple
                       accept="image/*"
                       style={{ display: "none" }}
-                      disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                     />
-                    {(!isEdit || !variant.variantId || !hasPurchaseOrder) && (
-                      <div
-                        className={styles.uploadItem}
-                        onClick={() => fileInputsRef.current[index]?.click()}
-                      >
-                        <div style={{ fontSize: 24, marginBottom: 8 }}>+</div>
-                        <span style={{ fontSize: 12, color: "#999" }}>
-                          Tap to Select Photo
-                        </span>
-                      </div>
-                    )}
+                    <div
+                      className={styles.uploadItem}
+                      onClick={() => fileInputsRef.current[index]?.click()}
+                    >
+                      <div style={{ fontSize: 24, marginBottom: 8 }}>+</div>
+                      <span style={{ fontSize: 12, color: "#999" }}>
+                        Tap to Select Photo
+                      </span>
+                    </div>
                     {(variant.images || []).map((img, imgIdx) => (
                       <div key={imgIdx} className={styles.imagePreview}>
                         <img
                           src={img.preview}
                           alt={`Variant ${index} Img ${imgIdx}`}
                         />
-                        {(!isEdit || !variant.variantId || !hasPurchaseOrder) && (
-                          <button
-                            className={styles.removeImageBtn}
-                            onClick={(e) => removeImage(e, index, imgIdx)}
-                            title="Remove Image"
-                          >
-                            ✕
-                          </button>
-                        )}
+                        <button
+                          className={styles.removeImageBtn}
+                          onClick={(e) => removeImage(e, index, imgIdx)}
+                          title="Remove Image"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                   </div>

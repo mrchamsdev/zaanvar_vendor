@@ -220,7 +220,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         const totalAfterGlobal = subtotal - discountVal + taxVal;
         const finalAmount = totalAfterGlobal - previousCredit;
 
-        return { discountVal, taxVal, subtotal, finalAmount };
+        return { discountVal, taxVal, subtotal, finalAmount, totalAfterGlobal };
     }, [totals, overallTax, overallDiscount, previousCredit]);
 
     useEffect(() => {
@@ -228,6 +228,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
         }
     }, [breakdown.finalAmount, paymentStatus]);
+
+    const handlePaymentStatusChange = (status) => {
+        setPaymentStatus(status);
+        if (status === "Full") {
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
+        } else if (status === "Pending" || status === "PayLaterWithRemainder") {
+            setPaidAmount(0);
+        } else if (status === "Partial") {
+            setPaidAmount("");
+        }
+    };
 
     const scrollToFirstError = () => {
         setTimeout(() => {
@@ -336,6 +347,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 overallDiscount: overallDiscount,
                 previousCredit: Number(previousCredit),
                 amount: Number(breakdown.finalAmount),
+                overallBillAmount: Number(breakdown.totalAfterGlobal),
                 itemDiscountAmount: Number(totals.itemDiscountTotal),
                 itemTaxAmount: Number(totals.itemTaxTotal),
                 damagedAmount: Number(totals.damagedAmount),
@@ -785,7 +797,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 { label: "Partial", value: "Partial" },
                                 { label: "Not Paid", value: "Pending" }
                             ].map(status => (
-                                <div key={status.value} className={`${styles.statusBadge} ${paymentStatus === status.value ? styles.statusBadgeActive : ""}`} onClick={() => setPaymentStatus(status.value)}>
+                                <div key={status.value} className={`${styles.statusBadge} ${paymentStatus === status.value ? styles.statusBadgeActive : ""}`} onClick={() => handlePaymentStatusChange(status.value)}>
                                     <div className={styles.radioCircle} />
                                     <span>{status.label}</span>
                                 </div>

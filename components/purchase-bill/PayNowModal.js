@@ -121,11 +121,23 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         }
     };
 
-    const validateAmounts = (entries, topAmount) => {
+    const validateAmountsOnChange = (entries, topAmount) => {
         const topVal = parseFloat(topAmount) || 0;
         const totalSum = entries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
         if (totalSum > topVal) {
             return "Amount paid should not exceed Paid Amount";
+        }
+        return "";
+    };
+
+    const validateAmountsOnSubmit = (entries, topAmount) => {
+        const topVal = parseFloat(topAmount) || 0;
+        const totalSum = entries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+        if (totalSum > topVal) {
+            return "Amount paid should not exceed Paid Amount";
+        }
+        if (totalSum < topVal) {
+            return "Amount paid should not be less than Paid Amount";
         }
         return "";
     };
@@ -138,7 +150,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             setPaymentEntries(updatedEntries);
         }
 
-        const err = validateAmounts(updatedEntries, val);
+        const err = validateAmountsOnChange(updatedEntries, val);
         setExceededError(err);
         if (val && parseFloat(val) > 0) {
             setAmountError("");
@@ -148,7 +160,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const handleAddPayment = () => {
         const newEntries = [...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }];
         setPaymentEntries(newEntries);
-        const err = validateAmounts(newEntries, topPaidAmount);
+        const err = validateAmountsOnChange(newEntries, topPaidAmount);
         setExceededError(err);
     };
 
@@ -156,7 +168,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         if (paymentEntries.length > 1) {
             const newEntries = paymentEntries.filter(p => p.id !== id);
             setPaymentEntries(newEntries);
-            const err = validateAmounts(newEntries, topPaidAmount);
+            const err = validateAmountsOnChange(newEntries, topPaidAmount);
             setExceededError(err);
         }
     };
@@ -165,7 +177,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         const updated = paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p);
         setPaymentEntries(updated);
 
-        const err = validateAmounts(updated, topPaidAmount);
+        const err = validateAmountsOnChange(updated, topPaidAmount);
         setExceededError(err);
         if (field === "amount" && value && parseFloat(value) > 0) {
             setAmountError("");
@@ -211,7 +223,16 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
         const isTopAmountEmpty = !topPaidAmount || parseFloat(topPaidAmount) <= 0;
         const isAmountEmpty = paymentEntries.some(entry => !entry.amount || parseFloat(entry.amount) <= 0);
-        if (isTopAmountEmpty || isAmountEmpty) {
+
+        if (isTopAmountEmpty) {
+            setAmountError("Amount is required");
+            toast.error("Please enter Paid Amount");
+            hasError = true;
+        } else if (parseFloat(topPaidAmount) > currentBalance) {
+            setAmountError("Paid Amount cannot exceed Balance Amount");
+            toast.error("Paid Amount cannot exceed Balance Amount");
+            hasError = true;
+        } else if (isAmountEmpty) {
             setAmountError("Amount is required");
             toast.error("Please enter all payment amounts");
             hasError = true;
@@ -219,11 +240,15 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             setAmountError("");
         }
 
-        const limitErr = validateAmounts(paymentEntries, topPaidAmount);
-        if (limitErr) {
-            setExceededError(limitErr);
-            toast.error(limitErr);
-            hasError = true;
+        if (!isTopAmountEmpty && !isAmountEmpty) {
+            const limitErr = validateAmountsOnSubmit(paymentEntries, topPaidAmount);
+            if (limitErr) {
+                setExceededError(limitErr);
+                toast.error(limitErr);
+                hasError = true;
+            } else {
+                setExceededError("");
+            }
         } else {
             setExceededError("");
         }
@@ -382,12 +407,12 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                             <label>Paid Amount</label>
                             <input
                                 type="number"
-                                className={`${styles.input} ${amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) ? styles.errorInput : ""}`}
+                                className={`${styles.input} ${amountError ? styles.errorInput : ""}`}
                                 value={topPaidAmount}
                                 onChange={(e) => handleTopPaidAmountChange(e.target.value)}
                                 placeholder="0"
                             />
-                            {amountError && (!topPaidAmount || parseFloat(topPaidAmount) <= 0) && (
+                            {amountError && (
                                 <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
                                     {amountError}
                                 </div>
@@ -487,7 +512,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                             </select>
                                             {showExceededOnType && (
                                                 <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
-                                                    Exceeds Paid Amount
+                                                    {exceededError.includes("exceed") ? "Exceeds Paid Amount" : "Less than Paid Amount"}
                                                 </div>
                                             )}
                                         </div>

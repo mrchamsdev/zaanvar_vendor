@@ -102,7 +102,9 @@ const StockStatusPage = () => {
           ].map(item => ({
             ...item,
             type: item.source === 'stock_update' ? 'stock_update' : 'customerReturn',
-            displayQty: item.damagedQty ?? item.qty ?? 0
+            displayQty: (item.reason === "Customer Return - Damaged" || item.reason?.toLowerCase() === "customer return - damaged")
+              ? (item.add ?? item.damagedQty ?? item.qty ?? 0)
+              : (item.remove ?? item.damagedQty ?? item.qty ?? 0)
           }))
         });
         if (res.counts) {
@@ -124,7 +126,7 @@ const StockStatusPage = () => {
     }
   };
 
-  const handleRestore = async (id) => {
+  const handleRestore = async (id, useStockUpdateId = false) => {
     if (id === undefined || id === null) {
       toast.error("Unable to restore: No ID found for this item");
       return;
@@ -132,7 +134,7 @@ const StockStatusPage = () => {
 
     try {
       setLoading(true);
-      const res = await productService.restoreDamagedItem(jwtToken, id);
+      const res = await productService.restoreDamagedItem(jwtToken, id, useStockUpdateId);
       const body = res?.data || res;
 
       if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
@@ -148,15 +150,15 @@ const StockStatusPage = () => {
     }
   };
 
-  const handleMarkWaste = async (id, isExpired = false) => {
+  const handleMarkWaste = async (id, isExpired = false, useStockUpdateId = false) => {
     if (!id) {
-      toast.error(`Unable to mark as waste: No ${isExpired ? 'ID' : 'consumption ID'} found`);
+      toast.error(`Unable to mark as waste: No ${isExpired || useStockUpdateId ? 'ID' : 'consumption ID'} found`);
       return;
     }
 
     try {
       setLoading(true);
-      const res = await productService.markAsWaste(jwtToken, id, isExpired);
+      const res = await productService.markAsWaste(jwtToken, id, isExpired, useStockUpdateId);
       const body = res?.data || res;
 
       if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
@@ -208,6 +210,13 @@ const StockStatusPage = () => {
       }
     }
     return size;
+  };
+
+  const getCategoryName = (item) => {
+    const cat = item.category || item.productDetails?.category;
+    if (!cat) return "GENERAL";
+    if (typeof cat === 'object') return cat.category || "GENERAL";
+    return cat;
   };
 
   const currentList = data[activeTab] || [];
@@ -307,7 +316,7 @@ const StockStatusPage = () => {
             <td>{formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}</td>
           )}
 
-          {activeTab === "outOfStock" && <td className={styles.category}>{details.category || "GENERAL"}</td>}
+          {activeTab === "outOfStock" && <td className={styles.category}>{getCategoryName(item)}</td>}
 
           {(activeTab === "expired" || activeTab === "shortExpiry") && (
             <td>{formatDate(item.expiryDate)}</td>
@@ -353,7 +362,7 @@ const StockStatusPage = () => {
                     <IconRefresh /> Restock
                   </button>
                 ) : activeTab === "expired" ? (
-                  (item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste')) ? (
+                  (item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste') || item.reason?.toLowerCase().includes('waste')) ? (
                     <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <IconRefresh /> Completed
                     </span>
@@ -367,25 +376,34 @@ const StockStatusPage = () => {
                   )
                 ) : (
                   <>
-                    {(item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste')) ? (
+                    {(item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste') || item.reason?.toLowerCase().includes('waste')) ? (
                       <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <IconRefresh /> Completed
                       </span>
                     ) : (
-                      <button
-                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                        onClick={() => handleMarkWaste(item.consumptionId)}
-                      >
-                        🏷 Mark Waste
-                      </button>
-                    )}
-                    {item.consumptionId && (
-                      <button
-                        className={`${styles.actionBtn} ${styles.restockBtn}`}
-                        onClick={() => handleRestore(item.consumptionId)}
-                      >
-                        <IconRefresh /> Restore
-                      </button>
+                      <>
+                        <button
+                          className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                          onClick={() => handleMarkWaste(
+                            item.consumptionId || item.stockUpdateId || item.id,
+                            false,
+                            !item.consumptionId
+                          )}
+                        >
+                          🏷 Mark Waste
+                        </button>
+                        {(item.consumptionId || item.stockUpdateId || item.id) && (
+                          <button
+                            className={`${styles.actionBtn} ${styles.restockBtn}`}
+                            onClick={() => handleRestore(
+                              item.consumptionId || item.stockUpdateId || item.id,
+                              !item.consumptionId
+                            )}
+                          >
+                            <IconRefresh /> Restore
+                          </button>
+                        )}
+                      </>
                     )}
                   </>
                 )}
@@ -477,7 +495,7 @@ const StockStatusPage = () => {
 
                 let row = [];
                 if (activeTab === "outOfStock") {
-                  row = [pName, `"${details.category || "GENERAL"}"`, unit, qty, `="${formatDate(item.lastStockDate || new Date())}"`];
+                  row = [pName, `"${getCategoryName(item)}"`, unit, qty, `="${formatDate(item.lastStockDate || new Date())}"`];
                 } else if (activeTab === "lowStock") {
                   row = [pName, unit, qty, item.minStockAlert || 10];
                 } else if (activeTab === "expired" || activeTab === "shortExpiry") {

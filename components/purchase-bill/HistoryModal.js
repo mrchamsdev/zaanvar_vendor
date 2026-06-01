@@ -87,7 +87,6 @@ const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
                                             <li key={cIdx}>{change}</li>
                                         ))}
                                     </ul>
-                                    <span className={styles.showLess}>Show Less</span>
                                 </div>
                                 <div className={styles.entryMeta}>
                                     <span className={styles.entryDate}>{entry.date}</span>

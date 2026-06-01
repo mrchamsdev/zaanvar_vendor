@@ -1,4 +1,4 @@
-import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal, parseWallClockDate } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -386,8 +386,8 @@ const PaymentInList = ({ onAddClick }) => {
     const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), 0, 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), 11, 31))
     });
 
     // Share modal state
@@ -500,8 +500,8 @@ const PaymentInList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
         setDateFilterMode(null);
@@ -509,35 +509,56 @@ const PaymentInList = ({ onAddClick }) => {
     };
 
     const filteredPayments = payments.filter(p => {
-        const pDate = parseApiToLocal(p.paymentDate || p.createdDate) || new Date();
+        const pDate = parseWallClockDate(p.paymentDate || p.createdDate) || new Date();
         pDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = pDate.getTime() === target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = pDate.getTime() === target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = pDate.getTime() < target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = pDate.getTime() < target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = pDate.getTime() > target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = pDate.getTime() > target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
-                const start = new Date(dateFilterValues.from);
-                const end = new Date(dateFilterValues.to);
+                const start = parseWallClockDate(dateFilterValues.from);
+                const end = parseWallClockDate(dateFilterValues.to);
+                if (start && end) {
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(23, 59, 59, 999);
+                    matchesDate = pDate >= start && pDate <= end;
+                } else {
+                    matchesDate = false;
+                }
+            }
+        } else {
+            const start = parseWallClockDate(dateRange.startDate);
+            const end = parseWallClockDate(dateRange.endDate);
+            if (start && end) {
                 start.setHours(0, 0, 0, 0);
                 end.setHours(23, 59, 59, 999);
                 matchesDate = pDate >= start && pDate <= end;
+            } else {
+                matchesDate = false;
             }
-        } else {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
-            matchesDate = pDate >= start && pDate <= end;
         }
 
         const partyName = p.customer ? `${p.customer.firstName} ${p.customer.lastName}`.trim() : "N/A";
@@ -565,7 +586,7 @@ const PaymentInList = ({ onAddClick }) => {
             if (col === 'partyName') targetVal = partyName;
             if (col === 'amount') targetVal = getCustomerTotalAmount(p.vendorCustomerId).toString();
             if (col === 'paid') targetVal = getDisplayTotalAmount(p).toString();
-            if (col === 'balance') targetVal = getCustomerBalanceAmount(p.vendorCustomerId).toString();
+            if (col === 'balance') targetVal = (p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)).toString();
 
             if (col === 'amount' || col === 'paid' || col === 'balance') {
                 const numTarget = parseFloat(targetVal);
@@ -667,7 +688,7 @@ const PaymentInList = ({ onAddClick }) => {
             `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
             `"${getDisplayPaymentType(p)}"`,
             `"${getDisplayTotalAmount(p)}"`,
-            `"${getCustomerBalanceAmount(p.vendorCustomerId)}"`
+            `"${p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -923,7 +944,7 @@ const PaymentInList = ({ onAddClick }) => {
                             {filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        This range data is not there
+                                        The search you entered is not matching to any supplier
                                     </td>
                                 </tr>
                             ) : (
@@ -943,7 +964,7 @@ const PaymentInList = ({ onAddClick }) => {
                                                 <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>
                                                 <td>{Number(getDisplayTotalAmount(p)).toLocaleString()}</td>
-                                                <td>{Number(getCustomerBalanceAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                                <td>{(p.dueAtTime !== undefined && p.dueAtTime !== null ? Number(p.dueAtTime) : Number(getCustomerBalanceAmount(p.vendorCustomerId))).toLocaleString()}</td>
                                                 <td>
                                                     <div className={styles.actions}>
                                                         <div style={{ position: 'relative' }}>

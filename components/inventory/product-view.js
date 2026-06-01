@@ -51,15 +51,25 @@ const ProductView = ({ data, onBack, isSplit }) => {
   // Flatten the category for display
   const renderList = (arr) => {
     if (!arr) return "-";
+    let listStr = "";
     if (typeof arr === 'object' && !Array.isArray(arr)) {
       const val = arr.petType || arr.name || arr;
-      return typeof val === 'object' ? JSON.stringify(val) : String(val);
+      listStr = typeof val === 'object' ? JSON.stringify(val) : String(val);
+    } else if (!Array.isArray(arr)) {
+      listStr = String(arr);
+    } else {
+      listStr = arr.map(item => {
+          if (typeof item === 'object' && item !== null) return item.petType || item.name || JSON.stringify(item);
+          return item;
+      }).join(" | ");
     }
-    if (!Array.isArray(arr)) return String(arr);
-    return arr.map(item => {
-        if (typeof item === 'object' && item !== null) return item.petType || item.name || JSON.stringify(item);
-        return item;
-    }).join(" | ") || "-";
+
+    if (!listStr || listStr === "-") return "-";
+    const items = listStr.split(/\s*(?:and|\||,)\s*/i).map(s => s.trim()).filter(Boolean);
+    if (items.length === 0) return "-";
+    if (items.length === 1) return items[0];
+    if (items.length === 2) return `${items[0]} and ${items[1]}`;
+    return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
   };
   const renderCategory = (cat) => {
     if (!cat) return "-";

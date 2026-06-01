@@ -1,4 +1,4 @@
-import { toApiDateOnly } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseWallClockDate } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -93,8 +93,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const day = i + 1;
                     const selected = isSelected(day);
                     const inRange = isInRange(day);
-                    const isStart = new Date(year, month, day).toISOString().split('T')[0] === startDate;
-                    const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
+                    const isStart = toApiDateOnly(new Date(year, month, day)) === startDate;
+                    const isEnd = toApiDateOnly(new Date(year, month, day)) === endDate;
 
                     return (
                         <div
@@ -360,8 +360,8 @@ const PaymentOutList = ({ onAddClick }) => {
     const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), 0, 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), 11, 31))
     });
 
     // New multi-modal date filter state
@@ -479,8 +479,8 @@ const PaymentOutList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
         // Clear multi-modal filter when top level filter changes
@@ -489,28 +489,28 @@ const PaymentOutList = ({ onAddClick }) => {
     };
 
     const filteredTransactions = transactions.filter(t => {
-        const transDate = new Date(t.userTransactionDate);
-        const start = new Date(dateRange.startDate);
-        const end = new Date(dateRange.endDate);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        const transDate = parseWallClockDate(t.userTransactionDate) || new Date();
+        const start = parseWallClockDate(dateRange.startDate);
+        const end = parseWallClockDate(dateRange.endDate);
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(23, 59, 59, 999);
 
-        let matchesDate = transDate >= start && transDate <= end;
+        let matchesDate = start && end ? (transDate >= start && transDate <= end) : true;
 
         if (dateFilterMode && dateFilterValues) {
-            const single = new Date(dateFilterValues.single);
-            const from = new Date(dateFilterValues.from);
-            const to = new Date(dateFilterValues.to);
-            single.setHours(0, 0, 0, 0);
-            from.setHours(0, 0, 0, 0);
-            to.setHours(23, 59, 59, 999);
-            const checkDate = new Date(t.userTransactionDate);
+            const single = parseWallClockDate(dateFilterValues.single);
+            const from = parseWallClockDate(dateFilterValues.from);
+            const to = parseWallClockDate(dateFilterValues.to);
+            if (single) single.setHours(0, 0, 0, 0);
+            if (from) from.setHours(0, 0, 0, 0);
+            if (to) to.setHours(23, 59, 59, 999);
+            const checkDate = parseWallClockDate(t.userTransactionDate) || new Date();
             checkDate.setHours(0, 0, 0, 0);
 
-            if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
-            else if (dateFilterMode === 'Less than') matchesDate = checkDate < single;
-            else if (dateFilterMode === 'Greater than') matchesDate = checkDate > single;
-            else if (dateFilterMode === 'Range') matchesDate = checkDate >= from && checkDate <= to;
+            if (dateFilterMode === 'Equal to' && single) matchesDate = checkDate.getTime() === single.getTime();
+            else if (dateFilterMode === 'Less than' && single) matchesDate = checkDate < single;
+            else if (dateFilterMode === 'Greater than' && single) matchesDate = checkDate > single;
+            else if (dateFilterMode === 'Range' && from && to) matchesDate = checkDate >= from && checkDate <= to;
         }
 
         const matchesSearch = !searchTerm ||
@@ -836,7 +836,7 @@ const PaymentOutList = ({ onAddClick }) => {
                             {filteredTransactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        This range data is not there
+                                        The search you entered is not matching to any supplier
                                     </td>
                                 </tr>
                             ) : (
