@@ -29,7 +29,7 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
         if (mode === "View" && initialId) {
             return [{ 
                 id: initialId, 
-                title: `Stock Details #${initialId}`, 
+                title: `Stock Details ${initialId}`, 
                 isMinimized: false, 
                 data: initialData || {}, 
                 mode: mode 
@@ -72,7 +72,7 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
             if (!exists) {
                 const newTab = { 
                     id: initialId, 
-                    title: `Stock Details #${initialId}`, 
+                    title: `Stock Details ${initialId}`, 
                     isMinimized: false, 
                     data: initialData || {}, 
                     mode: "View" 
@@ -92,7 +92,7 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
     const addTab = () => {
         const newId = String(Date.now());
         const nextNum = tabs.length + 1;
-        const newTab = { id: newId, title: `Update Stock #${nextNum}`, isMinimized: false, data: {}, mode: "Add" };
+        const newTab = { id: newId, title: `Update Stock ${nextNum}`, isMinimized: false, data: {}, mode: "Add" };
         setTabs([...tabs, newTab]);
         setActiveTabId(newId);
         if (splitMode && !splitTabIds[1]) {
@@ -158,7 +158,9 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
                             <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
                         </div>
                     ))}
-                    <button className={styles.addTabBtn} onClick={addTab}>+</button>
+                    {mode === "Add" && (
+                        <button className={styles.addTabBtn} onClick={addTab}>+</button>
+                    )}
 
                     <div className={styles.windowActions}>
                         <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>

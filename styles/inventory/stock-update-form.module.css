@@ -414,3 +414,14 @@ select.topInput {
   border-color: #eee !important;
   -webkit-text-fill-color: #333 !important;
 }
+
+.colExpiry {
+  min-width: 160px;
+}
+
+.tableInput[type="date"] {
+  width: 100% !important;
+  text-align: center;
+  padding: 8px 2px;
+  cursor: pointer;
+}

@@ -294,7 +294,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier name
+                                Supplier name <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Supplier Name"
@@ -304,7 +304,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Branch Name
+                                Branch Name <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <MultiSelectDropdown 
                                 listItems={branchesList}
@@ -321,7 +321,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier Type
+                                Supplier Type <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <MultiSelectDropdown 
                                 listItems={supplierTypes}
@@ -334,7 +334,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Phone Number
+                                Phone Number <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Phone Number"
@@ -351,7 +351,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {phoneError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{phoneError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input 
                                 type="email" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Email ID here"
                                 value={email} 
@@ -372,7 +372,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
                                 <select 
                                     style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: country ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
@@ -400,7 +400,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {countryError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{countryError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
                                 <select 
                                     style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: state ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
@@ -426,7 +426,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {stateError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{stateError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
                                 <select 
                                     style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: city ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
@@ -461,7 +461,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             />
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input 
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Pin Code here"
                                 value={areaPinCode} 

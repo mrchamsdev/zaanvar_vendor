@@ -20,6 +20,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [editablePaidAmount, setEditablePaidAmount] = useState("");
+    const [errors, setErrors] = useState({});
 
     // Multi-payment state
     const [payments, setPayments] = useState([{
@@ -48,6 +49,11 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
     const handleSupplierChange = async (supplierId) => {
         setSelectedSupplierId(supplierId);
+        setErrors(prev => {
+            const newErr = { ...prev };
+            delete newErr.supplierId;
+            return newErr;
+        });
         if (!supplierId) {
             setSupplierTotals(null);
             setEditablePaidAmount("");
@@ -82,27 +88,47 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
     const handlePaymentChange = (id, field, value) => {
         setPayments(payments.map(p => p.id === id ? { ...p, [field]: value } : p));
+        if (field === "amountPaid") {
+            setErrors(prev => {
+                const newErr = { ...prev };
+                delete newErr[`payment_${id}`];
+                delete newErr.unbalanced;
+                return newErr;
+            });
+        }
     };
 
     const handleSave = async () => {
+        const newErrors = {};
+
         if (!selectedSupplierId) {
-            toast.error("Please select a supplier");
-            return;
+            newErrors.supplierId = "Supplier is required";
         }
 
         const totalAmountToBePaid = Number(editablePaidAmount);
-        const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+        if (!editablePaidAmount || isNaN(totalAmountToBePaid) || totalAmountToBePaid <= 0) {
+            newErrors.totalAmountPaid = "Total amount paid is required";
+        }
 
+        const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
         if (totalAmountToBePaid > 0 && Math.abs(currentTotalPaid - totalAmountToBePaid) > 0.01) {
-            toast.error(`The sum of payments (₹ ${currentTotalPaid}) does not match the Total Amount Paid (₹ ${totalAmountToBePaid})`);
+            newErrors.unbalanced = `The sum of payments (₹ ${currentTotalPaid}) does not match the Total Amount Paid (₹ ${totalAmountToBePaid})`;
+        }
+
+        payments.forEach(p => {
+            const amt = Number(p.amountPaid || 0);
+            if (!p.amountPaid || isNaN(amt) || amt <= 0) {
+                newErrors[`payment_${p.id}`] = "Amount paid is required";
+            }
+        });
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            toast.error("Please fill all required fields correctly");
             return;
         }
 
         const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
-        if (validPayments.length === 0) {
-            toast.error("Please enter at least one valid payment amount");
-            return;
-        }
 
         setLoading(true);
         try {
@@ -175,9 +201,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 <div className={styles.modalContent}>
                     {/* Supplier Selection */}
                     <div className={styles.field} style={{ marginBottom: '32px' }}>
-                        <label>Name / Phone number</label>
+                        <label>Name / Phone number <span style={{ color: '#FF4D4F' }}>*</span></label>
                         <select
-                            className={styles.select}
+                            className={`${styles.select} ${errors.supplierId ? styles.inputError : ""}`}
                             value={selectedSupplierId}
                             onChange={(e) => handleSupplierChange(e.target.value)}
                             style={{ width: '624px' }}
@@ -189,6 +215,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 </option>
                             ))}
                         </select>
+                        {errors.supplierId && (
+                            <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.supplierId}</span>
+                        )}
                     </div>
 
                     {/* Row 1: Date and Total Amount Paid */}
@@ -204,10 +233,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Total Amount Paid</label>
+                            <label>Total Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
                                 type="number"
-                                className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
+                                className={`${styles.input} ${(isUnbalanced || errors.totalAmountPaid || errors.unbalanced) ? styles.inputError : ""}`}
                                 placeholder="0"
                                 value={editablePaidAmount}
                                 onChange={(e) => {
@@ -216,8 +245,20 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                         val = val.substring(1);
                                     }
                                     setEditablePaidAmount(val);
+                                    setErrors(prev => {
+                                        const newErr = { ...prev };
+                                        delete newErr.totalAmountPaid;
+                                        delete newErr.unbalanced;
+                                        return newErr;
+                                    });
                                 }}
                             />
+                            {errors.totalAmountPaid && (
+                                <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.totalAmountPaid}</span>
+                            )}
+                            {errors.unbalanced && (
+                                <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.unbalanced}</span>
+                            )}
                         </div>
                     </div>
 
@@ -260,12 +301,12 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                     </select>
                                 </div>
                                 <div className={styles.field}>
-                                    <label>Amount Paid</label>
+                                    <label>Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                                             <input
                                                 type="number"
-                                                className={`${styles.input} ${isUnbalanced ? styles.inputError : ""}`}
+                                                className={`${styles.input} ${(isUnbalanced || errors[`payment_${p.id}`]) ? styles.inputError : ""}`}
                                                 placeholder="0"
                                                 value={p.amountPaid}
                                                 onChange={(e) => {
@@ -282,6 +323,9 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                                 </button>
                                             )}
                                         </div>
+                                        {errors[`payment_${p.id}`] && (
+                                            <span style={{ color: '#FF4D4F', fontSize: '12px', display: 'block' }}>{errors[`payment_${p.id}`]}</span>
+                                        )}
                                         {isUnbalanced && idx === payments.length - 1 && (
                                             <span className={styles.errorText}>match to total amount paid</span>
                                         )}

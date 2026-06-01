@@ -353,6 +353,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             delete newErrors[`${index}_add`];
             delete newErrors[`${index}_remove`];
         }
+        if (field === 'reason') {
+            delete newErrors[`${index}_expiryDate`];
+        }
         setErrors(newErrors);
 
         updateRowCalculations(newRows, index);
@@ -385,6 +388,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             }
             if (!row.sourceStatus) {
                 newErrors[`${index}_sourceStatus`] = "Source is required";
+            }
+            if (row.reason === "Expired" && !row.expiryDate) {
+                newErrors[`${index}_expiryDate`] = "Expiry Date is required";
             }
         });
 
@@ -435,6 +441,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     addItem: null,
                     sourceStatus: row.sourceStatus === "Open Stock" ? "openStock" : (row.sourceStatus === "Hold Qty" ? "onHold" : null)
                 };
+                if (row.reason === "Expired") {
+                    payload.expDate = row.expiryDate;
+                }
                 await productService.updateStock(jwtToken, payload);
             }
             toast.success("Stock updated successfully");
@@ -455,8 +464,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired", "OnHold", "Open Stock"].includes(r.reason));
     const anyEmptyReason = rows.some(r => !r.reason);
 
-    const showAddColumn = anyEmptyReason || anyMiscount;
-    const showRemoveColumn = anyEmptyReason || anyMiscount || anyRemoval;
+    const showAddColumn = mode === "Add" && (anyEmptyReason || anyMiscount);
+    const showRemoveColumn = mode === "Add" && (anyEmptyReason || anyMiscount || anyRemoval);
 
     return (
         <>
@@ -538,7 +547,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                             {showAddColumn && <th className={`${styles.colSmall} ${styles.centerAlign}`}>Add</th>}
                                             {showRemoveColumn && <th className={`${styles.colSmall} ${styles.centerAlign}`}>Remove</th>}
                                             <th className={`${styles.colExp} ${styles.centerAlign}`}>Updated Qty</th>
-                                            <th className={`${styles.colExp} ${styles.centerAlign}`}>Exp. Date</th>
+                                            <th className={`${styles.colExpiry} ${styles.centerAlign}`}>Exp. Date</th>
                                             <th className={`${styles.colCost} ${styles.centerAlign}`}>Cost Price</th>
                                             <th className={`${styles.colTotal} ${styles.rightAlign}`}>Total (₹)</th>
                                             <th className={styles.colAction}></th>
@@ -652,7 +661,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                         </td>
                                                     )}
                                                     <td><input className={`${styles.tableInput} ${styles.boldText}`} readOnly value={row.updatedQty} /></td>
-                                                    <td><input className={styles.tableInput} readOnly value={row.expiryDate} placeholder="------" /></td>
+                                                    <td>
+                                                        <input
+                                                            id={`field_${index}_expiryDate`}
+                                                            className={`${styles.tableInput} ${errors[`${index}_expiryDate`] ? styles.errorField : ""}`}
+                                                            type={row.reason === "Expired" ? "date" : "text"}
+                                                            value={row.expiryDate}
+                                                            onChange={(e) => updateRowField(index, 'expiryDate', e.target.value)}
+                                                            disabled={mode === "View"}
+                                                            readOnly={row.reason !== "Expired"}
+                                                            placeholder="------"
+                                                        />
+                                                        {errors[`${index}_expiryDate`] && <span className={styles.errorText}>{errors[`${index}_expiryDate`]}</span>}
+                                                    </td>
                                                     <td><input className={styles.tableInput} readOnly value={`₹${row.costPrice}`} /></td>
                                                     <td className={`${styles.rightAlign} ${row.total >= 0 ? styles.positiveText : styles.negativeText} ${styles.boldText}`}>
                                                         {row.total >= 0 ? `+ ₹ ${row.total.toFixed(2)}` : `- ₹ ${Math.abs(row.total).toFixed(2)}`}

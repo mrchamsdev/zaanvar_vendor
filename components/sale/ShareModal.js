@@ -5,7 +5,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 
-const ShareModal = ({ isOpen, onClose, data, branchId }) => {
+const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
     const { jwtToken } = useStore();
     const [customerInfo, setCustomerInfo] = React.useState(null);
 

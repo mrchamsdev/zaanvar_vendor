@@ -42,6 +42,13 @@ const PaymentOutFormPage = () => {
         }
     }, [jwtToken, id]);
 
+    useEffect(() => {
+        if (!loading && !isView) {
+            const total = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+            setPaidAmount(String(total));
+        }
+    }, [payments, loading, isView]);
+
     const fetchTransaction = async () => {
         setLoading(true);
         try {

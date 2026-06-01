@@ -1,4 +1,4 @@
-import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal, parseWallClockDate } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -303,8 +303,8 @@ const SalesInvoiceList = ({ onAddClick }) => {
     const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), 0, 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), 11, 31))
     });
 
     // Share modal state
@@ -419,42 +419,63 @@ const SalesInvoiceList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
     };
 
     const filteredInvoices = invoices.filter(inv => {
-        const invDate = parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date();
+        const invDate = parseWallClockDate(inv.invoiceDate || inv.createdDate) || new Date();
         invDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = invDate.getTime() === target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() === target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = invDate.getTime() < target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() < target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = invDate.getTime() > target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() > target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
-                const start = new Date(dateFilterValues.from);
-                const end = new Date(dateFilterValues.to);
+                const start = parseWallClockDate(dateFilterValues.from);
+                const end = parseWallClockDate(dateFilterValues.to);
+                if (start && end) {
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(23, 59, 59, 999);
+                    matchesDate = invDate >= start && invDate <= end;
+                } else {
+                    matchesDate = false;
+                }
+            }
+        } else {
+            const start = parseWallClockDate(dateRange.startDate);
+            const end = parseWallClockDate(dateRange.endDate);
+            if (start && end) {
                 start.setHours(0, 0, 0, 0);
                 end.setHours(23, 59, 59, 999);
                 matchesDate = invDate >= start && invDate <= end;
+            } else {
+                matchesDate = false;
             }
-        } else {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
-            matchesDate = invDate >= start && invDate <= end;
         }
 
         const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
@@ -796,7 +817,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             {filteredInvoices.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className={styles.noDataCell}>
-                                        This range data is not there
+                                        The search you entered is not matching to any supplier
                                     </td>
                                 </tr>
                             ) : (

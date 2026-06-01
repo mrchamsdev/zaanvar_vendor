@@ -127,6 +127,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             productId: item.productId,
                             variantId: item.variantId,
                             quantity: item.quantity, // original order qty
+                            returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                             unit: unitVal,
                             price: parseFloat(item.sellingPrice) || 0,
                             taxPercentage: parseFloat(item.taxPercentage) || 0,
@@ -144,6 +145,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         productName: original?.productName || "Product",
                         returnQty: item.quantity,
                         quantity: original?.quantity || item.quantity, // original order qty
+                        returnableQty: original?.returnableQty || item.quantity,
                         unit: original?.unit || "Unit",
                         price: parseFloat(item.sellingPrice || item.returnAmount) || 0,
                         taxPercentage: parseFloat(item.taxAmount || 0),
@@ -198,6 +200,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     productId: item.productId,
                     variantId: item.variantId,
                     quantity: item.quantity,
+                    returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                     unit: unitVal,
                     price: parseFloat(item.sellingPrice) || 0,
                     taxPercentage: parseFloat(item.taxPercentage) || 0,
@@ -266,17 +269,21 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     const updateItemQty = (index, qty) => {
         const newItems = [...items];
-        const maxQty = items[index].quantity || 0;
-        const returnQty = Math.min(qty, maxQty);
-        newItems[index].returnQty = returnQty;
+        const maxQty = items[index].returnableQty !== undefined ? items[index].returnableQty : (items[index].quantity || 0);
+        newItems[index].returnQty = qty;
 
         const price = newItems[index].price || 0;
         const tax = (price * (newItems[index].taxPercentage || 0)) / 100;
         const disc = (price * (newItems[index].discountPercentage || 0)) / 100;
-        newItems[index].itemTotal = returnQty * (price + tax - disc);
+        newItems[index].itemTotal = qty * (price + tax - disc);
 
         setItems(newItems);
-        setErrors(prev => ({ ...prev, [`itemQty_${index}`]: undefined }));
+        
+        if (qty > maxQty) {
+            setErrors(prev => ({ ...prev, [`itemQty_${index}`]: `Quantity cannot exceed returnable quantity (${maxQty})` }));
+        } else {
+            setErrors(prev => ({ ...prev, [`itemQty_${index}`]: undefined }));
+        }
     };
 
     const removeItem = (index) => {
@@ -305,8 +312,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             if (!item.userOrderItemsID) {
                 newErrors[`itemProduct_${index}`] = "Product name is required";
             }
-            if (item.userOrderItemsID && (item.returnQty === "" || item.returnQty === null || item.returnQty === undefined || parseFloat(item.returnQty) <= 0)) {
-                newErrors[`itemQty_${index}`] = "Quantity must be greater than 0";
+            if (item.userOrderItemsID) {
+                const maxQty = item.returnableQty !== undefined ? item.returnableQty : (item.quantity || 0);
+                if (item.returnQty === "" || item.returnQty === null || item.returnQty === undefined || parseFloat(item.returnQty) <= 0) {
+                    newErrors[`itemQty_${index}`] = "Quantity must be greater than 0";
+                } else if (parseFloat(item.returnQty) > maxQty) {
+                    newErrors[`itemQty_${index}`] = `Quantity cannot exceed returnable quantity (${maxQty})`;
+                }
             }
         });
 
@@ -577,7 +589,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                         textTransform: 'uppercase'
                                                     }}>
                                                         <span style={{ width: '60%' }}>PRODUCT NAME</span>
-                                                        <span style={{ width: '20%', textAlign: 'center' }}>TOTAL QTY</span>
+                                                        <span style={{ width: '20%', textAlign: 'center' }}>RETURNABLE QTY</span>
                                                         <span style={{ width: '20%', textAlign: 'right' }}>UNIT TYPE</span>
                                                     </div>
                                                     <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
@@ -589,7 +601,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                                 style={{ display: 'flex', padding: '12px 20px', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}
                                                             >
                                                                 <span style={{ width: '60%', fontWeight: '500' }}>{p.productName}</span>
-                                                                <span style={{ width: '20%', textAlign: 'center' }}>{p.quantity}</span>
+                                                                <span style={{ width: '20%', textAlign: 'center' }}>{p.returnableQty}</span>
                                                                 <span style={{ width: '20%', textAlign: 'right' }}>{p.unit}</span>
                                                             </div>
                                                         ))}
@@ -597,41 +609,45 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                                            {mode === "view" ? (
-                                                <div style={{ fontWeight: '600', fontSize: '15px', color: '#111' }}>{item.returnQty}</div>
-                                            ) : (
-                                                <input
-                                                    type="number"
-                                                    className={styles.input}
-                                                    onFocus={() => setFocusedField(`itemQty_${idx}`)}
-                                                    onBlur={() => setFocusedField(null)}
-                                                    style={{
-                                                        width: '65px',
-                                                        padding: '6px 10px',
-                                                        textAlign: 'center',
-                                                        background: mode === "edit" ? '#fff' : '#f5f5f5',
-                                                        border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #ddd'),
-                                                        boxShadow: 'none'
-                                                    }}
-                                                    value={item.returnQty || ""}
-                                                    onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
-                                                    max={item.quantity}
-                                                    disabled={!item.userOrderItemsID}
-                                                />
-                                            )}
-                                            {errors[`itemQty_${idx}`] && (
-                                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                                                    {errors[`itemQty_${idx}`]}
-                                                </span>
-                                            )}
-                                            {item.userOrderItemsID && (
-                                                <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
-                                                    Order: {item.quantity}
-                                                </div>
-                                            )}
-                                            <span style={{ marginLeft: '4px' }}>{item.unit}</span>
-                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                 {mode === "view" ? (
+                                                     <span style={{ fontWeight: '600', fontSize: '15px', color: '#111' }}>{item.returnQty}</span>
+                                                 ) : (
+                                                     <input
+                                                         type="number"
+                                                         className={styles.tableInputCenter}
+                                                         onFocus={() => setFocusedField(`itemQty_${idx}`)}
+                                                         onBlur={() => setFocusedField(null)}
+                                                         style={{
+                                                             width: '70px',
+                                                             padding: '8px 10px',
+                                                             textAlign: 'center',
+                                                             background: '#fff',
+                                                             border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
+                                                             borderRadius: '6px',
+                                                             outline: 'none',
+                                                             boxShadow: 'none'
+                                                         }}
+                                                         placeholder="0"
+                                                         value={item.returnQty || ""}
+                                                         onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
+                                                         disabled={!item.userOrderItemsID}
+                                                     />
+                                                 )}
+                                                 {item.unit && <span style={{ fontSize: '13px', color: '#333' }}>{item.unit}</span>}
+                                             </div>
+                                             {errors[`itemQty_${idx}`] && (
+                                                 <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                                                     {errors[`itemQty_${idx}`]}
+                                                 </span>
+                                             )}
+                                             {item.userOrderItemsID && (
+                                                 <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
+                                                     Returnable: {item.returnableQty}
+                                                 </div>
+                                             )}
+                                         </td>
                                         <td style={{ textAlign: 'right' }}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
                                         <td style={{ textAlign: 'center' }}>
                                             <select

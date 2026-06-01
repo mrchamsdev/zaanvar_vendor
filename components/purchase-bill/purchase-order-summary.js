@@ -46,7 +46,9 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         damagedAmount: rootDamagedAmount,
         shortfallAmount: rootShortfallAmount,
         receivedDetails = {},
-        returnsApplicable
+        returnsApplicable,
+        shortFallApplicable,
+        shortfallApplicable
     } = data;
 
     // Use root properties if available, fallback to receivedDetails
@@ -89,7 +91,15 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     const breakdown = React.useMemo(() => {
         const itemsList = items || [];
         const toggles = receivedDetails.toggles || {};
-        const payBasedOnOrdered = toggles.payBasedOnOrdered || receivedDetails.shortFallApplicable || false;
+        const payBasedOnOrdered = 
+            data.shortFallApplicable || 
+            data.shortfallApplicable || 
+            shortFallApplicable || 
+            shortfallApplicable || 
+            toggles.payBasedOnOrdered || 
+            receivedDetails.shortFallApplicable || 
+            receivedDetails.shortfallApplicable || 
+            false;
         const damagedReturnedGoods = toggles.damagedReturnedGoods || false;
 
         let totalOrderValue = 0;

@@ -480,10 +480,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         const newItems = [...items];
         newItems[index].returnQty = val === "" ? "" : qty;
 
-        const maxAllowed = item.returnableQty || 0;
+        const returnable = item.returnableQty || 0;
+        const sourceMax = getMaxQty(item);
         // Track error but allow the value in state so it can be seen/corrected
-        if (qty > maxAllowed) {
-            newItems[index].error = `Cannot exceed returnable quantity (${maxAllowed})`;
+        if (qty > returnable) {
+            newItems[index].error = `Cannot exceed returnable quantity (${returnable})`;
+        } else if (qty > sourceMax) {
+            const statusLabel = item.sourceStatus ? item.sourceStatus.toLowerCase() : "source";
+            newItems[index].error = `Cannot exceed ${statusLabel} quantity (${sourceMax})`;
         } else {
             newItems[index].error = null;
         }
@@ -568,9 +572,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     updatedItem.error = "Must be greater than 0";
                     itemHasError = true;
                 } else {
-                    const maxAllowed = it.returnableQty || 0;
-                    if (qty > maxAllowed) {
-                        updatedItem.error = `Cannot exceed returnable quantity (${maxAllowed})`;
+                    const returnable = it.returnableQty || 0;
+                    const sourceMax = getMaxQty(it);
+                    if (qty > returnable) {
+                        updatedItem.error = `Cannot exceed returnable quantity (${returnable})`;
+                        itemHasError = true;
+                    } else if (qty > sourceMax) {
+                        const statusLabel = it.sourceStatus ? it.sourceStatus.toLowerCase() : "source";
+                        updatedItem.error = `Cannot exceed ${statusLabel} quantity (${sourceMax})`;
                         itemHasError = true;
                     } else {
                         updatedItem.error = null;
@@ -875,32 +884,42 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             {item.variantSize || "-"}
                                         </td>
                                         <td style={{ minWidth: '120px', verticalAlign: 'middle' }}>
-                                            <select
-                                                className={styles.input}
-                                                style={{ border: item.sourceError ? '1px solid #ff4d4f' : '1px solid #eee', width: '100%', background: 'transparent' }}
-                                                value={item.sourceStatus || ""}
-                                                onChange={(e) => {
-                                                    const newItems = [...items];
-                                                    newItems[idx].sourceStatus = e.target.value;
-                                                    if (newItems[idx].sourceError) newItems[idx].sourceError = null;
+                                            {isViewOnly ? (
+                                                <div style={{ textAlign: 'center', fontWeight: '500' }}>
+                                                    {item.sourceStatus || "-"}
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    className={styles.input}
+                                                    style={{ border: item.sourceError ? '1px solid #ff4d4f' : '1px solid #eee', width: '100%', background: 'transparent' }}
+                                                    value={item.sourceStatus || ""}
+                                                    onChange={(e) => {
+                                                        const newItems = [...items];
+                                                        newItems[idx].sourceStatus = e.target.value;
+                                                        if (newItems[idx].sourceError) newItems[idx].sourceError = null;
 
-                                                    const maxAllowed = getMaxQty(newItems[idx]);
-                                                    const currentQty = parseInt(newItems[idx].returnQty) || 0;
-                                                    if (currentQty > maxAllowed) {
-                                                        newItems[idx].error = `Cannot exceed quantity (${maxAllowed})`;
-                                                    } else {
-                                                        newItems[idx].error = null;
-                                                    }
+                                                        const returnable = newItems[idx].returnableQty || 0;
+                                                        const sourceMax = getMaxQty(newItems[idx]);
+                                                        const currentQty = parseInt(newItems[idx].returnQty) || 0;
+ 
+                                                        if (currentQty > returnable) {
+                                                            newItems[idx].error = `Cannot exceed returnable quantity (${returnable})`;
+                                                        } else if (currentQty > sourceMax) {
+                                                            const statusLabel = newItems[idx].sourceStatus ? newItems[idx].sourceStatus.toLowerCase() : "source";
+                                                            newItems[idx].error = `Cannot exceed ${statusLabel} quantity (${sourceMax})`;
+                                                        } else {
+                                                            newItems[idx].error = null;
+                                                        }
 
-                                                    setItems(newItems);
-                                                }}
-                                                disabled={isViewOnly}
-                                            >
-                                                <option value="">Select Status</option>
-                                                <option value="Open Stock">Open Stock</option>
-                                                <option value="Damaged">Damaged</option>
-                                                <option value="Hold Stock">Hold Stock</option>
-                                            </select>
+                                                        setItems(newItems);
+                                                    }}
+                                                >
+                                                    <option value="">Select Status</option>
+                                                    <option value="Open Stock">Open Stock</option>
+                                                    <option value="Damaged">Damaged</option>
+                                                    <option value="Hold Stock">Hold Stock</option>
+                                                </select>
+                                            )}
                                             {item.sourceError && (
                                                 <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
                                                     {item.sourceError}
@@ -917,19 +936,29 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             )}
                                         </td>
                                         <td className={styles.qtyCol}>
-                                            <input
-                                                type="number"
-                                                className={styles.input}
-                                                style={{
-                                                    background: 'transparent',
-                                                    textAlign: 'center',
-                                                    border: item.error ? '1px solid #ff4d4f' : '1px solid #eee'
-                                                }}
-                                                value={item.returnQty === 0 ? "" : item.returnQty}
-                                                onChange={(e) => handleQtyChange(idx, e.target.value)}
-                                                onFocus={(e) => e.target.select()}
-                                                disabled={isViewOnly}
-                                            />
+                                            {isViewOnly ? (
+                                                <div style={{ textAlign: 'center', fontWeight: '500' }}>
+                                                    {item.returnQty}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    type="number"
+                                                    style={{
+                                                        border: item.error ? '1px solid #ff4d4f' : 'none',
+                                                        outline: 'none',
+                                                        background: 'transparent',
+                                                        textAlign: 'center',
+                                                        width: '100%',
+                                                        padding: '8px 0',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500',
+                                                        color: '#333'
+                                                    }}
+                                                    value={item.returnQty === 0 ? "" : item.returnQty}
+                                                    onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                                    onFocus={(e) => e.target.select()}
+                                                />
+                                            )}
                                             {item.error && (
                                                 <div style={{
                                                     color: '#ff4d4f',

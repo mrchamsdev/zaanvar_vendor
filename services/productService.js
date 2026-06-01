@@ -13,9 +13,9 @@ export const productService = {
         productType: type
       };
       if (search) params.search = search;
-      
+
       const response = await webApi.get(`vendor/products`, params);
-      
+
       const body = response?.data || response;
       let productsList = [];
       let total = 0;
@@ -118,7 +118,7 @@ export const productService = {
   getAllProductsBrief: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/products`, { branchId});
+      const response = await webApi.get(`vendor/products`, { branchId });
       const body = response?.data || response;
       return body?.data || (Array.isArray(body) ? body : []);
     } catch (error) {
@@ -161,16 +161,19 @@ export const productService = {
     }
   },
 
-  restoreDamagedItem: async (jwt, consumptionId) => {
+  restoreDamagedItem: async (jwt, id, useStockUpdateId = false) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.put(`vendor/products/stock-reports`, { consumptionId, action: "restore" });
+    const payload = useStockUpdateId
+      ? { stockUpdateId: id, action: "restore" }
+      : { consumptionId: id, action: "restore" };
+    return await webApi.put(`vendor/products/stock-reports`, payload);
   },
 
-  markAsWaste: async (jwt, id, isExpired = false) => {
+  markAsWaste: async (jwt, id, isExpired = false, useStockUpdateId = false) => {
     const webApi = new WebApimanager(jwt);
-    const payload = isExpired 
-        ? { stockUpdateId: id, action: "waste", type: "expired" }
-        : { consumptionId: id, action: "waste" };
+    const payload = (isExpired || useStockUpdateId)
+      ? { stockUpdateId: id, action: "waste", ...(isExpired ? { type: "expired" } : {}) }
+      : { consumptionId: id, action: "waste" };
     return await webApi.put(`vendor/products/stock-reports`, payload);
   }
 };

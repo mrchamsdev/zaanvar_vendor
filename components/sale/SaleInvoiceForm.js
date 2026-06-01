@@ -25,10 +25,10 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
     const calculateItemValues = (price, qty, discountPercent, taxPercent) => {
         const subtotal = price * qty;
-        const discountAmount = (subtotal * discountPercent) / 100;
+        const discountAmount = Math.round(((subtotal * discountPercent) / 100) * 100) / 100;
         const amtAfterDiscount = subtotal - discountAmount;
-        const taxAmount = (amtAfterDiscount * taxPercent) / 100;
-        const amount = amtAfterDiscount + taxAmount;
+        const taxAmount = Math.round(((amtAfterDiscount * taxPercent) / 100) * 100) / 100;
+        const amount = Math.round((amtAfterDiscount + taxAmount) * 100) / 100;
         return { discountAmount, taxAmount, amount };
     };
 
@@ -153,7 +153,10 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             const price = parseFloat(it.sellingPrice || 0);
             const qty = it.quantity || 0;
             const discountPercent = parseFloat(it.discountForItem || 0);
-            const discountAmount = (price * qty * discountPercent) / 100;
+            const subtotal = price * qty;
+            const discountAmount = Math.round(((subtotal * discountPercent) / 100) * 100) / 100;
+            const taxAmount = Math.round(parseFloat(it.taxAmount || 0) * 100) / 100;
+            const amount = Math.round(parseFloat(it.itemTotal || 0) * 100) / 100;
 
             return {
                 productId: it.productId,
@@ -165,8 +168,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 discount: discountPercent,
                 discountAmount: discountAmount,
                 taxPercent: parseFloat(it.taxPercentage || 0),
-                taxAmount: parseFloat(it.taxAmount || 0),
-                amount: parseFloat(it.itemTotal || 0),
+                taxAmount: taxAmount,
+                amount: amount,
                 availableQty: variant.currentQty || 0,
                 availableVariants: variant.variantId ? [variant] : []
             };
@@ -822,9 +825,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             </div>
                                         )}
                                     </td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{it.price.toLocaleString()}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.price || 0).toFixed(2)}</td>
                                     <td style={{ fontWeight: "700", textAlign: "center" }}>{it.taxPercent}%</td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{it.taxAmount.toLocaleString()}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.taxAmount || 0).toFixed(2)}</td>
                                     <td style={{ verticalAlign: "top", paddingTop: "12px" }}>
                                         <input
                                             type="number"
@@ -835,8 +838,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             disabled={isViewOnly}
                                         />
                                     </td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{(it.discountAmount || 0).toLocaleString()}</td>
-                                    <td style={{ fontWeight: "700", textAlign: "right" }}>{it.amount.toLocaleString()}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.discountAmount || 0).toFixed(2)}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(it.amount || 0).toFixed(2)}</td>
                                     {!isViewOnly && (
                                         <td>
                                             <FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: "pointer", color: "#E93E64" }} />
@@ -852,12 +855,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <td style={{ fontWeight: "600", textAlign: "center" }}>
                                     {items.reduce((acc, it) => acc + getActiveQty(it.qty), 0)}
                                 </td>
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.price || 0), 0)).toFixed(2)}</td>
                                 <td></td>
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString()}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.taxAmount || 0), 0)).toFixed(2)}</td>
                                 <td></td>
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{items.reduce((acc, it) => acc + (it.discountAmount || 0), 0).toLocaleString()}</td>
-                                <td style={{ fontWeight: "700", textAlign: "right" }}>{totalBillAmount.toLocaleString()}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.discountAmount || 0), 0)).toFixed(2)}</td>
+                                <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(totalBillAmount || 0).toFixed(2)}</td>
                                 {!isViewOnly && <td></td>}
                             </tr>
                         </tbody>
@@ -922,13 +925,13 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow} style={{ width: "250px" }}>
                             <span>Sub Total</span>
-                            <span>Rs {totalBillAmount.toLocaleString()}</span>
+                            <span>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
                         </div>
                         {mode !== "add" && (
                             <div className={styles.totalRow} style={{ width: "250px", alignItems: "center" }}>
                                 <span>Discount (After Tax)</span>
                                 {isViewOnly ? (
-                                    <span>Rs {parseFloat(formData.discountForCustomer || 0).toLocaleString()}</span>
+                                    <span>Rs {Number(formData.discountForCustomer || 0).toFixed(2)}</span>
                                 ) : (
                                     <input
                                         type="number"
@@ -958,11 +961,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         )}
                         <div className={styles.totalRow} style={{ width: "250px" }}>
                             <span>Total Paid</span>
-                            <span style={{ color: "#1E8E3E" }}>Rs {totalPaidAmount.toLocaleString()}</span>
+                            <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
                         </div>
                         <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
                             <span>Balance</span>
-                            <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {balanceAmount.toLocaleString()}</span>
+                            <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

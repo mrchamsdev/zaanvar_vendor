@@ -1,4 +1,4 @@
-import { toApiDateOnly, parseApiToLocal } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseApiToLocal, parseWallClockDate } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
@@ -304,8 +304,8 @@ const SalesReturnList = ({ onAddClick }) => {
     const [filterType, setFilterType] = useState("This Month");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0))
     });
 
     // Share modal state
@@ -415,42 +415,63 @@ const SalesReturnList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
     };
 
     const filteredReturns = returns.filter(r => {
-        const rDate = parseApiToLocal(r.returnDate || r.createdDate) || new Date();
+        const rDate = parseWallClockDate(r.returnDate || r.createdDate) || new Date();
         rDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = rDate.getTime() === target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = rDate.getTime() === target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = rDate.getTime() < target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = rDate.getTime() < target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0, 0, 0, 0);
-                matchesDate = rDate.getTime() > target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = rDate.getTime() > target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
-                const start = new Date(dateFilterValues.from);
-                const end = new Date(dateFilterValues.to);
+                const start = parseWallClockDate(dateFilterValues.from);
+                const end = parseWallClockDate(dateFilterValues.to);
+                if (start && end) {
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(23, 59, 59, 999);
+                    matchesDate = rDate >= start && rDate <= end;
+                } else {
+                    matchesDate = false;
+                }
+            }
+        } else {
+            const start = parseWallClockDate(dateRange.startDate);
+            const end = parseWallClockDate(dateRange.endDate);
+            if (start && end) {
                 start.setHours(0, 0, 0, 0);
                 end.setHours(23, 59, 59, 999);
                 matchesDate = rDate >= start && rDate <= end;
+            } else {
+                matchesDate = false;
             }
-        } else {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
-            matchesDate = rDate >= start && rDate <= end;
         }
 
         const customerName = r.customer ? `${r.customer.firstName} ${r.customer.lastName}`.trim() : "Walk-in Customer";
@@ -527,7 +548,7 @@ const SalesReturnList = ({ onAddClick }) => {
             const filter = columnFilters[col];
             if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 const labels = {
-                    refNo: 'Ref No',
+                    refNo: 'Return ID',
                     customerName: 'Customer',
                     received: 'Total Sale Return Amount',
                     balance: 'Total balance amount'
@@ -557,9 +578,10 @@ const SalesReturnList = ({ onAddClick }) => {
     };
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL SALE RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
+        const headers = ["DATE", "BILL NO", "RETURN ID", "CUSTOMER NAME", "TOTAL SALE RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
             `" ${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
+            `"${r.userOrderId || ""}"`,
             `"SR-${r.customerReturnId}"`,
             `"${(r.customer ? r.customer.firstName + ' ' + r.customer.lastName : 'Walk-in Customer').replace(/"/g, '""')}"`,
             `"${r.totalReturnAmount || 0}"`,
@@ -687,7 +709,10 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    REF NO
+                                    BILL NO
+                                </th>
+                                <th>
+                                    RETURN ID
                                     <FiFilter
                                         className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
                                         onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
@@ -695,7 +720,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
-                                            label="Ref No"
+                                            label="Return ID"
                                             currentMode={columnFilters.refNo.mode}
                                             currentValue={columnFilters.refNo.value}
                                             onClose={() => setOpenFilterCol(null)}
@@ -760,14 +785,15 @@ const SalesReturnList = ({ onAddClick }) => {
                         <tbody>
                             {filteredReturns.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className={styles.noDataCell}>
-                                        This range data is not there
+                                    <td colSpan={7} className={styles.noDataCell}>
+                                        The search you entered is not matching to any supplier
                                     </td>
                                 </tr>
                             ) : (
                                 filteredReturns.map((r, idx) => (
                                     <tr key={idx}>
                                         <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                        <td>{r.userOrderId || "-"}</td>
                                         <td>SR-{r.customerReturnId}</td>
                                         <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
                                         <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -803,7 +829,6 @@ const SalesReturnList = ({ onAddClick }) => {
                                                                 setActiveDropdown(null);
                                                             }}>View</div>
 
-                                                            <div className={styles.dropdownItem}>Duplicate</div>
                                                             <div className={styles.dropdownItem} onClick={() => {
                                                                 window.open(`${window.location.pathname}?view=true&id=${r.customerReturnId}&pdf=true`, '_blank');
                                                                 setActiveDropdown(null);
