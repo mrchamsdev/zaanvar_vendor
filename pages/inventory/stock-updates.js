@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/inventory/stockUpdates.module.css";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
@@ -19,7 +20,8 @@ const IconSearch = () => (
 const StockUpdatesPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
+  const currentBranchId = router.query.branchId || "";
   const [stockUpdates, setStockUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,20 +34,32 @@ const StockUpdatesPage = () => {
   const [activeToggle, setActiveToggle] = useState("Update Stock");
 
   useEffect(() => {
+    if (!router.isReady) return;
+    if (!currentBranchId && branches && branches.length > 0) {
+      const targetId = defaultBranchId || branches[0].id;
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, branchId: targetId }
+      }, undefined, { shallow: true });
+    } else if (currentBranchId) {
+      setSelectedBranchId(currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+
+  useEffect(() => {
     if (!isHydrated) return;
     
-    if (jwtToken && branchId) {
+    if (jwtToken && currentBranchId) {
       fetchStockUpdates();
     } else if (isHydrated && !jwtToken) {
       setLoading(false);
     }
-  }, [jwtToken, branchId, isHydrated]);
+  }, [jwtToken, currentBranchId, isHydrated]);
 
   const fetchStockUpdates = async () => {
     setLoading(true);
     try {
-      // BranchId is no longer needed in the URL as per user request
-      const data = await productService.getStockUpdates(jwtToken);
+      const data = await productService.getStockUpdates(jwtToken, currentBranchId);
       setStockUpdates(Array.isArray(data) ? data : (data?.data || []));
     } catch (error) {
       console.error("API ERROR:", error);
@@ -54,6 +68,28 @@ const StockUpdatesPage = () => {
       setLoading(false);
     }
   };
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
+
+  const customLeft = (
+    <div className={dashboardStyles.branchSwitcherContainer}>
+      <select 
+        className={dashboardStyles.branchSwitcher}
+        value={currentBranchId}
+        onChange={handleBranchChange}
+      >
+        {branches?.length > 1 && <option value="">All Firms</option>}
+        {branches?.map(b => (
+          <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+        ))}
+      </select>
+    </div>
+  );
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -73,6 +109,7 @@ const StockUpdatesPage = () => {
 
   return (
     <DashboardLayout
+      customTopbarLeft={customLeft}
       customTopbarRight={(
         <div className={styles.topbarRight}>
             <button 

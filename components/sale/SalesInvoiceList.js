@@ -817,7 +817,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             {filteredInvoices.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className={styles.noDataCell}>
-                                        The search you entered is not matching to any supplier
+                                        The search you entered is not matching to any record
                                     </td>
                                 </tr>
                             ) : (
@@ -855,7 +855,6 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                                         {activeDropdown === idx && (
                                                             <div className={styles.dropdownMenu}>
                                                                 <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
-                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
                                                                 <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
                                                                 <div className={styles.dropdownItem} onClick={() => {
                                                                     setActiveDropdown(null);

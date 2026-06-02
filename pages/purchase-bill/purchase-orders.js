@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/purchase-bill/purchase-bill.module.css";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
@@ -302,7 +303,8 @@ const PurchaseOrdersPage = () => {
     const router = useRouter();
 
     const { jwtToken } = useStore();
-    const { branches, branchId } = useDashboardData();
+    const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
+    const currentBranchId = router.query.branchId || "";
 
     const [loading, setLoading] = useState(false);
     const [purchaseRequests, setPurchaseRequests] = useState([]);
@@ -327,12 +329,25 @@ const PurchaseOrdersPage = () => {
         orderValue: { mode: 'Contains', value: '' },
     });
 
+    useEffect(() => {
+        if (!router.isReady) return;
+        if (!currentBranchId && branches && branches.length > 0) {
+            const targetId = defaultBranchId || branches[0].id;
+            router.replace({
+                pathname: router.pathname,
+                query: { ...router.query, branchId: targetId }
+            }, undefined, { shallow: true });
+        } else if (currentBranchId) {
+            setSelectedBranchId(currentBranchId);
+        }
+    }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+
     // Fetch Purchase Requests
     useEffect(() => {
-        if (jwtToken && branchId) {
+        if (jwtToken && currentBranchId) {
             fetchOrders();
         }
-    }, [jwtToken, branchId]);
+    }, [jwtToken, currentBranchId]);
 
     useEffect(() => {
         if (router.isReady && router.query.openAdd === 'true') {
@@ -355,10 +370,32 @@ const PurchaseOrdersPage = () => {
         }
     }, [router.isReady, router.query.openAdd]);
 
+    const handleBranchChange = (e) => {
+        router.push({
+            pathname: router.pathname,
+            query: { ...router.query, branchId: e.target.value }
+        }, undefined, { shallow: true });
+    };
+
+    const customLeft = (
+        <div className={dashboardStyles.branchSwitcherContainer}>
+            <select 
+                className={dashboardStyles.branchSwitcher}
+                value={currentBranchId}
+                onChange={handleBranchChange}
+            >
+                {branches?.length > 1 && <option value="">All Firms</option>}
+                {branches?.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                ))}
+            </select>
+        </div>
+    );
+
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            const response = await purchaseService.getPurchaseRequests(jwtToken, branchId);
+            const response = await purchaseService.getPurchaseRequests(jwtToken, currentBranchId);
             if (response.status === "success") {
                 // If data contains both summary and list, or just a list
                 const data = response.data || [];
@@ -415,7 +452,7 @@ const PurchaseOrdersPage = () => {
                     if (col === 'orderNo') itemVal = String(item.productsPurchaseRqstID);
                     else if (col === 'supplierName') itemVal = item.supplier?.supplierName || '';
                     else if (col === 'to') itemVal = item.branchName || '';
-                    else if (col === 'orderValue') itemVal = String(item.totalCost);
+                    else if (col === 'orderValue') itemVal = String(item.overallBillAmount ?? item.totalCost);
 
                     if (col === 'orderValue') {
                         const numTarget = parseFloat(itemVal);
@@ -523,6 +560,7 @@ const PurchaseOrdersPage = () => {
 
     return (
         <DashboardLayout
+            customTopbarLeft={customLeft}
             customTopbarRight={(
                 <div className={styles.addBtnWrapper}>
                     <button className={styles.addBtn} onClick={() => openOrder(null, "Add")}>
@@ -700,7 +738,7 @@ const PurchaseOrdersPage = () => {
                                             <td>{`PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`}</td>
                                             <td>{item.supplier?.supplierName || "-"}</td>
                                             <td>{item.branchName || "-"}</td>
-                                            <td>{formatCurrency(item.totalCost)}</td>
+                                            <td>{formatCurrency(item.overallBillAmount ?? item.totalCost)}</td>
                                             <td>
                                                 <div className={styles.statusBadgeGroup}>
                                                     <span className={item.orderStatus?.toLowerCase() === "received" ? styles.statusSuccess : styles.statusPrimary}>
@@ -745,9 +783,9 @@ const PurchaseOrdersPage = () => {
                                                                     suppliersTransactionId: `PO-${String(item.productsPurchaseRqstID).padStart(5, '0')}`,
                                                                     supplierId: item.supplier?.supplierId,
                                                                     supplierName: item.supplier?.supplierName,
-                                                                    amount: item.totalCost,
+                                                                    amount: item.overallBillAmount ?? item.totalCost,
                                                                     userTransactionDate: item.createdDate,
-                                                                    branchId: item.branchId || branchId
+                                                                    branchId: item.branchId || currentBranchId
                                                                 }}
                                                             />
                                                         )}

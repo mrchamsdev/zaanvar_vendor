@@ -6,10 +6,11 @@ import AddSalesReturn from "../../components/sale/AddSalesReturn";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 
 const SalesReturnPage = () => {
     const router = useRouter();
-    const { branches, branchId: defaultBranchId } = useDashboardData();
+    const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
     const currentBranchId = router.query.branchId || "";
 
     const [isReady, setIsReady] = React.useState(false);
@@ -34,29 +35,32 @@ const SalesReturnPage = () => {
                 pathname: router.pathname,
                 query: { ...router.query, branchId: targetId }
             }, undefined, { shallow: true });
+        } else if (currentBranchId) {
+            setSelectedBranchId(currentBranchId);
         }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId]);
+    }, [router.isReady, currentBranchId, branches, defaultBranchId, isPdf, setSelectedBranchId]);
 
-    if (!isReady) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
-                Loading...
-            </div>
-        );
-    }
+    const handleBranchChange = (e) => {
+        router.push({
+            pathname: router.pathname,
+            query: { ...router.query, branchId: e.target.value }
+        }, undefined, { shallow: true });
+    };
 
-    if (isPdf) {
-        const pdfId = router.query.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '');
-        return (
-            <AddSalesReturn 
-                isOpen={true}
-                mode="view"
-                returnId={pdfId}
-                onClose={() => window.close()}
-                onRefresh={() => {}}
-            />
-        );
-    }
+    const customLeft = (
+        <div className={dashboardStyles.branchSwitcherContainer}>
+            <select 
+                className={dashboardStyles.branchSwitcher}
+                value={currentBranchId}
+                onChange={handleBranchChange}
+            >
+                {branches?.length > 1 && <option value="">All Firms</option>}
+                {branches?.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                ))}
+            </select>
+        </div>
+    );
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
@@ -81,8 +85,30 @@ const SalesReturnPage = () => {
         </div>
     );
 
+    if (!isReady) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
+                Loading...
+            </div>
+        );
+    }
+
+    if (isPdf) {
+        const pdfId = router.query.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '');
+        return (
+            <AddSalesReturn 
+                isOpen={true}
+                mode="view"
+                returnId={pdfId}
+                onClose={() => window.close()}
+                onRefresh={() => {}}
+            />
+        );
+    }
+
     return (
         <DashboardLayout 
+            customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
             <SalesReturnList 

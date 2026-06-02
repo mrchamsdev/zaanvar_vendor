@@ -413,6 +413,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
             formattedVal = String(Number(val));
         }
+        if (formattedVal.includes(".")) {
+            const parts = formattedVal.split(".");
+            if (parts[1].length > 2) {
+                formattedVal = `${parts[0]}.${parts[1].slice(0, 2)}`;
+            }
+        }
         const discount = val === "" ? 0 : (parseFloat(formattedVal) || 0);
         const newItems = [...items];
         const it = newItems[index];
@@ -952,6 +958,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             let val = e.target.value;
                                             if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
                                                 val = String(Number(val));
+                                            }
+                                            if (val.includes(".")) {
+                                                const parts = val.split(".");
+                                                if (parts[1].length > 2) {
+                                                    val = `${parts[0]}.${parts[1].slice(0, 2)}`;
+                                                }
                                             }
                                             setFormData({ ...formData, discountForCustomer: val === "" ? "" : val });
                                         }}

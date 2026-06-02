@@ -125,10 +125,10 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                             </td>
                             <td style={{ padding: '14px', fontSize: '13px', fontWeight: '600' }}>PO-{String(t.productsBillId || t.requestId || idx).padStart(5, '0')}</td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>{t.branchName || "Main Branch"}</td>
-                            <td style={{ padding: '14px', fontSize: '13px' }}>{t.totalAmount || "--"}</td>
+                            <td style={{ padding: '14px', fontSize: '13px' }}>{t.overallBillAmount ?? "--"}</td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>
-                                <div style={{ 
-                                    color: t.status === 'Received' ? '#27AE60' : '#F5790C', 
+                                <div style={{
+                                    color: t.status === 'Received' ? '#27AE60' : '#F5790C',
                                     fontWeight: '600',
                                     fontSize: '12px'
                                 }}>
@@ -139,7 +139,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                 </div>
                             </td>
                             <td style={{ padding: '14px', fontSize: '13px' }}>
-                                <span style={{ 
+                                <span style={{
                                     color: t.paymentStatus === 'Full' || t.paymentStatus === 'Paid' ? '#27AE60' : t.paymentStatus === 'Partial' ? '#F5790C' : '#E9315D',
                                     fontWeight: '600'
                                 }}>
@@ -179,19 +179,19 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                 paymentType: p.paymentType || "Cash",
                                 amount: p.amount || 0,
                                 referenceNumber: p.referenceNumber || p.refNo || ""
-                              }))
+                            }))
                             : [
-                                { 
-                                    paymentType: t.paymentType || "Cash", 
+                                {
+                                    paymentType: t.paymentType || "Cash",
                                     amount: t["paid amount"] || t.amount || t.amountPaidToSupplier || 0,
                                     referenceNumber: t.referenceNumber || t.refNo || ""
                                 },
-                                ...(t.splitTransactions || []).map(st => ({ 
-                                    paymentType: st.paymentType || "Cash", 
+                                ...(t.splitTransactions || []).map(st => ({
+                                    paymentType: st.paymentType || "Cash",
                                     amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0,
                                     referenceNumber: st.referenceNumber || st.refNo || ""
                                 }))
-                              ];
+                            ];
                         return (
                             <React.Fragment key={t.suppliersTransactionId || idx}>
                                 <tr style={{ borderTop: '1px solid #eee' }}>
@@ -216,7 +216,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {getDisplayBalanceAmount(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>
                                         {t.splitTransactions && t.splitTransactions.length > 0 && (
-                                            <div 
+                                            <div
                                                 onClick={() => toggleRowExpand(t.suppliersTransactionId)}
                                                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
                                             >
@@ -286,7 +286,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div style={{ width: '300px', background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                                     <h4 style={{ marginBottom: '20px', fontSize: '14px', fontWeight: '600' }}>Statistics</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -312,7 +312,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
 
                             <div style={{ display: 'inline-flex', background: '#F1F1F1', padding: '4px', borderRadius: '8px', marginBottom: '24px' }}>
                                 {["Purchase Orders", "Payment History"].map(tab => (
-                                    <button 
+                                    <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
                                         style={{
@@ -335,18 +335,18 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                             <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                     <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{activeTab}</h3>
-                                    <button style={{ 
-                                            color: '#E9315D', 
-                                            border: '1px solid #E9315D', 
-                                            background: '#fff', 
-                                            padding: '8px 20px', 
-                                            borderRadius: '8px', 
-                                            fontSize: '13px', 
-                                            fontWeight: '700',
-                                            cursor: 'pointer'
-                                        }}>
-                                            PAY NOW
-                                        </button>
+                                    <button style={{
+                                        color: '#E9315D',
+                                        border: '1px solid #E9315D',
+                                        background: '#fff',
+                                        padding: '8px 20px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                    }}>
+                                        PAY NOW
+                                    </button>
                                 </div>
 
                                 {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}

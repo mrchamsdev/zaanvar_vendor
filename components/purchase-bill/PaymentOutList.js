@@ -836,7 +836,7 @@ const PaymentOutList = ({ onAddClick }) => {
                             {filteredTransactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        The search you entered is not matching to any supplier
+                                        The search you entered is not matching to any record
                                     </td>
                                 </tr>
                             ) : (

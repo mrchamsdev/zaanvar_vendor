@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import styles from "../styles/suppliers/suppliers.module.css";
+import dashboardStyles from "../styles/dashboard/dashboard.module.css";
 import { purchaseService } from "../services/purchaseService";
 import useStore from "../components/state/useStore";
 import { toast } from "sonner";
@@ -20,7 +21,8 @@ const IconPlus = () => (
 const SuppliersPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId: hookBranchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
+  const currentBranchId = router.query.branchId || "";
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +30,18 @@ const SuppliersPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const branchId = router.query.branchId || hookBranchId || userInfo?.branchId || (branches && branches[0]?.id) || 91;
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (!currentBranchId && branches && branches.length > 0) {
+      const targetId = defaultBranchId || branches[0].id;
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, branchId: targetId }
+      }, undefined, { shallow: true });
+    } else if (currentBranchId) {
+      setSelectedBranchId(currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
 
   useEffect(() => {
     if (router.isReady && router.query.action === 'add') {
@@ -41,10 +54,10 @@ const SuppliersPage = () => {
 
   useEffect(() => {
     if (!router.isReady) return;
-    if (branchId && jwtToken) {
+    if (currentBranchId && jwtToken) {
       fetchSuppliers();
     }
-  }, [router.isReady, branchId, jwtToken]);
+  }, [router.isReady, currentBranchId, jwtToken]);
 
   const handleBranchChange = (e) => {
     router.push({
@@ -53,10 +66,25 @@ const SuppliersPage = () => {
     }, undefined, { shallow: true });
   };
 
+  const customLeft = (
+    <div className={dashboardStyles.branchSwitcherContainer}>
+      <select 
+        className={dashboardStyles.branchSwitcher}
+        value={currentBranchId}
+        onChange={handleBranchChange}
+      >
+        {branches?.length > 1 && <option value="">All Firms</option>}
+        {branches?.map(b => (
+          <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const res = await purchaseService.getSuppliers(jwtToken, branchId);
+      const res = await purchaseService.getSuppliers(jwtToken, currentBranchId);
       if (res.status === "success") {
         setSuppliers(res.data || []);
       }
@@ -122,6 +150,7 @@ const SuppliersPage = () => {
 
   return (
     <DashboardLayout
+      customTopbarLeft={customLeft}
       customTopbarRight={(
         <button
           className={styles.addBtn}

@@ -6,10 +6,12 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
 import SaleInvoiceManager from "../../components/sale/SaleInvoiceManager";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 
 const SalesInvoicePage = () => {
     const router = useRouter();
-    const { branches, branchId } = useDashboardData();
+    const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
+    const currentBranchId = router.query.branchId || "";
 
     const [isReady, setIsReady] = React.useState(false);
     const [isPdf, setIsPdf] = React.useState(false);
@@ -23,6 +25,42 @@ const SalesInvoicePage = () => {
             setIsReady(true);
         }
     }, []);
+
+    React.useEffect(() => {
+        if (isPdf) return; // skip for pdf view
+        if (!router.isReady) return;
+        if (!currentBranchId && branches && branches.length > 0) {
+            const targetId = defaultBranchId || branches[0].id;
+            router.replace({
+                pathname: router.pathname,
+                query: { ...router.query, branchId: targetId }
+            }, undefined, { shallow: true });
+        } else if (currentBranchId) {
+            setSelectedBranchId(currentBranchId);
+        }
+    }, [router.isReady, currentBranchId, branches, defaultBranchId, isPdf, setSelectedBranchId]);
+
+    const handleBranchChange = (e) => {
+        router.push({
+            pathname: router.pathname,
+            query: { ...router.query, branchId: e.target.value }
+        }, undefined, { shallow: true });
+    };
+
+    const customLeft = (
+        <div className={dashboardStyles.branchSwitcherContainer}>
+            <select 
+                className={dashboardStyles.branchSwitcher}
+                value={currentBranchId}
+                onChange={handleBranchChange}
+            >
+                {branches?.length > 1 && <option value="">All Firms</option>}
+                {branches?.map(b => (
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                ))}
+            </select>
+        </div>
+    );
 
     if (!isReady) {
         return (
@@ -70,6 +108,7 @@ const SalesInvoicePage = () => {
 
     return (
         <DashboardLayout
+            customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
             <SalesInvoiceList
