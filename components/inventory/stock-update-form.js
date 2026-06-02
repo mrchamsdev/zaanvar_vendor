@@ -470,8 +470,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     const anyRemoval = rows.some(r => r.reason && ["Damage", "Internal purpose", "Theft", "Expired", "OnHold", "Open Stock"].includes(r.reason));
     const anyEmptyReason = rows.some(r => !r.reason);
 
-    const showAddColumn = mode === "Add" && (anyEmptyReason || anyMiscount);
-    const showRemoveColumn = mode === "Add" && (anyEmptyReason || anyMiscount || anyRemoval);
+    const showAddColumn = mode === "View" || (mode === "Add" && (anyEmptyReason || anyMiscount));
+    const showRemoveColumn = mode === "View" || (mode === "Add" && (anyEmptyReason || anyMiscount || anyRemoval));
 
     return (
         <>

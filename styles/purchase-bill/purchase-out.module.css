@@ -766,6 +766,11 @@
         -webkit-print-color-adjust: exact;
     }
 
+    .table th:last-child,
+    .table td:last-child {
+        display: none !important;
+    }
+
     .transactionsTitle {
         margin-bottom: 20px;
     }

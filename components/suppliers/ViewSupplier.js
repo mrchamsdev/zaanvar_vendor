@@ -5,8 +5,11 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
+import { useRouter } from "next/router";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
+    const router = useRouter();
+    const branchId = router.query.branchId || "";
     const { jwtToken } = useStore();
     const [loading, setLoading] = useState(false);
     const [supplier, setSupplier] = useState(null);
@@ -79,7 +82,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         console.log("Fetching supplier data for ID:", supplierId);
         try {
             const [sRes, tRes] = await Promise.all([
-                purchaseService.getSupplierById(jwtToken, supplierId),
+                purchaseService.getSupplierById(jwtToken, supplierId, branchId),
                 purchaseService.getSupplierTransactions(jwtToken, supplierId)
             ]);
 

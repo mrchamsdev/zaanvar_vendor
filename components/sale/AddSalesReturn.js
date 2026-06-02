@@ -181,13 +181,18 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     };
 
     const handleReceiptSelect = async (orderId) => {
-        setFormData({ ...formData, receiptNo: orderId });
         setShowReceiptDropdown(false);
         setErrors(prev => ({ ...prev, receiptNo: undefined, itemsEmpty: undefined }));
         setLoading(true);
         const res = await saleService.getOrderById(jwtToken, orderId);
         if (res.status === "success" && res.data) {
             setSelectedOrder(res.data);
+            const billDateStr = (res.data.createdDate || res.data.createdAt || "").split('T')[0];
+            setFormData(prev => ({
+                ...prev,
+                receiptNo: orderId,
+                billDate: billDateStr
+            }));
             const cartItems = res.data.cartItems || [];
             setAvailableItems(cartItems.map(item => {
                 const vType = item.variant?.variantType || {};
@@ -385,9 +390,20 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     if (!isOpen) return null;
 
+    const isPdf = router.query.pdf === 'true';
+
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={`${styles.overlay} ${isPdf ? styles.pdfOverlay : ''}`}>
+            {isPdf && (
+                <div className={styles.pdfTopbar}>
+                    <span className={styles.pdfTitle}>Sale Return PDF Preview</span>
+                    <div className={styles.pdfActions}>
+                        <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
+                        <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
+                    </div>
+                </div>
+            )}
+            <div className={`${styles.modal} ${isPdf ? styles.pdfModal : ''}`}>
                 <div className={styles.modalHeader}>
                     <h3 style={{ fontSize: '24px', fontWeight: '600' }}>
                         {mode === "view" ? "View Sale Return" : mode === "edit" ? "Edit Sale Return" : "Add Sale Return"}
@@ -398,7 +414,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 <div className={styles.modalContent}>
                     <div className={styles.topGrid}>
                         <div className={styles.field} style={{ zIndex: showCustomerDropdown ? 100 : 1 }}>
-                            <label>Customer Name</label>
+                            <label>Customer Name <span style={{ color: '#ff4d4f' }}>*</span></label>
                             <div
                                 className={styles.select}
                                 onClick={() => mode === "add" && setShowCustomerDropdown(!showCustomerDropdown)}
@@ -436,7 +452,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{ background: '#fff', border: '2px solid #ddd', boxShadow: 'none' }} />
                         </div>
                         <div className={styles.field} style={{ zIndex: showReceiptDropdown ? 100 : 1 }}>
-                            <label>Receipt No</label>
+                            <label>Receipt No <span style={{ color: '#ff4d4f' }}>*</span></label>
                             <div
                                 className={styles.select}
                                 onClick={() => mode === "add" && setShowReceiptDropdown(!showReceiptDropdown)}
@@ -541,7 +557,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     <th style={{ textAlign: 'center' }}>TAX (%)</th>
                                     <th style={{ textAlign: 'center' }}>DISCOUNT (%)</th>
                                     <th style={{ textAlign: 'right' }}>AMOUNT</th>
-                                    <th></th>
+                                    {mode === "add" && <th></th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -674,15 +690,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         <td style={{ textAlign: 'center' }}>{item.taxPercentage}%</td>
                                         <td style={{ textAlign: 'center' }}>{item.discountPercentage}%</td>
                                         <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
-                                        <td>
-                                            {mode === "add" && (
+                                        {mode === "add" && (
+                                            <td>
                                                 <FiTrash2 style={{ color: '#ff4d4f', cursor: 'pointer' }} onClick={() => removeItem(idx)} />
-                                            )}
-                                        </td>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
 
-                                <tr style={{ height: '40px' }}><td colSpan="10"></td></tr>
+                                <tr style={{ height: '40px' }}><td colSpan={mode === "add" ? "9" : "8"}></td></tr>
 
                                 <tr style={{ fontWeight: '700', borderTop: '2px solid #eee' }}>
                                     <td colSpan="2" style={{ paddingTop: '20px' }}>TOTAL</td>
@@ -692,7 +708,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     <td style={{ paddingTop: '20px' }}></td>
                                     <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
                                     <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
-                                    <td></td>
+                                    {mode === "add" && <td></td>}
                                 </tr>
                             </tbody>
                         </table>

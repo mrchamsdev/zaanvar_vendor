@@ -295,3 +295,36 @@
 .dropdownTable tr:hover {
     background: #f9f9f9;
 }
+
+/* PDF View Mode Overrides */
+.pdfView .table {
+    table-layout: fixed !important;
+    width: 100% !important;
+}
+
+.pdfView .table th,
+.pdfView .table td {
+    padding: 6px 4px !important;
+    font-size: 10px !important;
+    word-break: break-all !important;
+    white-space: normal !important;
+}
+
+.pdfView .snoCol { width: 4% !important; min-width: 0 !important; padding: 4px !important; text-align: center !important; }
+.pdfView .productCol { width: 22% !important; min-width: 0 !important; padding: 4px !important; }
+.pdfView th:nth-child(3), .pdfView td:nth-child(3) { width: 10% !important; padding: 4px !important; }
+.pdfView th:nth-child(4), .pdfView td:nth-child(4) { width: 10% !important; padding: 4px !important; }
+.pdfView th:nth-child(5), .pdfView td:nth-child(5) { width: 8% !important; padding: 4px !important; }
+.pdfView .qtyCol { width: 8% !important; min-width: 0 !important; padding: 4px !important; }
+.pdfView .priceCol { width: 8% !important; min-width: 0 !important; padding: 4px !important; }
+.pdfView .taxCol { width: 11% !important; min-width: 0 !important; padding: 4px !important; }
+.pdfView .amountCol { width: 8% !important; min-width: 0 !important; padding: 4px !important; }
+.pdfView th:nth-child(11), .pdfView td:nth-child(11) { display: none !important; }
+
+.pdfView .taxSubHeaders span {
+    font-size: 8px !important;
+}
+
+.pdfView .modalContent {
+    padding: 24px !important;
+}

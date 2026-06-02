@@ -13,7 +13,21 @@ const PurchaseReturnPage = () => {
     const [refreshKey, setRefreshKey] = React.useState(0);
     const currentBranchId = router.query.branchId || "";
 
+    const [isReady, setIsReady] = React.useState(false);
+    const [isPdf, setIsPdf] = React.useState(false);
+
     React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('pdf') === 'true') {
+                setIsPdf(true);
+            }
+            setIsReady(true);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (isPdf) return; // skip for pdf view
         if (!router.isReady) return;
         if (!currentBranchId && branches && branches.length > 0) {
             const targetId = defaultBranchId || branches[0].id;
@@ -24,7 +38,7 @@ const PurchaseReturnPage = () => {
         } else if (currentBranchId) {
             setSelectedBranchId(currentBranchId);
         }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+    }, [router.isReady, currentBranchId, branches, defaultBranchId, isPdf, setSelectedBranchId]);
 
     const handleBranchChange = (e) => {
         router.push({
@@ -70,6 +84,27 @@ const PurchaseReturnPage = () => {
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );
+
+    if (!isReady) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
+                Loading...
+            </div>
+        );
+    }
+
+    if (isPdf) {
+        const pdfId = router.query.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '');
+        return (
+            <AddPurchaseReturn 
+                isOpen={true}
+                mode="view"
+                returnId={pdfId}
+                onClose={() => window.close()}
+                onRefresh={() => {}}
+            />
+        );
+    }
 
     return (
         <DashboardLayout 

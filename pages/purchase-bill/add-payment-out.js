@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
+import invoiceStyles from "../../styles/sale/add-sale-invoice.module.css";
 import { FiX, FiCalendar, FiArrowLeft, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
@@ -48,6 +49,19 @@ const PaymentOutFormPage = () => {
             setPaidAmount(String(total));
         }
     }, [payments, loading, isView]);
+
+    useEffect(() => {
+        if (!loading && isView && router.query.print === "true") {
+            const timer = setTimeout(() => {
+                window.print();
+                if (router.query.pdf !== "true") {
+                    const { print, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, isView, router.query.print, router.query.pdf]);
 
     const fetchTransaction = async () => {
         setLoading(true);
@@ -182,15 +196,26 @@ const PaymentOutFormPage = () => {
     if (loading) return <div className={styles.loading}>Loading...</div>;
 
     const heading = isView ? "View Payment Out" : (isEdit ? "Edit Payment Out" : "Add Payment Out");
+    const isPdf = router.query.pdf === "true";
 
     return (
-        <div className={styles.pageWrapper}>
-            <div className={styles.formHeader}>
-                <h3>{heading}</h3>
-                <button className={styles.closeBtn} onClick={() => router.back()}><FiX /></button>
-            </div>
+        <div className={`${styles.pageWrapper} ${isPdf ? invoiceStyles.pdfOverlay : ''}`}>
+            {isPdf && (
+                <div className={invoiceStyles.pdfTopbar}>
+                    <span className={invoiceStyles.pdfTitle}>Payment Out PDF Preview</span>
+                    <div className={invoiceStyles.pdfActions}>
+                        <button className={invoiceStyles.pdfBtn} onClick={() => window.print()}>Print</button>
+                        <button className={invoiceStyles.pdfBtnClose} onClick={() => window.close()}>Close</button>
+                    </div>
+                </div>
+            )}
+            <div className={isPdf ? invoiceStyles.pdfModal : ''} style={isPdf ? { margin: '0 auto' } : { display: 'contents' }}>
+                <div className={styles.formHeader} style={{ borderBottom: isPdf ? '2px solid #333' : '', paddingBottom: isPdf ? '12px' : '', paddingLeft: isPdf ? '0' : '', paddingRight: isPdf ? '0' : '', paddingTop: isPdf ? '0' : '', marginTop: isPdf ? '0' : '' }}>
+                    <h3>{heading}</h3>
+                    <button className={styles.closeBtn} style={{ display: isPdf ? 'none' : 'flex' }} onClick={() => router.back()}><FiX /></button>
+                </div>
 
-            <div className={styles.formBody}>
+                <div className={styles.formBody} style={{ padding: isPdf ? '24px' : '' }}>
                 <div className={styles.gridRow}>
                     <div className={styles.field}>
                         <label>Name / Phone number</label>
@@ -349,7 +374,7 @@ const PaymentOutFormPage = () => {
                     />
                 </div>
 
-                <div className={styles.field}>
+                <div className={styles.field} style={{ display: isPdf ? 'none' : 'block' }}>
                     <label>Add Image</label>
                     <div className={styles.imageUpload}>
                         <input
@@ -382,8 +407,9 @@ const PaymentOutFormPage = () => {
                     )}
                 </div>
             </div>
+            </div>
 
-            <div className={styles.formActions}>
+            <div className={styles.formActions} style={{ display: isPdf ? 'none' : 'flex' }}>
                 <div style={{ position: 'relative' }}>
                     <button className={styles.shareBtn} onClick={() => setIsShareModalOpen(!isShareModalOpen)}>Share</button>
                     {isShareModalOpen && (

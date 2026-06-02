@@ -5,8 +5,11 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
+import { useRouter } from "next/router";
 
 const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) => {
+    const router = useRouter();
+    const branchId = router.query.branchId || "";
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
 
@@ -35,7 +38,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
         { id: 'PRODUCTS', name: 'PRODUCTS' }
     ];
 
-    const branchesList = (userInfo?.vendorCompanies || []).flatMap(co => 
+    const branchesList = (userInfo?.vendorCompanies || []).flatMap(co =>
         (co.branches || []).map(br => ({ id: br.id, name: br.name }))
     );
 
@@ -48,7 +51,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const fetchSupplierDetails = async () => {
         setLoading(true);
         try {
-            const res = await purchaseService.getSupplierById(jwtToken, supplierId);
+            const res = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
             if (res.status === "success") {
                 const data = res.data;
                 setSupplierName(data.supplierName || "");
@@ -132,15 +135,15 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                     <h4 style={{ marginBottom: '20px', color: '#000' }}>Supplier Information</h4>
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field}>
-                            <label>Supplier name <span style={{color: 'red'}}>*</span></label>
-                            <input 
+                            <label>Supplier name <span style={{ color: 'red' }}>*</span></label>
+                            <input
                                 type="text" className={styles.input} placeholder="Enter Supplier Name"
                                 value={supplierName} onChange={(e) => setSupplierName(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Branch Name <span style={{color: 'red'}}>*</span></label>
-                            <MultiSelectDropdown 
+                            <label>Branch Name <span style={{ color: 'red' }}>*</span></label>
+                            <MultiSelectDropdown
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
                                 setSelectedIds={setSelectedBranchIds}
@@ -148,8 +151,8 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Supplier Type <span style={{color: 'red'}}>*</span></label>
-                            <MultiSelectDropdown 
+                            <label>Supplier Type <span style={{ color: 'red' }}>*</span></label>
+                            <MultiSelectDropdown
                                 listItems={supplierTypes}
                                 selectedIds={supplierType}
                                 setSelectedIds={setSupplierType}
@@ -157,15 +160,15 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Phone Number <span style={{color: 'red'}}>*</span></label>
-                            <input 
+                            <label>Phone Number <span style={{ color: 'red' }}>*</span></label>
+                            <input
                                 type="text" className={styles.input} placeholder="Enter Phone Number"
                                 value={phone} onChange={(e) => setPhone(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>E-mail ID</label>
-                            <input 
+                            <input
                                 type="email" className={styles.input} placeholder="Enter Email ID here"
                                 value={email} onChange={(e) => setEmail(e.target.value)}
                             />
@@ -186,35 +189,35 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                         </div>
                         <div className={styles.field}>
                             <label>state</label>
-                            <input 
+                            <input
                                 type="text" className={styles.input} placeholder="Select State here"
                                 value={state} onChange={(e) => setState(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>City</label>
-                            <input 
+                            <input
                                 type="text" className={styles.input} placeholder="Select City here"
                                 value={city} onChange={(e) => setCity(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Area Name</label>
-                            <input 
+                            <input
                                 type="text" className={styles.input} placeholder="Enter Area Name"
                                 value={locality} onChange={(e) => setLocality(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Landmark</label>
-                            <input 
+                            <input
                                 type="text" className={styles.input} placeholder="Enter Landmark here"
                                 value={landmark} onChange={(e) => setLandmark(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Pin Code</label>
-                            <input 
+                            <input
                                 type="text" className={styles.input} placeholder="Enter Pin Code here"
                                 value={areaPinCode} onChange={(e) => setAreaPinCode(e.target.value)}
                             />

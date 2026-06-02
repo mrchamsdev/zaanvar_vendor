@@ -92,7 +92,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         expDate: savedItem ? savedItem.expDate : "",
                         costPrice: savedItem ? (savedItem.costPrice || "") : (item.costPrice || ""),
                         mrp: savedItem ? (savedItem.mrp || "") : (item.mrp || productInfo.mrp || ""),
-                        tax: savedItem ? savedItem.tax : 0,
+                        tax: savedItem ? (savedItem.tax ?? savedItem.taxGroupId ?? 0) : (item.taxGroupId ?? productInfo.taxGroupId ?? item.tax ?? productInfo.tax ?? 0),
                         discount: savedItem ? savedItem.discount : 0,
                         notes: savedItem ? savedItem.notes : "",
                         qty: item.qty || item.orderQuantity || 0

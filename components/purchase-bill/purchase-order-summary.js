@@ -144,26 +144,28 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         const damagedAmountTotal = rootDamagedAmount !== undefined ? parseFloat(rootDamagedAmount) : calculatedDamagedAmountTotal;
         const shortfallAmountTotal = rootShortfallAmount !== undefined ? parseFloat(rootShortfallAmount) : calculatedShortfallAmountTotal;
 
+        const discountableBase = grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal;
+        const subtotal = discountableBase - itemDiscountTotal + itemTaxTotal;
+
         let overallDiscountVal = Number(finalOverallDiscount.value) || 0;
         if (finalOverallDiscount.type === '%') {
-            overallDiscountVal = (grandTotal * (overallDiscountVal / 100));
+            overallDiscountVal = (subtotal * (overallDiscountVal / 100));
         }
 
         let overallTaxVal = Number(finalOverallTax.value) || 0;
         if (finalOverallTax.type === '%') {
-            overallTaxVal = ((grandTotal - overallDiscountVal) * (overallTaxVal / 100));
+            overallTaxVal = ((subtotal - overallDiscountVal) * (overallTaxVal / 100));
         }
 
         const previousCredit = Number(finalPreviousCredit) || 0;
-        const subtotal = grandTotal;
         const finalAmount = subtotal - overallDiscountVal + overallTaxVal - previousCredit;
 
         return {
             totalCost: totalOrderValue,
             shortfallAmountTotal,
             damagedAmountTotal,
-            discountableAmount: grandTotal,
-            discountableBase: grandTotal - calculatedItemTaxTotal + calculatedItemDiscountTotal,
+            discountableAmount: subtotal,
+            discountableBase,
             itemDiscountTotal,
             itemTaxTotal,
             overallDiscountVal,
