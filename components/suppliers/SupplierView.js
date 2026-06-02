@@ -131,7 +131,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 </td>
                                 <td className={`${styles.td} ${styles.tdBold}`}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
                                 <td className={styles.td}>{t.branchname || "Main Branch"}</td>
-                                <td className={styles.td}>{t.totalvalue || "0.00"}</td>
+                                <td className={styles.td}>{t.overallBillAmount ?? "-"}</td>
                                 <td className={styles.td}>
                                     <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{t.orderStatus || "Order Placed"}</div>
                                     <div className={styles.subText}>

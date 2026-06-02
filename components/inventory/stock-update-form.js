@@ -136,6 +136,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     const tableRef = useRef(null);
 
     useEffect(() => {
+        if (globalBranchId && mode !== "View") {
+            setBranchId(globalBranchId);
+        }
+    }, [globalBranchId, mode]);
+
+    useEffect(() => {
         if (jwtToken && branchId) {
             // In View mode, wait until stock update details are fetched before loading products
             if (mode === "View" && !rows[0].productId) {

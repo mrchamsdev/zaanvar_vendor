@@ -103,10 +103,10 @@ export const productService = {
     return await webApi.get(`vendor/product-variants/generate-sku`);
   },
 
-  getStockUpdates: async (jwt) => {
+  getStockUpdates: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/stock-updates/manual-entries`);
+      const response = await webApi.get(`vendor/stock-updates/manual-entries`, { branchId });
       const body = response?.data || response;
       return body?.data || (Array.isArray(body) ? body : []);
     } catch (error) {

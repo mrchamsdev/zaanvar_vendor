@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"; // Force refresh
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/inventory/stock-status.module.css";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 import useStore from "../../components/state/useStore";
 import { productService } from "../../services/productService";
 import { toast } from "sonner";
@@ -47,7 +48,8 @@ const TABS = [
 const StockStatusPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
+  const currentBranchId = router.query.branchId || "";
   const [activeTab, setActiveTab] = useState("outOfStock");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -69,13 +71,26 @@ const StockStatusPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
+    if (!router.isReady) return;
+    if (!currentBranchId && branches && branches.length > 0) {
+      const targetId = defaultBranchId || branches[0].id;
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, branchId: targetId }
+      }, undefined, { shallow: true });
+    } else if (currentBranchId) {
+      setSelectedBranchId(currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+
+  useEffect(() => {
     if (!isHydrated) return;
-    if (jwtToken && branchId) {
+    if (jwtToken && currentBranchId) {
       fetchReports();
     } else if (isHydrated && !jwtToken) {
       setLoading(false);
     }
-  }, [jwtToken, branchId, isHydrated]);
+  }, [jwtToken, currentBranchId, isHydrated]);
 
   useEffect(() => {
     if (router.isReady && router.query.tab) {
@@ -86,10 +101,32 @@ const StockStatusPage = () => {
     }
   }, [router.isReady, router.query.tab]);
 
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
+
+  const customLeft = (
+    <div className={dashboardStyles.branchSwitcherContainer}>
+      <select 
+        className={dashboardStyles.branchSwitcher}
+        value={currentBranchId}
+        onChange={handleBranchChange}
+      >
+        {branches?.length > 1 && <option value="">All Firms</option>}
+        {branches?.map(b => (
+          <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await productService.getStockReports(jwtToken, branchId);
+      const res = await productService.getStockReports(jwtToken, currentBranchId);
       if (res) {
         setData({
           outOfStock: res.outOfStock || [],
@@ -416,7 +453,7 @@ const StockStatusPage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout customTopbarLeft={customLeft}>
       <div className={styles.container}>
         <div className={styles.tabBar}>
           {TABS.map(t => {
