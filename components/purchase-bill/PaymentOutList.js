@@ -574,15 +574,40 @@ const PaymentOutList = ({ onAddClick }) => {
 
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "BALANCE AMOUNT", "PAYMENT TYPE"];
-        const rows = filteredTransactions.map(t => [
-            `" ${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
-            `"${t.suppliersTransactionId}"`,
-            `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
-            `"${getSupplierTotalBill(t.supplierId)}"`,
-            `"${getDisplayTotalAmount(t)}"`,
-            `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`,
-            `"${getDisplayPaymentType(t)}"`
-        ]);
+        const rows = [];
+        
+        filteredTransactions.forEach(t => {
+            rows.push([
+                `" ${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
+                `"${t.suppliersTransactionId}"`,
+                `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
+                `"${getSupplierTotalBill(t.supplierId)}"`,
+                `"${getDisplayTotalAmount(t)}"`,
+                `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`,
+                `"${getDisplayPaymentType(t)}"`
+            ]);
+
+            const splitsList = t.paymentMethods && t.paymentMethods.length > 0
+                ? t.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                : [
+                    { paymentType: t.paymentMethod || t.paymentType || "Cash", amount: t.paidAmount || t.amount || 0 },
+                    ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                ];
+
+            if (splitsList.length > 1) {
+                splitsList.forEach(split => {
+                    rows.push([
+                        `""`,
+                        `""`,
+                        `""`,
+                        `""`,
+                        `"${split.amount}"`,
+                        `""`,
+                        `"${split.paymentType}"`
+                    ]);
+                });
+            }
+        });
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -890,12 +915,24 @@ const PaymentOutList = ({ onAddClick }) => {
                                                                         setActiveDropdown(null);
                                                                     }}>Edit</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}`, '_blank');
+                                                                        window.open(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true`, '_blank');
                                                                         setActiveDropdown(null);
                                                                     }}>Open PDF</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                                        window.open(`/purchase-bill/print-receipt?id=${t.suppliersTransactionId}&autoPrint=true`, '_blank');
                                                                         setActiveDropdown(null);
+                                                                        const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true`;
+                                                                        const iframe = document.createElement('iframe');
+                                                                        iframe.style.position = 'fixed';
+                                                                        iframe.style.width = '0';
+                                                                        iframe.style.height = '0';
+                                                                        iframe.style.border = '0';
+                                                                        iframe.src = printUrl;
+                                                                        document.body.appendChild(iframe);
+                                                                        const cleanup = () => {
+                                                                            window.removeEventListener('focus', cleanup);
+                                                                            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                        };
+                                                                        window.addEventListener('focus', cleanup);
                                                                     }}>Print</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setSelectedTransaction(t);

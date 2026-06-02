@@ -245,10 +245,11 @@ export const purchaseService = {
     }
   },
 
-  getSupplierById: async (jwt, id) => {
+  getSupplierById: async (jwt, id, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/suppliers/${id}`);
+      const url = branchId ? `vendor/suppliers/${id}?branchId=${branchId}` : `vendor/suppliers/${id}`;
+      const response = await webApi.get(url);
       return response?.data || { status: "error" };
     } catch (error) {
       console.error("Error fetching supplier details:", error);

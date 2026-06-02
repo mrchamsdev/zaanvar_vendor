@@ -1390,7 +1390,7 @@ const ProductForm = ({
                           value={variant.packCount || ""}
                           disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                           onChange={(e) =>
-                            updateVariant(index, "packCount", e.target.value)
+                            updateVariantNumeric(index, "packCount", e.target.value)
                           }
                         />
                       </div>
@@ -1411,7 +1411,7 @@ const ProductForm = ({
                       placeholder="Enter count"
                       value={variant.packCount || ""}
                       onChange={(e) =>
-                        updateVariant(index, "packCount", e.target.value)
+                        updateVariantNumeric(index, "packCount", e.target.value)
                       }
                     />
                   </div>

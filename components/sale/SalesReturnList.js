@@ -320,6 +320,7 @@ const SalesReturnList = ({ onAddClick }) => {
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'customerName', 'received', 'balance'
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
+        billNo: { mode: 'Contains', value: '' },
         customerName: { mode: 'Contains', value: '' },
         received: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
@@ -487,6 +488,7 @@ const SalesReturnList = ({ onAddClick }) => {
 
             let targetVal = "";
             if (col === 'refNo') targetVal = refNo;
+            if (col === 'billNo') targetVal = String(r.userOrderId || "");
             if (col === 'customerName') targetVal = customerName;
             if (col === 'received') targetVal = (r.totalReturnAmount || 0).toString();
             if (col === 'balance') targetVal = (r.dueAmount || 0).toString();
@@ -549,6 +551,7 @@ const SalesReturnList = ({ onAddClick }) => {
             if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 const labels = {
                     refNo: 'Return ID',
+                    billNo: 'Bill No',
                     customerName: 'Customer',
                     received: 'Total Sale Return Amount',
                     balance: 'Total balance amount'
@@ -710,6 +713,20 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                 <th>
                                     BILL NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.billNo.value !== undefined && columnFilters.billNo.value !== null && columnFilters.billNo.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'billNo' ? null : 'billNo'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'billNo' && (
+                                        <GeneralFilterModal
+                                            type="text"
+                                            label="Bill No"
+                                            currentMode={columnFilters.billNo.mode}
+                                            currentValue={columnFilters.billNo.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, billNo: { mode, value: val } })}
+                                        />
+                                    )}
                                 </th>
                                 <th>
                                     RETURN ID

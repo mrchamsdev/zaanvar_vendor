@@ -1,6 +1,7 @@
 import { toApiDateOnly, toApiUtcIso, userTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/add-purchase-return.module.css";
+import invoiceStyles from "../../styles/sale/add-sale-invoice.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2, FiChevronDown } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
@@ -101,6 +102,19 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             }
         }
     }, [isOpen, branchId, jwtToken, mode, returnId]);
+
+    useEffect(() => {
+        if (!loading && isOpen && mode === "view" && router.query.print === "true") {
+            const timer = setTimeout(() => {
+                window.print();
+                if (router.query.pdf !== "true") {
+                    const { print, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, isOpen, mode, router.query.print, router.query.pdf]);
 
     const fetchReturnDetails = async (id) => {
         setLoading(true);
@@ -307,7 +321,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 const data = res.data;
 
                 // Check if bill belongs to this branch
-                if (data.branchId !== branchId) {
+                if (Number(data.branchId) !== Number(branchId)) {
                     toast.error("This receipt number is not related to this branch");
                     setBillDetails(null);
                     setItems([]);
@@ -666,32 +680,51 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
     if (!isOpen) return null;
 
+    const isPdf = router.query.pdf === 'true';
+
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={`${styles.overlay} ${isPdf ? invoiceStyles.pdfOverlay : ''}`}>
+            {isPdf && (
+                <div className={invoiceStyles.pdfTopbar}>
+                    <span className={invoiceStyles.pdfTitle}>Purchase Return PDF Preview</span>
+                    <div className={invoiceStyles.pdfActions}>
+                        <button className={invoiceStyles.pdfBtn} onClick={() => window.print()}>Print</button>
+                        <button className={invoiceStyles.pdfBtnClose} onClick={() => window.close()}>Close</button>
+                    </div>
+                </div>
+            )}
+            <div className={`${styles.modal} ${isPdf ? `${invoiceStyles.pdfModal} ${styles.pdfView}` : ''}`}>
                 <div className={styles.modalHeader}>
                     <h3 style={{ fontSize: '24px', fontWeight: '600' }}>
                         {mode === 'view' ? "View Purchase Return" : (mode === 'edit' ? "Edit Purchase Return" : "Add Purchase Return")}
                     </h3>
-                    <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
+                    <button className={styles.closeBtn} style={{ display: isPdf ? 'none' : 'flex' }} onClick={onClose}><FiX /></button>
                 </div>
 
                 <div className={styles.modalContent}>
                     <div className={styles.topGrid}>
                         <div className={styles.field}>
                             <label>Supplier Name</label>
-                            <select
-                                className={styles.select}
-                                style={{ border: errors.supplier ? '1px solid #ff4d4f' : '1px solid #eef0f2' }}
-                                value={selectedSupplier?.supplierId || ""}
-                                onChange={(e) => handleSupplierChange(e.target.value)}
-                                disabled={isViewOnly}
-                            >
-                                <option value="">Select Name</option>
-                                {suppliers.map(s => (
-                                    <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
-                                ))}
-                            </select>
+                            {isViewOnly ? (
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={selectedSupplier?.supplierName || ""}
+                                    disabled
+                                />
+                            ) : (
+                                <select
+                                    className={styles.select}
+                                    style={{ border: errors.supplier ? '1px solid #ff4d4f' : '1px solid #eef0f2' }}
+                                    value={selectedSupplier?.supplierId || ""}
+                                    onChange={(e) => handleSupplierChange(e.target.value)}
+                                >
+                                    <option value="">Select Name</option>
+                                    {suppliers.map(s => (
+                                        <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
+                                    ))}
+                                </select>
+                            )}
                             {errors.supplier && (
                                 <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', fontWeight: '500' }}>
                                     {errors.supplier}
@@ -711,18 +744,27 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                         </div>
                         <div className={styles.field}>
                             <label>Receipt No</label>
-                            <select
-                                className={styles.select}
-                                style={{ border: errors.selectedBillId ? '1px solid #ff4d4f' : '1px solid #eef0f2' }}
-                                value={selectedBillId}
-                                onChange={(e) => handleBillChange(e.target.value)}
-                                disabled={isViewOnly || !selectedSupplier}
-                            >
-                                <option value="">Select Receipt no</option>
-                                {receipts && receipts.map(r => (
-                                    <option key={r.productsBillId} value={r.productsBillId}>{r.productsBillId}</option>
-                                ))}
-                            </select>
+                            {isViewOnly ? (
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={selectedBillId}
+                                    disabled
+                                />
+                            ) : (
+                                <select
+                                    className={styles.select}
+                                    style={{ border: errors.selectedBillId ? '1px solid #ff4d4f' : '1px solid #eef0f2' }}
+                                    value={selectedBillId}
+                                    onChange={(e) => handleBillChange(e.target.value)}
+                                    disabled={!selectedSupplier}
+                                >
+                                    <option value="">Select Receipt no</option>
+                                    {receipts && receipts.map(r => (
+                                        <option key={r.productsBillId} value={r.productsBillId}>{r.productsBillId}</option>
+                                    ))}
+                                </select>
+                            )}
                             {errors.selectedBillId && (
                                 <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', fontWeight: '500' }}>
                                     {errors.selectedBillId}
@@ -762,7 +804,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     readOnly
                                     disabled={isViewOnly}
                                 />
-                                <FiCalendar className={styles.calendarIcon} />
+                                <FiCalendar className={styles.calendarIcon} style={{ display: isPdf ? 'none' : 'block' }} />
                             </div>
                         </div>
                         <div className={styles.field}>
@@ -829,13 +871,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                         <td className={styles.snoCol}>{(idx + 1).toString().padStart(2, '0')}</td>
                                         <td className={styles.productCol} style={{ position: 'relative', verticalAlign: 'middle' }}>
                                             <div
-                                                className={styles.productSelectBox}
+                                                className={`${styles.productSelectBox} ${isPdf ? invoiceStyles.select : ''}`}
                                                 onClick={() => !isViewOnly && setShowProductDropdown(showProductDropdown === idx ? null : idx)}
                                                 style={{
                                                     cursor: isViewOnly ? 'default' : 'pointer',
-                                                    border: item.productError ? '1px solid #ff4d4f' : 'none',
+                                                    border: isPdf ? 'none' : (item.productError ? '1px solid #ff4d4f' : 'none'),
                                                     borderRadius: item.productError ? '4px' : 'none',
-                                                    padding: item.productError ? '4px' : '0'
+                                                    padding: isPdf ? '6px 0' : (item.productError ? '4px' : '0')
                                                 }}
                                             >
                                                 <span>{item.productName || "Select Item"}</span>
@@ -1049,7 +1091,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     </div>
                 </div>
 
-                <div className={styles.footer}>
+                <div className={styles.footer} style={{ display: isPdf ? 'none' : 'flex' }}>
                     <button className={styles.shareBtn} onClick={onClose}>{isViewOnly ? "Close" : "Cancel"}</button>
                     {!isViewOnly && (
                         <button

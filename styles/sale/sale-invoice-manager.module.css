@@ -333,3 +333,186 @@
     border: 1px solid #eee;
     flex-shrink: 0;
 }
+
+@media print {
+    /* Hide the sidebar, header/topbars, cancel/print buttons, window controls */
+    :global(aside),
+    :global(header),
+    :global([class*="sidebar"]),
+    :global([class*="Sidebar"]),
+    :global([class*="topbar"]),
+    :global([class*="Topbar"]),
+    :global([class*="mobTopbar"]),
+    :global([class*="hamburger"]),
+    .tabBar,
+    .minimizedBar,
+    :global(.closeBtn),
+    :global(.footer) {
+        display: none !important;
+    }
+    
+    /* Hide the background list container behind the modal */
+    :global(.pageContent) > :global(div:first-child) {
+        display: none !important;
+    }
+    
+    /* Reset layout wrapper properties for print flow */
+    :global(.dashWrap),
+    :global(.mainArea),
+    :global(.pageContent),
+    :global(main) {
+        position: static !important;
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+    
+    .taskManager {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        display: block !important;
+        z-index: 9999 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .formContent {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+    
+    .formWrapper {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+    }
+    
+    .managerHeader {
+        padding: 10px 0 !important;
+        font-size: 16px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+    
+    @page {
+        margin: 0.4cm !important;
+    }
+}
+
+/* PDF View Mode Styling */
+.pdfOverlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    background: #525659 !important; /* Adobe dark grey */
+    padding-top: 68px !important;
+    padding-bottom: 40px !important;
+    display: block !important;
+    overflow: auto !important;
+    z-index: 9999 !important;
+    box-sizing: border-box !important;
+}
+
+.pdfModalContainer {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.pdfModal {
+    width: 210mm !important;
+    max-width: 820px !important;
+    min-height: 297mm !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    border-radius: 4px !important;
+    border: 1px solid #333 !important;
+    overflow: visible !important;
+}
+
+.pdfModal :global(.formContainer),
+.pdfModal :global(.modalContent) {
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+.pdfModal :global([class*="closeBtn"]),
+.pdfModal :global([class*="footer"]) {
+    display: none !important;
+}
+
+/* Custom PDF Header Toolbar */
+.pdfTopbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 48px !important;
+    background: #323639 !important; /* Chrome PDF dark */
+    color: #ffffff !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 24px !important;
+    z-index: 10000 !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.pdfTitle {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}
+
+.pdfActions {
+    display: flex !important;
+    gap: 12px !important;
+}
+
+.pdfBtn {
+    background: #E93E64 !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+}
+
+.pdfBtn:hover {
+    background: #d63255 !important;
+}
+
+.pdfBtnClose {
+    background: #4a4d51 !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+}
+
+.pdfBtnClose:hover {
+    background: #5f6266 !important;
+}

@@ -94,6 +94,19 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     }, [isOpen, mode, paymentId, prefill]);
 
     useEffect(() => {
+        if (!loading && isOpen && mode === "view" && router.query.print === "true") {
+            const timer = setTimeout(() => {
+                window.print();
+                if (router.query.pdf !== "true") {
+                    const { print, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, isOpen, mode, router.query.print, router.query.pdf]);
+
+    useEffect(() => {
         const handleClickOutside = (e) => {
             if (!e.target.closest(`.${styles.field}`)) {
                 setShowCustomerDropdown(false);
@@ -412,9 +425,20 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
     if (!isOpen) return null;
 
+    const isPdf = router.query.pdf === 'true';
+
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={`${styles.overlay} ${isPdf ? styles.pdfOverlay : ''}`}>
+            {isPdf && (
+                <div className={styles.pdfTopbar}>
+                    <span className={styles.pdfTitle}>Payment In PDF Preview</span>
+                    <div className={styles.pdfActions}>
+                        <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
+                        <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
+                    </div>
+                </div>
+            )}
+            <div className={`${styles.modal} ${isPdf ? styles.pdfModal : ''}`}>
                 <div className={styles.modalHeader}>
                     <h3>{mode === 'add' ? 'Add Payment In' : (mode === 'view' ? 'View Payment In' : 'Edit Payment In')}</h3>
                     <FiX className={styles.closeBtn} onClick={onClose} />
@@ -737,7 +761,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 </div>
 
                 <div className={styles.footer}>
-                    <button className={styles.shareBtn} onClick={onClose}>Share</button>
+                    <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
                     {isViewOnly && (
                         <button className={styles.saveBtn} onClick={() => window.print()} >Print</button>
                     )}

@@ -314,6 +314,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'supplierName', 'received', 'balance'
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
+        billNo: { mode: 'Contains', value: '' },
         supplierName: { mode: 'Contains', value: '' },
         totalAmount: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
@@ -452,6 +453,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             let targetValue = "";
             if (key === 'refNo') targetValue = String(r.returnProductsId);
+            else if (key === 'billNo') targetValue = String(r.productsBillId || "");
             else if (key === 'supplierName') targetValue = String(r.supplierName || "");
             else if (key === 'totalAmount') targetValue = String(r.returnAmount || 0);
             else if (key === 'balance') targetValue = String(r.totalBalanceAmount || 0);
@@ -644,7 +646,23 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th>BILL NO</th>
+                                <th>
+                                    BILL NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.billNo.value !== undefined && columnFilters.billNo.value !== null && columnFilters.billNo.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'billNo' ? null : 'billNo'); setIsDateFilterOpen(false); }}
+                                    />
+                                    {openFilterCol === 'billNo' && (
+                                        <GeneralFilterModal
+                                            type="text"
+                                            label="Bill No"
+                                            currentMode={columnFilters.billNo.mode}
+                                            currentValue={columnFilters.billNo.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, billNo: { mode, value: val } })}
+                                        />
+                                    )}
+                                </th>
                                 <th>
                                     SUPPLIER NAME
                                     <FiFilter
@@ -726,7 +744,6 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                     <FiShare2
                                                         className={styles.actionIcon}
                                                         onClick={() => {
-                                                            setSelectedReturn(r);
                                                             setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
                                                         }}
                                                     />
@@ -762,12 +779,24 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                             setActiveDropdown(null);
                                                         }}>Edit</div> */}
                                                             <div className={styles.dropdownItem} onClick={() => {
-                                                                window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}`, '_blank');
+                                                                window.open(`${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true`, '_blank');
                                                                 setActiveDropdown(null);
                                                             }}>Open PDF</div>
                                                             <div className={styles.dropdownItem} onClick={() => {
-                                                                window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}&autoPrint=true`, '_blank');
                                                                 setActiveDropdown(null);
+                                                                const printUrl = `${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true&print=true`;
+                                                                const iframe = document.createElement('iframe');
+                                                                iframe.style.position = 'fixed';
+                                                                iframe.style.width = '0';
+                                                                iframe.style.height = '0';
+                                                                iframe.style.border = '0';
+                                                                iframe.src = printUrl;
+                                                                document.body.appendChild(iframe);
+                                                                const cleanup = () => {
+                                                                    window.removeEventListener('focus', cleanup);
+                                                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                };
+                                                                window.addEventListener('focus', cleanup);
                                                             }}>Print</div>
                                                         </div>
                                                     )}

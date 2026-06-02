@@ -7,8 +7,11 @@ import PayNowModal from "../purchase-bill/PayNowModal";
 import PurchaseOrderManager from "../purchase-bill/purchase-order-manager";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { useRouter } from "next/router";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
+    const router = useRouter();
+    const branchId = router.query.branchId || "";
     const { jwtToken } = useStore();
     const [loading, setLoading] = useState(false);
     const [supplier, setSupplier] = useState(data);
@@ -77,12 +80,12 @@ const SupplierView = ({ data, onBack, isSplit }) => {
         if (supplierId) {
             fetchData();
         }
-    }, [supplierId]);
+    }, [supplierId, branchId]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const sRes = await purchaseService.getSupplierById(jwtToken, supplierId);
+            const sRes = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
 
             if (sRes && (sRes.status === "success" || sRes.status === 200 || sRes.data?.status === "success")) {
                 const supplierData = sRes.data || sRes;

@@ -681,15 +681,40 @@ const PaymentInList = ({ onAddClick }) => {
 
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL", "PAYMENT TYPE", "PAID", "BALANCE"];
-        const rows = filteredPayments.map(p => [
-            `" ${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
-            `"${p.userOrderId || ""}"`,
-            `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
-            `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
-            `"${getDisplayPaymentType(p)}"`,
-            `"${getDisplayTotalAmount(p)}"`,
-            `"${p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)}"`
-        ]);
+        const rows = [];
+        
+        filteredPayments.forEach(p => {
+            rows.push([
+                `" ${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
+                `"${p.userOrderId || ""}"`,
+                `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
+                `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
+                `"${getDisplayPaymentType(p)}"`,
+                `"${getDisplayTotalAmount(p)}"`,
+                `"${p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)}"`
+            ]);
+
+            const splitsList = p.paymentMethods && p.paymentMethods.length > 0
+                ? p.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                : [
+                    { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
+                    ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                ];
+
+            if (splitsList.length > 1) {
+                splitsList.forEach(split => {
+                    rows.push([
+                        `""`,
+                        `""`,
+                        `""`,
+                        `""`,
+                        `"${split.paymentType}"`,
+                        `"${split.amount}"`,
+                        `""`
+                    ]);
+                });
+            }
+        });
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -959,7 +984,7 @@ const PaymentInList = ({ onAddClick }) => {
                                         <React.Fragment key={p.paymentId || idx}>
                                             <tr>
                                                 <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                                <td>{p.userOrderId}</td>
+                                                <td>{p.userOrderId || "-"}</td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
                                                 <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>

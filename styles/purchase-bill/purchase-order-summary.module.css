@@ -445,6 +445,10 @@
         white-space: normal !important;
     }
 
+    .table td * {
+        font-size: 8px !important;
+    }
+
     .totalLabelCell {
         font-size: 9px !important;
         padding: 6px 4px !important;

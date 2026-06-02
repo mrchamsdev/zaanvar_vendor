@@ -4,6 +4,7 @@ import SaleInvoiceForm from "./SaleInvoiceForm";
 import useStore from "../../components/state/useStore";
 import { saleService } from "../../services/saleService";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 const IconMinimize = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -28,6 +29,7 @@ const IconX = () => (
 );
 
 const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }) => {
+  const router = useRouter();
   const { jwtToken } = useStore();
   const [tabs, setTabs] = useState([]);
   const [activeTabId, setActiveTabId] = useState(null);
@@ -241,6 +243,40 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
   const activeTab = tabs.find(t => t.id === activeTabId);
 
   if (!isOpen) return null;
+
+  const isPdf = router.query.pdf === "true";
+  if (isPdf) {
+    const activeTab = tabs[0];
+    return (
+      <div className={styles.pdfOverlay}>
+        <div className={styles.pdfTopbar}>
+          <span className={styles.pdfTitle}>Sale Invoice PDF Preview</span>
+          <div className={styles.pdfActions}>
+            <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
+            <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
+          </div>
+        </div>
+        <div className={styles.pdfModalContainer}>
+          <div className={styles.pdfModal}>
+            {activeTab && !activeTab.loading ? (
+              <SaleInvoiceForm 
+                mode={activeTab.mode}
+                saleId={activeTab.saleId}
+                tabId={activeTab.id}
+                initialData={activeTab.data}
+                onSave={() => {}}
+                onCancel={() => window.close()}
+              />
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+                Loading...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`}>
