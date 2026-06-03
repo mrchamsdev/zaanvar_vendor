@@ -28,7 +28,7 @@ const IconX = () => (
   </svg>
 );
 
-const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }) => {
+const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, trigger }) => {
   const router = useRouter();
   const { jwtToken } = useStore();
   const [tabs, setTabs] = useState([]);
@@ -92,7 +92,7 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
       return;
     }
 
-    const propKey = `${mode}-${saleId || "new"}`;
+    const propKey = `${mode}-${saleId || "new"}-${trigger || 0}`;
     if (lastProcessedPropRef.current === propKey) {
       return;
     }
@@ -148,7 +148,7 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
         fetchInvoiceDetails(saleId, tabId);
       }
     }
-  }, [isOpen, mode, saleId]);
+  }, [isOpen, mode, saleId, trigger]);
 
   const addTab = () => {
     const newId = `new_${Date.now()}`;
@@ -295,7 +295,9 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh }
 
         <div className={styles.windowActions}>
           <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-          <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+          {tabs.length > 1 && (
+            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+          )}
           <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
         </div>
       </div>

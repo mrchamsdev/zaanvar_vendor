@@ -254,13 +254,45 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         newRows[index].costPrice = variant.costPrice || 0;
         newRows[index].expiryDate = variant.expiryDate?.split('T')[0] || "";
 
+        // Validate remove quantity for the new variant
+        const newErrors = { ...errors };
+        const removeQty = parseInt(newRows[index].remove) || 0;
+        const currentQty = parseInt(newRows[index].currentQty) || 0;
+        if (removeQty > currentQty) {
+            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
+        } else {
+            delete newErrors[`${index}_remove`];
+        }
+        setErrors(newErrors);
+
         updateRowCalculations(newRows, index);
         setRows(newRows);
     };
 
     const removeRow = (id) => {
         if (rows.length > 1) {
-            setRows(rows.filter(r => r.id !== id));
+            const rowIndex = rows.findIndex(r => r.id === id);
+            if (rowIndex !== -1) {
+                setRows(rows.filter(r => r.id !== id));
+
+                // Adjust the keys in errors state to prevent shifted error displays
+                const newErrors = {};
+                Object.keys(errors).forEach(key => {
+                    const parts = key.split('_');
+                    if (parts.length > 1) {
+                        const idx = parseInt(parts[0]);
+                        const fieldName = parts.slice(1).join('_');
+                        if (idx < rowIndex) {
+                            newErrors[key] = errors[key];
+                        } else if (idx > rowIndex) {
+                            newErrors[`${idx - 1}_${fieldName}`] = errors[key];
+                        }
+                    } else {
+                        newErrors[key] = errors[key];
+                    }
+                });
+                setErrors(newErrors);
+            }
         }
     };
 
@@ -285,9 +317,16 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             newRows[index].expiryDate = v.expiryDate?.split('T')[0] || "";
         }
 
-        // Clear error for this field
+        // Clear error for this field and validate remove quantity
         const newErrors = { ...errors };
         delete newErrors[`${index}_product`];
+        const removeQty = parseInt(newRows[index].remove) || 0;
+        const currentQty = parseInt(newRows[index].currentQty) || 0;
+        if (removeQty > currentQty) {
+            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
+        } else {
+            delete newErrors[`${index}_remove`];
+        }
         setErrors(newErrors);
 
         updateRowCalculations(newRows, index);
@@ -362,6 +401,24 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         if (field === 'reason') {
             delete newErrors[`${index}_expiryDate`];
         }
+
+        // Validate remove quantity does not exceed current quantity or be negative
+        const removeQty = parseInt(newRows[index].remove) || 0;
+        const currentQty = parseInt(newRows[index].currentQty) || 0;
+        const addQty = parseInt(newRows[index].add) || 0;
+
+        if (removeQty > currentQty) {
+            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
+        } else if (removeQty < 0) {
+            newErrors[`${index}_remove`] = "Cannot be negative";
+        } else if (field !== 'add' && field !== 'remove') {
+            delete newErrors[`${index}_remove`];
+        }
+
+        if (addQty < 0) {
+            newErrors[`${index}_add`] = "Cannot be negative";
+        }
+
         setErrors(newErrors);
 
         updateRowCalculations(newRows, index);
@@ -397,6 +454,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             }
             if (row.reason === "Expired" && !row.expiryDate) {
                 newErrors[`${index}_expiryDate`] = "Expiry Date is required";
+            }
+
+            const removeQty = parseInt(row.remove) || 0;
+            const currentQty = parseInt(row.currentQty) || 0;
+            const addQty = parseInt(row.add) || 0;
+
+            if (removeQty > currentQty) {
+                newErrors[`${index}_remove`] = "Cannot exceed current quantity";
+            } else if (removeQty < 0) {
+                newErrors[`${index}_remove`] = "Cannot be negative";
+            }
+            if (addQty < 0) {
+                newErrors[`${index}_add`] = "Cannot be negative";
             }
         });
 
@@ -641,6 +711,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                     id={`field_${index}_add`}
                                                                     className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`}
                                                                     type="number"
+                                                                    min="0"
                                                                     value={row.add || ""}
                                                                     onChange={(e) => updateRowField(index, 'add', e.target.value)}
                                                                     placeholder="0"
@@ -658,6 +729,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                 id={`field_${index}_remove`}
                                                                 className={`${styles.tableInput} ${errors[`${index}_remove`] ? styles.errorField : ""}`}
                                                                 type="number"
+                                                                min="0"
                                                                 value={row.remove || ""}
                                                                 onChange={(e) => updateRowField(index, 'remove', e.target.value)}
                                                                 placeholder="0"

@@ -64,6 +64,7 @@ const ProductsPage = () => {
   const [formMode, setFormMode] = useState("Add");
   const [editProductData, setEditProductData] = useState(null);
   const [expandedRows, setExpandedRows] = useState([]);
+  const [triggerAddProduct, setTriggerAddProduct] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -289,7 +290,7 @@ const ProductsPage = () => {
           </button>
           {showAddDropdown && (
             <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); }}>
+              <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); setTriggerAddProduct(prev => prev + 1); }}>
                 <IconPlus /> Add Product
               </div>
               <hr style={{ margin: 0, border: 'none', borderTop: '1px solid #eee' }} />
@@ -307,6 +308,7 @@ const ProductsPage = () => {
           <ProductFormManager
             mode={formMode}
             initialData={formMode === "Add" ? null : editProductData}
+            trigger={triggerAddProduct}
             onClose={() => {
               setIsAddingProduct(false);
               fetchProducts();
@@ -377,7 +379,7 @@ const ProductsPage = () => {
         ) : products.length === 0 ? (
           <EmptyState
             buttonText="Add Product"
-            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
+            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
           />
         ) : (
           <div className={styles.tableWrapper}>
@@ -521,6 +523,7 @@ const ProductsPage = () => {
                         setEditProductData(fullProducts);
                         setFormMode("View");
                         setIsAddingProduct(true);
+                        setTriggerAddProduct(prev => prev + 1);
                       } catch (e) {
                         console.error("Error fetching full product details:", e);
                       } finally {
@@ -550,6 +553,7 @@ const ProductsPage = () => {
                         setEditProductData(fullProducts);
                         setFormMode("Edit");
                         setIsAddingProduct(true);
+                        setTriggerAddProduct(prev => prev + 1);
                       } catch (e) {
                         console.error("Error fetching full product details for edit:", e);
                       } finally {

@@ -60,7 +60,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
             return;
         }
         try {
-            const res = await purchaseService.getSupplierTransactions(jwtToken, supplierId);
+            const res = await purchaseService.getSupplierTransactions(jwtToken, supplierId, branchId);
             if (res.status === "success") {
                 const totals = res.totals?.[0] || null;
                 setSupplierTotals(totals);

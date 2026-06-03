@@ -336,7 +336,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 productsPurchaseRqstId: requestId,
                 branchId: orderData?.branchId || 91,
                 ...receivedDateFields,
-                amountPaidToSupplier: Number(paidAmount),
+                amountPaidToSupplier: paymentStatus === "Full" ? Number(breakdown.finalAmount) : Number(paidAmount),
                 paymentStatus: paymentStatus,
                 duedate: paymentStatus === "Full" ? null : duedate,
                 returnsApplicable: damagedReturnedGoods,

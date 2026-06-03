@@ -550,8 +550,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             <thead>
                                 <tr>
                                     <th>S NO.</th>
-                                    <th>PRODUCT NAME</th>
-                                    <th style={{ textAlign: 'center' }}>QTY / UNIT</th>
+                                    <th>PRODUCT NAME <span style={{ color: '#FF4D4F' }}>*</span></th>
+                                    <th style={{ textAlign: 'center' }}>QTY / UNIT <span style={{ color: '#FF4D4F' }}>*</span></th>
                                     <th style={{ textAlign: 'right' }}>Price /Unit</th>
                                     <th style={{ textAlign: 'center' }}>RETURN CONDITION</th>
                                     <th style={{ textAlign: 'center' }}>TAX (%)</th>

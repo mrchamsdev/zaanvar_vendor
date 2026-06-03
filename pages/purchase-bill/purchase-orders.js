@@ -51,6 +51,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -314,6 +315,7 @@ const PurchaseOrdersPage = () => {
     const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [managerTrigger, setManagerTrigger] = useState(0);
 
     const [summary, setSummary] = useState(null);
 
@@ -529,6 +531,7 @@ const PurchaseOrdersPage = () => {
 
     const openOrder = (id = null, mode = "View", initialData = null) => {
         setManagerConfig({ mode, id, initialData });
+        setManagerTrigger(prev => prev + 1);
     };
 
     const formatDate = (dateString) => {
@@ -575,6 +578,7 @@ const PurchaseOrdersPage = () => {
                         mode={managerConfig.mode}
                         initialId={managerConfig.id}
                         initialData={managerConfig.initialData}
+                        trigger={managerTrigger}
                         totalOrders={stats.total}
                         onSave={() => {
                             if (managerConfig.initialData?.returnTab) {
@@ -634,11 +638,13 @@ const PurchaseOrdersPage = () => {
                             <thead>
                                 <tr>
                                     <th>
-                                        ORDER DATE
-                                        <FiFilter
-                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                        />
+                                        <div className={styles.thContent}>
+                                            ORDER DATE
+                                            <FiFilter
+                                                className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                                onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                            />
+                                        </div>
                                         {isDateFilterOpen && (
                                             <DateFilterModal
                                                 currentMode={dateFilterMode}
@@ -652,11 +658,13 @@ const PurchaseOrdersPage = () => {
                                         )}
                                     </th>
                                     <th>
-                                        ORDER NO
-                                        <FiFilter
-                                            className={`${styles.filterIcon} ${(columnFilters.orderNo.value !== undefined && columnFilters.orderNo.value !== null && columnFilters.orderNo.value !== '') ? styles.filterIconActive : ''}`}
-                                            onClick={() => { setOpenFilterCol(openFilterCol === 'orderNo' ? null : 'orderNo'); setIsDateFilterOpen(false); }}
-                                        />
+                                        <div className={styles.thContent}>
+                                            ORDER NO
+                                            <FiFilter
+                                                className={`${styles.filterIcon} ${(columnFilters.orderNo.value !== undefined && columnFilters.orderNo.value !== null && columnFilters.orderNo.value !== '') ? styles.filterIconActive : ''}`}
+                                                onClick={() => { setOpenFilterCol(openFilterCol === 'orderNo' ? null : 'orderNo'); setIsDateFilterOpen(false); }}
+                                            />
+                                        </div>
                                         {openFilterCol === 'orderNo' && (
                                             <GeneralFilterModal
                                                 type="text"
@@ -669,11 +677,13 @@ const PurchaseOrdersPage = () => {
                                         )}
                                     </th>
                                     <th>
-                                        SUPPLIER NAME
-                                        <FiFilter
-                                            className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
-                                            onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
-                                        />
+                                        <div className={styles.thContent}>
+                                            SUPPLIER NAME
+                                            <FiFilter
+                                                className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
+                                                onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
+                                            />
+                                        </div>
                                         {openFilterCol === 'supplierName' && (
                                             <GeneralFilterModal
                                                 type="text"
@@ -686,11 +696,13 @@ const PurchaseOrdersPage = () => {
                                         )}
                                     </th>
                                     <th>
-                                        TO
-                                        <FiFilter
-                                            className={`${styles.filterIcon} ${(columnFilters.to.value !== undefined && columnFilters.to.value !== null && columnFilters.to.value !== '') ? styles.filterIconActive : ''}`}
-                                            onClick={() => { setOpenFilterCol(openFilterCol === 'to' ? null : 'to'); setIsDateFilterOpen(false); }}
-                                        />
+                                        <div className={styles.thContent}>
+                                            TO
+                                            <FiFilter
+                                                className={`${styles.filterIcon} ${(columnFilters.to.value !== undefined && columnFilters.to.value !== null && columnFilters.to.value !== '') ? styles.filterIconActive : ''}`}
+                                                onClick={() => { setOpenFilterCol(openFilterCol === 'to' ? null : 'to'); setIsDateFilterOpen(false); }}
+                                            />
+                                        </div>
                                         {openFilterCol === 'to' && (
                                             <GeneralFilterModal
                                                 type="text"
@@ -703,11 +715,13 @@ const PurchaseOrdersPage = () => {
                                         )}
                                     </th>
                                     <th>
-                                        Order Value
-                                        <FiFilter
-                                            className={`${styles.filterIcon} ${(columnFilters.orderValue.value !== undefined && columnFilters.orderValue.value !== null && columnFilters.orderValue.value !== '') ? styles.filterIconActive : ''}`}
-                                            onClick={() => { setOpenFilterCol(openFilterCol === 'orderValue' ? null : 'orderValue'); setIsDateFilterOpen(false); }}
-                                        />
+                                        <div className={styles.thContent}>
+                                            Order Value
+                                            <FiFilter
+                                                className={`${styles.filterIcon} ${(columnFilters.orderValue.value !== undefined && columnFilters.orderValue.value !== null && columnFilters.orderValue.value !== '') ? styles.filterIconActive : ''}`}
+                                                onClick={() => { setOpenFilterCol(openFilterCol === 'orderValue' ? null : 'orderValue'); setIsDateFilterOpen(false); }}
+                                            />
+                                        </div>
                                         {openFilterCol === 'orderValue' && (
                                             <GeneralFilterModal
                                                 type="text"

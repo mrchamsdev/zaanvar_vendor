@@ -266,7 +266,10 @@ export class WebApimanager {
           throw error;
         });
     } catch (e) {
-      // swal("Failure", "Something went wrong. Please try again later.", "error");
+      if (e.response) {
+        return e.response;
+      }
+      throw e;
     }
   }
   async put(url, data) {
@@ -298,11 +301,10 @@ export class WebApimanager {
           throw error;
         });
     } catch (e) {
-      // swal(
-      //   'Failure',
-      //   Something went wrong. Please try again after sometime.,
-      //   "error"
-      // );
+      if (e.response) {
+        return e.response;
+      }
+      throw e;
     }
   }
 

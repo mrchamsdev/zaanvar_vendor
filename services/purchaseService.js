@@ -23,10 +23,16 @@ export const purchaseService = {
     }
   },
 
-  getBranchTransactions: async (jwt, branchId) => {
+  getBranchTransactions: async (jwt, branchId, dateFilterParams = {}) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/transactions/branch/${branchId}?paymentFrom=payment out`);
+      let url = `vendor/transactions/branch/${branchId}?paymentFrom=payment out`;
+      if (dateFilterParams.dateFilter) {
+        url += `&dateFilter=${dateFilterParams.dateFilter}`;
+      } else if (dateFilterParams.fromDate && dateFilterParams.toDate) {
+        url += `&fromDate=${dateFilterParams.fromDate}&toDate=${dateFilterParams.toDate}`;
+      }
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching branch transactions:", error);
@@ -34,10 +40,21 @@ export const purchaseService = {
     }
   },
 
-  getBranchReturns: async (jwt, branchId) => {
+  getBranchReturns: async (jwt, branchId, dateFilterParams = {}) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/returns/branch/${branchId}`);
+      let url = `vendor/returns/branch/${branchId}`;
+      const queryParams = [];
+      if (dateFilterParams.dateFilter) {
+        queryParams.push(`dateFilter=${dateFilterParams.dateFilter}`);
+      } else if (dateFilterParams.fromDate && dateFilterParams.toDate) {
+        queryParams.push(`fromDate=${dateFilterParams.fromDate}`);
+        queryParams.push(`toDate=${dateFilterParams.toDate}`);
+      }
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join("&")}`;
+      }
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching branch returns:", error);
@@ -45,10 +62,10 @@ export const purchaseService = {
     }
   },
 
-  getSupplierTransactions: async (jwt, supplierId) => {
+  getSupplierTransactions: async (jwt, supplierId, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/transactions/supplier/${supplierId}`);
+      const response = await webApi.get(`vendor/transactions/supplier/${supplierId}`, branchId ? { branchId } : undefined);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching supplier transactions:", error);
@@ -230,7 +247,10 @@ export const purchaseService = {
       return response || { status: "error" };
     } catch (error) {
       console.error("Error updating supplier:", error);
-      return { status: "error" };
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { status: "error", message: error.message };
     }
   },
 
@@ -241,7 +261,10 @@ export const purchaseService = {
       return response || { status: "error" };
     } catch (error) {
       console.error("Error deleting supplier:", error);
-      return { status: "error" };
+      if (error.response && error.response.data) {
+        return error.response.data;
+      }
+      return { status: "error", message: error.message };
     }
   },
 

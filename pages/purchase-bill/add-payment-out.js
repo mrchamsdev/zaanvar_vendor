@@ -241,12 +241,12 @@ const PaymentOutFormPage = () => {
                     <div className={styles.field}>
                         <label>Total Balance Amount</label>
                         <div style={{ position: 'relative', width: '100%' }}>
-                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                            {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
                                 value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
-                                style={{ paddingLeft: '32px', width: '100%' }}
+                                style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
                                 readOnly
                             />
                         </div>
@@ -254,12 +254,12 @@ const PaymentOutFormPage = () => {
                     <div className={styles.field}>
                         <label>Total Bill Amount</label>
                         <div style={{ position: 'relative', width: '100%' }}>
-                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                            {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
                                 value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
-                                style={{ paddingLeft: '32px', width: '100%' }}
+                                style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
                                 readOnly
                             />
                         </div>
@@ -308,7 +308,7 @@ const PaymentOutFormPage = () => {
                                 <label>Amount Paid</label>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <div style={{ position: 'relative', flex: 1, width: '100%' }}>
-                                        <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                        {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
                                         <input
                                             type="number"
                                             className={`${styles.input} ${isView ? styles.readOnly : ""}`}
@@ -319,7 +319,7 @@ const PaymentOutFormPage = () => {
                                                 setPayments(newPayments);
                                             }}
                                             readOnly={isView}
-                                            style={{ paddingLeft: '32px', width: '100%' }}
+                                            style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
                                             placeholder="25000"
                                         />
                                     </div>

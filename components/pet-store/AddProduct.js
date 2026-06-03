@@ -80,7 +80,14 @@ const UnitPopup = ({ isOpen, onClose, primaryUnit, secondaryUnit, conversion, on
                 type="text" 
                 placeholder="Enter here" 
                 value={customValue}
-                onChange={(e) => setCustomValue(e.target.value)}
+                onChange={(e) => {
+                  let val = e.target.value.replace(/[^\d.]/g, "");
+                  const parts = val.split(".");
+                  if (parts.length > 2) {
+                    val = parts[0] + "." + parts.slice(1).join("");
+                  }
+                  setCustomValue(val);
+                }}
                 onClick={() => setSelectedOption("custom")}
               />
             </div>
@@ -168,7 +175,16 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
         const product = response.data.data;
         setFormData({
           ...product,
-          gst: product.taxGroupId || product.gst || "",
+          gst: (() => {
+            const rawGst = product.taxGroupId || product.gst || "";
+            if (rawGst === null || rawGst === undefined || rawGst === "") return "";
+            const str = String(rawGst);
+            const parts = str.split(".");
+            if (parts.length === 2 && parts[1].length > 2) {
+              return parseFloat(rawGst).toFixed(2);
+            }
+            return str;
+          })(),
           petType: Array.isArray(product.petType) ? product.petType : (product.petType ? JSON.parse(product.petType) : []),
         });
         if (product.images) {
@@ -189,6 +205,23 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
     if (name === "productCode") {
       const numericValue = value.replace(/\D/g, "").slice(0, 6);
       setFormData(prev => ({ ...prev, [name]: numericValue }));
+      return;
+    }
+
+    if (name === "gst") {
+      let val = value.replace(/[^\d.]/g, "");
+      const parts = val.split(".");
+      if (parts.length > 2) {
+        val = parts[0] + "." + parts.slice(1).join("");
+      }
+      const cleanParts = val.split(".");
+      if (cleanParts.length === 2 && cleanParts[1].length > 2) {
+        val = cleanParts[0] + "." + cleanParts[1].substring(0, 2);
+      }
+      setFormData(prev => ({ ...prev, [name]: val }));
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: "" }));
+      }
       return;
     }
 

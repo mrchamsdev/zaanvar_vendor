@@ -25,7 +25,7 @@ const IconX = () => (
   </svg>
 );
 
-const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
+const SupplierFormManager = ({ onClose, mode = "Add", initialData, trigger }) => {
   const [tabs, setTabs] = useState([]);
 
   const [activeTabId, setActiveTabId] = useState(null);
@@ -54,7 +54,7 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
     const firstSupplierId = Array.isArray(initialData) 
       ? initialData.map(s => s.supplierId).join(",") 
       : (initialData?.supplierId || "new");
-    const propKey = `${mode}-${firstSupplierId}`;
+    const propKey = `${mode}-${firstSupplierId}-${trigger || 0}`;
     
     if (lastProcessedPropRef.current === propKey) {
       return;
@@ -138,7 +138,7 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
         }
       }
     }
-  }, [mode, initialData]);
+  }, [mode, initialData, trigger]);
 
   const addTab = () => {
     const newId = String(Date.now());
@@ -219,66 +219,90 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData }) => {
           {mode === "Add" && <button className={styles.addTabBtn} onClick={addTab}>+</button>}
           <div className={styles.windowActions}>
             <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+            {tabs.length > 1 && (
+              <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+            )}
             <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
           </div>
         </div>
       )}
 
-      {isAnyVisible && activeTab && !activeTab.isMinimized && (
-        <>
-          <div className={styles.managerHeader} style={{ background: '#F9FAFB', padding: '16px 48px', borderBottom: '1px solid #eee', fontSize: '15px', fontWeight: '500', color: '#111' }}>
-            {activeTab.mode || mode} Supplier
-          </div>
-          <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-            {!splitMode ? (
-              <div className={styles.formWrapper}>
-                {activeTab.mode === "View" ? (
-                  <SupplierView key={`view-${activeTab.id}`} data={activeTab.data} onBack={() => closeTab(activeTab.id)} isSplit={splitMode} />
+      <div style={{ display: (isAnyVisible && activeTab && !activeTab.isMinimized) ? 'contents' : 'none' }}>
+        <div className={styles.managerHeader} style={{ background: '#F9FAFB', padding: '16px 48px', borderBottom: '1px solid #eee', fontSize: '15px', fontWeight: '500', color: '#111' }}>
+          {(activeTab || {}).mode || mode} Supplier
+        </div>
+        <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
+          <div className={styles.formWrapper} style={{ display: (!splitMode || splitTabIds[0]) ? 'flex' : 'none' }}>
+            {tabs.map(tab => (
+              <div 
+                key={tab.id} 
+                style={{ display: tab.id === (splitMode ? splitTabIds[0] : activeTabId) && !tab.isMinimized ? 'contents' : 'none' }}
+              >
+                {splitMode && <div className={styles.formLabel}>{tab.title}</div>}
+                {tab.mode === "View" ? (
+                  <SupplierView 
+                    key={`view-${tab.id}`} 
+                    data={tab.data} 
+                    onBack={() => {
+                      if (splitMode) {
+                        setSplitTabIds([null, splitTabIds[1]]);
+                      } else {
+                        closeTab(tab.id);
+                      }
+                    }} 
+                    isSplit={splitMode} 
+                  />
                 ) : (
                   <SupplierForm 
-                    key={`form-${activeTab.id}`} 
-                    initialData={activeTab.data} 
-                    mode={activeTab.mode}
-                    onChange={(newData) => updateTabData(activeTab.id, newData)}
-                    onSave={() => closeTab(activeTab.id)} 
-                    onBack={() => closeTab(activeTab.id)} 
+                    key={`form-${tab.id}`} 
+                    initialData={tab.data} 
+                    mode={tab.mode}
+                    onChange={(newData) => updateTabData(tab.id, newData)}
+                    onSave={() => closeTab(tab.id)} 
+                    onBack={() => {
+                      if (splitMode) {
+                        setSplitTabIds([null, splitTabIds[1]]);
+                      } else {
+                        closeTab(tab.id);
+                      }
+                    }} 
                   />
                 )}
               </div>
-            ) : (
-              <>
-                {[0, 1].map(idx => (
-                  <div key={idx} className={styles.formWrapper}>
-                    {splitTabIds[idx] && tabs.find(t => t.id === splitTabIds[idx]) ? (
-                      (() => {
-                        const tab = tabs.find(t => t.id === splitTabIds[idx]);
-                        return (
-                          <>
-                            <div className={styles.formLabel}>{tab.title}</div>
-                            {tab.mode === "View" ? (
-                              <SupplierView key={`view-${tab.id}`} data={tab.data} onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} isSplit={splitMode} />
-                            ) : (
-                              <SupplierForm 
-                                key={`form-${tab.id}`} 
-                                initialData={tab.data} 
-                                mode={tab.mode}
-                                onChange={(newData) => updateTabData(tab.id, newData)}
-                                onSave={() => closeTab(tab.id)} 
-                                onBack={() => setSplitTabIds(idx === 0 ? [null, splitTabIds[1]] : [splitTabIds[0], null])} 
-                              />
-                            )}
-                          </>
-                        );
-                      })()
-                    ) : <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select supplier</div>}
-                  </div>
-                ))}
-              </>
-            )}
+            ))}
+            {splitMode && !splitTabIds[0] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select supplier</div>}
           </div>
-        </>
-      )}
+
+          <div className={styles.formWrapper} style={{ display: splitMode ? 'flex' : 'none' }}>
+            {tabs.map(tab => (
+              <div 
+                key={tab.id} 
+                style={{ display: tab.id === splitTabIds[1] && !tab.isMinimized ? 'contents' : 'none' }}
+              >
+                <div className={styles.formLabel}>{tab.title}</div>
+                {tab.mode === "View" ? (
+                  <SupplierView 
+                    key={`view-${tab.id}`} 
+                    data={tab.data} 
+                    onBack={() => setSplitTabIds([splitTabIds[0], null])} 
+                    isSplit={splitMode} 
+                  />
+                ) : (
+                  <SupplierForm 
+                    key={`form-${tab.id}`} 
+                    initialData={tab.data} 
+                    mode={tab.mode}
+                    onChange={(newData) => updateTabData(tab.id, newData)}
+                    onSave={() => closeTab(tab.id)} 
+                    onBack={() => setSplitTabIds([splitTabIds[0], null])} 
+                  />
+                )}
+              </div>
+            ))}
+            {!splitTabIds[1] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select supplier</div>}
+          </div>
+        </div>
+      </div>
 
       <div className={styles.minimizedBar}>
         {minimizedTabs.map(tab => (

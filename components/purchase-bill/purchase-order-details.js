@@ -77,7 +77,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
     };
 
     if (loading) return <Loader message="Loading Order Details..." />;
-    if (!orderData) return <div style={{padding: '50px', textAlign: 'center'}}>Order not found</div>;
+    if (!orderData) return <div style={{ padding: '50px', textAlign: 'center' }}>Order not found</div>;
 
     // Condition 1: If Draft, show the editable Form
     if (orderData.orderStatus === "draft") {
@@ -102,8 +102,8 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
         };
 
         return (
-            <PurchaseOrderForm 
-                initialData={initialData} 
+            <PurchaseOrderForm
+                initialData={initialData}
                 requestId={requestId} // Pass requestId to indicate it's an update
                 orderNumber={orderData?.purchaseRequestId}
                 onSave={() => {
@@ -130,16 +130,16 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                     </div>
                     <div className={styles.summaryStatusBadge}>
                         <span className={
-                            orderData.orderStatus === "order placed" ? styles.statusBadgePlaced : 
-                            orderData.orderStatus === "cancel order" ? styles.statusBadgeCancelled : 
-                            styles.statusBadgeReceived
+                            orderData.orderStatus === "order placed" ? styles.statusBadgePlaced :
+                                orderData.orderStatus === "cancel order" ? styles.statusBadgeCancelled :
+                                    styles.statusBadgeReceived
                         }>
                             {orderData.orderStatus.toUpperCase()}
                         </span>
                         <div className={styles.summaryDate}>
-                            On { (orderData.modifiedDate || orderData.orderDate || orderData.createdDate) ? 
-                                new Date(orderData.modifiedDate || orderData.orderDate || orderData.createdDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'long', year: 'numeric' }) : 
-                                "--" 
+                            On {(orderData.modifiedDate || orderData.orderDate || orderData.createdDate) ?
+                                new Date(orderData.modifiedDate || orderData.orderDate || orderData.createdDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'long', year: 'numeric' }) :
+                                "--"
                             }
                         </div>
                     </div>
@@ -150,7 +150,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                         <div className={styles.addressLabel}>From</div>
                         <div className={styles.addressName}>{orderData.branchName}</div>
                         <div className={styles.addressText}>
-                            {orderData.branchAddress?.addressText}<br/>
+                            {orderData.branchAddress?.addressText}<br />
                             {orderData.branchAddress?.city}, {orderData.branchAddress?.state}
                         </div>
                     </div>
@@ -158,45 +158,45 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                         <div className={styles.addressLabel}>To</div>
                         <div className={styles.addressName}>{orderData.supplier?.supplierName || "N/A"}</div>
                         <div className={styles.addressText}>
-                             Ph: {orderData.supplier?.phone || "N/A"}<br/>
-                             {orderData.supplier?.street && <>{orderData.supplier.street}, {orderData.supplier.city}</>}
+                            Ph: {orderData.supplier?.phone || "N/A"}<br />
+                            {orderData.supplier?.street && <>{orderData.supplier.street}, {orderData.supplier.city}</>}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className={styles.tableWrapper} style={{marginTop: '20px'}}>
+            <div className={styles.tableWrapper} style={{ marginTop: '20px' }}>
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th style={{textAlign: 'center'}}>S.NO</th>
+                            <th style={{ textAlign: 'center' }}>S.NO</th>
                             <th>PRODUCT NAME</th>
-                            <th style={{textAlign: 'center'}}>PRODUCT CODE</th>
-                            <th style={{textAlign: 'center'}}>VARIANT</th>
-                            <th style={{textAlign: 'center'}}>COST PRICE</th>
-                            <th style={{textAlign: 'center'}}>ORDER QTY</th>
+                            <th style={{ textAlign: 'center' }}>PRODUCT CODE</th>
+                            <th style={{ textAlign: 'center' }}>VARIANT</th>
+                            <th style={{ textAlign: 'center' }}>COST PRICE</th>
+                            <th style={{ textAlign: 'center' }}>ORDER QTY</th>
                             {orderData.orderStatus !== "order placed" && orderData.orderStatus !== "cancel order" && (
-                                <th style={{textAlign: 'center'}}>RECEIVED QTY</th>
+                                <th style={{ textAlign: 'center' }}>RECEIVED QTY</th>
                             )}
                         </tr>
                     </thead>
                     <tbody>
                         {orderData.items.map((item, index) => (
                             <tr key={index}>
-                                <td style={{textAlign: 'center', fontWeight: '700'}}>{String(index + 1).padStart(2, '0')}</td>
-                                <td style={{fontWeight: '500'}}>{item.productName}</td>
-                                <td style={{textAlign: 'center'}}>{item.productCode || "--"}</td>
-                                <td style={{textAlign: 'center', color: '#666'}}>
+                                <td style={{ textAlign: 'center', fontWeight: '700' }}>{String(index + 1).padStart(2, '0')}</td>
+                                <td style={{ fontWeight: '500' }}>{item.productName}</td>
+                                <td style={{ textAlign: 'center' }}>{item.productCode || "--"}</td>
+                                <td style={{ textAlign: 'center', color: '#666' }}>
                                     {[item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
                                 </td>
-                                <td style={{textAlign: 'center'}}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
-                                <td style={{textAlign: 'center'}}>
-                                    <div style={{fontWeight: '700'}}>{item.qty}</div>
+                                <td style={{ textAlign: 'center' }}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
+                                <td style={{ textAlign: 'center' }}>
+                                    <div style={{ fontWeight: '700' }}>{item.qty}</div>
                                 </td>
                                 {orderData.orderStatus !== "order placed" && orderData.orderStatus !== "cancel order" && (
-                                    <td style={{textAlign: 'center'}}>
-                                        <div style={{fontWeight: '700'}}>{item.receivedQty || 0}</div>
-                                        <div style={{fontSize: '11px', color: '#999'}}>Current Qty - {item.currentQty || 0}</div>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <div style={{ fontWeight: '700' }}>{item.receivedQty || 0}</div>
+                                        <div style={{ fontSize: '11px', color: '#999' }}>Current Qty - {item.currentQty || 0}</div>
                                     </td>
                                 )}
                             </tr>
@@ -205,12 +205,12 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                 </table>
             </div>
 
-            <div className={styles.actions} style={{justifyContent: 'flex-end', gap: '15px'}}>
+            <div className={styles.actions} style={{ justifyContent: 'flex-end', gap: '15px' }}>
                 {orderData.orderStatus === "order placed" && (
                     <>
                         <button className={styles.cancelBtn} onClick={() => handleUpdateStatus("cancel order")}>Cancel Order</button>
                         <button className={styles.printBtn} onClick={() => window.print()}>Print</button>
-                        <button className={styles.placeOrderBtn} style={{background: '#000'}} onClick={onReceive}>Receive Order</button>
+                        <button className={styles.placeOrderBtn} style={{ background: '#000' }} onClick={onReceive}>Receive Order</button>
                     </>
                 )}
                 {orderData.orderStatus === "cancel order" && (

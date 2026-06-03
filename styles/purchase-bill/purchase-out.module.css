@@ -243,7 +243,7 @@
 }
 
 .summarySection {
-    margin-bottom: 40px;
+    margin-bottom: 5px;
 }
 
 .mainSummaryCard {
@@ -327,7 +327,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 4px;
 }
 
 .transactionsTitle {
@@ -389,8 +389,8 @@
     color: #6b7280;
     text-transform: uppercase;
     position: sticky;
-    top: 0;
-    z-index: 10;
+    top: 70px;
+    z-index: 100;
     border-right: 1px solid #e5e7eb;
     border-bottom: 1px solid #e5e7eb;
     letter-spacing: 0.05em;
@@ -1473,4 +1473,42 @@
     color: #666;
     font-size: 16px;
     font-weight: 500;
+}
+
+.thContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.thContent .filterIcon {
+    float: none;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+    }
+
+    .table th {
+        top: 60px;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
 }

@@ -26,7 +26,7 @@ const IconX = () => (
     </svg>
 );
 
-const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initialData, totalOrders = 0 }) => {
+const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initialData, totalOrders = 0, trigger }) => {
     const [tabs, setTabs] = useState([]);
 
     const [activeTabId, setActiveTabId] = useState(null);
@@ -50,7 +50,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
 
     // Handle updates to props dynamically (reactive tab addition/activation)
     useEffect(() => {
-        const propKey = `${mode}-${initialId || "new"}`;
+        const propKey = `${mode}-${initialId || "new"}-${trigger || 0}`;
         if (lastProcessedPropRef.current === propKey) {
             return;
         }
@@ -100,7 +100,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
                 }
             }
         }
-    }, [mode, initialId, initialData]);
+    }, [mode, initialId, initialData, trigger]);
 
     const addTab = () => {
         const newId = String(Date.now());
@@ -225,7 +225,9 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
 
                 <div className={styles.windowActions}>
                     <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-                    <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+                    {tabs.length > 1 && (
+                        <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+                    )}
                     <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
                 </div>
             </div>

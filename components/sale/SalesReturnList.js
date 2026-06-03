@@ -39,6 +39,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -294,7 +295,7 @@ const SalesReturnList = ({ onAddClick }) => {
     const router = useRouter();
     const { jwtToken } = useStore();
     const [returns, setReturns] = useState([]);
-    const [totals, setTotals] = useState([]);
+    const [totals, setTotals] = useState(null);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
@@ -342,14 +343,53 @@ const SalesReturnList = ({ onAddClick }) => {
         }
     }, [router.query.branchId, defaultBranchId]);
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchReturns = async (branchId) => {
         if (!jwtToken || !branchId) return;
         setLoading(true);
         try {
-            const res = await saleService.getAllSalesReturns(jwtToken, branchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await saleService.getAllSalesReturns(jwtToken, branchId, dateParams);
             if (res.status === "success") {
-                setReturns(res.data || []);
-                setTotals(res.totals || []);
+                const newReturns = res.data || [];
+                setReturns(newReturns);
+                setTotals(res.overallTotals || null);
+
+                if (filterType === "All" && newReturns.length > 0) {
+                    const parsedDates = newReturns.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        lastFetchedRef.current = {
+                            branchId: branchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching sales returns:", error);
@@ -360,9 +400,20 @@ const SalesReturnList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchReturns(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchReturns(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     useEffect(() => {
         const handleRefresh = () => {
@@ -388,8 +439,19 @@ const SalesReturnList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (returns && returns.length > 0) {
+                    const parsedDates = returns.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -527,6 +589,19 @@ const SalesReturnList = ({ onAddClick }) => {
 
         return matchesDate && matchesSearch && matchesColFilters;
     });
+
+    const computedTotals = useMemo(() => {
+        let totalReturnAmount = 0;
+        let dueAmount = 0;
+        filteredReturns.forEach(r => {
+            totalReturnAmount += parseFloat(r.totalReturnAmount || 0);
+            dueAmount += parseFloat(r.dueAmount || 0);
+        });
+        return {
+            totalReturnAmount: totals?.totalReturnAmount || totals?.totalAmount || totalReturnAmount,
+            dueAmount: totals?.dueAmount || totals?.totalBalance || dueAmount
+        };
+    }, [filteredReturns, totals]);
 
     const renderAppliedFilters = () => {
         const chips = [];
@@ -694,11 +769,13 @@ const SalesReturnList = ({ onAddClick }) => {
                         <thead>
                             <tr>
                                 <th>
-                                    DATE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
                                         <DateFilterModal
                                             currentMode={dateFilterMode}
@@ -729,11 +806,13 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    RETURN ID
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>RETURN ID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -746,11 +825,13 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    CUSTOMER NAME
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.customerName.value !== undefined && columnFilters.customerName.value !== null && columnFilters.customerName.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>CUSTOMER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.customerName.value !== undefined && columnFilters.customerName.value !== null && columnFilters.customerName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'customerName' ? null : 'customerName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'customerName' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -763,11 +844,13 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    TOTAL SALE RETURN AMOUNT
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.received.value !== undefined && columnFilters.received.value !== null && columnFilters.received.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL SALE RETURN AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.received.value !== undefined && columnFilters.received.value !== null && columnFilters.received.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'received' ? null : 'received'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'received' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -780,11 +863,13 @@ const SalesReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    TOTAL BALANCE AMOUNT
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL BALANCE AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -876,6 +961,17 @@ const SalesReturnList = ({ onAddClick }) => {
                                 )))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {returns.length > 0 && (
+                <div className={styles.bottomSummary}>
+                    <div className={styles.summaryItem}>
+                        Total Return Amount : Rs {Number(computedTotals.totalReturnAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className={styles.summaryItem}>
+                        Total Balance Amount : Rs {Number(computedTotals.dueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                 </div>
             )}
         </div>

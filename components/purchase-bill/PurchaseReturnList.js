@@ -38,6 +38,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -336,15 +337,56 @@ const PurchaseReturnList = ({ onAddClick }) => {
         }
     }, [router.query.branchId, defaultBranchId]);
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchReturns = async (branchId) => {
         if (!branchId) return;
         setLoading(true);
         try {
-            const res = await purchaseService.getBranchReturns(jwtToken, branchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await purchaseService.getBranchReturns(jwtToken, branchId, dateParams);
             if (res.status === "success") {
                 const data = res.data || [];
                 setReturns(data);
-                // Calculate totals if not provided by API
+
+                // If filterType is "All", update the dateRange based on the fetched returns
+                if (filterType === "All" && data.length > 0) {
+                    const parsedDates = data.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        // Update ref first so the useEffect doesn't trigger a duplicate fetch
+                        lastFetchedRef.current = {
+                            branchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
+
+                // Calculate totals
                 if (res.totals) {
                     const apiTotals = Array.isArray(res.totals) ? res.totals[0] : res.totals;
                     const localTotalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
@@ -369,9 +411,21 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchReturns(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                // Update ref
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchReturns(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     const handleFilterChange = (type) => {
         setFilterType(type);
@@ -380,8 +434,19 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (returns && returns.length > 0) {
+                    const parsedDates = returns.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -568,6 +633,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                 isEmbedded={true}
                                 onSelect={(range) => {
                                     setDateRange(range);
+                                    setFilterType("Custom");
                                 }}
                                 onClose={() => setShowCustomPicker(false)}
                             />
@@ -612,11 +678,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                         <thead>
                             <tr>
                                 <th>
-                                    DATE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
                                         <DateFilterModal
                                             currentMode={dateFilterMode}
@@ -630,11 +698,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    RETURN ID
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>RETURN ID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -664,11 +734,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    SUPPLIER NAME
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>SUPPLIER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'supplierName' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -681,11 +753,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    Total Return Amount
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>Total Return Amount</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'totalAmount' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -698,11 +772,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    TOTAL BALANCE AMOUNT
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL BALANCE AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal
                                             type="text"
