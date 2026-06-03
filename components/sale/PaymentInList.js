@@ -40,6 +40,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -443,14 +444,53 @@ const PaymentInList = ({ onAddClick }) => {
         };
     }, [selectedBranchId]);
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchPayments = async (branchId) => {
         setLoading(true);
         try {
-            const res = await saleService.getPayments(jwtToken, branchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await saleService.getPayments(jwtToken, branchId || selectedBranchId, dateParams);
             if (res.status === "success") {
-                setPayments(res.data || []);
+                const newPayments = res.data || [];
+                setPayments(newPayments);
                 setTotals(res.overallTotals || { totalAmount: 0, paidAmount: 0, dueAmount: 0 });
                 setCustomerTotals(res.totals || []);
+
+                if (filterType === "All" && newPayments.length > 0) {
+                    const parsedDates = newPayments.map(p => parseWallClockDate(p.paymentDate || p.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        lastFetchedRef.current = {
+                            branchId: branchId || selectedBranchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching payments:", error);
@@ -461,9 +501,20 @@ const PaymentInList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchPayments(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchPayments(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     const handleFilterChange = (type) => {
         setFilterType(type);
@@ -472,8 +523,19 @@ const PaymentInList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (payments && payments.length > 0) {
+                    const parsedDates = payments.map(p => parseWallClockDate(p.paymentDate || p.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -843,11 +905,13 @@ const PaymentInList = ({ onAddClick }) => {
                         <thead>
                             <tr>
                                 <th>
-                                    DATE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
                                         <DateFilterModal
                                             currentMode={dateFilterMode}
@@ -861,11 +925,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    REF NO
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>REF NO</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -878,11 +944,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    CUSTOMER NAME
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>CUSTOMER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'partyName' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -895,11 +963,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    TOTAL
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'amount' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -912,11 +982,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    PAYMENT TYPE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>PAYMENT TYPE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'paymentType' && (
                                         <GeneralFilterModal
                                             type="paymentType"
@@ -929,11 +1001,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    PAID
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>PAID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'paid' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -946,11 +1020,13 @@ const PaymentInList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    BALANCE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>BALANCE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'balance' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -984,7 +1060,10 @@ const PaymentInList = ({ onAddClick }) => {
                                         <React.Fragment key={p.paymentId || idx}>
                                             <tr>
                                                 <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                                <td>{p.userOrderId || "-"}</td>
+                                                <td>
+                                                    <div>{p.userOrderId || "-"}</div>
+                                                    {p.paymentId && <div className={styles.paymentIdText}>{p.paymentId}</div>}
+                                                </td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
                                                 <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>

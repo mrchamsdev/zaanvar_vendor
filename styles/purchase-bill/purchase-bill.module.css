@@ -331,13 +331,21 @@
 }
 
 /* ── Filter Modals ───────────────────────────────────────── */
+.thContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  white-space: nowrap;
+}
+
 .filterIcon {
   cursor: pointer;
   font-size: 13px;
   color: #999;
-  float: right;
-  margin-top: 2px;
   transition: color 0.2s;
+  flex-shrink: 0;
 }
 
 .filterIcon:hover {

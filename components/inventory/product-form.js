@@ -209,9 +209,16 @@ const ProductForm = ({
   const [productCode, setProductCode] = useState(
     initialData?.ProductCode || "",
   );
-  const [gst, setGst] = useState(
-    initialData?.taxGroupId || initialData?.gst || "",
-  );
+  const [gst, setGst] = useState(() => {
+    const rawGst = initialData?.taxGroupId || initialData?.gst || "";
+    if (rawGst === null || rawGst === undefined || rawGst === "") return "";
+    const str = String(rawGst);
+    const parts = str.split(".");
+    if (parts.length === 2 && parts[1].length > 2) {
+      return parseFloat(rawGst).toFixed(2);
+    }
+    return str;
+  });
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
   const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] =
     useState(false);
@@ -1216,7 +1223,20 @@ const ProductForm = ({
             placeholder="Enter GST(%)"
             value={gst}
             disabled={isEdit && hasPurchaseOrder}
-            onChange={(e) => setGst(e.target.value)}
+            onChange={(e) => {
+              let val = e.target.value;
+              // Allow digits and at most one decimal point
+              val = val.replace(/[^\d.]/g, "");
+              const parts = val.split(".");
+              if (parts.length > 2) {
+                val = parts[0] + "." + parts.slice(1).join("");
+              }
+              const cleanParts = val.split(".");
+              if (cleanParts.length === 2 && cleanParts[1].length > 2) {
+                val = cleanParts[0] + "." + cleanParts[1].substring(0, 2);
+              }
+              setGst(val);
+            }}
           />
         </div>
         <div className={styles.inputField}>
@@ -1581,9 +1601,14 @@ const ProductForm = ({
                         placeholder="Enter Unit Measure"
                         value={variant.unitMeasure || ""}
                         disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
-                        onChange={(e) =>
-                          updateVariant(index, "unitMeasure", e.target.value)
-                        }
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^\d.]/g, "");
+                          const parts = val.split(".");
+                          if (parts.length > 2) {
+                            val = parts[0] + "." + parts.slice(1).join("");
+                          }
+                          updateVariant(index, "unitMeasure", val);
+                        }}
                       />
                       <select
                         value={variant.unitType || ""}

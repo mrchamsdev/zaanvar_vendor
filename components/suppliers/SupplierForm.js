@@ -5,7 +5,7 @@ import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiX } from "react-icons/fi";
 import { Country, State, City } from 'country-state-city';
 import { useRouter } from "next/router";
 
@@ -15,6 +15,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const { jwtToken, userInfo } = useStore();
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
+    const [errorPopupMessage, setErrorPopupMessage] = useState(null);
 
     // Form states
     const [supplierName, setSupplierName] = useState("");
@@ -275,15 +276,29 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 res = await purchaseService.createSupplier(jwtToken, payload);
             }
 
-            if (res.status === "success" || res.status === 200) {
+            const isSuccess = res && 
+                              (res.status === "success" || res.status === 200) && 
+                              (!res.data || (res.data.status !== "fail" && res.data.status !== "error"));
+
+            if (isSuccess) {
                 toast.success(supplierId ? "Supplier updated successfully" : "Supplier added successfully");
                 onSave();
             } else {
-                toast.error(res.message || "Something went wrong");
+                const errMsg = res ? (res.message || res.data?.message || res.msg || res.data?.msg) : null;
+                if (errMsg) {
+                    setErrorPopupMessage(errMsg);
+                } else {
+                    toast.error("Something went wrong");
+                }
             }
         } catch (e) {
             console.error(e);
-            toast.error("An error occurred");
+            const errMsg = e.response?.data?.message || e.response?.data?.msg || e.message || "An error occurred";
+            if (errMsg && (errMsg.includes("branches") || errMsg.includes("Branch"))) {
+                setErrorPopupMessage(errMsg);
+            } else {
+                toast.error(errMsg);
+            }
         } finally {
             setLoading(false);
         }
@@ -498,6 +513,100 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     {loading ? "Saving..." : "Save"}
                 </button>
             </div>
+            
+            {errorPopupMessage && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff',
+                        borderRadius: '16px',
+                        padding: '32px',
+                        maxWidth: '480px',
+                        width: '90%',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        position: 'relative',
+                        border: '1px solid #f1f5f9',
+                        fontFamily: "'Inter', sans-serif"
+                    }}>
+                        <button 
+                            onClick={() => setErrorPopupMessage(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '16px',
+                                right: '16px',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '20px',
+                                color: '#94a3b8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '4px',
+                                borderRadius: '50%'
+                            }}
+                        >
+                            <FiX />
+                        </button>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            
+                            <div>
+                                <h3 style={{
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    color: '#0f172a',
+                                    margin: '0 0 8px 0'
+                                }}>
+                                    Unable to Update Branches
+                                </h3>
+                                <p style={{
+                                    fontSize: '14px',
+                                    color: '#64748b',
+                                    lineHeight: '1.6',
+                                    margin: 0
+                                }}>
+                                    {errorPopupMessage}
+                                </p>
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginTop: '8px'
+                            }}>
+                                <button
+                                    onClick={() => setErrorPopupMessage(null)}
+                                    style={{
+                                        padding: '10px 24px',
+                                        backgroundColor: '#0f172a',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

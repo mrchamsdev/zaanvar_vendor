@@ -91,14 +91,14 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     const breakdown = React.useMemo(() => {
         const itemsList = items || [];
         const toggles = receivedDetails.toggles || {};
-        const payBasedOnOrdered = 
-            data.shortFallApplicable || 
-            data.shortfallApplicable || 
-            shortFallApplicable || 
-            shortfallApplicable || 
-            toggles.payBasedOnOrdered || 
-            receivedDetails.shortFallApplicable || 
-            receivedDetails.shortfallApplicable || 
+        const payBasedOnOrdered =
+            data.shortFallApplicable ||
+            data.shortfallApplicable ||
+            shortFallApplicable ||
+            shortfallApplicable ||
+            toggles.payBasedOnOrdered ||
+            receivedDetails.shortFallApplicable ||
+            receivedDetails.shortfallApplicable ||
             false;
         const damagedReturnedGoods = toggles.damagedReturnedGoods || false;
 
@@ -235,7 +235,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <th>VRIANT</th>
                             <th>ORDER QTY</th>
                             <th>RECEIVED QTY</th>
-                            { !returnsApplicable && <th>SHORTFALL QTY</th> }
+                            {!returnsApplicable && <th>SHORTFALL QTY</th>}
                             <th>DAMAGED GOODS</th>
                             <th>BATCH NUMBER</th>
                             <th>EXPIRY DATE</th>
@@ -255,7 +255,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             const damaged = parseFloat(item.damagedQty) || 0;
 
                             const baseQty = breakdown.payBasedOnOrdered ? ordered : received;
-                            const billingQty = breakdown.damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+                            const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
                             const billableSubtotal = billingQty * cost;
 
@@ -277,7 +277,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                             {/* <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span> */}
                                         </div>
                                     </td>
-                                    { !returnsApplicable && <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td> }
+                                    {!returnsApplicable && <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>}
                                     <td>{damaged}</td>
                                     <td>{item.batchNumber || "------"}</td>
                                     <td>{(() => { const d = item.expDate || item.expiryDate; return (d && !/^0+[-/]0+[-/]0+$/.test(d)) ? formatDate(d) : "–"; })()}</td>
@@ -327,7 +327,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                             <span>Total Ordered Cost</span>
                             <span>₹ {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        { !breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
+                        {!breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Shortfall Amount</span>
                                 <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

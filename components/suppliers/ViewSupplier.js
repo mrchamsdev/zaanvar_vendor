@@ -6,11 +6,14 @@ import useStore from "../state/useStore";
 import { toast } from "sonner";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
 import { useRouter } from "next/router";
+import useDashboardData from "../dashboard/useDashboardData";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const router = useRouter();
-    const branchId = router.query.branchId || "";
+    const queryBranchId = router.query.branchId || "";
     const { jwtToken } = useStore();
+    const { branchId: dashboardBranchId } = useDashboardData({ skipReviews: true });
+    const branchId = queryBranchId || dashboardBranchId || "";
     const [loading, setLoading] = useState(false);
     const [supplier, setSupplier] = useState(null);
     const [activeTab, setActiveTab] = useState("Purchase Orders");
@@ -83,7 +86,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         try {
             const [sRes, tRes] = await Promise.all([
                 purchaseService.getSupplierById(jwtToken, supplierId, branchId),
-                purchaseService.getSupplierTransactions(jwtToken, supplierId)
+                purchaseService.getSupplierTransactions(jwtToken, supplierId, branchId)
             ]);
 
             console.log("Supplier Response:", sRes);

@@ -15,7 +15,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 24px;
+    /* margin-bottom: 24px; */
     padding-bottom: 16px;
 }
 
@@ -137,7 +137,7 @@
     flex-direction: column;
     gap: 16px;
     width: 320px;
-    margin-bottom: 40px;
+    margin-bottom: 5px;
     border: none;
 }
 
@@ -271,7 +271,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 4px;
 }
 
 .transactionsTitle {
@@ -301,12 +301,12 @@
     border-radius: 8px;
     overflow: visible;
     /* Changed from auto to prevent clipping */
-    min-height: 400px;
+    min-height: 440px;
     /* Ensure enough space for filters */
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     background: #fff;
     position: relative;
-    margin-bottom: 24px;
+    /* margin-bottom: 24px; */
 }
 
 .table {
@@ -323,7 +323,7 @@
     color: #4b5563;
     text-transform: uppercase;
     position: sticky;
-    top: 0;
+    top: 70px;
     z-index: 100;
     /* Increased z-index */
     border-right: 1px solid #e5e7eb;
@@ -680,5 +680,67 @@
     .table th:last-child,
     .table td:last-child {
         display: none !important;
+    }
+}
+
+.paymentIdText {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+    font-weight: 400;
+}
+
+.thContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.thContent .filterIcon {
+    float: none;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+.bottomSummary {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #333;
+    font-size: 15px;
+}
+
+.bottomSummary .summaryItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+    }
+
+    .table th {
+        top: 60px;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
     }
 }

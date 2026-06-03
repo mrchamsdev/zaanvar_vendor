@@ -15,6 +15,7 @@ const SalesInvoicePage = () => {
 
     const [isReady, setIsReady] = React.useState(false);
     const [isPdf, setIsPdf] = React.useState(false);
+    const [managerTrigger, setManagerTrigger] = React.useState(0);
 
     React.useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -86,7 +87,10 @@ const SalesInvoicePage = () => {
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
             <button
-                onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+                onClick={() => {
+                    setManagerTrigger(prev => prev + 1);
+                    router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true });
+                }}
                 style={{
                     background: '#E93E64',
                     color: '#fff',
@@ -112,13 +116,17 @@ const SalesInvoicePage = () => {
             customTopbarRight={customRight}
         >
             <SalesInvoiceList
-                onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+                onAddClick={() => {
+                    setManagerTrigger(prev => prev + 1);
+                    router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true });
+                }}
             />
 
             <SaleInvoiceManager
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 saleId={router.query.id}
+                trigger={managerTrigger}
                 onClose={() => {
                     const { add, view, edit, id, ...restQuery } = router.query;
                     router.push({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });

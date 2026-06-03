@@ -164,7 +164,9 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
 
                     <div className={styles.windowActions}>
                         <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-                        <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+                        {tabs.length > 1 && (
+                            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+                        )}
                         <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
                     </div>
                 </div>

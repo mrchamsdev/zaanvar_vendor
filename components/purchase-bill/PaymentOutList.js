@@ -40,6 +40,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -417,14 +418,55 @@ const PaymentOutList = ({ onAddClick }) => {
         router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
     };
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchTransactions = async (branchId) => {
         setLoading(true);
         try {
-            const res = await purchaseService.getBranchTransactions(jwtToken, branchId || selectedBranchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await purchaseService.getBranchTransactions(jwtToken, branchId || selectedBranchId, dateParams);
             if (res.status === "success") {
-                setTransactions(res.data || []);
+                const newTransactions = res.data || [];
+                setTransactions(newTransactions);
                 setTotals(res.overallTotals || (Array.isArray(res.totals) ? res.totals[0] : (res.totals || null)));
                 setSupplierTotals(res.totals || []);
+
+                // If filterType is "All", update the dateRange based on the fetched transactions
+                if (filterType === "All" && newTransactions.length > 0) {
+                    const parsedDates = newTransactions.map(t => parseWallClockDate(t.userTransactionDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        // Update ref first so the useEffect doesn't trigger a duplicate fetch
+                        lastFetchedRef.current = {
+                            branchId: branchId || selectedBranchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching transactions:", error);
@@ -435,9 +477,21 @@ const PaymentOutList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchTransactions(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                // Update ref
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchTransactions(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     const handleBranchChange = (e) => {
         const branchId = e.target.value;
@@ -451,8 +505,19 @@ const PaymentOutList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (transactions && transactions.length > 0) {
+                    const parsedDates = transactions.map(t => parseWallClockDate(t.userTransactionDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -573,7 +638,7 @@ const PaymentOutList = ({ onAddClick }) => {
     }).sort((a, b) => new Date(b.createdDate || b.userTransactionDate) - new Date(a.createdDate || a.userTransactionDate));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "BALANCE AMOUNT", "PAYMENT TYPE"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "PAYMENT TYPE", "BALANCE AMOUNT"];
         const rows = [];
         
         filteredTransactions.forEach(t => {
@@ -583,8 +648,8 @@ const PaymentOutList = ({ onAddClick }) => {
                 `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
                 `"${getSupplierTotalBill(t.supplierId)}"`,
                 `"${getDisplayTotalAmount(t)}"`,
-                `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`,
-                `"${getDisplayPaymentType(t)}"`
+                `"${getDisplayPaymentType(t)}"`,
+                `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`
             ]);
 
             const splitsList = t.paymentMethods && t.paymentMethods.length > 0
@@ -602,8 +667,8 @@ const PaymentOutList = ({ onAddClick }) => {
                         `""`,
                         `""`,
                         `"${split.amount}"`,
-                        `""`,
-                        `"${split.paymentType}"`
+                        `"${split.paymentType}"`,
+                        `""`
                     ]);
                 });
             }
@@ -674,6 +739,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                 isEmbedded={true}
                                 onSelect={(range) => {
                                     setDateRange(range);
+                                    setFilterType("Custom");
                                 }}
                                 onClose={() => setShowCustomPicker(false)}
                             />
@@ -735,11 +801,13 @@ const PaymentOutList = ({ onAddClick }) => {
                         <thead>
                             <tr>
                                 <th>
-                                    DATE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
                                         <DateFilterModal
                                             currentMode={dateFilterMode}
@@ -753,11 +821,13 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    REF NO
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>REF NO</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'refNo' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -770,11 +840,13 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    SUPPLIER NAME
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>SUPPLIER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'partyName' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -787,11 +859,13 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    TOTAL
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.total.value !== undefined && columnFilters.total.value !== null && columnFilters.total.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'total' ? null : 'total'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.total.value !== undefined && columnFilters.total.value !== null && columnFilters.total.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'total' ? null : 'total'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'total' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -804,11 +878,13 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    PAID
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
-                                    />
+                                    <div className={styles.thContent}>
+                                        <span>PAID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'paid' && (
                                         <GeneralFilterModal
                                             type="text"
@@ -821,28 +897,13 @@ const PaymentOutList = ({ onAddClick }) => {
                                     )}
                                 </th>
                                 <th>
-                                    BALANCE AMOUNT
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
-                                    {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal
-                                            type="text"
-                                            label="Balance Amount"
-                                            currentMode={columnFilters.balance.mode}
-                                            currentValue={columnFilters.balance.value}
-                                            onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
+                                    <div className={styles.thContent}>
+                                        <span>PAYMENT TYPE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
                                         />
-                                    )}
-                                </th>
-                                <th>
-                                    PAYMENT TYPE
-                                    <FiFilter
-                                        className={`${styles.filterIcon} ${(columnFilters.paymentType.value && columnFilters.paymentType.value.length > 0) ? styles.filterIconActive : ''}`}
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paymentType' ? null : 'paymentType'); setIsDateFilterOpen(false); }}
-                                    />
+                                    </div>
                                     {openFilterCol === 'paymentType' && (
                                         <GeneralFilterModal
                                             type="paymentType"
@@ -851,6 +912,25 @@ const PaymentOutList = ({ onAddClick }) => {
                                             currentValue={columnFilters.paymentType.value}
                                             onClose={() => setOpenFilterCol(null)}
                                             onApply={(mode, val) => setColumnFilters({ ...columnFilters, paymentType: { mode, value: val } })}
+                                        />
+                                    )}
+                                </th>
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>BALANCE AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
+                                    {openFilterCol === 'balance' && (
+                                        <GeneralFilterModal
+                                            type="text"
+                                            label="Balance Amount"
+                                            currentMode={columnFilters.balance.mode}
+                                            currentValue={columnFilters.balance.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -878,8 +958,8 @@ const PaymentOutList = ({ onAddClick }) => {
                                                 <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
                                                 <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td>{Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(t)}</td>
+                                                <td>{Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>
                                                     <div className={styles.actions}>
                                                         <div style={{ position: 'relative' }}>
@@ -961,8 +1041,9 @@ const PaymentOutList = ({ onAddClick }) => {
                                                     <td></td>
                                                     <td></td>
                                                     <td></td>
-                                                    <td>{split.paymentType}</td>
                                                     <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    <td>{split.paymentType}</td>
+                                                    <td></td>
                                                     <td></td>
                                                 </tr>
                                             ))}
