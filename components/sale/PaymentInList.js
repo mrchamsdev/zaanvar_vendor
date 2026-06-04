@@ -624,7 +624,7 @@ const PaymentInList = ({ onAddClick }) => {
         }
 
         const partyName = p.customer ? `${p.customer.firstName} ${p.customer.lastName}`.trim() : "N/A";
-        const refNo = (p.userOrderId || "").toString();
+        const refNo = (p.userOrderId || p.paymentId || "").toString();
 
         const matchesSearch = partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             refNo.toLowerCase().includes(searchTerm.toLowerCase());
@@ -748,7 +748,7 @@ const PaymentInList = ({ onAddClick }) => {
         filteredPayments.forEach(p => {
             rows.push([
                 `" ${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
-                `"${p.userOrderId || ""}"`,
+                `"${p.userOrderId || p.paymentId || ""}"`,
                 `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
                 `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
                 `"${getDisplayPaymentType(p)}"`,
@@ -1061,8 +1061,16 @@ const PaymentInList = ({ onAddClick }) => {
                                             <tr>
                                                 <td>{(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                                 <td>
-                                                    <div>{p.userOrderId || "-"}</div>
-                                                    {p.paymentId && <div className={styles.paymentIdText}>{p.paymentId}</div>}
+                                                    {p.userOrderId ? (
+                                                        <>
+                                                            <div>{p.userOrderId}</div>
+                                                            {p.paymentId && <div className={styles.paymentIdText}>{p.paymentId}</div>}
+                                                        </>
+                                                    ) : p.paymentId ? (
+                                                        <div>{p.paymentId}</div>
+                                                    ) : (
+                                                        <div>-</div>
+                                                    )}
                                                 </td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
                                                 <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>

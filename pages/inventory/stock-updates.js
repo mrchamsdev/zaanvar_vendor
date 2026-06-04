@@ -60,7 +60,20 @@ const StockUpdatesPage = () => {
     setLoading(true);
     try {
       const data = await productService.getStockUpdates(jwtToken, currentBranchId);
-      setStockUpdates(Array.isArray(data) ? data : (data?.data || []));
+      const updates = Array.isArray(data) ? data : (data?.data || []);
+      // Sort by stockUpdateId descending to show newly added records at the top
+      updates.sort((a, b) => {
+        const idB = parseInt(b.stockUpdateId) || 0;
+        const idA = parseInt(a.stockUpdateId) || 0;
+        if (idB !== idA) {
+          return idB - idA;
+        }
+        // Fallback to date sorting if IDs are equal or missing
+        const dateB = new Date(b.createdDate || b.modifiedDate || 0).getTime();
+        const dateA = new Date(a.createdDate || a.modifiedDate || 0).getTime();
+        return dateB - dateA;
+      });
+      setStockUpdates(updates);
     } catch (error) {
       console.error("API ERROR:", error);
       toast.error("Failed to fetch stock updates");
@@ -240,7 +253,7 @@ const StockUpdatesPage = () => {
               value={rowsPerPage}
               onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
             >
-              {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredUpdates.length)} - {Math.min(currentPage * rowsPerPage, filteredUpdates.length)} of {filteredUpdates.length} Items</span>
           </div>

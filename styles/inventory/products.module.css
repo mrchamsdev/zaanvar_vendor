@@ -154,8 +154,6 @@
 .tableWrapper {
   flex: 1;
   background: #fff;
-  border: 1px solid #eee;
-  border-radius: 12px;
   overflow: auto;
   min-height: 0;
   margin-top: 10px;
@@ -175,6 +173,9 @@
 }
 
 .table th {
+  position: sticky;
+  top: 0;
+  z-index: 15;
   background: #f9fafb;
   padding: 0 16px;
   text-align: left;
@@ -192,11 +193,11 @@
 }
 
 .table th:first-child {
-  border-left: 1px solid #e5e7eb;
+  border-left: none;
 }
 
 .table tr:first-child th {
-  border-top: 1px solid #e5e7eb;
+  border-top: none;
 }
 
 .variantsHeader {
@@ -211,18 +212,22 @@
 }
 
 .subHeaderRow th {
+  position: sticky !important;
+  top: 56px !important;
+  z-index: 14 !important;
   background: #f9fafb !important;
   color: #6b7280 !important;
   border-top: none !important;
   border-right: 1px solid #e5e7eb !important;
   height: 56px !important;
   line-height: 56px !important;
+  text-align: center !important;
 }
 
 /* Center text for variant-related columns */
 .table th:nth-child(n+6),
 .table td:nth-child(n+6) {
-  text-align: center;
+  text-align: center !important;
 }
 
 .table td {
@@ -234,12 +239,12 @@
 }
 
 .table td:first-child {
-  border-left: 1px solid #eee;
+  border-left: none;
 }
 
 .table tr td:last-child, 
 .table tr th:last-child {
-  border-right: none;
+  border-right: none !important;
 }
 
 .variantRow td {
@@ -250,7 +255,7 @@
 }
 
 .variantRow td:nth-child(n+2) {
-  text-align: center;
+  text-align: center !important;
 }
 
 .bulkActions {

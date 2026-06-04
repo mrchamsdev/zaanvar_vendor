@@ -1300,7 +1300,7 @@ const ProductForm = ({
           >
             <div className={styles.variantHeader}>
               <div style={{ fontWeight: 600, fontSize: 14, color: "#666" }}>
-                Variant #{index + 1}
+                Variant {index + 1}
               </div>
               <div className={styles.variantActions}>
                 {(!isEdit || !variant.variantId || !hasPurchaseOrder) && (

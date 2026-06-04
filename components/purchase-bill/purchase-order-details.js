@@ -126,7 +126,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
             <div className={styles.summaryCard}>
                 <div className={styles.summaryHeader}>
                     <div className={styles.poNumberLarge}>
-                        Purchase Order <span className={styles.poId}>#{String(orderData.purchaseRequestId).padStart(6, '0')}</span>
+                        Purchase Order <span className={styles.poId}>{String(orderData.purchaseRequestId).padStart(6, '0')}</span>
                     </div>
                     <div className={styles.summaryStatusBadge}>
                         <span className={

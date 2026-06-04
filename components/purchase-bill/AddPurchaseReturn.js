@@ -329,7 +329,16 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 }
 
                 setBillDetails(data);
-                setBillDate(data.createdDate ? data.createdDate.split('T')[0] : "");
+                const newBillDate = data.createdDate ? data.createdDate.split('T')[0] : "";
+                setBillDate(newBillDate);
+                if (newBillDate && returnDate && returnDate < newBillDate) {
+                    setReturnDate(newBillDate);
+                }
+                setErrors(prev => {
+                    const next = { ...prev };
+                    delete next.returnDate;
+                    return next;
+                });
 
                 // Add an initial empty row if bill has items
                 if (data.billItems && data.billItems.length > 0) {
@@ -548,6 +557,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
         if (!selectedBillId) {
             newErrors.selectedBillId = "Receipt No is required";
+            hasError = true;
+        }
+
+        if (!returnDate) {
+            newErrors.returnDate = "Return date is required";
+            hasError = true;
+        } else if (billDate && returnDate < billDate) {
+            newErrors.returnDate = "Cannot be earlier than Bill Date";
             hasError = true;
         }
 
@@ -813,12 +830,30 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <input
                                     type="date"
                                     className={styles.input}
-                                    style={{ color: returnDate ? '#333' : '#999' }}
+                                    style={{ 
+                                        color: returnDate ? '#333' : '#999',
+                                        border: errors.returnDate ? '1px solid #ff4d4f' : '1px solid #eef0f2'
+                                    }}
                                     value={returnDate}
-                                    onChange={(e) => setReturnDate(e.target.value)}
+                                    onChange={(e) => {
+                                        setReturnDate(e.target.value);
+                                        if (errors.returnDate) {
+                                            setErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next.returnDate;
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                    min={billDate || undefined}
                                     disabled={isViewOnly}
                                 />
                             </div>
+                            {errors.returnDate && (
+                                <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.returnDate}
+                                </div>
+                            )}
                         </div>
                     </div>
 

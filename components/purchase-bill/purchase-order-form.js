@@ -259,8 +259,16 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
     const handleSubmit = async (type) => {
         const errors = {};
+        if (!branchId) errors.branchId = "Branch is required";
         if (!supplierId) errors.supplierId = "Supplier is required";
-        if (!orderDate) errors.orderDate = "Order date is required";
+        if (!orderDate) {
+            errors.orderDate = "Order date is required";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (orderDate > todayStr) {
+                errors.orderDate = "Future dates are not allowed";
+            }
+        }
 
         const itemErrors = items.map((item) => {
             const errs = {};
@@ -279,17 +287,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
-            toast.error("Please fill all required fields");
             return;
         }
         setFormErrors({});
-
-        // Date validation: No future dates
-        const todayStr = toApiDateOnly(new Date());
-        if (orderDate > todayStr) {
-            toast.error("Future dates are not allowed for order date");
-            return;
-        }
 
         setLoading(true);
         try {
@@ -352,9 +352,16 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                         <label className={styles.label}>Selected Branch</label>
                         <div style={{ position: 'relative' }}>
                             <select
-                                className={`${styles.select} ${styles.input}`}
+                                className={`${styles.select} ${styles.input} ${formErrors.branchId ? styles.errorField : ""}`}
                                 value={branchId}
-                                onChange={(e) => setBranchId(e.target.value)}
+                                onChange={(e) => {
+                                    setBranchId(e.target.value);
+                                    if (formErrors.branchId) {
+                                        const newErrors = { ...formErrors };
+                                        delete newErrors.branchId;
+                                        setFormErrors(newErrors);
+                                    }
+                                }}
                                 style={{ appearance: 'none', width: '100%', paddingRight: '40px' }}
                             >
                                 <option value="">Select Branch</option>
@@ -366,6 +373,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                             </div>
                         </div>
+                        {formErrors.branchId && <div className={styles.errorMessage}>{formErrors.branchId}</div>}
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
                         <label className={styles.label}>Select Supplier</label>
@@ -470,7 +478,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 <td style={{ textAlign: 'center', fontWeight: '700' }}>{String(index + 1).padStart(2, '0')}</td>
                                 <td className={styles.productSearchWrapper} style={{ minWidth: '250px', position: 'relative' }}>
                                     <input
-                                        className={styles.tableInput}
+                                        className={`${styles.tableInput} ${formErrors.items?.[index]?.productId ? styles.errorField : ""}`}
                                         type="text"
                                         placeholder="SELECT PRODUCT"
                                         value={item.productName}
@@ -482,6 +490,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                     <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
                                     </div>
+                                    {formErrors.items?.[index]?.productId && (
+                                        <div className={styles.errorMessage} style={{ fontSize: '11px', marginTop: '4px' }}>Required</div>
+                                    )}
                                     {focusedItemIndex === index && (
                                         <div className={styles.productDropdown}>
                                             {allProducts
@@ -524,7 +535,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                         </div>
                                     )}
                                     {formErrors.items?.[index]?.variant && (
-                                        <div className={styles.errorMessage} style={{ position: 'absolute', bottom: '2px', left: 0, width: '100%', textAlign: 'center' }}>Required</div>
+                                        <div className={styles.errorMessage} style={{ fontSize: '11px', marginTop: '4px', textAlign: 'center' }}>Required</div>
                                     )}
                                     {focusedVariantIndex === index && item.allVariants?.length > 1 && (
                                         <div className={styles.productDropdown}>
@@ -564,9 +575,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                         value={item.costPrice}
                                         onChange={(e) => updateItem(index, "costPrice", e.target.value)}
                                     />
-                                    {Number(item.costPrice) > Number(item.mrp) && item.mrp > 0 && (
+                                    {formErrors.items?.[index]?.costPrice && (
                                         <div className={styles.errorMessage} style={{ fontSize: '9px', marginTop: '6px', lineHeight: '1.2', display: 'block', textAlign: 'center' }}>
-                                            Cost Price should not be more than MRP: {item.mrp}
+                                            {formErrors.items[index].costPrice}
                                         </div>
                                     )}
                                 </td>

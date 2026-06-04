@@ -424,4 +424,10 @@ select.topInput {
   text-align: center;
   padding: 8px 2px;
   cursor: pointer;
+}
+
+.inlineActionSection {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
 }
