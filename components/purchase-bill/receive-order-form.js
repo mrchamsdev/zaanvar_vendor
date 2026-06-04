@@ -403,7 +403,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         <div className={styles.container}>
             <div className={styles.mainContent}>
                 <div className={styles.headerSection}>
-                    <h2 className={styles.title}>Receive Purchase Order <span className={styles.requestId}>#{String(orderData.purchaseRequestId).padStart(6, '0')}</span></h2>
+                    <h2 className={styles.title}>Receive Purchase Order <span className={styles.requestId}>{String(orderData.purchaseRequestId).padStart(6, '0')}</span></h2>
                 </div>
 
                 <div className={styles.itemList}>

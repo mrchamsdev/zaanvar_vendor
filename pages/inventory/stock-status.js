@@ -219,7 +219,7 @@ const StockStatusPage = () => {
         restockProductId: item.productId,
         restockVariantId: item.variantId,
         restockSupplierId: item.supplierId,
-        restockBranchId: branchId,
+        restockBranchId: currentBranchId || defaultBranchId,
         returnTab: activeTab
       }
     });

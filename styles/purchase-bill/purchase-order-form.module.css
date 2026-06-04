@@ -8,7 +8,7 @@
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .sectionTitle {
@@ -36,7 +36,8 @@
     color: #444;
 }
 
-.input, .select {
+.input,
+.select {
     height: 44px;
     padding: 0 16px;
     border: 1px solid #ddd;
@@ -51,7 +52,8 @@
     align-items: center;
 }
 
-.input:focus, .select:focus {
+.input:focus,
+.select:focus {
     border-color: #E9315D;
 }
 
@@ -72,7 +74,8 @@
     border: 1px solid #f0f0f0;
     border-radius: 12px;
     background: #fff;
-    padding-bottom: 200px; /* Buffer for dropdowns to show */
+    padding-bottom: 200px;
+    /* Buffer for dropdowns to show */
     margin-bottom: -200px;
 }
 
@@ -110,7 +113,8 @@
     border-right: none;
 }
 
-.qtyInput, .tableInput {
+.qtyInput,
+.tableInput {
     width: 100%;
     padding: 0;
     border: none;
@@ -122,7 +126,9 @@
     text-align: center;
 }
 
-.tableInput { text-align: left; }
+.tableInput {
+    text-align: left;
+}
 
 .tableInput::placeholder {
     color: #ccc;
@@ -146,7 +152,7 @@
     gap: 16px;
     margin-top: 40px;
     padding-bottom: 40px;
-    padding-right:10px;
+    padding-right: 10px;
 }
 
 .draftBtn {
@@ -162,7 +168,7 @@
 
 .placeOrderBtn {
     padding: 12px 36px;
-    background: #bbb;
+    background: #333;
     border: none;
     border-radius: 10px;
     color: #fff;
@@ -192,7 +198,8 @@
     min-width: 300px;
     background: #fff;
     border: 1px solid #ddd;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Lighter shadow for cleaner look */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    /* Lighter shadow for cleaner look */
     z-index: 5000;
     max-height: 300px;
     overflow-y: auto;
@@ -223,7 +230,8 @@
 }
 
 .productOptionCode {
-    display: none; /* Hide code as per the clean reference image style */
+    display: none;
+    /* Hide code as per the clean reference image style */
 }
 
 /* Responsiveness */
@@ -246,7 +254,8 @@
         overflow-x: auto;
     }
 
-    .table th, .table td {
+    .table th,
+    .table td {
         padding: 10px 12px;
         font-size: 13px;
         white-space: nowrap;
@@ -258,7 +267,8 @@
         margin-top: 20px;
     }
 
-    .draftBtn, .placeOrderBtn {
+    .draftBtn,
+    .placeOrderBtn {
         width: 100%;
         padding: 14px;
     }
@@ -271,7 +281,7 @@
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .summaryHeader {

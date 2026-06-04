@@ -58,7 +58,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading details...</div>;
-  if (!data) return <div style={{ padding: 40, textAlign: 'center' }}>No details found for ID #{stockId}</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: 'center' }}>No details found for ID {stockId}</div>;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -109,13 +109,13 @@ const StockUpdateView = ({ stockId, onClose }) => {
 
   let baseQty = 0;
   if (isHold && onHoldQuantity !== undefined && onHoldQuantity !== null) {
-      baseQty = onHoldQuantity;
+    baseQty = onHoldQuantity;
   } else if (openStockQuantity !== undefined && openStockQuantity !== null) {
-      baseQty = openStockQuantity;
+    baseQty = openStockQuantity;
   } else if (qtyForSale !== undefined && qtyForSale !== null) {
-      baseQty = qtyForSale;
+    baseQty = qtyForSale;
   } else {
-      baseQty = data.updatedQty || 0;
+    baseQty = data.updatedQty || 0;
   }
 
   const displayUpdatedQty = baseQty;
@@ -130,95 +130,95 @@ const StockUpdateView = ({ stockId, onClose }) => {
     return removeQty > 0 ? -Math.abs(calcVal) : Math.abs(calcVal);
   })();
 
-      return (
-        <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
+  return (
+    <div className={styles.viewContainer} style={{ paddingBottom: 40 }}>
 
 
-          {/* Branch Address Card (Premium Style like Screenshot) */}
-          <div style={{
-            background: '#f8f9fa',
-            borderRadius: '12px',
-            padding: '24px 32px',
-            marginBottom: '32px',
-            border: '1px solid #eee'
-          }}>
-            <div style={{ color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px' }}>Branch Details</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>{data.branch?.name || "Main Branch"}</div>
-            <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
-              {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
-              <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
-            </div>
-          </div>
-
-          {/* Details Table */}
-          <div className={styles.viewSectionTitle}>Update Details</div>
-          <div className={styles.viewTableWrapper}>
-            <table className={styles.viewTable}>
-              <thead>
-                <tr>
-                  <th>Updated Date</th>
-                  <th>Product Name</th>
-                  <th>Product Code</th>
-                  <th>Variants</th>
-                  <th>Source Status</th>
-                  <th>Current Qty</th>
-                  <th>Add</th>
-                  <th>Remove</th>
-                  <th>Updated Qty</th>
-                  <th>Reason</th>
-                  <th>Exp. Date</th>
-                  <th>Cost Price</th>
-                  <th style={{ textAlign: 'right' }}>Total (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{formatDate(data.createdDate)}</td>
-                  <td style={{ fontWeight: 700, textTransform: 'uppercase' }}>{productName}</td>
-                  <td>{productCode}</td>
-                  <td>{displayVariant}</td>
-                  <td style={{ fontWeight: 600, color: '#34495e' }}>
-                    {(data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : "-")))}
-                  </td>
-                  <td style={{ fontWeight: 600, background: '#f9f9f9' }}>{displayCurrentQty}</td>
-                  <td style={{ color: '#27ae60', fontWeight: 700 }}>{data.add > 0 ? `+${data.add}` : "0"}</td>
-                  <td style={{ color: '#e74c3c', fontWeight: 700 }}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
-                  <td style={{ fontWeight: 700 }}>{displayUpdatedQty}</td>
-                  <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
-                  <td>{data.billItem?.expiryDate || "------"}</td>
-                  <td>₹{data.billItem?.costPrice || "0"}</td>
-                  <td style={{
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
-                  }}>
-                    {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Total Section Footer */}
-          <div style={{
-            marginTop: '32px',
-            paddingTop: '20px',
-            borderTop: '1px solid #eee',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#333' }}>TOTAL SURPLUS</div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: 700,
-              color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
-            }}>
-              {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            </div>
-          </div>
+      {/* Branch Address Card (Premium Style like Screenshot) */}
+      <div style={{
+        background: '#f8f9fa',
+        borderRadius: '12px',
+        padding: '24px 32px',
+        marginBottom: '32px',
+        border: '1px solid #eee'
+      }}>
+        <div style={{ color: '#999', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px' }}>Branch Details</div>
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>{data.branch?.name || "Main Branch"}</div>
+        <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.6' }}>
+          {branchAddress?.addressText && <div>{branchAddress.addressText}</div>}
+          <div>{branchAddress?.city}, {branchAddress?.state} - {branchAddress?.pincode}</div>
         </div>
-      );
-    };
+      </div>
 
-    export default StockUpdateView;
+      {/* Details Table */}
+      <div className={styles.viewSectionTitle}>Update Details</div>
+      <div className={styles.viewTableWrapper}>
+        <table className={styles.viewTable}>
+          <thead>
+            <tr>
+              <th>Updated Date</th>
+              <th>Product Name</th>
+              <th>Product Code</th>
+              <th>Variants</th>
+              <th>Source Status</th>
+              <th>Current Qty</th>
+              <th>Add</th>
+              <th>Remove</th>
+              <th>Updated Qty</th>
+              <th>Reason</th>
+              <th>Exp. Date</th>
+              <th>Cost Price</th>
+              <th style={{ textAlign: 'right' }}>Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{formatDate(data.createdDate)}</td>
+              <td style={{ fontWeight: 700, textTransform: 'uppercase' }}>{productName}</td>
+              <td>{productCode}</td>
+              <td>{displayVariant}</td>
+              <td style={{ fontWeight: 600, color: '#34495e' }}>
+                {(data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock") ? "Open Stock" : ((data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty") ? "Hold Qty" : ((data.reason === "Open Stock" || data.reason === "openStock") ? "Open Stock" : ((data.reason === "OnHold" || data.reason === "onHold" || data.reason === "holdQty" || data.reason === "Hold Qty") ? "Hold Qty" : "-")))}
+              </td>
+              <td style={{ fontWeight: 600, background: '#f9f9f9' }}>{displayCurrentQty}</td>
+              <td style={{ color: '#27ae60', fontWeight: 700 }}>{data.add > 0 ? `+${data.add}` : "0"}</td>
+              <td style={{ color: '#e74c3c', fontWeight: 700 }}>{data.remove > 0 ? `-${data.remove}` : "0"}</td>
+              <td style={{ fontWeight: 700 }}>{displayUpdatedQty}</td>
+              <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
+              <td>{data.billItem?.expiryDate || "------"}</td>
+              <td>₹{data.billItem?.costPrice || "0"}</td>
+              <td style={{
+                textAlign: 'right',
+                fontWeight: 700,
+                color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
+              }}>
+                {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Total Section Footer */}
+      <div style={{
+        marginTop: '32px',
+        paddingTop: '20px',
+        borderTop: '1px solid #eee',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#333' }}>TOTAL SURPLUS</div>
+        <div style={{
+          fontSize: '24px',
+          fontWeight: 700,
+          color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
+        }}>
+          {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StockUpdateView;

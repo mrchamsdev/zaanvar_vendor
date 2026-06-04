@@ -311,7 +311,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div key={p.id} className={styles.additionalPaymentEntry}>
                             <div className={styles.row}>
                                 <div className={styles.field}>
-                                    <label>Payment Type #{idx + 2}</label>
+                                    <label>Payment Type {idx + 2}</label>
                                     <select
                                         value={p.paymentType}
                                         onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}

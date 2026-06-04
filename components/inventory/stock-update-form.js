@@ -14,6 +14,14 @@ const IconX = () => (
     </svg>
 );
 
+const IconTrash = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        <path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+);
+
+
 const IconChevronDown = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <polyline points="6 9 12 15 18 9" />
@@ -757,8 +765,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                         {row.total >= 0 ? `+ ₹ ${row.total.toFixed(2)}` : `- ₹ ${Math.abs(row.total).toFixed(2)}`}
                                                     </td>
                                                     <td>
-                                                        {index > 0 && mode !== "View" && (
-                                                            <span className={styles.removeRowBtn} onClick={() => removeRow(row.id)}><IconX /></span>
+                                                        {rows.length > 1 && mode !== "View" && (
+                                                            <span className={styles.removeRowBtn} onClick={() => removeRow(row.id)}><IconTrash /></span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -776,15 +784,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                     {grandTotal >= 0 ? `+ ₹ ${grandTotal.toFixed(2)}` : `- ₹ ${Math.abs(grandTotal).toFixed(2)}`}
                                 </div>
                             </div>
-                        </div>
 
-                        {mode !== "View" && (
-                            <div className={styles.footer}>
-                                <button className={styles.submitBtn} onClick={handleSubmit} disabled={submitting}>
-                                    {submitting ? "Processing..." : "Update Stock"}
-                                </button>
-                            </div>
-                        )}
+                            {mode !== "View" && (
+                                <div className={styles.inlineActionSection}>
+                                    <button className={styles.submitBtn} onClick={handleSubmit} disabled={submitting}>
+                                        {submitting ? "Processing..." : "Update Stock"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
             </div>

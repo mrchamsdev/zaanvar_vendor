@@ -188,11 +188,16 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         if (res.status === "success" && res.data) {
             setSelectedOrder(res.data);
             const billDateStr = (res.data.createdDate || res.data.createdAt || "").split('T')[0];
-            setFormData(prev => ({
-                ...prev,
-                receiptNo: orderId,
-                billDate: billDateStr
-            }));
+            setFormData(prev => {
+                const nextReturnDate = (billDateStr && prev.returnDate && prev.returnDate < billDateStr) ? billDateStr : prev.returnDate;
+                return {
+                    ...prev,
+                    receiptNo: orderId,
+                    billDate: billDateStr,
+                    returnDate: nextReturnDate
+                };
+            });
+            setErrors(prev => ({ ...prev, receiptNo: undefined, itemsEmpty: undefined, returnDate: undefined }));
             const cartItems = res.data.cartItems || [];
             setAvailableItems(cartItems.map(item => {
                 const vType = item.variant?.variantType || {};
@@ -311,6 +316,11 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         }
         if (!formData.receiptNo) {
             newErrors.receiptNo = "Receipt number is required";
+        }
+        if (!formData.returnDate) {
+            newErrors.returnDate = "Return date is required";
+        } else if (formData.billDate && formData.returnDate < formData.billDate) {
+            newErrors.returnDate = "Cannot be earlier than Bill Date";
         }
 
         items.forEach((item, index) => {
@@ -532,16 +542,27 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 type="date"
                                 className={styles.input}
                                 value={formData.returnDate}
-                                onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, returnDate: e.target.value });
+                                    if (errors.returnDate) {
+                                        setErrors(prev => ({ ...prev, returnDate: undefined }));
+                                    }
+                                }}
                                 readOnly={mode === "view"}
                                 onFocus={() => setFocusedField('returnDate')}
                                 onBlur={() => setFocusedField(null)}
+                                min={formData.billDate || undefined}
                                 style={{
                                     background: '#fff',
-                                    border: focusedField === 'returnDate' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    border: errors.returnDate ? '2px solid red' : (focusedField === 'returnDate' ? '2px solid #E93E64' : '2px solid #ddd'),
                                     boxShadow: 'none'
                                 }}
                             />
+                            {errors.returnDate && (
+                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                    {errors.returnDate}
+                                </span>
+                            )}
                         </div>
                     </div>
 

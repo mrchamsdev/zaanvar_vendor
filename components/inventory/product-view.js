@@ -11,7 +11,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
   const [isGalleryOpen, setIsGalleryOpen] = React.useState(false);
   const [selectedGalleryImage, setSelectedGalleryImage] = React.useState(null);
 
-  if (!data) return <div style={{padding: 40, textAlign: 'center'}}>No product data available.</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: 'center' }}>No product data available.</div>;
 
   const formatExpiryDate = (date) => {
     if (!date) return "-";
@@ -32,19 +32,19 @@ const ProductView = ({ data, onBack, isSplit }) => {
     const rawSize = (rawSizeVal && rawSizeVal.toString().toUpperCase() !== "N/A" && rawSizeVal !== "undefined") ? rawSizeVal : "";
     let parsedSize = null;
     if (typeof rawSize === 'string' && rawSize.trim().startsWith('{')) {
-        try { parsedSize = JSON.parse(rawSize); } catch (e) {}
+      try { parsedSize = JSON.parse(rawSize); } catch (e) { }
     }
-    
+
     if (parsedSize) {
-        const parts = [];
-        if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
-        if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
-        if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
-        if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
-        if (parsedSize.weight) parts.push(`${parsedSize.weight}${parsedSize.weightUnit || 'g'}`);
-        return parts.length > 0 ? parts.join(" x ") : "-";
+      const parts = [];
+      if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
+      if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
+      if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
+      if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
+      if (parsedSize.weight) parts.push(`${parsedSize.weight}${parsedSize.weightUnit || 'g'}`);
+      return parts.length > 0 ? parts.join(" x ") : "-";
     }
-    
+
     return rawSize || "-";
   };
 
@@ -59,8 +59,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
       listStr = String(arr);
     } else {
       listStr = arr.map(item => {
-          if (typeof item === 'object' && item !== null) return item.petType || item.name || JSON.stringify(item);
-          return item;
+        if (typeof item === 'object' && item !== null) return item.petType || item.name || JSON.stringify(item);
+        return item;
       }).join(" | ");
     }
 
@@ -75,11 +75,11 @@ const ProductView = ({ data, onBack, isSplit }) => {
     if (!cat) return "-";
     if (Array.isArray(cat)) return cat.map(c => renderCategory(c)).join(", ");
     if (typeof cat === 'object') {
-        const val = cat.subCategory || cat.category || cat.name || cat.categoryName || "-";
-        if (typeof val === 'object' && val !== null) {
-            return val.subCategory || val.category || val.name || JSON.stringify(val);
-        }
-        return String(val);
+      const val = cat.subCategory || cat.category || cat.name || cat.categoryName || "-";
+      if (typeof val === 'object' && val !== null) {
+        return val.subCategory || val.category || val.name || JSON.stringify(val);
+      }
+      return String(val);
     }
     return String(cat);
   };
@@ -137,65 +137,65 @@ const ProductView = ({ data, onBack, isSplit }) => {
           <div>
             <label className={styles.galleryTitle}>Product Images</label>
             <div className={styles.viewImageGallery}>
-                {/* Collect all variant images into one unique list */}
-                {(() => {
-                  const allImages = (allVariants || []).reduce((acc, v) => {
-                    const imgs = v.productImgs || v.productImages || [];
-                    imgs.forEach(img => { if (img && !acc.includes(img)) acc.push(img); });
-                    return acc;
-                  }, []);
+              {/* Collect all variant images into one unique list */}
+              {(() => {
+                const allImages = (allVariants || []).reduce((acc, v) => {
+                  const imgs = v.productImgs || v.productImages || [];
+                  imgs.forEach(img => { if (img && !acc.includes(img)) acc.push(img); });
+                  return acc;
+                }, []);
 
-                  const displayImages = allImages.slice(0, 3);
-                  const remainingCount = allImages.length - 3;
+                const displayImages = allImages.slice(0, 3);
+                const remainingCount = allImages.length - 3;
 
-                  return (
-                    <>
-                      {displayImages.map((img, i) => (
-                        <div key={i} className={styles.viewImageThumb} onClick={() => { setSelectedGalleryImage(img); setIsGalleryOpen(true); }}>
-                          <img src={img} alt="product" />
-                        </div>
-                      ))}
-                      {remainingCount > 0 ? (
-                        <div className={`${styles.viewImageThumb} ${styles.overflowThumb}`} onClick={() => { setSelectedGalleryImage(allImages[3]); setIsGalleryOpen(true); }}>
-                          <img src={allImages[3]} alt="more" />
-                          <div className={styles.overflowBadge}>+{remainingCount}</div>
-                        </div>
-                      ) : (
-                        allImages.length < 3 && <div className={`${styles.viewImageThumb} ${styles.addImageThumb}`}>+</div>
-                      )}
+                return (
+                  <>
+                    {displayImages.map((img, i) => (
+                      <div key={i} className={styles.viewImageThumb} onClick={() => { setSelectedGalleryImage(img); setIsGalleryOpen(true); }}>
+                        <img src={img} alt="product" />
+                      </div>
+                    ))}
+                    {remainingCount > 0 ? (
+                      <div className={`${styles.viewImageThumb} ${styles.overflowThumb}`} onClick={() => { setSelectedGalleryImage(allImages[3]); setIsGalleryOpen(true); }}>
+                        <img src={allImages[3]} alt="more" />
+                        <div className={styles.overflowBadge}>+{remainingCount}</div>
+                      </div>
+                    ) : (
+                      allImages.length < 3 && <div className={`${styles.viewImageThumb} ${styles.addImageThumb}`}>+</div>
+                    )}
 
-                      {/* Image Modal Popup */}
-                      {isGalleryOpen && (
-                        <div className={styles.imageModalOverlay} onClick={() => setIsGalleryOpen(false)}>
-                          <div className={styles.imageModalContent} onClick={e => e.stopPropagation()}>
-                            <button className={styles.closeModalBtn} onClick={() => setIsGalleryOpen(false)}>×</button>
-                            <div className={styles.modalBody}>
-                              <div className={styles.thumbnailsSidebar}>
-                                {allImages.map((img, idx) => (
-                                  <div 
-                                    key={idx} 
-                                    className={`${styles.sidebarThumb} ${selectedGalleryImage === img ? styles.activeSidebarThumb : ""}`}
-                                    onClick={() => setSelectedGalleryImage(img)}
-                                  >
-                                    <img src={img} alt={`Thumb ${idx}`} />
-                                  </div>
-                                ))}
-                              </div>
-                              <div className={styles.mainImageContainer}>
-                                <img src={selectedGalleryImage} alt="Selected" className={styles.mainModalImage} />
-                              </div>
+                    {/* Image Modal Popup */}
+                    {isGalleryOpen && (
+                      <div className={styles.imageModalOverlay} onClick={() => setIsGalleryOpen(false)}>
+                        <div className={styles.imageModalContent} onClick={e => e.stopPropagation()}>
+                          <button className={styles.closeModalBtn} onClick={() => setIsGalleryOpen(false)}>×</button>
+                          <div className={styles.modalBody}>
+                            <div className={styles.thumbnailsSidebar}>
+                              {allImages.map((img, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`${styles.sidebarThumb} ${selectedGalleryImage === img ? styles.activeSidebarThumb : ""}`}
+                                  onClick={() => setSelectedGalleryImage(img)}
+                                >
+                                  <img src={img} alt={`Thumb ${idx}`} />
+                                </div>
+                              ))}
+                            </div>
+                            <div className={styles.mainImageContainer}>
+                              <img src={selectedGalleryImage} alt="Selected" className={styles.mainModalImage} />
                             </div>
                           </div>
                         </div>
-                      )}
-                    </>
-                  );
-                })()}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           <div className={styles.totalCountBox}>
-             <label>Total :</label>
-             <span className={styles.totalValue}>{String(totalStock).padStart(6, '0')}</span>
+            <label>Total :</label>
+            <span className={styles.totalValue}>{String(totalStock).padStart(6, '0')}</span>
           </div>
         </div>
       </div>
@@ -231,37 +231,37 @@ const ProductView = ({ data, onBack, isSplit }) => {
               const subCatStr = (renderCategory(data.subCategory) || "").toLowerCase();
               const isClothing = catStr.includes('cloth') || subCatStr.includes('cloth');
               const isSizeBased = ["PIECES (Pcs)", "PAIRS (Prs)"].includes(packTypeStr);
-              
+
               const rawSizeVal = v.variantType?.size || v.size || "";
               const rawSize = (rawSizeVal && rawSizeVal.toString().toUpperCase() !== "N/A" && rawSizeVal !== "undefined") ? rawSizeVal : "";
               let parsedSize = null;
               if (typeof rawSize === 'string' && rawSize.trim().startsWith('{')) {
-                  try { parsedSize = JSON.parse(rawSize); } catch (e) {}
+                try { parsedSize = JSON.parse(rawSize); } catch (e) { }
               }
 
               // Size Column
               let displaySize = "-";
               if (isSizeBased) {
-                  displaySize = (rawSize && !rawSize.toString().startsWith('{')) ? rawSize : "-";
+                displaySize = (rawSize && !rawSize.toString().startsWith('{')) ? rawSize : "-";
               } else if (parsedSize) {
-                  const parts = [];
-                  if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
-                  if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
-                  if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
-                  if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
-                  displaySize = parts.length > 0 ? parts.join(" x ") : "-";
+                const parts = [];
+                if (parsedSize.height) parts.push(`${parsedSize.height}${parsedSize.heightUnit || 'mm'}H`);
+                if (parsedSize.width) parts.push(`${parsedSize.width}${parsedSize.widthUnit || 'mm'}W`);
+                if (parsedSize.length) parts.push(`${parsedSize.length}${parsedSize.lengthUnit || 'mm'}L`);
+                if (parsedSize.radius) parts.push(`${parsedSize.radius}${parsedSize.radiusUnit || 'mm'}R`);
+                displaySize = parts.length > 0 ? parts.join(" x ") : "-";
               } else if (isClothing && (packTypeLow.includes("piece") || packTypeLow.includes("pair"))) {
-                  displaySize = packTypeStr;
+                displaySize = packTypeStr;
               }
 
               // Weight / Unit Column
               let weightUnitVal = "-";
               if (!isSizeBased) {
-                  if (v.unitMeasure) {
-                      weightUnitVal = `${v.unitMeasure}${v.unitType || v.sizeType?.[0] || ""}`;
-                  } else if (rawSize && !rawSize.toString().startsWith('{')) {
-                      weightUnitVal = rawSize;
-                  }
+                if (v.unitMeasure) {
+                  weightUnitVal = `${v.unitMeasure}${v.unitType || v.sizeType?.[0] || ""}`;
+                } else if (rawSize && !rawSize.toString().startsWith('{')) {
+                  weightUnitVal = rawSize;
+                }
               }
 
               return (
@@ -271,15 +271,15 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{packTypeStr}</td>
                   <td>{displaySize}</td>
                   <td>{weightUnitVal}</td>
-                  <td style={{fontWeight: 600, color: '#ff4d4f'}}>{v.minStockAlert || "0"}</td>
+                  <td style={{ fontWeight: 600, color: '#ff4d4f' }}>{v.minStockAlert || "0"}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>
-                  <td>{v.stockUpdates?.totalQuantity || v.stockQty || 0}</td> 
-                  <td>{v.stockUpdates?.openStockQuantity || v.openingStock || 0}</td> 
-                  <td>{v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0}</td> 
-                  <td>{v.soldQty ?? 0}</td> 
-                  <td>{v.damagedQty ?? 0}</td>  
+                  <td>{v.stockUpdates?.totalQuantity || v.stockQty || 0}</td>
+                  <td>{v.stockUpdates?.openStockQuantity || v.openingStock || 0}</td>
+                  <td>{v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0}</td>
+                  <td>{v.soldQty ?? 0}</td>
+                  <td>{v.damagedQty ?? 0}</td>
                 </tr>
               );
             })}
@@ -290,7 +290,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
       {(data.productsBillItems?.length > 0 || data.stockHistory?.length > 0) && (
         <div className={styles.viewHistorySection}>
           <div className={styles.viewSectionTitle}>Product History</div>
-          
+
           {/* Purchase Order Table */}
           {data.productsBillItems?.length > 0 && (
             <>
@@ -315,7 +315,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <tbody>
                     {data.productsBillItems.map((bill, idx) => (
                       <tr key={idx}>
-                        <td>#{bill.productsPurchaseRqstId || bill.productsBillId}</td>
+                        <td>{bill.productsPurchaseRqstId || bill.productsBillId}</td>
                         <td>{bill.productsBillId || "-"}</td>
                         <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
                         <td>{getVariantTypeDisplay(bill)}</td>
@@ -337,7 +337,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
           {/* Stock History Table */}
           {data.stockHistory?.length > 0 && (
             <>
-              <div className={styles.viewSubTitle} style={{marginTop: 24}}>Stock History</div>
+              <div className={styles.viewSubTitle} style={{ marginTop: 24 }}>Stock History</div>
               <div className={styles.viewTableWrapper}>
                 <table className={styles.viewTable}>
                   <thead>
@@ -366,7 +366,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td>{stock.add}</td>
                           <td>{stock.remove}</td>
                           <td>{stock.updatedQty}</td>
-                          <td style={{color: '#E9315D', fontWeight: 600}}>{stock.reason || "MISCOUNT"}</td>
+                          <td style={{ color: '#E9315D', fontWeight: 600 }}>{stock.reason || "MISCOUNT"}</td>
                           <td>{formatSourceStatus(stock.sourceStatus)}</td>
                           <td>{formatExpiryDate(stock.expDate)}</td>
                           <td style={{ color: displayColor, fontWeight: 600 }}>{displayText}</td>
