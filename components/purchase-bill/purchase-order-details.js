@@ -120,7 +120,6 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
         return <ReceiveOrderForm requestId={requestId} onClose={onClose} mode="view" />;
     }
 
-    // Condition 2 & 3: Order Placed or Cancelled - Show Summary View
     return (
         <div className={styles.formContainer}>
             <div className={styles.summaryCard}>

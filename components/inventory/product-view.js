@@ -355,6 +355,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   </thead>
                   <tbody>
                     {data.stockHistory.map((stock, idx) => {
+                      const isOS = stock.sourceStatus === "openStock" || stock.sourceStatus === "Open Stock";
+                      const isHold = stock.sourceStatus === "onHold" || stock.sourceStatus === "hold" || stock.sourceStatus === "Hold Qty";
                       const isNegative = stock.remove > 0 || (stock.reason?.toLowerCase().includes('damaged') || stock.reason?.toLowerCase().includes('expired') || stock.reason?.toLowerCase().includes('theft') || stock.reason?.toLowerCase().includes('internal purpose') || stock.reason?.toLowerCase().includes('onhold'));
                       const val = parseFloat(stock.totalValue || 0);
                       const displayColor = isNegative ? '#e74c3c' : '#27ae60';
@@ -362,10 +364,36 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       return (
                         <tr key={idx}>
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>
-                          <td>{stock.currentQty}</td>
+                          <td>
+                            {(() => {
+                              if (stock.stockUpdates) {
+                                if (isOS) {
+                                  const openStock = Number(stock.stockUpdates.openStockQuantity || 0);
+                                  return openStock + Number(stock.remove || 0) - Number(stock.add || 0);
+                                }
+                                if (isHold) {
+                                  const onHold = Number(stock.stockUpdates.onHoldQuantity || 0);
+                                  return onHold + Number(stock.remove || 0) - Number(stock.add || 0);
+                                }
+                              }
+                              return stock.currentQty;
+                            })()}
+                          </td>
                           <td>{stock.add}</td>
                           <td>{stock.remove}</td>
-                          <td>{stock.updatedQty}</td>
+                          <td>
+                            {(() => {
+                              if (stock.stockUpdates) {
+                                if (isOS) {
+                                  return Number(stock.stockUpdates.openStockQuantity || 0);
+                                }
+                                if (isHold) {
+                                  return Number(stock.stockUpdates.onHoldQuantity || 0);
+                                }
+                              }
+                              return stock.updatedQty;
+                            })()}
+                          </td>
                           <td style={{ color: '#E9315D', fontWeight: 600 }}>{stock.reason || "MISCOUNT"}</td>
                           <td>{formatSourceStatus(stock.sourceStatus)}</td>
                           <td>{formatExpiryDate(stock.expDate)}</td>
