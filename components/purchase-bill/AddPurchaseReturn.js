@@ -129,7 +129,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 const isAutomatedReturn = data.returnReason === "Automated return for damaged goods at receipt";
 
                 if (data.productsBill) {
-                    setBillDate(data.productsBill.createdDate ? data.productsBill.createdDate.split('T')[0] : "");
+                    setBillDate(data.productsBill.receivedDate ? data.productsBill.receivedDate.split('T')[0] : "");
                     // Set supplier details from bill
                     const supplierData = {
                         supplierId: data.productsBill.supplierId,
@@ -329,7 +329,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 }
 
                 setBillDetails(data);
-                const newBillDate = data.createdDate ? data.createdDate.split('T')[0] : "";
+                const newBillDate = data.receivedDate ? data.receivedDate.split('T')[0] : "";
                 setBillDate(newBillDate);
                 if (newBillDate && returnDate && returnDate < newBillDate) {
                     setReturnDate(newBillDate);
@@ -1068,7 +1068,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             <div style={{ fontWeight: '600' }}>{item.amount.toLocaleString()}</div>
                                         </td>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            {!isViewOnly && idx > 0 && (
+                                            {!isViewOnly && items.length > 1 && (
                                                 <FiTrash2
                                                     style={{ color: '#ff4d4f', cursor: 'pointer', fontSize: '18px' }}
                                                     onClick={() => handleRemoveRow(idx)}
@@ -1124,19 +1124,19 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             </tbody>
                         </table>
                     </div>
-                </div>
 
-                <div className={styles.footer} style={{ display: isPdf ? 'none' : 'flex' }}>
-                    <button className={styles.shareBtn} onClick={onClose}>{isViewOnly ? "Close" : "Cancel"}</button>
-                    {!isViewOnly && (
-                        <button
-                            className={styles.saveBtn}
-                            onClick={handleSave}
-                            disabled={loading}
-                        >
-                            {loading ? "Saving..." : "Save"}
-                        </button>
-                    )}
+                    <div className={styles.footer} style={{ display: isPdf ? 'none' : 'flex' }}>
+                        <button className={styles.shareBtn} onClick={onClose}>{isViewOnly ? "Close" : "Cancel"}</button>
+                        {!isViewOnly && (
+                            <button
+                                className={styles.saveBtn}
+                                onClick={handleSave}
+                                disabled={loading}
+                            >
+                                {loading ? "Saving..." : "Save"}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

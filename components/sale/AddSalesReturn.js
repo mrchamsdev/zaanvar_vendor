@@ -97,14 +97,6 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             const res = await saleService.getSalesReturnById(jwtToken, returnId);
             if (res.status === "success" && res.data) {
                 const data = res.data;
-                setFormData({
-                    receiptNo: data.userOrderId,
-                    returnNo: `SR-${data.customerReturnId}`,
-                    returnReason: data.returnReason || "",
-                    billDate: data.createdDate?.split('T')[0] || "",
-                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
-                });
-
                 // Fetch customer to get phone etc.
                 const custRes = await saleService.getCustomersByBranch(jwtToken, branchId);
                 const customersList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
@@ -114,8 +106,10 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 // Fetch original order to get max quantities
                 const orderRes = await saleService.getOrderById(jwtToken, data.userOrderId);
                 let availableItemsList = [];
+                let invoiceDateStr = "";
                 if (orderRes.status === "success" && orderRes.data) {
                     setSelectedOrder(orderRes.data);
+                    invoiceDateStr = (orderRes.data.invoiceDate || orderRes.data.createdDate || "").split('T')[0];
                     availableItemsList = (orderRes.data.cartItems || []).map(item => {
                         const vType = item.variant?.variantType || {};
                         const unitParts = [formatVariantSize(vType.size), vType.type].filter(Boolean);
@@ -136,6 +130,14 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     });
                     setAvailableItems(availableItemsList);
                 }
+
+                setFormData({
+                    receiptNo: data.userOrderId,
+                    returnNo: `SR-${data.customerReturnId}`,
+                    returnReason: data.returnReason || "",
+                    billDate: invoiceDateStr || data.createdDate?.split('T')[0] || "",
+                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
+                });
 
                 // Set items from return data
                 setItems((data.items || []).map(item => {
@@ -187,7 +189,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         const res = await saleService.getOrderById(jwtToken, orderId);
         if (res.status === "success" && res.data) {
             setSelectedOrder(res.data);
-            const billDateStr = (res.data.createdDate || res.data.createdAt || "").split('T')[0];
+            const billDateStr = (res.data.invoiceDate || res.data.createdDate || res.data.createdAt || "").split('T')[0];
             setFormData(prev => {
                 const nextReturnDate = (billDateStr && prev.returnDate && prev.returnDate < billDateStr) ? billDateStr : prev.returnDate;
                 return {
@@ -288,7 +290,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         newItems[index].itemTotal = qty * (price + tax - disc);
 
         setItems(newItems);
-        
+
         if (qty > maxQty) {
             setErrors(prev => ({ ...prev, [`itemQty_${index}`]: `Quantity cannot exceed returnable quantity (${maxQty})` }));
         } else {
@@ -647,44 +649,44 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
-                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                                 {mode === "view" ? (
-                                                     <span style={{ fontWeight: '600', fontSize: '15px', color: '#111' }}>{item.returnQty}</span>
-                                                 ) : (
-                                                     <input
-                                                         type="number"
-                                                         className={styles.tableInputCenter}
-                                                         onFocus={() => setFocusedField(`itemQty_${idx}`)}
-                                                         onBlur={() => setFocusedField(null)}
-                                                         style={{
-                                                             width: '70px',
-                                                             padding: '8px 10px',
-                                                             textAlign: 'center',
-                                                             background: '#fff',
-                                                             border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
-                                                             borderRadius: '6px',
-                                                             outline: 'none',
-                                                             boxShadow: 'none'
-                                                         }}
-                                                         placeholder="0"
-                                                         value={item.returnQty || ""}
-                                                         onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
-                                                         disabled={!item.userOrderItemsID}
-                                                     />
-                                                 )}
-                                                 {item.unit && <span style={{ fontSize: '13px', color: '#333' }}>{item.unit}</span>}
-                                             </div>
-                                             {errors[`itemQty_${idx}`] && (
-                                                 <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                     {errors[`itemQty_${idx}`]}
-                                                 </span>
-                                             )}
-                                             {item.userOrderItemsID && (
-                                                 <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
-                                                     Returnable: {item.returnableQty}
-                                                 </div>
-                                             )}
-                                         </td>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                {mode === "view" ? (
+                                                    <span style={{ fontWeight: '600', fontSize: '15px', color: '#111' }}>{item.returnQty}</span>
+                                                ) : (
+                                                    <input
+                                                        type="number"
+                                                        className={styles.tableInputCenter}
+                                                        onFocus={() => setFocusedField(`itemQty_${idx}`)}
+                                                        onBlur={() => setFocusedField(null)}
+                                                        style={{
+                                                            width: '70px',
+                                                            padding: '8px 10px',
+                                                            textAlign: 'center',
+                                                            background: '#fff',
+                                                            border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
+                                                            borderRadius: '6px',
+                                                            outline: 'none',
+                                                            boxShadow: 'none'
+                                                        }}
+                                                        placeholder="0"
+                                                        value={item.returnQty || ""}
+                                                        onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
+                                                        disabled={!item.userOrderItemsID}
+                                                    />
+                                                )}
+                                                {item.unit && <span style={{ fontSize: '13px', color: '#333' }}>{item.unit}</span>}
+                                            </div>
+                                            {errors[`itemQty_${idx}`] && (
+                                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                                                    {errors[`itemQty_${idx}`]}
+                                                </span>
+                                            )}
+                                            {item.userOrderItemsID && (
+                                                <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
+                                                    Returnable: {item.returnableQty}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td style={{ textAlign: 'right' }}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
                                         <td style={{ textAlign: 'center' }}>
                                             <select

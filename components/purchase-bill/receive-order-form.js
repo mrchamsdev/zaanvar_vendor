@@ -322,7 +322,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 return;
             }
 
-            if (paymentStatus !== "Full" && !duedate) {
+            const todayStr = toApiDateOnly(new Date());
+            if (paymentStatus !== "Full" && (!duedate || duedate < todayStr)) {
                 setLoading(false);
                 scrollToFirstError();
                 return;
@@ -840,15 +841,24 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                             <div className={styles.inputWrapper}>
                                 <input
                                     type="date"
-                                    className={`${styles.input} ${isSubmitted && !duedate ? styles.errorInput : ""}`}
+                                    className={`${styles.input} ${isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) ? styles.errorInput : ""}`}
                                     value={duedate}
                                     min={toApiDateOnly(new Date())}
                                     max="9999-12-31"
                                     onChange={(e) => setDuedate(e.target.value)}
+                                    onBlur={(e) => {
+                                        const today = toApiDateOnly(new Date());
+                                        if (e.target.value && e.target.value < today) {
+                                            setDuedate("");
+                                            toast.error("Payment Due Date cannot be in the past");
+                                        }
+                                    }}
                                 />
                             </div>
-                            {isSubmitted && !duedate && (
-                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>Payment Due Date is required</span>
+                            {isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) && (
+                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                                    {!duedate ? "Payment Due Date is required" : "Payment Due Date cannot be in the past"}
+                                </span>
                             )}
                         </div>
                     )}

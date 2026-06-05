@@ -163,8 +163,13 @@ const StockUpdatesPage = () => {
           ) : filteredUpdates.length === 0 ? (
             <div className={styles.emptyContainer}>
                 <EmptyState 
-                    title="No Stock Updates Found"
-                    description="You haven't made any stock adjustments for this branch yet."
+                    buttonText="Update Stock"
+                    onAddClick={() => {
+                        setManagerMode("Add");
+                        setSelectedStockId(null);
+                        setShowUpdateForm(true);
+                        setTriggerNewTab(prev => prev + 1);
+                    }}
                 />
             </div>
           ) : (

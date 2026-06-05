@@ -243,6 +243,110 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         setRows([...rows, { id: Date.now(), productId: "", productName: "", productCode: "", variantId: "", sourceStatus: "", batchNumber: "", currentQty: 0, add: 0, remove: 0, updatedQty: 0, reason: "", expiryDate: "", costPrice: 0, total: 0 }]);
     };
 
+    const recalculateAllRows = (newRows) => {
+        if (mode === "View") return;
+        const runningQuantities = {};
+
+        newRows.forEach((row, idx) => {
+            if (!row.productId || !row.variantId) {
+                row.currentQty = 0;
+                row.updatedQty = 0;
+                row.total = 0;
+                return;
+            }
+
+            const variantId = parseInt(row.variantId);
+            const product = products.find(p => p.productId === row.productId);
+            const variant = product?.variants?.find(v => v.variantId === variantId);
+
+            if (!variant) {
+                row.currentQty = 0;
+                row.updatedQty = 0;
+                row.total = 0;
+                return;
+            }
+
+            if (!runningQuantities[variantId]) {
+                const stockData = variant.stockUpdates || {};
+                runningQuantities[variantId] = {
+                    openStock: stockData.openStockQuantity || 0,
+                    holdQty: stockData.onHoldQuantity || 0
+                };
+            }
+
+            // Determine current quantity based on source status
+            let currentVal = 0;
+            if (row.sourceStatus === "Open Stock") {
+                currentVal = runningQuantities[variantId].openStock;
+            } else if (row.sourceStatus === "Hold Qty") {
+                currentVal = runningQuantities[variantId].holdQty;
+            } else {
+                const stockData = variant.stockUpdates || {};
+                currentVal = stockData.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
+            }
+
+            row.currentQty = currentVal;
+
+            const add = parseInt(row.add) || 0;
+            const remove = parseInt(row.remove) || 0;
+            const cost = parseFloat(row.costPrice) || 0;
+
+            row.updatedQty = currentVal + add - remove;
+            row.total = (add - remove) * cost;
+
+            // Update running quantities for subsequent rows
+            if (row.sourceStatus === "Open Stock") {
+                runningQuantities[variantId].openStock = currentVal + add - remove;
+                if (row.reason === "OnHold") {
+                    runningQuantities[variantId].holdQty += remove;
+                }
+            } else if (row.sourceStatus === "Hold Qty") {
+                runningQuantities[variantId].holdQty = currentVal + add - remove;
+                if (row.reason === "Open Stock") {
+                    runningQuantities[variantId].openStock += remove;
+                }
+            }
+        });
+    };
+
+    const validateAllRows = (newRows, currentErrors = {}) => {
+        const newErrors = { ...currentErrors };
+
+        newRows.forEach((row, index) => {
+            const removeQty = parseInt(row.remove) || 0;
+            const currentQty = parseInt(row.currentQty) || 0;
+            const addQty = parseInt(row.add) || 0;
+
+            if (removeQty > currentQty) {
+                newErrors[`${index}_remove`] = "Cannot exceed current quantity";
+            } else if (removeQty < 0) {
+                newErrors[`${index}_remove`] = "Cannot be negative";
+            } else {
+                if (newErrors[`${index}_remove`] === "Cannot exceed current quantity" || newErrors[`${index}_remove`] === "Cannot be negative") {
+                    delete newErrors[`${index}_remove`];
+                }
+            }
+
+            if (addQty < 0) {
+                newErrors[`${index}_add`] = "Cannot be negative";
+            } else {
+                if (newErrors[`${index}_add`] === "Cannot be negative") {
+                    delete newErrors[`${index}_add`];
+                }
+            }
+        });
+
+        return newErrors;
+    };
+
+    useEffect(() => {
+        if (products.length > 0 && mode !== "View") {
+            const newRows = [...rows];
+            recalculateAllRows(newRows);
+            setRows(newRows);
+        }
+    }, [products]);
+
     const handleVariantChange = (index, variantId) => {
         if (!Array.isArray(products)) return;
         const product = products.find(p => p.productId === rows[index].productId);
@@ -257,23 +361,18 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         // Default source status to empty
         newRows[index].sourceStatus = "";
         newRows[index].batchNumber = "";
-        newRows[index].currentQty = variant.stockUpdates?.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
-
+        newRows[index].add = 0;
+        newRows[index].remove = 0;
+        newRows[index].reason = "";
         newRows[index].costPrice = variant.costPrice || 0;
         newRows[index].expiryDate = variant.expiryDate?.split('T')[0] || "";
 
-        // Validate remove quantity for the new variant
-        const newErrors = { ...errors };
-        const removeQty = parseInt(newRows[index].remove) || 0;
-        const currentQty = parseInt(newRows[index].currentQty) || 0;
-        if (removeQty > currentQty) {
-            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
-        } else {
-            delete newErrors[`${index}_remove`];
-        }
-        setErrors(newErrors);
+        recalculateAllRows(newRows);
 
-        updateRowCalculations(newRows, index);
+        let newErrors = { ...errors };
+        delete newErrors[`${index}_variant`];
+        newErrors = validateAllRows(newRows, newErrors);
+        setErrors(newErrors);
         setRows(newRows);
     };
 
@@ -281,10 +380,12 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         if (rows.length > 1) {
             const rowIndex = rows.findIndex(r => r.id === id);
             if (rowIndex !== -1) {
-                setRows(rows.filter(r => r.id !== id));
+                const newRows = rows.filter(r => r.id !== id);
+
+                recalculateAllRows(newRows);
 
                 // Adjust the keys in errors state to prevent shifted error displays
-                const newErrors = {};
+                let newErrors = {};
                 Object.keys(errors).forEach(key => {
                     const parts = key.split('_');
                     if (parts.length > 1) {
@@ -299,7 +400,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                         newErrors[key] = errors[key];
                     }
                 });
+
+                newErrors = validateAllRows(newRows, newErrors);
                 setErrors(newErrors);
+                setRows(newRows);
             }
         }
     };
@@ -315,54 +419,44 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
         newRows[index].productCode = product.ProductCode || "";
         newRows[index].sourceStatus = "";
         newRows[index].batchNumber = "";
+        newRows[index].add = 0;
+        newRows[index].remove = 0;
+        newRows[index].reason = "";
 
         // Default to first variant if exists
         if (product.variants?.length > 0) {
             const v = product.variants[0];
             newRows[index].variantId = v.variantId;
-            newRows[index].currentQty = v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.stockQty ?? 0;
             newRows[index].costPrice = v.costPrice || 0;
             newRows[index].expiryDate = v.expiryDate?.split('T')[0] || "";
-        }
-
-        // Clear error for this field and validate remove quantity
-        const newErrors = { ...errors };
-        delete newErrors[`${index}_product`];
-        const removeQty = parseInt(newRows[index].remove) || 0;
-        const currentQty = parseInt(newRows[index].currentQty) || 0;
-        if (removeQty > currentQty) {
-            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
         } else {
-            delete newErrors[`${index}_remove`];
+            newRows[index].variantId = "";
+            newRows[index].costPrice = 0;
+            newRows[index].expiryDate = "";
         }
-        setErrors(newErrors);
 
-        updateRowCalculations(newRows, index);
+        recalculateAllRows(newRows);
+
+        let newErrors = { ...errors };
+        delete newErrors[`${index}_product`];
+        newErrors = validateAllRows(newRows, newErrors);
+        setErrors(newErrors);
         setRows(newRows);
     };
 
     const updateRowField = (index, field, value) => {
         const newRows = [...rows];
 
-        if (field === 'add' && value > 0) newRows[index].remove = 0;
-        if (field === 'remove' && value > 0) newRows[index].add = 0;
-
-        newRows[index][field] = value;
-
-        // Handle source status change to update current qty
-        if (field === 'sourceStatus') {
-            const product = products.find(p => p.productId === newRows[index].productId);
-            const variant = product?.variants?.find(v => v.variantId === parseInt(newRows[index].variantId));
-            if (variant) {
-                const stockData = variant.stockUpdates || {};
-                if (value === "Open Stock") {
-                    newRows[index].currentQty = stockData.openStockQuantity || 0;
-                } else if (value === "Hold Qty") {
-                    newRows[index].currentQty = stockData.onHoldQuantity || 0;
-                } else {
-                    newRows[index].currentQty = stockData.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
-                }
-            }
+        if (field === 'add') {
+            const parsedVal = parseInt(value) || 0;
+            newRows[index].add = parsedVal;
+            if (parsedVal > 0) newRows[index].remove = 0;
+        } else if (field === 'remove') {
+            const parsedVal = parseInt(value) || 0;
+            newRows[index].remove = parsedVal;
+            if (parsedVal > 0) newRows[index].add = 0;
+        } else {
+            newRows[index][field] = value;
         }
 
         // Handle reason change: Clear invalid fields
@@ -371,36 +465,25 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 // It's a removal reason (Damage, Theft, OnHold, Open Stock, etc.)
                 newRows[index].add = 0;
             }
-        }
-
-        // Handle batch selection to update expiry date
-        if (field === 'batchNumber') {
-            const product = products.find(p => p.productId === newRows[index].productId);
-            const variant = product?.variants?.find(v => v.variantId === parseInt(newRows[index].variantId));
-            if (value) {
-                const batch = variant?.batchNumbers?.find(b => b.batchNumber === value);
-                if (batch) {
-                    newRows[index].expiryDate = batch.expiryDate?.split('T')[0] || "";
-                    if (batch.costPrice) newRows[index].costPrice = batch.costPrice;
-                    if (batch.quantity !== undefined) newRows[index].currentQty = batch.quantity;
-                }
-            } else {
-                // Revert to sourceStatus quantity or total quantity
-                const stockData = variant?.stockUpdates || {};
-                if (newRows[index].sourceStatus === "Open Stock") {
-                    newRows[index].currentQty = stockData.openStockQuantity || 0;
-                } else if (newRows[index].sourceStatus === "Hold Qty") {
-                    newRows[index].currentQty = stockData.onHoldQuantity || 0;
-                } else {
-                    newRows[index].currentQty = stockData.totalQuantity ?? variant?.currentQty ?? variant?.stockQty ?? 0;
-                }
-                newRows[index].expiryDate = variant?.expiryDate?.split('T')[0] || "";
-                if (variant?.costPrice) newRows[index].costPrice = variant.costPrice;
+            if (!value) {
+                newRows[index].add = 0;
+                newRows[index].remove = 0;
             }
         }
 
+        // Handle source status change
+        if (field === 'sourceStatus') {
+            if (!value) {
+                newRows[index].add = 0;
+                newRows[index].remove = 0;
+                newRows[index].reason = "";
+            }
+        }
+
+        recalculateAllRows(newRows);
+
         // Clear error for this field
-        const newErrors = { ...errors };
+        let newErrors = { ...errors };
         delete newErrors[`${index}_${field}`];
         if (field === 'add' || field === 'remove') {
             delete newErrors[`${index}_add`];
@@ -410,37 +493,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             delete newErrors[`${index}_expiryDate`];
         }
 
-        // Validate remove quantity does not exceed current quantity or be negative
-        const removeQty = parseInt(newRows[index].remove) || 0;
-        const currentQty = parseInt(newRows[index].currentQty) || 0;
-        const addQty = parseInt(newRows[index].add) || 0;
-
-        if (removeQty > currentQty) {
-            newErrors[`${index}_remove`] = "Cannot exceed current quantity";
-        } else if (removeQty < 0) {
-            newErrors[`${index}_remove`] = "Cannot be negative";
-        } else if (field !== 'add' && field !== 'remove') {
-            delete newErrors[`${index}_remove`];
-        }
-
-        if (addQty < 0) {
-            newErrors[`${index}_add`] = "Cannot be negative";
-        }
-
+        newErrors = validateAllRows(newRows, newErrors);
         setErrors(newErrors);
-
-        updateRowCalculations(newRows, index);
         setRows(newRows);
-    };
-
-    const updateRowCalculations = (newRows, index) => {
-        const row = newRows[index];
-        const add = parseInt(row.add) || 0;
-        const remove = parseInt(row.remove) || 0;
-        const cost = parseFloat(row.costPrice) || 0;
-
-        row.updatedQty = (parseInt(row.currentQty) || 0) + add - remove;
-        row.total = (add - remove) * cost;
     };
 
     const handleSubmit = async () => {
@@ -723,7 +778,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                     value={row.add || ""}
                                                                     onChange={(e) => updateRowField(index, 'add', e.target.value)}
                                                                     placeholder="0"
-                                                                    disabled={mode === "View"}
+                                                                    disabled={mode === "View" || !row.sourceStatus || !row.reason}
                                                                 />
                                                             ) : (
                                                                 <div className={styles.disabledPlaceholder}>--</div>
@@ -741,7 +796,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                 value={row.remove || ""}
                                                                 onChange={(e) => updateRowField(index, 'remove', e.target.value)}
                                                                 placeholder="0"
-                                                                disabled={mode === "View"}
+                                                                disabled={mode === "View" || !row.sourceStatus || !row.reason}
                                                             />
                                                             {errors[`${index}_remove`] && <span className={styles.errorText}>{errors[`${index}_remove`]}</span>}
                                                         </td>
