@@ -375,12 +375,16 @@ const StockStatusPage = () => {
 
           {(activeTab === "expired" || activeTab === "damaged") && (
             <td>
-              <span className={activeTab === "expired" ? styles.statusExpired : styles.statusDamaged}>
-                <div className={styles.statusText}>
-                  <IconAlert />
-                  {activeTab === "expired" ? "Expired" : (item.source === "stock_update" ? "Stock Update" : "Customer Return")}
-                </div>
-              </span>
+              {item.updatedFrom ? (
+                <span className={activeTab === "expired" ? styles.statusExpired : styles.statusDamaged}>
+                  <div className={styles.statusText}>
+                    <IconAlert />
+                    {item.updatedFrom}
+                  </div>
+                </span>
+              ) : (
+                "-"
+              )}
             </td>
           )}
 
@@ -536,14 +540,14 @@ const StockStatusPage = () => {
                 } else if (activeTab === "lowStock") {
                   row = [pName, unit, qty, item.minStockAlert || 10];
                 } else if (activeTab === "expired" || activeTab === "shortExpiry") {
-                  const status = activeTab === "expired" ? "Expired" : "Approaching";
+                  const status = activeTab === "expired" ? (item.updatedFrom || "-") : "Approaching";
                   row = [pName, `="${formatDate(item.expiryDate)}"`, unit, qty, `"${status}"`];
                   if (activeTab === "shortExpiry") {
                     const days = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
                     row.splice(2, 0, `"${days} DAYS"`);
                   }
                 } else if (activeTab === "damaged") {
-                  const statusVal = item.source === "stock_update" ? "Stock Update" : "Customer Return";
+                  const statusVal = item.updatedFrom || "-";
                   row = [pName, `="${formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}"`, unit, qty, `"${statusVal}"`];
                 }
                 csvRows.push(row.join(","));

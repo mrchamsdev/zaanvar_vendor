@@ -211,10 +211,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     variantId: parseInt(data.variantId || data.variant?.variantId),
                     sourceStatus: isOS ? "Open Stock" : (isHold ? "Hold Qty" : ""),
                     batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
-                    currentQty: currentQtyVal,
+                    currentQty: data.stock !== undefined && data.stock !== null ? data.stock : currentQtyVal,
                     add: data.add || 0,
                     remove: data.remove || 0,
-                    updatedQty: updatedQtyVal,
+                    updatedQty: isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : updatedQtyVal),
                     reason: data.reason,
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,
@@ -578,6 +578,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     productsBillItemsId: null,
                     consumptionId: null,
                     addItem: null,
+                    updatedFrom: "Stock Update",
                     sourceStatus: row.sourceStatus === "Open Stock" ? "openStock" : (row.sourceStatus === "Hold Qty" ? "onHold" : null)
                 };
                 if (row.reason === "Expired") {

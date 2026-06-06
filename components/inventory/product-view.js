@@ -366,6 +366,9 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>
                           <td>
                             {(() => {
+                              if (stock.stock !== undefined && stock.stock !== null) {
+                                return stock.stock;
+                              }
                               if (stock.stockUpdates) {
                                 if (isOS) {
                                   const openStock = Number(stock.stockUpdates.openStockQuantity || 0);
@@ -383,6 +386,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td>{stock.remove}</td>
                           <td>
                             {(() => {
+                              if (isOS && stock.openQty !== undefined && stock.openQty !== null) {
+                                return stock.openQty;
+                              }
+                              if (isHold && stock.holdQty !== undefined && stock.holdQty !== null) {
+                                return stock.holdQty;
+                              }
                               if (stock.stockUpdates) {
                                 if (isOS) {
                                   return Number(stock.stockUpdates.openStockQuantity || 0);

@@ -366,6 +366,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 : {}),
             createdBy: userInfo?.userId || 1,
             totalReturnAmount: parseFloat(totalReturnAmount.toFixed(2)),
+            updatedFrom: "Sale Return",
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
                 quantity: i.returnQty,
