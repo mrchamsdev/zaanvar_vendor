@@ -560,11 +560,15 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             hasError = true;
         }
 
+        const todayStr = toApiDateOnly(new Date());
         if (!returnDate) {
             newErrors.returnDate = "Return date is required";
             hasError = true;
         } else if (billDate && returnDate < billDate) {
-            newErrors.returnDate = "Cannot be earlier than Bill Date";
+            newErrors.returnDate = `Cannot be earlier than Bill Date (${billDate})`;
+            hasError = true;
+        } else if (returnDate > todayStr) {
+            newErrors.returnDate = `Cannot be later than today (${todayStr})`;
             hasError = true;
         }
 
@@ -846,6 +850,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                         }
                                     }}
                                     min={billDate || undefined}
+                                    max={toApiDateOnly(new Date())}
                                     disabled={isViewOnly}
                                 />
                             </div>
