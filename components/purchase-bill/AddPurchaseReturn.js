@@ -8,6 +8,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const getVariantSizeDisplay = (variant) => {
     if (!variant) return "-";
@@ -701,20 +702,54 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
     if (!isOpen) return null;
 
-    const isPdf = router.query.pdf === 'true';
+    const isPdf = router.query.pdf === 'true' || router.query.print === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true');
+
+    if (isPdf) {
+        const columns = [
+            { header: "S NO.", align: "left", render: (item, idx) => String(idx + 1).padStart(2, '0') },
+            { header: "PRODUCT NAME", accessor: "productName", align: "left" },
+            { header: "VARIANT", accessor: "variantSize", align: "left" },
+            { header: "SOURCE", accessor: "sourceStatus", align: "center" },
+            { header: "QTY", accessor: "returnQty", align: "center" },
+            { header: "PRICE", accessor: "costPrice", align: "right" },
+            { header: "TAX (%)", accessor: "tax", align: "center" },
+            { header: "DISCOUNT (%)", accessor: "discount", align: "center" },
+            { header: "AMOUNT", accessor: "amount", align: "right" }
+        ];
+
+        const summary = [
+            { label: "Total Quantity", value: totalQty },
+            { label: "Total Price", value: totalPrice.toFixed(2) },
+            { label: "Total Tax", value: totalTax.toFixed(2) },
+            { label: "Total Discount", value: totalDiscount.toFixed(2) },
+            { label: "Grand Total", value: totalAmount.toFixed(2), isTotal: true }
+        ];
+
+        return (
+            <PrintInvoiceTemplate
+                title="PURCHASE RETURN"
+                customerDetails={{
+                    name: selectedSupplier?.supplierName || 'N/A',
+                    phone: phone || ''
+                }}
+                invoiceDetails={{
+                    "Receipt No": selectedBillId || 'N/A',
+                    "Return No": returnNo || 'N/A',
+                    "Bill Date": billDate ? new Date(billDate).toLocaleDateString('en-GB') : 'N/A',
+                    "Return Date": returnDate || 'N/A',
+                    "Reason": returnReason || 'N/A'
+                }}
+                columns={columns}
+                items={items.filter(it => it.productsBillItemsId)}
+                summary={summary}
+                onClose={() => window.close()}
+            />
+        );
+    }
 
     return (
-        <div className={`${styles.overlay} ${isPdf ? invoiceStyles.pdfOverlay : ''}`}>
-            {isPdf && (
-                <div className={invoiceStyles.pdfTopbar}>
-                    <span className={invoiceStyles.pdfTitle}>Purchase Return PDF Preview</span>
-                    <div className={invoiceStyles.pdfActions}>
-                        <button className={invoiceStyles.pdfBtn} onClick={() => window.print()}>Print</button>
-                        <button className={invoiceStyles.pdfBtnClose} onClick={() => window.close()}>Close</button>
-                    </div>
-                </div>
-            )}
-            <div className={`${styles.modal} ${isPdf ? `${invoiceStyles.pdfModal} ${styles.pdfView}` : ''}`}>
+        <div className={`${styles.overlay}`}>
+            <div className={`${styles.modal}`}>
                 <div className={styles.modalHeader}>
                     <h3 style={{ fontSize: '24px', fontWeight: '600' }}>
                         {mode === 'view' ? "View Purchase Return" : (mode === 'edit' ? "Edit Purchase Return" : "Add Purchase Return")}
@@ -834,7 +869,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <input
                                     type="date"
                                     className={styles.input}
-                                    style={{ 
+                                    style={{
                                         color: returnDate ? '#333' : '#999',
                                         border: errors.returnDate ? '1px solid #ff4d4f' : '1px solid #eef0f2'
                                     }}
@@ -983,7 +1018,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                         const returnable = newItems[idx].returnableQty || 0;
                                                         const sourceMax = getMaxQty(newItems[idx]);
                                                         const currentQty = parseInt(newItems[idx].returnQty) || 0;
- 
+
                                                         if (currentQty > returnable) {
                                                             newItems[idx].error = `Cannot exceed returnable quantity (${returnable})`;
                                                         } else if (currentQty > sourceMax) {
@@ -1055,22 +1090,22 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             )}
                                         </td>
                                         <td className={styles.priceCol}>
-                                            <div style={{ textAlign: 'center' }}>{item.costPrice.toLocaleString()}</div>
+                                            <div style={{ textAlign: 'center' }}>{Number(item.costPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
                                         </td>
                                         <td className={styles.taxCol}>
                                             <div style={{ display: 'flex', width: '100%' }}>
                                                 <span style={{ flex: 1, textAlign: 'center' }}>{item.tax}%</span>
-                                                <span style={{ flex: 1, textAlign: 'center' }}>{(item.taxAmount || 0).toLocaleString()}</span>
+                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.taxAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </td>
                                         <td className={styles.taxCol}>
                                             <div style={{ display: 'flex', width: '100%' }}>
                                                 <span style={{ flex: 1, textAlign: 'center' }}>{item.discount || 0}%</span>
-                                                <span style={{ flex: 1, textAlign: 'center' }}>{(item.discountAmount || 0).toLocaleString()}</span>
+                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.discountAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </td>
                                         <td className={styles.amountCol}>
-                                            <div style={{ fontWeight: '600' }}>{item.amount.toLocaleString()}</div>
+                                            <div style={{ fontWeight: '600' }}>{Number((item.returnQty || 0) * (item.costPrice || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
                                         </td>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {!isViewOnly && items.length > 1 && (
@@ -1110,20 +1145,20 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <tr className={styles.totalRow}>
                                     <td className={styles.totalLabel} colSpan="5" style={{ textAlign: 'left', paddingLeft: '24px' }}>TOTAL</td>
                                     <td className={styles.qtyCol}>{totalQty.toString().padStart(3, '0')}</td>
-                                    <td className={styles.priceCol}>{totalPrice.toLocaleString()}</td>
+                                    <td className={styles.priceCol}>{Number(totalPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td className={styles.taxCol}>
                                         <div style={{ display: 'flex', width: '100%' }}>
                                             <span style={{ flex: 1, textAlign: 'center' }}></span>
-                                            <span style={{ flex: 1, textAlign: 'center' }}>{totalTax.toLocaleString()}</span>
+                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalTax || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </td>
                                     <td className={styles.taxCol}>
                                         <div style={{ display: 'flex', width: '100%' }}>
                                             <span style={{ flex: 1, textAlign: 'center' }}></span>
-                                            <span style={{ flex: 1, textAlign: 'center' }}>{totalDiscount.toLocaleString()}</span>
+                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalDiscount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </td>
-                                    <td className={styles.amountCol}>{totalAmount.toLocaleString()}</td>
+                                    <td className={styles.amountCol}>{Number(items.reduce((acc, it) => acc + ((parseFloat(it.returnQty) || 0) * (parseFloat(it.costPrice) || 0)), 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td></td>
                                 </tr>
                             </tbody>

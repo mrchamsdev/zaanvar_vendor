@@ -289,6 +289,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const SalesInvoiceList = ({ onAddClick }) => {
     const router = useRouter();
@@ -667,6 +668,55 @@ const SalesInvoiceList = ({ onAddClick }) => {
         document.body.removeChild(link);
     };
 
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
+    const handlePrint = () => {
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
+    };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Sales Invoice History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.invoiceDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'INVOICE NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.invoiceNumber || '' },
+                    { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : (item.partyName || "Walk-in Customer"), align: 'left' },
+                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                ]}
+                items={filteredInvoices}
+                summary={[
+                    { label: 'Total Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `₹${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                ]}
+            />
+        );
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.filters}>
@@ -751,7 +801,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
                         <FaFileExcel style={{ color: '#217346' }} />
                     </button>
-                    <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
+                    <button className={styles.iconBtn} onClick={handlePrint} title="Print">
                         <FiPrinter />
                     </button>
                 </div>

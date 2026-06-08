@@ -299,7 +299,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Total order </p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBillAmount || "0.00"}</p>
+                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.overallBillAmount || "0.00"}</p>
                                     <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>

@@ -8,6 +8,7 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { VENDOR_API_URL } from "../../components/utilities/Constants";
 import ShareModal from "../../components/purchase-bill/ShareModal";
+import PrintInvoiceTemplate from "../../components/shared/PrintInvoiceTemplate";
 
 const PaymentOutFormPage = () => {
     const router = useRouter();
@@ -196,220 +197,259 @@ const PaymentOutFormPage = () => {
     if (loading) return <div className={styles.loading}>Loading...</div>;
 
     const heading = isView ? "View Payment Out" : (isEdit ? "Edit Payment Out" : "Add Payment Out");
-    const isPdf = router.query.pdf === "true";
+    const isPdf = router.query.pdf === "true" || router.query.print === "true" || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true');
+
+    if (isPdf) {
+        const columns = [
+            { header: "PAYMENT METHOD", accessor: "paymentType", align: "left" },
+            { header: "REFERENCE NO", accessor: "refNo", align: "left" },
+            { header: "AMOUNT", accessor: "amountPaid", align: "right" }
+        ];
+
+        const queryBalanceAmt = router.query.balanceAmount;
+        const queryRefNo = router.query.refNo;
+
+        const actualBalanceAmt = queryBalanceAmt || (data?.splitTransactions && data.splitTransactions.length > 0
+            ? data.splitTransactions[data.splitTransactions.length - 1].totalBalanceAmount
+            : data?.totalBalanceAmount);
+
+        const displayBalanceAmt = actualBalanceAmt !== undefined && actualBalanceAmt !== null
+            ? actualBalanceAmt
+            : (totalBalanceAmt || totalBalance || "0");
+
+        const summary = [
+            { label: "Total Bill Amount", value: `₹${totalBillAmt || "0"}` },
+            { label: "Total Balance", value: `₹${totalBalance || "0"}` },
+            { label: "Total Balance Amount", value: `₹${displayBalanceAmt}` },
+            { label: "Paid Amount", value: `₹${paidAmount || "0"}`, isTotal: true }
+        ];
+
+        return (
+            <PrintInvoiceTemplate
+                title="PAYMENT OUT RECEIPT"
+                customerDetails={{
+                    name: supplierName || 'N/A'
+                }}
+                invoiceDetails={{
+                    "Receipt No": queryRefNo || data?.userOrderId || data?.suppliersTransactionId || 'N/A',
+                    "Date": transactionDate || 'N/A',
+                    "Total Balance Amount": `₹${displayBalanceAmt}`
+                }}
+                columns={columns}
+                items={payments.map(p => ({
+                    ...p,
+                    refNo: p.refNo || queryRefNo || data?.userOrderId || data?.suppliersTransactionId || data?.referenceNumber || "-"
+                }))}
+                summary={summary}
+                notes={description}
+                onClose={() => window.close()}
+            />
+        );
+    }
 
     return (
-        <div className={`${styles.pageWrapper} ${isPdf ? invoiceStyles.pdfOverlay : ''}`}>
-            {isPdf && (
-                <div className={invoiceStyles.pdfTopbar}>
-                    <span className={invoiceStyles.pdfTitle}>Payment Out PDF Preview</span>
-                    <div className={invoiceStyles.pdfActions}>
-                        <button className={invoiceStyles.pdfBtn} onClick={() => window.print()}>Print</button>
-                        <button className={invoiceStyles.pdfBtnClose} onClick={() => window.close()}>Close</button>
-                    </div>
-                </div>
-            )}
-            <div className={isPdf ? invoiceStyles.pdfModal : ''} style={isPdf ? { margin: '0 auto' } : { display: 'contents' }}>
-                <div className={styles.formHeader} style={{ borderBottom: isPdf ? '2px solid #333' : '', paddingBottom: isPdf ? '12px' : '', paddingLeft: isPdf ? '0' : '', paddingRight: isPdf ? '0' : '', paddingTop: isPdf ? '0' : '', marginTop: isPdf ? '0' : '' }}>
+        <div className={`${styles.pageWrapper}`}>
+            <div className={''} style={{ display: 'contents' }}>
+                <div className={styles.formHeader}>
                     <h3>{heading}</h3>
-                    <button className={styles.closeBtn} style={{ display: isPdf ? 'none' : 'flex' }} onClick={() => router.back()}><FiX /></button>
+                    <button className={styles.closeBtn} onClick={() => router.back()}><FiX /></button>
                 </div>
 
                 <div className={styles.formBody} style={{ padding: isPdf ? '24px' : '' }}>
-                <div className={styles.gridRow}>
-                    <div className={styles.field}>
-                        <label>Name / Phone number</label>
-                        <input
-                            type="text"
-                            className={`${styles.input} ${styles.readOnly}`}
-                            value={supplierName}
-                            readOnly
-                        />
-                    </div>
-                    <div className={styles.field}>
-                        <label>Date</label>
-                        <input
-                            type="date"
-                            className={`${styles.input} ${styles.readOnly}`}
-                            value={transactionDate}
-                            readOnly
-                        />
-                    </div>
-                </div>
-
-                <div className={styles.gridRow}>
-                    <div className={styles.field}>
-                        <label>Total Balance Amount</label>
-                        <div style={{ position: 'relative', width: '100%' }}>
-                            {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
+                    <div className={styles.gridRow}>
+                        <div className={styles.field}>
+                            <label>Name / Phone number</label>
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
-                                style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
+                                value={supplierName}
+                                readOnly
+                            />
+                        </div>
+                        <div className={styles.field}>
+                            <label>Date</label>
+                            <input
+                                type="date"
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={transactionDate}
                                 readOnly
                             />
                         </div>
                     </div>
-                    <div className={styles.field}>
-                        <label>Total Bill Amount</label>
-                        <div style={{ position: 'relative', width: '100%' }}>
-                            {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
-                            <input
-                                type="text"
-                                className={`${styles.input} ${styles.readOnly}`}
-                                value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
-                                style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
-                                readOnly
-                            />
-                        </div>
-                    </div>
-                </div>
 
-                <div className={styles.gridRow}>
-
-                    <div className={styles.field}>
-                        <label>Paid Amount</label>
-                        <input
-                            type="text"
-                            className={`${styles.input} ${isView ? styles.readOnly : ""}`}
-                            value={paidAmount}
-                            onChange={(e) => setPaidAmount(e.target.value)}
-                            readOnly={isView}
-                            placeholder="000"
-                        />
-                    </div>
-                </div>
-
-                {payments.map((p, idx) => (
-                    <div key={p.id} className={styles.paymentEntry}>
-                        <div className={styles.gridRow}>
-                            <div className={styles.field}>
-                                <label>Payment Type</label>
-                                {isView ? (
-                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={p.paymentType} readOnly />
-                                ) : (
-                                    <select
-                                        className={styles.select}
-                                        value={p.paymentType}
-                                        onChange={(e) => {
-                                            const newPayments = [...payments];
-                                            newPayments[idx].paymentType = e.target.value;
-                                            setPayments(newPayments);
-                                        }}
-                                    >
-                                        {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
-                                )}
-                            </div>
-                            <div className={styles.field}>
-                                <label>Amount Paid</label>
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    <div style={{ position: 'relative', flex: 1, width: '100%' }}>
-                                        {!isPdf && <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>}
-                                        <input
-                                            type="number"
-                                            className={`${styles.input} ${isView ? styles.readOnly : ""}`}
-                                            value={p.amountPaid}
-                                            onChange={(e) => {
-                                                const newPayments = [...payments];
-                                                newPayments[idx].amountPaid = e.target.value;
-                                                setPayments(newPayments);
-                                            }}
-                                            readOnly={isView}
-                                            style={{ paddingLeft: isPdf ? '16px' : '32px', width: '100%' }}
-                                            placeholder="25000"
-                                        />
-                                    </div>
-                                    {!isView && (
-                                        <button
-                                            className={styles.miniRemove}
-                                            onClick={() => setPayments(payments.filter(pay => pay.id !== p.id))}
-                                        >
-                                            <FiTrash2 />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        {(p.paymentType === 'UPI' || p.paymentType === 'Cheque') && (
-                            <div className={styles.field} style={{ marginTop: '12px', maxWidth: 'calc(50% - 30px)' }}>
-                                <label>{p.paymentType === 'UPI' ? 'REFERENCE NUMBER' : 'CHECK NUMBER'}</label>
+                    <div className={styles.gridRow}>
+                        <div className={styles.field}>
+                            <label>Total Balance Amount</label>
+                            <div style={{ position: 'relative', width: '100%' }}>
+                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
                                 <input
                                     type="text"
-                                    className={`${styles.input} ${isView ? styles.readOnly : ""}`}
-                                    value={p.refNo}
-                                    onChange={(e) => {
-                                        const newPayments = [...payments];
-                                        newPayments[idx].refNo = e.target.value.replace(/[^0-9]/g, '');
-                                        setPayments(newPayments);
-                                    }}
-                                    readOnly={isView}
-                                    placeholder="****************"
+                                    className={`${styles.input} ${styles.readOnly}`}
+                                    value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
+                                    style={{ paddingLeft: '32px', width: '100%' }}
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.field}>
+                            <label>Total Bill Amount</label>
+                            <div style={{ position: 'relative', width: '100%' }}>
+                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                <input
+                                    type="text"
+                                    className={`${styles.input} ${styles.readOnly}`}
+                                    value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                                    style={{ paddingLeft: '32px', width: '100%' }}
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.gridRow}>
+
+                        <div className={styles.field}>
+                            <label>Paid Amount</label>
+                            <input
+                                type="text"
+                                className={`${styles.input} ${isView ? styles.readOnly : ""}`}
+                                value={paidAmount}
+                                onChange={(e) => setPaidAmount(e.target.value)}
+                                readOnly={isView}
+                                placeholder="000"
+                            />
+                        </div>
+                    </div>
+
+                    {payments.map((p, idx) => (
+                        <div key={p.id} className={styles.paymentEntry}>
+                            <div className={styles.gridRow}>
+                                <div className={styles.field}>
+                                    <label>Payment Type</label>
+                                    {isView ? (
+                                        <input type="text" className={`${styles.input} ${styles.readOnly}`} value={p.paymentType} readOnly />
+                                    ) : (
+                                        <select
+                                            className={styles.select}
+                                            value={p.paymentType}
+                                            onChange={(e) => {
+                                                const newPayments = [...payments];
+                                                newPayments[idx].paymentType = e.target.value;
+                                                setPayments(newPayments);
+                                            }}
+                                        >
+                                            {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                                <div className={styles.field}>
+                                    <label>Amount Paid</label>
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+                                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                            <input
+                                                type="number"
+                                                className={`${styles.input} ${isView ? styles.readOnly : ""}`}
+                                                value={p.amountPaid}
+                                                onChange={(e) => {
+                                                    const newPayments = [...payments];
+                                                    newPayments[idx].amountPaid = e.target.value;
+                                                    setPayments(newPayments);
+                                                }}
+                                                readOnly={isView}
+                                                style={{ paddingLeft: '32px', width: '100%' }}
+                                                placeholder="25000"
+                                            />
+                                        </div>
+                                        {!isView && (
+                                            <button
+                                                className={styles.miniRemove}
+                                                onClick={() => setPayments(payments.filter(pay => pay.id !== p.id))}
+                                            >
+                                                <FiTrash2 />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            {(p.paymentType === 'UPI' || p.paymentType === 'Cheque') && (
+                                <div className={styles.field} style={{ marginTop: '12px', maxWidth: 'calc(50% - 30px)' }}>
+                                    <label>{p.paymentType === 'UPI' ? 'REFERENCE NUMBER' : 'CHECK NUMBER'}</label>
+                                    <input
+                                        type="text"
+                                        className={`${styles.input} ${isView ? styles.readOnly : ""}`}
+                                        value={p.refNo}
+                                        onChange={(e) => {
+                                            const newPayments = [...payments];
+                                            newPayments[idx].refNo = e.target.value.replace(/[^0-9]/g, '');
+                                            setPayments(newPayments);
+                                        }}
+                                        readOnly={isView}
+                                        placeholder="****************"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    ))}
+
+                    <div
+                        className={styles.addPaymentLink}
+                        style={{ display: isView ? 'none' : 'block' }}
+                        onClick={() => setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }])}
+                    >
+                        +ADD ANOTHER PAYMENT
+                    </div>
+
+                    <div className={styles.field} style={{ marginBottom: '24px' }}>
+                        <label>Add Description</label>
+                        <textarea
+                            className={`${styles.textarea} ${isView ? styles.readOnly : ""}`}
+                            placeholder="Enter Descrition"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            readOnly={isView}
+                            rows={3}
+                        />
+                    </div>
+
+                    <div className={styles.field}>
+                        <label>Add Image</label>
+                        <div className={styles.imageUpload}>
+                            <input
+                                type="file"
+                                id="fileInput"
+                                hidden
+                                onChange={handleFileChange}
+                                disabled={isView}
+                                accept="image/*"
+                            />
+                            <label
+                                htmlFor="fileInput"
+                                className={styles.uploadTrigger}
+                                style={{ cursor: isView ? 'default' : 'pointer' }}
+                            >
+                                Choose file
+                            </label>
+                            <span style={{ fontSize: '14px', color: '#666', marginLeft: '10px' }}>
+                                {selectedFile ? selectedFile.name : (data?.transactionImg ? "Image Attached" : "No file Chosen")}
+                            </span>
+                        </div>
+                        {data?.transactionImg && (
+                            <div style={{ marginTop: '12px' }}>
+                                <img
+                                    src={data.transactionImg.startsWith('http') ? data.transactionImg : `${VENDOR_API_URL.replace('/api', '')}/${data.transactionImg}`}
+                                    alt="Transaction"
+                                    style={{ maxWidth: '300px', borderRadius: '8px', border: '1px solid #ddd' }}
                                 />
                             </div>
                         )}
                     </div>
-                ))}
-
-                <div
-                    className={styles.addPaymentLink}
-                    style={{ display: isView ? 'none' : 'block' }}
-                    onClick={() => setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }])}
-                >
-                    +ADD ANOTHER PAYMENT
-                </div>
-
-                <div className={styles.field} style={{ marginBottom: '24px' }}>
-                    <label>Add Description</label>
-                    <textarea
-                        className={`${styles.textarea} ${isView ? styles.readOnly : ""}`}
-                        placeholder="Enter Descrition"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        readOnly={isView}
-                        rows={3}
-                    />
-                </div>
-
-                <div className={styles.field} style={{ display: isPdf ? 'none' : 'block' }}>
-                    <label>Add Image</label>
-                    <div className={styles.imageUpload}>
-                        <input
-                            type="file"
-                            id="fileInput"
-                            hidden
-                            onChange={handleFileChange}
-                            disabled={isView}
-                            accept="image/*"
-                        />
-                        <label
-                            htmlFor="fileInput"
-                            className={styles.uploadTrigger}
-                            style={{ cursor: isView ? 'default' : 'pointer' }}
-                        >
-                            Choose file
-                        </label>
-                        <span style={{ fontSize: '14px', color: '#666', marginLeft: '10px' }}>
-                            {selectedFile ? selectedFile.name : (data?.transactionImg ? "Image Attached" : "No file Chosen")}
-                        </span>
-                    </div>
-                    {data?.transactionImg && (
-                        <div style={{ marginTop: '12px' }}>
-                            <img
-                                src={data.transactionImg.startsWith('http') ? data.transactionImg : `${VENDOR_API_URL.replace('/api', '')}/${data.transactionImg}`}
-                                alt="Transaction"
-                                style={{ maxWidth: '300px', borderRadius: '8px', border: '1px solid #ddd' }}
-                            />
-                        </div>
-                    )}
                 </div>
             </div>
-            </div>
 
-            <div className={styles.formActions} style={{ display: isPdf ? 'none' : 'flex' }}>
+            <div className={styles.formActions}>
                 <div style={{ position: 'relative' }}>
                     <button className={styles.shareBtn} onClick={() => setIsShareModalOpen(!isShareModalOpen)}>Share</button>
                     {isShareModalOpen && (

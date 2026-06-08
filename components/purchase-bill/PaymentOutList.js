@@ -1,7 +1,7 @@
 import { toApiDateOnly, parseWallClockDate } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
-import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp, FiSearch } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { purchaseService } from "../../services/purchaseService";
@@ -13,6 +13,7 @@ import { VENDOR_API_URL } from "../../components/utilities/Constants";
 import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
@@ -640,7 +641,7 @@ const PaymentOutList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL", "PAID", "PAYMENT TYPE", "BALANCE AMOUNT"];
         const rows = [];
-        
+
         filteredTransactions.forEach(t => {
             rows.push([
                 `" ${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
@@ -686,9 +687,55 @@ const PaymentOutList = ({ onAddClick }) => {
         document.body.removeChild(link);
     };
 
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
     const handlePrint = () => {
-        window.print();
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
     };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Payment Out History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => new Date(item.userTransactionDate).toLocaleDateString('en-GB') },
+                    { header: 'REF NO', accessor: 'suppliersTransactionId', align: 'left' },
+                    { header: 'SUPPLIER NAME', render: (item) => item.supplierName || item.transactionInfo || 'N/A', align: 'left' },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
+                    { header: 'BALANCE AMOUNT', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                ]}
+                items={filteredTransactions}
+                summary={[
+                    { label: 'Total Amount', value: `₹${Number(totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `₹${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                ]}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -746,8 +793,19 @@ const PaymentOutList = ({ onAddClick }) => {
                         </div>
                     )}
                 </div>
-            </div>
+        </div>
 
+
+            <div style={{ position: 'relative', width: '350px', marginBottom: '24px' }}>
+                <FiSearch style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                <input
+                    type="text"
+                    placeholder="Search Supplier Or Invoice Number"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: '100%', padding: '10px 16px 10px 40px', borderRadius: '8px', border: '1px solid #eee', background: '#F9F9F9', outline: 'none', boxSizing: 'border-box' }}
+                />
+            </div>
 
             {transactions.length > 0 && (
                 <div className={styles.summarySection}>
@@ -950,6 +1008,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                         { paymentType: t.paymentType || "Cash", amount: t.amount || 0 },
                                         ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentType || "Cash", amount: st.amount || 0 }))
                                     ];
+                                    const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0);
                                     return (
                                         <React.Fragment key={t.suppliersTransactionId || idx}>
                                             <tr>
@@ -959,7 +1018,9 @@ const PaymentOutList = ({ onAddClick }) => {
                                                 <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(t)}</td>
-                                                <td>{Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>
+                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
                                                 <td>
                                                     <div className={styles.actions}>
                                                         <div style={{ position: 'relative' }}>
@@ -995,12 +1056,15 @@ const PaymentOutList = ({ onAddClick }) => {
                                                                         setActiveDropdown(null);
                                                                     }}>Edit</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                                        window.open(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true`, '_blank');
+                                                                        const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toFixed(2);
+                                                                        const pdfUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}`;
+                                                                        window.open(pdfUrl, '_blank');
                                                                         setActiveDropdown(null);
                                                                     }}>Open PDF</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
-                                                                        const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true`;
+                                                                        const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toFixed(2);
+                                                                        const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}`;
                                                                         const iframe = document.createElement('iframe');
                                                                         iframe.style.position = 'fixed';
                                                                         iframe.style.width = '0';

@@ -1,0 +1,287 @@
+.printContainer {
+  background-color: white;
+  color: black;
+  font-family: 'Inter', sans-serif;
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #eaeaea;
+}
+
+.logo img {
+  max-width: 150px;
+  height: auto;
+}
+
+.companyDetails {
+  text-align: right;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.companyName {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  text-transform: uppercase;
+  color: #333;
+  letter-spacing: 1px;
+}
+
+.metadataRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.partyBox {
+  flex: 1;
+}
+
+.partyBox h4 {
+  margin: 0 0 0.5rem 0;
+  color: #777;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.partyName {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+
+.partyBox p {
+  margin: 0.2rem 0;
+  color: #555;
+}
+
+.detailsBox {
+  flex: 1;
+  text-align: right;
+}
+
+.detailsBox table {
+  margin-left: auto;
+  border-collapse: collapse;
+}
+
+.detailsBox th,
+.detailsBox td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+
+.detailsBox th {
+  color: #777;
+  font-weight: normal;
+  text-align: right;
+}
+
+.detailsBox td {
+  font-weight: 500;
+  color: #333;
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+}
+
+.itemsTable th,
+.itemsTable td {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+}
+
+.itemsTable th {
+  text-align: left;
+  background-color: #f4f4f4;
+  color: #333;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  border-bottom: 2px solid #ccc;
+}
+
+.itemsTable th.right,
+.itemsTable td.right {
+  text-align: right;
+}
+
+.itemsTable th.center,
+.itemsTable td.center {
+  text-align: center;
+}
+
+.summarySection {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+}
+
+.summaryBox {
+  width: 350px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eaeaea;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.summaryRow.total {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: #333;
+  border-bottom: 2px solid #333;
+  border-top: 2px solid #333;
+}
+
+.footer {
+  margin-top: 3rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.terms {
+  margin-bottom: 2rem;
+}
+
+.terms h5 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.terms p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.signatureArea {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4rem;
+}
+
+.signatureBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signatureLine {
+  width: 200px;
+  border-top: 1px solid #333;
+  text-align: center;
+  padding-top: 0.5rem;
+  margin-top: 3rem;
+  font-weight: 500;
+}
+
+.pdfTopbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #333;
+  padding: 10px 20px;
+  color: white;
+}
+
+.pdfTitle {
+  font-weight: bold;
+}
+
+.pdfActions {
+  display: flex;
+  gap: 10px;
+}
+
+.pdfBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pdfBtnClose {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.printWrapper {
+  background-color: #f0f2f5;
+  min-height: 100vh;
+  height: 100vh;
+  padding: 20px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  overflow-y: auto;
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: white;
+  }
+
+  .printWrapper {
+    background-color: transparent;
+    padding: 0;
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  .printContainer {
+    padding: 0;
+    max-width: none;
+    background-color: white;
+  }
+
+  .pdfTopbar {
+    display: none !important;
+  }
+}
