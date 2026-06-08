@@ -11,6 +11,7 @@ import ShareModal from "./ShareModal";
 import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
@@ -387,13 +388,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 }
 
                 // Calculate totals
-                if (res.totals) {
-                    const apiTotals = Array.isArray(res.totals) ? res.totals[0] : res.totals;
+                if (res.totals || res.totalReturnAmount !== undefined || res.totalBalanceAmount !== undefined) {
+                    const apiTotals = res.totals ? (Array.isArray(res.totals) ? res.totals[0] : res.totals) : res;
                     const localTotalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
                     setTotals({
                         totalAmount: apiTotals.totalAmount || apiTotals.totalReturnAmount || data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0),
                         totalReceived: apiTotals.totalReceived || data.reduce((acc, curr) => acc + Number(curr.received || 0), 0),
-                        totalBalance: localTotalBal
+                        totalBalance: apiTotals.totalBalanceAmount !== undefined && apiTotals.totalBalanceAmount !== null ? Number(apiTotals.totalBalanceAmount) : localTotalBal
                     });
                 } else {
                     const totalAmt = data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0);
@@ -580,9 +581,53 @@ const PurchaseReturnList = ({ onAddClick }) => {
         document.body.removeChild(link);
     };
 
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
     const handlePrint = () => {
-        window.print();
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
     };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Purchase Return History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.returnDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'RETURN ID', accessor: 'returnProductsId', align: 'left' },
+                    { header: 'BILL NO', accessor: 'productsBillId', align: 'left' },
+                    { header: 'SUPPLIER NAME', render: (item) => item.supplierName || 'N/A', align: 'left' },
+                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.returnAmount || 0).toLocaleString() },
+                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.totalBalanceAmount || 0).toLocaleString() }
+                ]}
+                items={filteredReturns}
+                summary={[
+                    { label: 'Total Return Amount', value: `Rs ${Number(totals.totalAmount || 0).toLocaleString()}` },
+                    { label: 'Total Balance Amount', value: `Rs ${Number(totals.totalBalance || 0).toLocaleString()}`, isTotal: true }
+                ]}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -887,12 +932,15 @@ const PurchaseReturnList = ({ onAddClick }) => {
             )}
 
             {returns.length > 0 && (
-                <div className={styles.bottomSummary}>
-                    <div className={styles.summaryItem}>
-                        Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <div className={styles.bottomSummary} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                        <span>Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className={styles.summaryItem}>
-                        Total Balance Amount : Rs {Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                        <span>Total Balance Amount : </span>
+                        <span style={{ color: Number(totals?.totalBalance) > 0 ? '#FF4D4F' : Number(totals?.totalBalance) < 0 ? '#52c41a' : 'inherit', marginLeft: '6px' }}>
+                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                     </div>
                 </div>
             )}

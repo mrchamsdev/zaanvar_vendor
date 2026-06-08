@@ -9,6 +9,7 @@ import { saleService } from "../../services/saleService";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import { useRouter } from "next/router";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) => {
     const router = useRouter();
@@ -321,8 +322,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         }
         if (!formData.returnDate) {
             newErrors.returnDate = "Return date is required";
-        } else if (formData.billDate && formData.returnDate < formData.billDate) {
-            newErrors.returnDate = "Cannot be earlier than Bill Date";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (formData.billDate && formData.returnDate < formData.billDate) {
+                newErrors.returnDate = "Please enter a date between the invoice date and today";
+            } else if (formData.returnDate > todayStr) {
+                newErrors.returnDate = "Please enter a date between the invoice date and today";
+            }
         }
 
         items.forEach((item, index) => {
@@ -403,20 +409,61 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     if (!isOpen) return null;
 
-    const isPdf = router.query.pdf === 'true';
+    const isPdf = router.query.pdf === 'true' || router.query.print === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true');
+
+    if (isPdf) {
+        const columns = [
+            { header: "S NO.", align: "left", render: (item, idx) => String(idx + 1).padStart(2, '0') },
+            { header: "PRODUCT NAME", accessor: "productName", align: "left" },
+            { header: "QTY", accessor: "returnQty", align: "center" },
+            { header: "UNIT", accessor: "unit", align: "center" },
+            { header: "PRICE", accessor: "price", align: "right" },
+            { header: "TAX (%)", accessor: "taxPercentage", align: "center" },
+            { header: "DISCOUNT (%)", accessor: "discountPercentage", align: "center" },
+            { header: "AMOUNT", accessor: "itemTotal", align: "right" }
+        ];
+
+        const totalQty = items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0);
+        const subtotal = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0);
+        const totalDiscount = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0);
+        const grandTotal = items.reduce((acc, i) => acc + (i.itemTotal || 0), 0);
+
+        const summary = [
+            { label: "Total Quantity", value: totalQty },
+            { label: "Subtotal", value: subtotal.toFixed(2) },
+            { label: "Total Discount", value: totalDiscount.toFixed(2) },
+            { label: "Grand Total", value: grandTotal.toFixed(2), isTotal: true }
+        ];
+
+        // Need to require/import PrintInvoiceTemplate inline or dynamically if we don't have it at top level, 
+        // but wait, we need to import it at the top level. Let me just use standard import at top.
+        // Actually, we are replacing from line 410, so I will just return here.
+        // I will do another replacement for the top level import.
+        return (
+            <PrintInvoiceTemplate
+                title="SALE RETURN"
+                customerDetails={{
+                    name: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'N/A',
+                    phone: selectedCustomer?.phoneNumber || '',
+                }}
+                invoiceDetails={{
+                    "Receipt No": formData.receiptNo ? `Order ${formData.receiptNo}` : 'N/A',
+                    "Return No": formData.returnNo || 'N/A',
+                    "Bill Date": formData.billDate || 'N/A',
+                    "Return Date": formData.returnDate || 'N/A',
+                    "Return Reason": formData.returnReason || 'N/A'
+                }}
+                columns={columns}
+                items={items.filter(i => i.userOrderItemsID)}
+                summary={summary}
+                onClose={() => window.close()}
+            />
+        );
+    }
 
     return (
-        <div className={`${styles.overlay} ${isPdf ? styles.pdfOverlay : ''}`}>
-            {isPdf && (
-                <div className={styles.pdfTopbar}>
-                    <span className={styles.pdfTitle}>Sale Return PDF Preview</span>
-                    <div className={styles.pdfActions}>
-                        <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
-                        <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
-                    </div>
-                </div>
-            )}
-            <div className={`${styles.modal} ${isPdf ? styles.pdfModal : ''}`}>
+        <div className={`${styles.overlay}`}>
+            <div className={`${styles.modal}`}>
                 <div className={styles.modalHeader}>
                     <h3 style={{ fontSize: '24px', fontWeight: '600' }}>
                         {mode === "view" ? "View Sale Return" : mode === "edit" ? "Edit Sale Return" : "Add Sale Return"}
@@ -555,6 +602,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 onFocus={() => setFocusedField('returnDate')}
                                 onBlur={() => setFocusedField(null)}
                                 min={formData.billDate || undefined}
+                                max={toApiDateOnly(new Date())}
                                 style={{
                                     background: '#fff',
                                     border: errors.returnDate ? '2px solid red' : (focusedField === 'returnDate' ? '2px solid #E93E64' : '2px solid #ddd'),
@@ -716,7 +764,9 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
                                         {mode === "add" && (
                                             <td>
-                                                <FiTrash2 style={{ color: '#ff4d4f', cursor: 'pointer' }} onClick={() => removeItem(idx)} />
+                                                {items.length > 1 && (
+                                                    <FiTrash2 style={{ color: '#ff4d4f', cursor: 'pointer' }} onClick={() => removeItem(idx)} />
+                                                )}
                                             </td>
                                         )}
                                     </tr>

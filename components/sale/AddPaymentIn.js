@@ -9,6 +9,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { IMAGE_URL } from "../utilities/Constants";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
     const router = useRouter();
@@ -141,22 +142,31 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     const fetchPaymentDetails = async () => {
         setLoading(true);
         try {
-            // Try fetching as a payment record first (since the list now provides paymentId)
-            let res = await saleService.getPaymentById(jwtToken, paymentId);
-
-            // Fallback to order details if payment fetch fails
-            if (res.status === "error" || !res.data) {
-                res = await saleService.getSaleInvoiceById(jwtToken, paymentId);
+            let res;
+            try {
+                // Try fetching as a payment record first
+                res = await saleService.getPaymentById(jwtToken, paymentId);
+            } catch (err) {
+                // If 400 or other error, fallback
+                res = { status: "error" };
             }
 
-            if (res.status === "success" && res.data) {
+            // Fallback to order details if payment fetch fails or errors
+            if (!res || res.status === "error" || !res.data) {
+                try {
+                    res = await saleService.getSaleInvoiceById(jwtToken, paymentId);
+                } catch(err) {
+                    res = { status: "error" };
+                }
+            }
+
+            if (res && res.status === "success" && res.data) {
                 const data = res.data;
                 const isPayment = !!data.paymentId;
 
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
-                    // Use dueAtTime if available; fallback to existing logic
                     totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
@@ -427,18 +437,45 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
     const isPdf = router.query.pdf === 'true';
 
+    if (isPdf) {
+        const columns = [
+            { header: "PAYMENT METHOD", accessor: "method", align: "left" },
+            { header: "REFERENCE NO", accessor: "referenceNumber", align: "left" },
+            { header: "AMOUNT", accessor: "amount", align: "right" }
+        ];
+
+        const summary = [
+            { label: "Total Balance", value: `₹${formData.totalBalance || "0"}` },
+            { label: "Paid Amount", value: `₹${formData.paidAmount || "0"}`, isTotal: true }
+        ];
+
+        return (
+            <PrintInvoiceTemplate
+                title="PAYMENT IN RECEIPT"
+                customerDetails={{
+                    name: formData.partyName || 'N/A'
+                }}
+                invoiceDetails={{
+                    "Receipt No": formData.referenceNumber || formData.userOrderId || 'N/A',
+                    "Date": formData.date || 'N/A',
+                    "Total Balance": `₹${formData.totalBalance || "0"}`,
+                    "Paid Amount": `₹${formData.paidAmount || "0"}`
+                }}
+                columns={columns}
+                items={payments.length > 0 ? payments.map(p => ({
+                    ...p,
+                    referenceNumber: p.referenceNumber || formData.userOrderId || formData.referenceNumber || "-"
+                })) : [{ method: 'Cash', referenceNumber: formData.referenceNumber || formData.userOrderId || '-', amount: formData.paidAmount || 0 }]}
+                summary={summary}
+                notes={formData.description}
+                onClose={() => window.close()}
+            />
+        );
+    }
+
     return (
-        <div className={`${styles.overlay} ${isPdf ? styles.pdfOverlay : ''}`}>
-            {isPdf && (
-                <div className={styles.pdfTopbar}>
-                    <span className={styles.pdfTitle}>Payment In PDF Preview</span>
-                    <div className={styles.pdfActions}>
-                        <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
-                        <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
-                    </div>
-                </div>
-            )}
-            <div className={`${styles.modal} ${isPdf ? styles.pdfModal : ''}`}>
+        <div className={`${styles.overlay}`}>
+            <div className={`${styles.modal}`}>
                 <div className={styles.modalHeader}>
                     <h3>{mode === 'add' ? 'Add Payment In' : (mode === 'view' ? 'View Payment In' : 'Edit Payment In')}</h3>
                     <FiX className={styles.closeBtn} onClick={onClose} />
@@ -497,6 +534,22 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     )}
 
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        <div className={styles.fieldGroup}>
+                            <label className={styles.label}>Receipt No</label>
+                            <div style={{ position: 'relative' }}>
+                                <select
+                                    className={`${styles.select} ${formErrors.userOrderId ? styles.errorField : ""}`}
+                                    value={formData.userOrderId || ""}
+                                    onChange={(e) => handleOrderChange(e.target.value)}
+                                >
+                                    <option value="">Select Receipt no</option>
+                                    {customerOrders.map(o => (
+                                        <option key={o.orderId} value={o.orderId}>{o.userOrderId || o.orderId}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {formErrors.userOrderId && <div className={styles.errorMessage}>{formErrors.userOrderId}</div>}
+                        </div>
                         <div className={styles.field} style={{ position: 'relative' }}>
                             <label>Select Customer</label>
                             <div style={{ position: 'relative' }}>

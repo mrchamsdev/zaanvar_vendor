@@ -425,6 +425,10 @@
     border-color: #E9315D;
 }
 
+.supplierSearchWrapper input {
+    padding-right: 36px;
+}
+
 .dropdownIcon {
     position: absolute;
     right: 20px;

@@ -88,7 +88,7 @@
 .tableWrapper {
   flex: 1;
   background: #fff;
-  border: 1px solid #e0e0e0;
+  /* border: 1px solid #e0e0e0; */
   border-radius: 8px;
   overflow: auto;
   min-height: 0;
@@ -112,8 +112,10 @@
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { 
-  to { transform: rotate(360deg); } 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loadingText {
@@ -204,10 +206,21 @@
   cursor: pointer;
 }
 
-.dateCol { width: 140px; }
-.unitCol { width: 100px; }
-.qtyCol { width: 90px; }
-.totalValCol { width: 150px; }
+.dateCol {
+  width: 140px;
+}
+
+.unitCol {
+  width: 100px;
+}
+
+.qtyCol {
+  width: 90px;
+}
+
+.totalValCol {
+  width: 150px;
+}
 
 /* Ensure sub-headers in the second row keep their right borders */
 .subHeaderRow th {

@@ -247,34 +247,22 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, 
   const isPdf = router.query.pdf === "true";
   if (isPdf) {
     const activeTab = tabs[0];
+    if (!activeTab || activeTab.loading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          Loading...
+        </div>
+      );
+    }
     return (
-      <div className={styles.pdfOverlay}>
-        <div className={styles.pdfTopbar}>
-          <span className={styles.pdfTitle}>Sale Invoice PDF Preview</span>
-          <div className={styles.pdfActions}>
-            <button className={styles.pdfBtn} onClick={() => window.print()}>Print</button>
-            <button className={styles.pdfBtnClose} onClick={() => window.close()}>Close</button>
-          </div>
-        </div>
-        <div className={styles.pdfModalContainer}>
-          <div className={styles.pdfModal}>
-            {activeTab && !activeTab.loading ? (
-              <SaleInvoiceForm 
-                mode={activeTab.mode}
-                saleId={activeTab.saleId}
-                tabId={activeTab.id}
-                initialData={activeTab.data}
-                onSave={() => {}}
-                onCancel={() => window.close()}
-              />
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                Loading...
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <SaleInvoiceForm 
+        mode={activeTab.mode}
+        saleId={activeTab.saleId}
+        tabId={activeTab.id}
+        initialData={activeTab.data}
+        onSave={() => {}}
+        onCancel={() => window.close()}
+      />
     );
   }
 

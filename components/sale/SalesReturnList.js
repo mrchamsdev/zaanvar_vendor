@@ -290,6 +290,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const SalesReturnList = ({ onAddClick }) => {
     const router = useRouter();
@@ -678,6 +679,54 @@ const SalesReturnList = ({ onAddClick }) => {
         document.body.removeChild(link);
     };
 
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
+    const handlePrint = () => {
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
+    };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Sales Return History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.returnDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'BILL NO', accessor: 'userOrderId', align: 'left' },
+                    { header: 'RETURN ID', render: (item) => `SR-${item.customerReturnId}`, align: 'left' },
+                    { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : 'Walk-in Customer', align: 'left' },
+                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                ]}
+                items={filteredReturns}
+                summary={[
+                    { label: 'Total Return Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Total Balance Amount', value: `₹${Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                ]}
+            />
+        );
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.filters}>
@@ -750,7 +799,7 @@ const SalesReturnList = ({ onAddClick }) => {
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
                         <FaFileExcel style={{ color: '#217346' }} />
                     </button>
-                    <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
+                    <button className={styles.iconBtn} onClick={handlePrint} title="Print">
                         <FiPrinter />
                     </button>
                 </div>

@@ -120,7 +120,7 @@
 .input:focus,
 .select:focus {
     border-color: #E93E64;
-    background: #fff;
+    background-color: #fff;
     box-shadow: 0 0 0 2px rgba(233, 62, 100, 0.15);
 }
 
@@ -737,4 +737,38 @@
 .pdfModal .tableContainer {
     margin-top: 12px !important;
     margin-bottom: 24px !important;
+}
+
+.customerSearchWrapper {
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    height: 44px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.customerSearchWrapper:hover,
+.customerSearchWrapper:focus-within {
+    border-color: #E93E64;
+}
+
+.customerSearchWrapper input {
+    padding-right: 36px;
+}
+
+.dropdownIcon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

@@ -9,6 +9,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
     const router = useRouter();
@@ -594,6 +595,57 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 <div style={{ width: "40px", height: "40px", border: "3px solid #E93E64", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
+        );
+    }
+
+    const isPdf = router.query.pdf === 'true' || router.query.print === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true');
+
+    if (isPdf) {
+        const columns = [
+            { header: "S NO.", align: "left", render: (item, idx) => String(idx + 1).padStart(2, '0') },
+            { header: "PRODUCT NAME", accessor: "productName", align: "left" },
+            { header: "QTY", accessor: "qty", align: "center" },
+            { header: "UNIT", accessor: "unit", align: "center" },
+            { header: "PRICE", accessor: "price", align: "right" },
+            { header: "TAX (%)", accessor: "taxPercent", align: "center" },
+            { header: "DISCOUNT (%)", accessor: "discount", align: "center" },
+            { header: "AMOUNT", accessor: "amount", align: "right" }
+        ];
+
+        const totalQty = items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0);
+        const subtotal = items.reduce((acc, it) => acc + ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 0)), 0);
+        const totalDiscount = items.reduce((acc, it) => acc + (it.discountAmount || 0), 0);
+        const totalTax = items.reduce((acc, it) => acc + (it.taxAmount || 0), 0);
+
+        const summary = [
+            { label: "Total Quantity", value: totalQty },
+            { label: "Subtotal", value: subtotal.toFixed(2) },
+            { label: "Total Discount", value: totalDiscount.toFixed(2) },
+            { label: "Total Tax", value: totalTax.toFixed(2) },
+            { label: "Customer Discount", value: parseFloat(formData.discountForCustomer || 0).toFixed(2) },
+            { label: "Grand Total", value: totalBillAmount.toFixed(2), isTotal: true },
+            { label: "Amount Paid", value: totalPaidAmount.toFixed(2) },
+            { label: "Balance Due", value: balanceAmount.toFixed(2) }
+        ];
+
+        return (
+            <PrintInvoiceTemplate
+                title="SALE INVOICE"
+                customerDetails={{
+                    name: formData.partyName || 'N/A',
+                    phone: formData.phone || '',
+                }}
+                invoiceDetails={{
+                    "Invoice No": formData.invoiceNumber || 'N/A',
+                    "Order Id": formData.userOrderId || 'N/A',
+                    "Date": formData.invoiceDate || 'N/A',
+                    "Status": formData.status || 'N/A'
+                }}
+                columns={columns}
+                items={items.filter(it => it.productId)}
+                summary={summary}
+                onClose={onCancel}
+            />
         );
     }
 

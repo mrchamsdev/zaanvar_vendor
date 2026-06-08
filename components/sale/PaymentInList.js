@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import ShareModal from "./ShareModal";
 import HistoryModal from "../purchase-bill/HistoryModal";
 
@@ -744,7 +745,7 @@ const PaymentInList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "REF NO", "CUSTOMER NAME", "TOTAL", "PAYMENT TYPE", "PAID", "BALANCE"];
         const rows = [];
-        
+
         filteredPayments.forEach(p => {
             rows.push([
                 `" ${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
@@ -789,6 +790,56 @@ const PaymentInList = ({ onAddClick }) => {
         link.click();
         document.body.removeChild(link);
     };
+
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
+    const handlePrint = () => {
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
+    };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Payment In History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.paymentDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'REF NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.paymentId || "" },
+                    { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : `Customer #${item.vendorCustomerId}`, align: 'left' },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(getCustomerTotalAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
+                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAtTime !== undefined && item.dueAtTime !== null ? item.dueAtTime : getCustomerBalanceAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                ]}
+                items={filteredPayments}
+                summary={[
+                    { label: 'Total Amount', value: `₹${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `₹${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `₹${Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                ]}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -886,7 +937,7 @@ const PaymentInList = ({ onAddClick }) => {
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
                         <FaFileExcel style={{ color: '#217346' }} />
                     </button>
-                    <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
+                    <button className={styles.iconBtn} onClick={handlePrint} title="Print">
                         <FiPrinter />
                     </button>
                 </div>
@@ -1056,6 +1107,7 @@ const PaymentInList = ({ onAddClick }) => {
                                             { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
                                             ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
                                         ];
+                                    const balAmt = p.dueAtTime !== undefined && p.dueAtTime !== null ? Number(p.dueAtTime) : Number(getCustomerBalanceAmount(p.vendorCustomerId));
                                     return (
                                         <React.Fragment key={p.paymentId || idx}>
                                             <tr>
@@ -1073,10 +1125,12 @@ const PaymentInList = ({ onAddClick }) => {
                                                     )}
                                                 </td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
-                                                <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString()}</td>
+                                                <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>
-                                                <td>{Number(getDisplayTotalAmount(p)).toLocaleString()}</td>
-                                                <td>{(p.dueAtTime !== undefined && p.dueAtTime !== null ? Number(p.dueAtTime) : Number(getCustomerBalanceAmount(p.vendorCustomerId))).toLocaleString()}</td>
+                                                <td>{Number(getDisplayTotalAmount(p)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>
+                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </td>
                                                 <td>
                                                     <div className={styles.actions}>
                                                         <div style={{ position: 'relative' }}>
