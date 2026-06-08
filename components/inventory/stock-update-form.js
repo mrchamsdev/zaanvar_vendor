@@ -564,6 +564,32 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                         parseWallClockDate(updateDate) || new Date(updateDate),
                     )
                     : {};
+
+                const product = products.find(p => p.productId === row.productId);
+                const variant = product?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                const stockData = variant?.stockUpdates || {};
+
+                const baseOpenStock = stockData.openStockQuantity || 0;
+                const baseHoldQty = stockData.onHoldQuantity || 0;
+
+                let finalOpenQty = baseOpenStock;
+                let finalHoldQty = baseHoldQty;
+
+                const add = parseInt(row.add) || 0;
+                const remove = parseInt(row.remove) || 0;
+
+                if (row.sourceStatus === "Open Stock") {
+                    finalOpenQty = baseOpenStock + add - remove;
+                    if (row.reason === "OnHold") {
+                        finalHoldQty = baseHoldQty + remove;
+                    }
+                } else if (row.sourceStatus === "Hold Qty") {
+                    finalHoldQty = baseHoldQty + add - remove;
+                    if (row.reason === "Open Stock") {
+                        finalOpenQty = baseOpenStock + remove;
+                    }
+                }
+
                 const payload = {
                     branchId: parseInt(branchId),
                     variantId: parseInt(row.variantId),
@@ -579,7 +605,11 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     consumptionId: null,
                     addItem: null,
                     updatedFrom: "Stock Update",
-                    sourceStatus: row.sourceStatus === "Open Stock" ? "openStock" : (row.sourceStatus === "Hold Qty" ? "onHold" : null)
+                    sourceStatus: row.sourceStatus === "Open Stock" ? "openStock" : (row.sourceStatus === "Hold Qty" ? "onHold" : null),
+                    openQty: finalOpenQty,
+                    holdQty: finalHoldQty,
+                    stock: parseInt(row.currentQty),
+                    updatedQty: parseInt(row.updatedQty)
                 };
                 if (row.reason === "Expired") {
                     payload.expDate = row.expiryDate;
