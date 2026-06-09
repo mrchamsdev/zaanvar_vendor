@@ -456,7 +456,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     name: formData.partyName || 'N/A'
                 }}
                 invoiceDetails={{
-                    "Receipt No": formData.referenceNumber || formData.userOrderId || 'N/A',
+                    "Receipt No": paymentId || formData.referenceNumber || formData.userOrderId || 'N/A',
                     "Date": formData.date || 'N/A',
                     "Total Balance": `₹${formData.totalBalance || "0"}`,
                     "Paid Amount": `₹${formData.paidAmount || "0"}`
@@ -537,18 +537,28 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                         <div className={styles.fieldGroup}>
                             <label className={styles.label}>Receipt No</label>
                             <div style={{ position: 'relative' }}>
-                                <select
-                                    className={`${styles.select} ${formErrors.userOrderId ? styles.errorField : ""}`}
-                                    value={formData.userOrderId || ""}
-                                    onChange={(e) => handleOrderChange(e.target.value)}
-                                >
-                                    <option value="">Select Receipt no</option>
-                                    {customerOrders.map(o => (
-                                        <option key={o.orderId} value={o.orderId}>{o.userOrderId || o.orderId}</option>
-                                    ))}
-                                </select>
+                                {(isViewOnly || mode === 'edit') ? (
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={paymentId || formData.userOrderId || formData.referenceNumber || ""}
+                                        disabled={true}
+                                    />
+                                ) : (
+                                    <select
+                                        className={`${styles.select} ${errors.userOrderId ? styles.errorField : ""}`}
+                                        value={formData.userOrderId || ""}
+                                        onChange={(e) => setFormData({ ...formData, userOrderId: e.target.value })}
+                                        disabled={!!prefill}
+                                    >
+                                        <option value="">Select Receipt no</option>
+                                        {((customers.find(c => c.vendorCustomerId === formData.vendorCustomerId)?.orders) || []).map((o, index) => (
+                                            <option key={o.orderId || o.userOrderId || o.id || index} value={o.orderId || o.id || o.userOrderId}>{o.userOrderId || o.orderId || o.id}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
-                            {formErrors.userOrderId && <div className={styles.errorMessage}>{formErrors.userOrderId}</div>}
+                            {errors.userOrderId && <div className={styles.errorMessage}>{errors.userOrderId}</div>}
                         </div>
                         <div className={styles.field} style={{ position: 'relative' }}>
                             <label>Select Customer</label>
