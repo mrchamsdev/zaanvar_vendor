@@ -186,6 +186,7 @@ function buildMenuFromVendor(userInfo) {
       icon: <IconShop />,
       subItems: SERVICE_MAP["Sale"].subItems
     },
+    { label: "Customers", path: "/customers", icon: <IconUser /> },
     { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
   ];
 
