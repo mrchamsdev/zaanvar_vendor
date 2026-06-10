@@ -32,7 +32,12 @@ const SupplierView = ({ data, onBack, isSplit }) => {
 
     const getDisplayPaymentType = (t) => {
         const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
-            .map(type => type || "Cash")
+            .map(type => {
+                if (typeof type === 'object' && type !== null) {
+                    return type.paymentType || type.type || JSON.stringify(type);
+                }
+                return type || "Cash";
+            })
             .filter((value, index, self) => self.indexOf(value) === index);
         return types.join(" + ");
     };
@@ -134,9 +139,9 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 </td>
                                 <td className={`${styles.td} ${styles.tdBold}`}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
                                 <td className={styles.td}>{t.branchname || "Main Branch"}</td>
-                                <td className={styles.td}>{t.overallBillAmount ?? "-"}</td>
+                                <td className={styles.td}>{t.overallBillAmount !== null && t.overallBillAmount !== undefined ? Number(t.overallBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}</td>
                                 <td className={styles.td}>
-                                    <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{t.orderStatus || "Order Placed"}</div>
+                                    <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{typeof t.orderStatus === 'object' && t.orderStatus !== null ? (t.orderStatus.type || JSON.stringify(t.orderStatus)) : (t.orderStatus || "Order Placed")}</div>
                                     <div className={styles.subText}>
                                         {(() => {
                                             const dateValue = t.orderStatus === 'received' ? t.orderrecivedDate : (t.orderStatus === 'cancelled' ? (t.modifiedDate || t.createdDate) : (t.createdDate || t.orderDate));
@@ -237,7 +242,11 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
-                                            <td className={styles.td}>{split.paymentType}</td>
+                                            <td className={styles.td}>
+                                                {typeof split.paymentType === 'object' && split.paymentType !== null 
+                                                    ? (split.paymentType.paymentType || split.paymentType.type || JSON.stringify(split.paymentType))
+                                                    : split.paymentType}
+                                            </td>
                                             <td className={styles.td}>{split.referenceNumber || "--"}</td>
                                             <td className={styles.td}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className={styles.td}></td>
@@ -299,7 +308,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Total order </p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.overallBillAmount || "0.00"}</p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.overallBillAmount || supplier?.totals?.[0]?.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
@@ -312,7 +321,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalPaidAmount || "0.00"}</p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     <p className={styles.infoLabel}>Paid Amount</p>
                                 </div>
                             </div>

@@ -18,9 +18,9 @@
 
 .branchSelect {
   padding: 8px 16px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   min-width: 240px;
   font-size: 14px;
   outline: none;
@@ -32,8 +32,8 @@
 }
 
 .addBtn {
-  background: #E9315D;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -48,14 +48,14 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background: #fff;
+  background: var(--color-white);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   border-radius: 8px;
   margin-top: 8px;
   z-index: 100;
   width: 180px;
   overflow: hidden;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
 }
 
 .dropdownItem {
@@ -87,15 +87,15 @@
 .statusLabel {
   font-weight: 600;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-body);
 }
 
 .statusBadge {
   padding: 6px 12px;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   border-radius: 4px;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .searchRow {
@@ -104,7 +104,7 @@
 
 .tabs {
   display: flex;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   padding: 4px;
   border-radius: 8px;
   gap: 4px;
@@ -117,13 +117,13 @@
   background: transparent;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-muted);
   transition: all 0.2s;
 }
 
 .tabActive {
-  background: #fff;
-  color: #E9315D;
+  background: var(--color-white);
+  color: var(--color-primary);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -137,7 +137,7 @@
   width: 100%;
   padding: 12px 16px 12px 48px;
   border: none;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   border-radius: 8px;
   outline: none;
   font-size: 14px;
@@ -148,12 +148,12 @@
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
+  color: var(--color-text-lighter);
 }
 
 .tableWrapper {
   flex: 1;
-  background: #fff;
+  background: var(--color-white);
   overflow: auto;
   min-height: 0;
   margin-top: 10px;
@@ -176,15 +176,15 @@
   position: sticky;
   top: 0;
   z-index: 15;
-  background: #f9fafb;
+  background: var(--color-bg-light);
   padding: 0 16px;
   text-align: left;
   font-size: 11px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-gray-muted);
   text-transform: uppercase;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   letter-spacing: 0.05em;
   height: 56px;
   line-height: 56px;
@@ -203,10 +203,10 @@
 .variantsHeader {
   text-align: center !important;
   font-size: 11px !important;
-  color: #4b5563 !important;
+  color: var(--color-text-dark) !important;
   background: #f3f4f6 !important;
   font-weight: 700 !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid var(--color-border) !important;
   height: 56px !important;
   line-height: 56px !important;
 }
@@ -215,10 +215,10 @@
   position: sticky !important;
   top: 56px !important;
   z-index: 14 !important;
-  background: #f9fafb !important;
-  color: #6b7280 !important;
+  background: var(--color-bg-light) !important;
+  color: var(--color-text-gray-muted) !important;
   border-top: none !important;
-  border-right: 1px solid #e5e7eb !important;
+  border-right: 1px solid var(--color-border) !important;
   height: 56px !important;
   line-height: 56px !important;
   text-align: center !important;
@@ -232,10 +232,10 @@
 
 .table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #eee;
-  border-right: 1px solid #eee !important;
+  border-bottom: 1px solid var(--color-border-light);
+  border-right: 1px solid var(--color-border-light) !important;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-body);
 }
 
 .table td:first-child {
@@ -248,9 +248,9 @@
 }
 
 .variantRow td {
-  background: #fff;
-  border-top: 1px dashed #eee;
-  border-bottom: 1px dashed #eee;
+  background: var(--color-white);
+  border-top: 1px dashed var(--color-border-light);
+  border-bottom: 1px dashed var(--color-border-light);
   font-size: 14px;
 }
 
@@ -263,7 +263,7 @@
   bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  background: #fff;
+  background: var(--color-white);
   padding: 12px 24px;
   border-radius: 100px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -271,7 +271,7 @@
   align-items: center;
   gap: 24px;
   z-index: 1000;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
 }
 
 .actionItem {
@@ -280,7 +280,7 @@
   gap: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #555;
+  color: var(--color-text-gray);
   font-weight: 500;
 }
 
@@ -289,8 +289,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background: #fff;
-  border: 1px solid #f0f0f0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-lighter);
   margin-top: 16px;
   border-radius: 12px;
   flex-shrink: 0;
@@ -317,37 +317,37 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: #f8f9fa;
+  background: var(--color-bg-subtle);
   padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .bulkCount {
   font-size: 13px;
-  color: #E9315D;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
 .bulkDivider {
   width: 1px;
   height: 16px;
-  background: #ddd;
+  background: var(--color-border-dark);
 }
 
 .pageBtn {
   padding: 8px 24px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--color-border-dark);
+  background: var(--color-white);
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
 }
 
 .nextBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
   border: none;
 }
 
@@ -356,12 +356,12 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 
 .rowsPerPage select {
   padding: 4px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-dark);
   border-radius: 4px;
 }

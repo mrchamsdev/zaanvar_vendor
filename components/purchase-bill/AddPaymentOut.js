@@ -269,7 +269,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={supplierTotals?.totalBillAmount ? `₹ ${Number(supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
+                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `₹ ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
                                 readOnly
                             />
                         </div>

@@ -1,7 +1,7 @@
 /* CustomerView specific styles */
 .viewContainer {
     /* padding: 24px 24px 8px 24px; */
-    /* background: #F9FAFB; */
+    /* background: var(--color-bg-light); */
     min-height: 100%;
     font-family: 'Inter', sans-serif;
 }
@@ -10,7 +10,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #E9315D;
+    color: var(--color-primary);
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
@@ -19,7 +19,7 @@
 }
 
 .backButton {
-    background: #fcecf0;
+    background: var(--color-bg-danger-light);
     border: none;
     border-radius: 50%;
     width: 24px;
@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #E9315D;
+    color: var(--color-primary);
     cursor: pointer;
 }
 
@@ -54,9 +54,9 @@
 .leftSidebarSplit {
     flex: 1 1 100%;
     min-width: 230px;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid var(--color-border);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -67,9 +67,9 @@
     flex: 0 0 250px;
     min-width: 230px;
     max-width: 280px;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid var(--color-border);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -78,7 +78,7 @@
 
 .sidebarHeader {
     padding: 24px;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .sidebarName {
@@ -88,7 +88,7 @@
 }
 
 .sidebarPhone {
-    color: #6B7280;
+    color: var(--color-text-gray-muted);
     font-size: 14px;
 }
 
@@ -109,19 +109,19 @@
 }
 
 .navButtonActive {
-    background: #fcecf0;
-    color: #E9315D;
+    background: var(--color-bg-danger-light);
+    color: var(--color-primary);
     font-weight: 600;
 }
 
 .navButtonInactive {
     background: transparent;
-    color: #4B5563;
+    color: var(--color-text-dark);
 }
 
 .personalInfoSection {
     padding: 24px;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid var(--color-border);
     margin-top: auto;
 }
 
@@ -129,7 +129,7 @@
     font-size: 14px;
     font-weight: 600;
     margin: 0 0 16px 0;
-    color: #111;
+    color: var(--color-text-main);
 }
 
 .infoGrid {
@@ -141,7 +141,7 @@
 
 .infoLabel {
     font-size: 12px;
-    color: #6B7280;
+    color: var(--color-text-gray-muted);
     margin-bottom: 4px;
 }
 
@@ -160,8 +160,8 @@
     width: 100%;
     padding: 12px;
     background: transparent;
-    border: 1px solid #E9315D;
-    color: #E9315D;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
@@ -200,9 +200,9 @@
 }
 
 .overviewCard {
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid var(--color-border);
     padding: 16px;
 }
 
@@ -220,7 +220,7 @@
 }
 
 .overviewIcon {
-    color: #9CA3AF;
+    color: var(--color-text-gray-lighter);
     cursor: help;
 }
 
@@ -238,13 +238,13 @@
 
 .statLabel {
     font-size: 13px;
-    color: #6B7280;
+    color: var(--color-text-gray-muted);
 }
 
 .tableCard {
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid var(--color-border);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -257,7 +257,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 24px;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid var(--color-border);
     gap: 10px;
 }
 
@@ -282,7 +282,7 @@
 }
 
 .tableTabsContainer::-webkit-scrollbar-thumb {
-    background: #ccc;
+    background: var(--color-border-dark);
     border-radius: 4px;
 }
 
@@ -297,15 +297,15 @@
 }
 
 .tableTabActive {
-    background: #fff;
-    color: #E9315D;
+    background: var(--color-white);
+    color: var(--color-primary);
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .tableTabInactive {
     background: transparent;
-    color: #555;
+    color: var(--color-text-gray);
     font-weight: 500;
     box-shadow: none;
 }
@@ -313,7 +313,7 @@
 .emptyState {
     padding: 40px;
     text-align: center;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .tableScrollContainer {
@@ -334,8 +334,8 @@
 }
 
 .dataTableHeaderRow {
-    background: #F9FAFB;
-    color: #6B7280;
+    background: var(--color-bg-light);
+    color: var(--color-text-gray-muted);
     text-transform: uppercase;
     font-size: 12px;
 }
@@ -343,9 +343,9 @@
 .dataTableHeaderRow th {
     position: sticky;
     top: 0;
-    background: #F9FAFB;
+    background: var(--color-bg-light);
     z-index: 1;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .dataTableHeader {
@@ -360,7 +360,7 @@
 }
 
 .dataTableRow {
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .dataTableCell {
@@ -383,15 +383,15 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 24px;
-    background: #F9FAFB;
-    border-top: 1px solid #E5E7EB;
+    background: var(--color-bg-light);
+    border-top: 1px solid var(--color-border);
 }
 
 .paginationLeft {
     display: flex;
     align-items: center;
     gap: 16px;
-    color: #6B7280;
+    color: var(--color-text-gray-muted);
     font-size: 13px;
 }
 
@@ -402,11 +402,11 @@
 }
 
 .rowsSelect {
-    border: 1px solid #D1D5DB;
+    border: 1px solid var(--color-border-darker);
     border-radius: 4px;
     padding: 4px 8px;
-    background: #fff;
-    color: #111;
+    background: var(--color-white);
+    color: var(--color-text-main);
     outline: none;
 }
 
@@ -424,13 +424,13 @@
 }
 
 .pageButtonPrev {
-    border: 1px solid #D1D5DB;
-    background: #fff;
-    color: #374151;
+    border: 1px solid var(--color-border-darker);
+    background: var(--color-white);
+    color: var(--color-text-darkest);
 }
 
 .pageButtonNext {
     border: none;
-    background: #111;
-    color: #fff;
+    background: var(--color-text-main);
+    color: var(--color-white);
 }

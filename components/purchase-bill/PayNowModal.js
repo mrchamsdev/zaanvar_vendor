@@ -187,7 +187,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     // Calculations
     const previouslyPaid = parseFloat(billDetails?.amountPaidToSupplier || 0);
     const currentBalance = parseFloat(billDetails?.balanceAmount || 0);
-    const totalBillAmount = parseFloat(billDetails?.totalAmount || (previouslyPaid + currentBalance));
+    const totalBillAmount = parseFloat(billDetails?.overallBillAmount || billDetails?.totalAmount || (previouslyPaid + currentBalance));
 
     // Amount currently being entered (top Paid Amount field)
     const currentEntryAmount = parseFloat(topPaidAmount || 0);

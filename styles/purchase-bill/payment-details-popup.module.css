@@ -12,7 +12,7 @@
 }
 
 .modal {
-    background: #fff;
+    background: var(--color-white);
     width: 95%;
     max-width: 600px;
     max-height: 95vh;
@@ -38,11 +38,11 @@
 
 .header {
     padding: 20px 24px;
-    border-bottom: 1px solid #f1f1f1;
+    border-bottom: 1px solid var(--color-bg-gray);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fff;
+    background: var(--color-white);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -61,7 +61,7 @@
     background: #f5f5f5;
     border: none;
     font-size: 18px;
-    color: #666;
+    color: var(--color-text-muted);
     cursor: pointer;
     display: flex;
     padding: 6px;
@@ -70,8 +70,8 @@
 }
 
 .closeBtn:hover {
-    background: #eee;
-    color: #333;
+    background: var(--color-border-light);
+    color: var(--color-text-body);
 }
 
 .content {
@@ -105,7 +105,7 @@
     flex-direction: column;
     gap: 24px;
     padding: 16px 0;
-    border-top: 1px dashed #eee;
+    border-top: 1px dashed var(--color-border-light);
 }
 
 .labelWithAction {
@@ -117,7 +117,7 @@
 .miniRemove {
     background: none;
     border: none;
-    color: #E9315D;
+    color: var(--color-primary);
     cursor: pointer;
     font-size: 14px;
     padding: 0;
@@ -139,7 +139,7 @@
 .field label {
     font-size: 13px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .inputWrapper {
@@ -153,10 +153,10 @@
     width: 100%;
     padding: 12px 16px;
     background: #fcfcfc;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     outline: none;
 }
 
@@ -165,16 +165,16 @@
     width: 80%;
     padding: 12px 16px;
     background: #fcfcfc;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     outline: none;
 }
 
 .readOnly input {
-    background: #f8f9fa;
-    color: #888;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-light);
     cursor: not-allowed;
 }
 
@@ -198,7 +198,7 @@
 }
 
 .addPaymentLink {
-    color: #E9315D;
+    color: var(--color-primary);
     font-size: 11px;
     font-weight: 800;
     cursor: pointer;
@@ -220,7 +220,7 @@
 
 .uploadTrigger {
     background: #7a7a7a;
-    color: #fff;
+    color: var(--color-white);
     padding: 10px 24px;
     font-size: 13px;
     font-weight: 600;
@@ -232,9 +232,9 @@
 .fileName {
     padding: 10px 16px;
     font-size: 13px;
-    color: #999;
+    color: var(--color-text-lighter);
     background: #fcfcfc;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     border-radius: 4px;
     flex: 1;
     min-height: 40px;
@@ -253,15 +253,15 @@
     height: 100px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
 }
 
 .removeImg {
     position: absolute;
     top: -8px;
     right: -8px;
-    background: #fff;
-    border: 1px solid #eee;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
     border-radius: 50%;
     width: 20px;
     height: 20px;
@@ -280,8 +280,8 @@
 }
 
 .saveBtn {
-    background: #000;
-    color: #fff;
+    background: var(--color-black);
+    color: var(--color-white);
     border: none;
     padding: 12px 40px;
     border-radius: 8px;
@@ -292,7 +292,7 @@
 }
 
 .saveBtn:hover:not(:disabled) {
-    background: #333;
+    background: var(--color-text-body);
 }
 
 .saveBtn:disabled {

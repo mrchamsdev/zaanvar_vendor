@@ -86,7 +86,7 @@ const PaymentOutFormPage = () => {
 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(totals.supplierTotalAmount || "000");
-                setTotalBillAmt(totals.totalBillAmount || "");
+                setTotalBillAmt(totals.overallBillAmount || totals.totalBillAmount || "");
                 setTotalBalanceAmt(totals.totalBalanceAmount || "");
                 setDescription(t.transactionInfo || "");
 
