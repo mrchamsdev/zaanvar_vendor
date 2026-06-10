@@ -128,7 +128,7 @@ const Header = () => {
 
           <div className={style["button-container"]}>
             <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
-            <button className={style["btn-outline"]} onClick={handleListYourBusiness}>List Your Business</button>
+            {/*  <button className={style["btn-outline"]} onClick={handleListYourBusiness}>List Your Business</button> */}
             <button onClick={handleOnclick}
               className={style["btn-outline"]}
               style={{ background: "#F5790C", color: "#fff" }}
