@@ -1,7 +1,7 @@
 .container {
     box-sizing: border-box;
     width: 100%;
-    background: #fff;
+    background: var(--color-white);
     padding: 20px;
     border-radius: 16px;
 }
@@ -16,10 +16,10 @@
 }
 
 .topCard {
-    background: #fff;
+    background: var(--color-white);
     padding: 32px;
     border-radius: 12px;
-    border: 1px solid #F0F0F0;
+    border: 1px solid var(--color-border-lighter);
     margin-bottom: 32px;
     display: flex;
     gap: 24px;
@@ -34,7 +34,7 @@
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 32px;
-    color: #000;
+    color: var(--color-black);
     letter-spacing: 0.5px;
 }
 
@@ -48,11 +48,11 @@
     font-weight: 500;
     font-size: 13px;
     margin-bottom: 6px;
-    color: #000;
+    color: var(--color-black);
 }
 
 .infoLabel {
-    color: #888;
+    color: var(--color-text-light);
     font-size: 11px;
     font-weight: 400;
 }
@@ -60,10 +60,10 @@
 .statsCard {
     box-sizing: border-box;
     width: 320px;
-    background: #fff;
+    background: var(--color-white);
     padding: 24px;
     border-radius: 16px;
-    border: 1px solid #F0F0F0;
+    border: 1px solid var(--color-border-lighter);
 }
 
 .statsCardSplit {
@@ -74,7 +74,7 @@
     margin-bottom: 24px;
     font-size: 14px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-black);
 }
 
 .statsGrid {
@@ -85,7 +85,7 @@
 
 .tabContainer {
     display: inline-flex;
-    background: #F1F1F1;
+    background: var(--color-bg-gray);
     padding: 4px;
     border-radius: 8px;
     margin-bottom: 24px;
@@ -96,7 +96,7 @@
     border-radius: 6px;
     border: none;
     background: transparent;
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -105,16 +105,16 @@
 }
 
 .tabBtnActive {
-    background: #fff;
-    color: #E9315D;
+    background: var(--color-white);
+    color: var(--color-primary);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .contentArea {
-    background: #fff;
+    background: var(--color-white);
     padding: 30px;
     border-radius: 12px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
 }
 
 .contentAreaSplit {
@@ -129,9 +129,9 @@
 }
 
 .payNowBtn {
-    color: #E9315D;
-    border: 1px solid #E9315D;
-    background: #fff;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    background: var(--color-white);
     padding: 6px 16px;
     border-radius: 8px;
     font-size: 12px;
@@ -141,8 +141,8 @@
 }
 
 .payNowBtn:hover {
-    background: #E9315D;
-    color: #fff;
+    background: var(--color-primary);
+    color: var(--color-white);
 }
 
 .tableWrapper {
@@ -152,9 +152,9 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     overflow: hidden;
 }
 
@@ -166,7 +166,7 @@
     padding: 14px;
     text-align: left;
     font-size: 11px;
-    color: #888;
+    color: var(--color-text-light);
     font-weight: 600;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .trClickable {
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--color-border-light);
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -190,7 +190,7 @@
 }
 
 .trHistory {
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--color-border-light);
 }
 
 .statusText {
@@ -199,7 +199,7 @@
 }
 
 .statusGreen {
-    color: #27AE60;
+    color: var(--color-success);
 }
 
 .statusOrange {
@@ -207,20 +207,20 @@
 }
 
 .statusRed {
-    color: #E9315D;
+    color: var(--color-primary);
 }
 
 .statusGrey {
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .subText {
     font-size: 11px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .noData {
     padding: 40px;
     text-align: center;
-    color: #999;
+    color: var(--color-text-lighter);
 }

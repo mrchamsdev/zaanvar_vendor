@@ -37,21 +37,36 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconThreeDots = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="5" r="1.5" />
+    <circle cx="12" cy="12" r="1.5" />
+    <circle cx="12" cy="19" r="1.5" />
+  </svg>
+);
+
 const CustomerList = ({
   customers,
   loading,
-  selectedIds,
-  onToggleSelection,
-  onSelectAll,
   onView,
   onEdit,
   onDelete,
-  onBulkDelete,
   onAddClick,
   searchTerm = ""
 }) => {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [activeMenuId, setActiveMenuId] = React.useState(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(`.${styles.actionCell}`)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const paginatedCustomers = customers.slice(
     (currentPage - 1) * rowsPerPage,
@@ -74,15 +89,13 @@ const CustomerList = ({
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th className={styles.checkboxColumn}>
-                    <input type="checkbox" className={styles.checkbox} disabled />
-                  </th>
                   <th>PETS</th>
                   <th>CUSTOMER NAME</th>
                   <th>CONTACT NUMBER</th>
                   <th>REVENUE</th>
                   <th>BOOKINGS</th>
                   <th>CREATED ON</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,33 +118,18 @@ const CustomerList = ({
           <table className={styles.table}>
             <thead>
               <tr>
-                <th className={styles.checkboxColumn}>
-                  <input
-                    type="checkbox"
-                    className={styles.checkbox}
-                    checked={customers.length > 0 && selectedIds.length === customers.length}
-                    onChange={() => onSelectAll(customers.map(c => c.vendorCustomerId))}
-                  />
-                </th>
                 <th>PETS</th>
                 <th>CUSTOMER NAME</th>
                 <th>CONTACT NUMBER</th>
                 <th>REVENUE</th>
                 <th>BOOKINGS</th>
                 <th>CREATED ON</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {paginatedCustomers.map((c) => (
                 <tr key={c.vendorCustomerId}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      className={styles.checkbox}
-                      checked={selectedIds.includes(c.vendorCustomerId)}
-                      onChange={() => onToggleSelection(c.vendorCustomerId)}
-                    />
-                  </td>
                   <td>
                     {c.pets && c.pets.length > 0 ? (
                       <div className={styles.petContainer}>
@@ -164,6 +162,30 @@ const CustomerList = ({
                   </td>
                   <td>0</td>
                   <td>{formatDate(c.createdAt)}</td>
+                  <td className={styles.actionCell}>
+                    <button
+                      className={styles.threeDotsBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuId(activeMenuId === c.vendorCustomerId ? null : c.vendorCustomerId);
+                      }}
+                    >
+                      <IconThreeDots />
+                    </button>
+                    {activeMenuId === c.vendorCustomerId && (
+                      <div className={styles.dropdownMenu}>
+                        <div className={styles.dropdownItem} onClick={() => { onView(c.vendorCustomerId); setActiveMenuId(null); }}>
+                          <IconEye /> View
+                        </div>
+                        <div className={styles.dropdownItem} onClick={() => { onEdit(c.vendorCustomerId); setActiveMenuId(null); }}>
+                          <IconEdit /> Edit
+                        </div>
+                        <div className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`} onClick={() => { onDelete(c.vendorCustomerId); setActiveMenuId(null); }}>
+                          <IconTrash /> Delete
+                        </div>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -186,27 +208,6 @@ const CustomerList = ({
           </div>
 
           <div className={styles.paginationCenter}>
-            {selectedIds.length > 0 && (
-              <div className={styles.bulkActionsInline}>
-                <span
-                  className={`${styles.bulkCount} ${styles.bulkCountBtn}`}
-                  onClick={() => onSelectAll([])}
-                  title="Unselect All"
-                >
-                  ✕ {selectedIds.length} Items Selected
-                </span>
-                <div className={styles.bulkDivider} />
-                <div className={styles.actionItem} onClick={() => onView(selectedIds[0])}>
-                  <IconEye /> View
-                </div>
-                <div className={styles.actionItem} onClick={() => onEdit(selectedIds[0])}>
-                  <IconEdit /> Edit
-                </div>
-                <div className={styles.actionItem} onClick={onBulkDelete}>
-                  <IconTrash /> Delete
-                </div>
-              </div>
-            )}
           </div>
 
           <div className={styles.paginationRight}>

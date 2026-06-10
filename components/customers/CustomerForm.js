@@ -7,6 +7,16 @@ import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import { FiChevronDown, FiX } from "react-icons/fi";
 
+const parseAgeStr = (ageStr) => {
+    if (!ageStr) return { y: "", m: "" };
+    const yMatch = ageStr.match(/(\d+)\s*years?/i);
+    const mMatch = ageStr.match(/(\d+)\s*months?/i);
+    return {
+        y: yMatch ? yMatch[1] : "",
+        m: mMatch ? mMatch[1] : ""
+    };
+};
+
 const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
     const { jwtToken, userInfo } = useStore();
     const { branches } = useDashboardData();
@@ -48,7 +58,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 try {
                     const res = await customerService.getCustomerById(jwtToken, initialData.vendorCustomerId);
                     const fullData = res?.data || res?.customer || res || initialData;
-                    
+
                     setFirstName(fullData.firstName || "");
                     setLastName(fullData.lastName || "");
                     setPhone(fullData.phoneNumber || fullData.phone || "");
@@ -56,19 +66,20 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     setVeterinarianName(fullData.veterinarianName || "");
                     setVeterinarianNumber(fullData.veterinarianNumber || "");
                     setAlternatePhoneNumber(fullData.alternatePhoneNumber || "");
-                    setSource(fullData.Source?.source || fullData.Source || "");
+                    const src = fullData.Source;
+                    setSource(typeof src === 'object' && src !== null ? (src.source || src.type || JSON.stringify(src)) : (src || ""));
                     setIdProof(fullData.uploadIDProof || "");
                     setSelectedBranchIds(
-                        Array.isArray(fullData.branchIds) ? fullData.branchIds.map(Number) : 
-                        (typeof fullData.branchIds === 'string' ? fullData.branchIds.split(',').map(Number) : 
-                        (fullData.branchIds ? [Number(fullData.branchIds)] : []))
+                        Array.isArray(fullData.branchIds) ? fullData.branchIds.map(Number) :
+                            (typeof fullData.branchIds === 'string' ? fullData.branchIds.split(',').map(Number) :
+                                (fullData.branchIds ? [Number(fullData.branchIds)] : []))
                     );
-        
+
                     setServiceableAddress(fullData.serviceableAddress || "");
                     setLocationLink(fullData.locationLink || "");
                     setEmergencyContactName(fullData.emergencyContactName || "");
                     setEmergencyMobileNumber(fullData.emergencyMobileNumber || "");
-        
+
                     if (fullData.pets && Array.isArray(fullData.pets)) {
                         setPets(fullData.pets.map(p => ({
                             id: p.petId || p._id || p.id || Date.now() + Math.random(),
@@ -78,8 +89,8 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             petBreed: p.breed || "",
                             petGender: p.gender || "",
                             ageType: p.dateOfBirth ? "exact" : "approx",
-                            years: p.approximateAge ? p.approximateAge.split(' ')[0] : "",
-                            months: "",
+                            years: parseAgeStr(p.approximateAge).y,
+                            months: parseAgeStr(p.approximateAge).m,
                             dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : "",
                             isNeutered: p.isSpayedOrNeutered === true,
                             isUnknown: p.isSpayedOrNeutered === null,
@@ -107,19 +118,20 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 setVeterinarianName(initialData.veterinarianName || "");
                 setVeterinarianNumber(initialData.veterinarianNumber || "");
                 setAlternatePhoneNumber(initialData.alternatePhoneNumber || "");
-                setSource(initialData.Source?.source || initialData.Source || "");
+                const srcInitial = initialData.Source;
+                setSource(typeof srcInitial === 'object' && srcInitial !== null ? (srcInitial.source || srcInitial.type || JSON.stringify(srcInitial)) : (srcInitial || ""));
                 setIdProof(initialData.uploadIDProof || "");
                 setSelectedBranchIds(
-                    Array.isArray(initialData.branchIds) ? initialData.branchIds.map(Number) : 
-                    (typeof initialData.branchIds === 'string' ? initialData.branchIds.split(',').map(Number) : 
-                    (initialData.branchIds ? [Number(initialData.branchIds)] : []))
+                    Array.isArray(initialData.branchIds) ? initialData.branchIds.map(Number) :
+                        (typeof initialData.branchIds === 'string' ? initialData.branchIds.split(',').map(Number) :
+                            (initialData.branchIds ? [Number(initialData.branchIds)] : []))
                 );
-    
+
                 setServiceableAddress(initialData.serviceableAddress || "");
                 setLocationLink(initialData.locationLink || "");
                 setEmergencyContactName(initialData.emergencyContactName || "");
                 setEmergencyMobileNumber(initialData.emergencyMobileNumber || "");
-    
+
                 if (initialData.pets && Array.isArray(initialData.pets)) {
                     setPets(initialData.pets.map(p => ({
                         id: p.petId || p._id || p.id || Date.now() + Math.random(),
@@ -129,8 +141,8 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         petBreed: p.breed || "",
                         petGender: p.gender || "",
                         ageType: p.dateOfBirth ? "exact" : "approx",
-                        years: p.approximateAge ? p.approximateAge.split(' ')[0] : "",
-                        months: "",
+                        years: parseAgeStr(p.approximateAge).y,
+                        months: parseAgeStr(p.approximateAge).m,
                         dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : "",
                         isNeutered: p.isSpayedOrNeutered === true,
                         isUnknown: p.isSpayedOrNeutered === null,
@@ -281,7 +293,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             let res;
             const uploadImagesSequentially = async (customerRefId, resData) => {
                 const responsePets = resData?.pets || resData?.data?.pets || resData?.customer?.pets || [];
-                
+
                 if (idProof instanceof File) {
                     const idFormData = new FormData();
                     idFormData.append('uploadIDProof', idProof);
@@ -292,16 +304,16 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     if (pets[i].petPhoto instanceof File) {
                         const petFormData = new FormData();
                         petFormData.append('photo', pets[i].petPhoto);
-                        
+
                         let petId = responsePets[i]?.petId || responsePets[i]?._id || responsePets[i]?.id;
                         if (!petId && customerId) {
                             if (typeof pets[i].id === 'number' && pets[i].id > 1000000000000) {
                                 // Skip if local temporary ID and backend didn't return a real one
                             } else {
-                                petId = pets[i].id; 
+                                petId = pets[i].id;
                             }
                         }
-                        
+
                         if (petId) {
                             petFormData.append('petId', petId);
                             await customerService.updateCustomer(jwtToken, customerRefId, petFormData);
@@ -340,75 +352,75 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
 
     return (
         <div className={styles.formLayout}>
-            
+
             {/* Left side: scrollable form */}
             <div className={styles.leftPanel}>
                 {/* Customer Details */}
                 <div className={styles.sectionHeader}>
                     <h3 className={styles.sectionTitle}>Customer Details</h3>
                 </div>
-            <div className={styles.sectionContainer}>
-                <div className={styles.grid2}>
-                    <div>
-                        <label className={styles.labelStyle}>First name <span className={styles.asterisk}>*</span></label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter first name" value={firstName} onChange={e => { setFirstName(e.target.value); setErrors({ ...errors, firstName: null }) }} />
-                        {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Last Name</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter last name" value={lastName} onChange={e => setLastName(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Phone Number <span className={styles.asterisk}>*</span></label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Phone Number" maxLength={10} value={phone} onChange={e => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            setPhone(val);
-                            setErrors({ ...errors, phone: null });
-                        }} />
-                        {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Email (Optional)</label>
-                        <input type="email" className={styles.inputStyle} placeholder="Enter mail id" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Veterinarian Name (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Name" value={veterinarianName} onChange={e => setVeterinarianName(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Veterinarian Number (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Number" value={veterinarianNumber} onChange={e => setVeterinarianNumber(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Alternate Phone Number (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Alternate Phone Number" maxLength={10} value={alternatePhoneNumber} onChange={e => setAlternatePhoneNumber(e.target.value.replace(/\D/g, ''))} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Branch <span className={styles.asterisk}>*</span></label>
-                        <MultiSelectDropdown
-                            listItems={branchesList}
-                            selectedIds={selectedBranchIds}
-                            setSelectedIds={(ids) => {
-                                setSelectedBranchIds(ids.map(Number));
-                                setErrors({ ...errors, branch: null });
-                            }}
-                            placeholder="Select Branch"
-                            customStyles={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 16px', borderRadius: '8px' }}
-                        />
-                        {errors.branch && <span className={styles.errorText}>{errors.branch}</span>}
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Source (Optional)</label>
-                        <div className={styles.relative}>
-                            <select className={styles.inputStyleSelect} value={source} onChange={e => setSource(e.target.value)}>
-                                <option value="">Select here</option>
-                                <option value="Walk-in">Walk-in</option>
-                                <option value="Referral">Referral</option>
-                                <option value="Instagram">Instagram</option>
-                            </select>
-                            <FiChevronDown className={styles.selectChevron} />
+                <div className={styles.sectionContainer}>
+                    <div className={styles.grid2}>
+                        <div>
+                            <label className={styles.labelStyle}>First name <span className={styles.asterisk}>*</span></label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter first name" value={firstName} onChange={e => { setFirstName(e.target.value); setErrors({ ...errors, firstName: null }) }} />
+                            {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
                         </div>
-                    </div>
+                        <div>
+                            <label className={styles.labelStyle}>Last Name</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter last name" value={lastName} onChange={e => setLastName(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Phone Number <span className={styles.asterisk}>*</span></label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Phone Number" maxLength={10} value={phone} onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                setPhone(val);
+                                setErrors({ ...errors, phone: null });
+                            }} />
+                            {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Email (Optional)</label>
+                            <input type="email" className={styles.inputStyle} placeholder="Enter mail id" value={email} onChange={e => setEmail(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Veterinarian Name (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Name" value={veterinarianName} onChange={e => setVeterinarianName(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Veterinarian Number (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Number" value={veterinarianNumber} onChange={e => setVeterinarianNumber(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Alternate Phone Number (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Alternate Phone Number" maxLength={10} value={alternatePhoneNumber} onChange={e => setAlternatePhoneNumber(e.target.value.replace(/\D/g, ''))} />
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Branch <span className={styles.asterisk}>*</span></label>
+                            <MultiSelectDropdown
+                                listItems={branchesList}
+                                selectedIds={selectedBranchIds}
+                                setSelectedIds={(ids) => {
+                                    setSelectedBranchIds(ids.map(Number));
+                                    setErrors({ ...errors, branch: null });
+                                }}
+                                placeholder="Select Branch"
+                                customStyles={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 16px', borderRadius: '8px' }}
+                            />
+                            {errors.branch && <span className={styles.errorText}>{errors.branch}</span>}
+                        </div>
+                        <div>
+                            <label className={styles.labelStyle}>Source (Optional)</label>
+                            <div className={styles.relative}>
+                                <select className={styles.inputStyleSelect} value={source} onChange={e => setSource(e.target.value)}>
+                                    <option value="">Select here</option>
+                                    <option value="Walk-in">Walk-in</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Instagram">Instagram</option>
+                                </select>
+                                <FiChevronDown className={styles.selectChevron} />
+                            </div>
+                        </div>
                     <div>
                         <label className={styles.labelStyle}>ID Proof (optional)</label>
                         <div className={styles.fileInputContainer}>
@@ -428,249 +440,249 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             )}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Address Details */}
-            <div className={styles.sectionTitleMargin}>
-                <h3 className={styles.sectionTitle}>Address Details <span className={styles.optionalText}>(Optional)</span></h3>
-            </div>
-            <div className={styles.sectionContainer}>
-                <div className={styles.flexCol}>
-                    <div>
-                        <label className={styles.labelStyle}>Serviceable Address (Optional)</label>
-                        <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Location Link (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
                     </div>
                 </div>
-            </div>
 
-            {/* Emergency Contact */}
-            <div className={styles.sectionTitleMargin}>
-                <h3 className={styles.sectionTitle}>Emergency Contact Details <span className={styles.optionalText}>(Optional)</span></h3>
-            </div>
-            <div className={styles.sectionContainer}>
-                <div className={styles.grid2}>
-                    <div>
-                        <label className={styles.labelStyle}>Emergency Contact Name (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Emergency Contact Name" value={emergencyContactName} onChange={e => setEmergencyContactName(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className={styles.labelStyle}>Mobile Number (Optional)</label>
-                        <input type="text" className={styles.inputStyle} placeholder="Enter Mobile Number" maxLength={10} value={emergencyMobileNumber} onChange={e => setEmergencyMobileNumber(e.target.value.replace(/\D/g, ''))} />
-                    </div>
+                {/* Address Details */}
+                <div className={styles.sectionTitleMargin}>
+                    <h3 className={styles.sectionTitle}>Address Details <span className={styles.optionalText}>(Optional)</span></h3>
                 </div>
-            </div>
-
-            {/* Pet Details */}
-            <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>Pet Details</h3>
-                <button onClick={handleAddPet} className={styles.addPetBtn}>+ Add Pet</button>
-            </div>
-
-            {pets.map((pet, index) => (
-                <div key={pet.id} className={styles.petContainer}>
-                    {pets.length > 1 && (
-                        <button onClick={() => removePet(pet.id)} className={styles.removePetBtn}><FiX size={20} /></button>
-                    )}
-
-                    <h4 className={styles.petSubtitle}>Pet Profile Photo</h4>
-                    <div className={styles.petPhotoSection}>
-                        <div className={styles.petPhotoCircle}>
-                            {pet.petPhoto && (typeof pet.petPhoto === 'object' ? (
-                                <img src={URL.createObjectURL(pet.petPhoto)} alt="Pet" className={styles.petPhotoImg} />
-                            ) : (
-                                <img src={pet.petPhoto} alt="Pet" className={styles.petPhotoImg} />
-                            ))}
+                <div className={styles.sectionContainer}>
+                    <div className={styles.flexCol}>
+                        <div>
+                            <label className={styles.labelStyle}>Serviceable Address (Optional)</label>
+                            <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
                         </div>
                         <div>
-                            <div className={styles.photoInstructionTitle}>Upload Pet Photo <span className={styles.optionalText}>(Optional)</span></div>
-                            <div className={styles.photoInstructionSub}>File size not more than 2 MB</div>
-                            {pet.petPhoto && typeof pet.petPhoto === 'object' && (
-                                <div className={styles.photoFileName}>{pet.petPhoto.name}</div>
-                            )}
-                        </div>
-                        <div className={styles.photoActions}>
-                            <label className={styles.uploadPhotoBtn}>
-                                {pet.petPhoto ? "Change Picture" : "Upload Picture"}
-                                <input type="file" className={styles.hidden} accept="image/*" onChange={(e) => {
-                                    if (e.target.files && e.target.files[0]) {
-                                        updatePet(pet.id, 'petPhoto', e.target.files[0]);
-                                    }
-                                }} />
-                            </label>
-                            {pet.petPhoto && (
-                                <button type="button" onClick={() => updatePet(pet.id, 'petPhoto', "")} className={styles.removePhotoBtn}>Remove</button>
-                            )}
+                            <label className={styles.labelStyle}>Location Link (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
                         </div>
                     </div>
+                </div>
 
+                {/* Emergency Contact */}
+                <div className={styles.sectionTitleMargin}>
+                    <h3 className={styles.sectionTitle}>Emergency Contact Details <span className={styles.optionalText}>(Optional)</span></h3>
+                </div>
+                <div className={styles.sectionContainer}>
                     <div className={styles.grid2}>
                         <div>
-                            <label className={styles.labelStyle}>Pet Type</label>
-                            <div className={styles.flexRow}>
-                                <label className={styles.radioLabel}>
-                                    <input type="radio" checked={pet.petType === 'Dog'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Dog')} /> Dog
-                                </label>
-                                <label className={styles.radioLabel}>
-                                    <input type="radio" checked={pet.petType === 'Cat'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Cat')} /> Cat
-                                </label>
-                            </div>
-                        </div>
-                        <div className={`${styles.grid2} ${styles.gridFull}`}>
-                            <div>
-                                <label className={styles.labelStyle}>Pet name</label>
-                                <input type="text" className={styles.inputStyle} placeholder="Enter Pet name" value={pet.petName} onChange={e => updatePet(pet.id, 'petName', e.target.value)} />
-                            </div>
-                            <div>
-                                <label className={styles.labelStyle}>Pet Breed</label>
-                                <div className={styles.relative}>
-                                    <select className={styles.inputStyleSelect} value={pet.petBreed} onChange={e => updatePet(pet.id, 'petBreed', e.target.value)}>
-                                        <option value="">Select here</option>
-                                        <option value="Golden Retriever">Golden Retriever</option>
-                                        <option value="German Shepherd">German Shepherd</option>
-                                        <option value="Siamese">Siamese</option>
-                                    </select>
-                                    <FiChevronDown className={styles.selectChevron} />
-                                </div>
-                            </div>
+                            <label className={styles.labelStyle}>Emergency Contact Name (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Emergency Contact Name" value={emergencyContactName} onChange={e => setEmergencyContactName(e.target.value)} />
                         </div>
                         <div>
-                            <label className={styles.labelStyle}>Pet Gender</label>
-                            <div className={styles.relative}>
-                                <select className={styles.inputStyleSelect} value={pet.petGender} onChange={e => updatePet(pet.id, 'petGender', e.target.value)}>
-                                    <option value="">Select here</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                </select>
-                                <FiChevronDown className={styles.selectChevron} />
+                            <label className={styles.labelStyle}>Mobile Number (Optional)</label>
+                            <input type="text" className={styles.inputStyle} placeholder="Enter Mobile Number" maxLength={10} value={emergencyMobileNumber} onChange={e => setEmergencyMobileNumber(e.target.value.replace(/\D/g, ''))} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Pet Details */}
+                <div className={styles.sectionHeader}>
+                    <h3 className={styles.sectionTitle}>Pet Details</h3>
+                    <button onClick={handleAddPet} className={styles.addPetBtn}>+ Add Pet</button>
+                </div>
+
+                {pets.map((pet, index) => (
+                    <div key={pet.id} className={styles.petContainer}>
+                        {pets.length > 1 && (
+                            <button onClick={() => removePet(pet.id)} className={styles.removePetBtn}><FiX size={20} /></button>
+                        )}
+
+                        <h4 className={styles.petSubtitle}>Pet Profile Photo</h4>
+                        <div className={styles.petPhotoSection}>
+                            <div className={styles.petPhotoCircle}>
+                                {pet.petPhoto && (typeof pet.petPhoto === 'object' ? (
+                                    <img src={URL.createObjectURL(pet.petPhoto)} alt="Pet" className={styles.petPhotoImg} />
+                                ) : (
+                                    <img src={pet.petPhoto} alt="Pet" className={styles.petPhotoImg} />
+                                ))}
                             </div>
-                        </div>
-                    </div>
-
-                    <div className={styles.sectionTitleMargin}>
-                        <label className={styles.labelStyle}>Pet Age</label>
-                        <div className={styles.petAgeSection}>
-                            <label className={styles.radioLabelSimple}>
-                                <input type="radio" checked={pet.ageType === 'approx'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'approx')} /> Approximate Age
-                            </label>
-                            {pet.ageType === 'approx' && (
-                                <div className={styles.petAgeGrid}>
-                                    <div>
-                                        <label className={styles.labelStyle}>Years</label>
-                                        <input type="number" className={styles.inputStyle} value={pet.years} onChange={e => updatePet(pet.id, 'years', e.target.value)} placeholder="0" />
-                                    </div>
-                                    <div>
-                                        <label className={styles.labelStyle}>Months</label>
-                                        <input type="number" className={styles.inputStyle} value={pet.months} onChange={e => updatePet(pet.id, 'months', e.target.value)} placeholder="0" />
-                                    </div>
-                                </div>
-                            )}
-
-                            <label className={styles.radioLabelSimple}>
-                                <input type="radio" checked={pet.ageType === 'exact'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'exact')} /> Exact Age
-                            </label>
-                            {pet.ageType === 'exact' && (
-                                <div className={styles.petAgeExact}>
-                                    <label className={styles.labelStyle}>Date of Birth</label>
-                                    <input type="date" className={styles.inputStyle} value={pet.dateOfBirth} onChange={e => updatePet(pet.id, 'dateOfBirth', e.target.value)} />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <h4 className={styles.petSubtitle}>Pet Medical Information <span className={styles.optionalText}>(Optional)</span></h4>
-                    <div className={styles.petMedicalSection}>
-                        <div className={styles.flexRow} style={{ marginBottom: '24px' }}>
-                            <label className={styles.radioLabelSimple}>
-                                <input type="radio" checked={pet.isNeutered} className={styles.radioInput} onChange={e => {
-                                    setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: true, isUnknown: false } : p));
-                                }} onClick={e => {
-                                    if (pet.isNeutered) {
-                                        e.preventDefault();
-                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: false } : p));
-                                    }
-                                }} /> Neutered
-                            </label>
-                            <label className={styles.radioLabelSimple}>
-                                <input type="radio" checked={pet.isUnknown} className={styles.radioInput} onChange={e => {
-                                    setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: true, isNeutered: false } : p));
-                                }} onClick={e => {
-                                    if (pet.isUnknown) {
-                                        e.preventDefault();
-                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: false } : p));
-                                    }
-                                }} /> Unknown
-                            </label>
+                            <div>
+                                <div className={styles.photoInstructionTitle}>Upload Pet Photo <span className={styles.optionalText}>(Optional)</span></div>
+                                <div className={styles.photoInstructionSub}>File size not more than 2 MB</div>
+                                {pet.petPhoto && typeof pet.petPhoto === 'object' && (
+                                    <div className={styles.photoFileName}>{pet.petPhoto.name}</div>
+                                )}
+                            </div>
+                            <div className={styles.photoActions}>
+                                <label className={styles.uploadPhotoBtn}>
+                                    {pet.petPhoto ? "Change Picture" : "Upload Picture"}
+                                    <input type="file" className={styles.hidden} accept="image/*" onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            updatePet(pet.id, 'petPhoto', e.target.files[0]);
+                                        }
+                                    }} />
+                                </label>
+                                {pet.petPhoto && (
+                                    <button type="button" onClick={() => updatePet(pet.id, 'petPhoto', "")} className={styles.removePhotoBtn}>Remove</button>
+                                )}
+                            </div>
                         </div>
 
                         <div className={styles.grid2}>
                             <div>
-                                <label className={styles.labelStyle}>Blood Type (Optional)</label>
+                                <label className={styles.labelStyle}>Pet Type</label>
+                                <div className={styles.flexRow}>
+                                    <label className={styles.radioLabel}>
+                                        <input type="radio" checked={pet.petType === 'Dog'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Dog')} /> Dog
+                                    </label>
+                                    <label className={styles.radioLabel}>
+                                        <input type="radio" checked={pet.petType === 'Cat'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Cat')} /> Cat
+                                    </label>
+                                </div>
+                            </div>
+                            <div className={`${styles.grid2} ${styles.gridFull}`}>
+                                <div>
+                                    <label className={styles.labelStyle}>Pet name</label>
+                                    <input type="text" className={styles.inputStyle} placeholder="Enter Pet name" value={pet.petName} onChange={e => updatePet(pet.id, 'petName', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className={styles.labelStyle}>Pet Breed</label>
+                                    <div className={styles.relative}>
+                                        <select className={styles.inputStyleSelect} value={pet.petBreed} onChange={e => updatePet(pet.id, 'petBreed', e.target.value)}>
+                                            <option value="">Select here</option>
+                                            <option value="Golden Retriever">Golden Retriever</option>
+                                            <option value="German Shepherd">German Shepherd</option>
+                                            <option value="Siamese">Siamese</option>
+                                        </select>
+                                        <FiChevronDown className={styles.selectChevron} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label className={styles.labelStyle}>Pet Gender</label>
                                 <div className={styles.relative}>
-                                    <select className={styles.inputStyleSelect} value={pet.bloodType} onChange={e => updatePet(pet.id, 'bloodType', e.target.value)}>
-                                        <option value="">Select Blood Type</option>
-                                        <option value="DEA 1.1">DEA 1.1</option>
-                                        <option value="DEA 1.2">DEA 1.2</option>
+                                    <select className={styles.inputStyleSelect} value={pet.petGender} onChange={e => updatePet(pet.id, 'petGender', e.target.value)}>
+                                        <option value="">Select here</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
                                     </select>
                                     <FiChevronDown className={styles.selectChevron} />
                                 </div>
                             </div>
-                            <div>
-                                <label className={styles.labelStyle}>Weight (Optional)</label>
-                                <div className={styles.relative}>
-                                    <input type="text" className={styles.inputStyle} placeholder="Enter Weight" value={pet.weight} onChange={e => updatePet(pet.id, 'weight', e.target.value)} />
-                                    <span className={styles.weightUnit}>KG <FiChevronDown style={{ verticalAlign: 'middle', marginLeft: '4px' }} /></span>
-                                </div>
-                            </div>
-                            <div>
-                                <label className={styles.labelStyle}>Microchip ID (Optional)</label>
-                                <input type="text" className={styles.inputStyle} placeholder="Enter Microchip ID" maxLength={15} value={pet.microchipNo} onChange={e => {
-                                    updatePet(pet.id, 'microchipNo', e.target.value.replace(/\D/g, ''));
-                                    if (errors[`pet_${index}_microchip`]) {
-                                        setErrors({ ...errors, [`pet_${index}_microchip`]: null });
-                                    }
-                                }} />
-                                {errors[`pet_${index}_microchip`] && <span className={styles.errorText}>{errors[`pet_${index}_microchip`]}</span>}
-                            </div>
-                            <div>
-                                <label className={styles.labelStyle}>Rabies Tag (Optional)</label>
-                                <input type="text" className={styles.inputStyle} placeholder="Enter Rabies Tag" value={pet.rabiesTag} onChange={e => updatePet(pet.id, 'rabiesTag', e.target.value)} />
-                            </div>
-                            <div className={styles.gridFull}>
-                                <label className={styles.labelStyle}>Notes (Optional)</label>
-                                <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Enter here..." value={pet.notes} onChange={e => updatePet(pet.id, 'notes', e.target.value)}></textarea>
+                        </div>
+
+                        <div className={styles.sectionTitleMargin}>
+                            <label className={styles.labelStyle}>Pet Age</label>
+                            <div className={styles.petAgeSection}>
+                                <label className={styles.radioLabelSimple}>
+                                    <input type="radio" checked={pet.ageType === 'approx'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'approx')} /> Approximate Age
+                                </label>
+                                {pet.ageType === 'approx' && (
+                                    <div className={styles.petAgeGrid}>
+                                        <div>
+                                            <label className={styles.labelStyle}>Years</label>
+                                            <input type="number" className={styles.inputStyle} value={pet.years} onChange={e => updatePet(pet.id, 'years', e.target.value)} placeholder="0" />
+                                        </div>
+                                        <div>
+                                            <label className={styles.labelStyle}>Months</label>
+                                            <input type="number" className={styles.inputStyle} value={pet.months} onChange={e => updatePet(pet.id, 'months', e.target.value)} placeholder="0" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <label className={styles.radioLabelSimple}>
+                                    <input type="radio" checked={pet.ageType === 'exact'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'exact')} /> Exact Age
+                                </label>
+                                {pet.ageType === 'exact' && (
+                                    <div className={styles.petAgeExact}>
+                                        <label className={styles.labelStyle}>Date of Birth</label>
+                                        <input type="date" className={styles.inputStyle} value={pet.dateOfBirth} onChange={e => updatePet(pet.id, 'dateOfBirth', e.target.value)} />
+                                    </div>
+                                )}
                             </div>
                         </div>
+
+                        <h4 className={styles.petSubtitle}>Pet Medical Information <span className={styles.optionalText}>(Optional)</span></h4>
+                        <div className={styles.petMedicalSection}>
+                            <div className={styles.flexRow} style={{ marginBottom: '24px' }}>
+                                <label className={styles.radioLabelSimple}>
+                                    <input type="radio" checked={pet.isNeutered} className={styles.radioInput} onChange={e => {
+                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: true, isUnknown: false } : p));
+                                    }} onClick={e => {
+                                        if (pet.isNeutered) {
+                                            e.preventDefault();
+                                            setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: false } : p));
+                                        }
+                                    }} /> Neutered
+                                </label>
+                                <label className={styles.radioLabelSimple}>
+                                    <input type="radio" checked={pet.isUnknown} className={styles.radioInput} onChange={e => {
+                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: true, isNeutered: false } : p));
+                                    }} onClick={e => {
+                                        if (pet.isUnknown) {
+                                            e.preventDefault();
+                                            setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: false } : p));
+                                        }
+                                    }} /> Unknown
+                                </label>
+                            </div>
+
+                            <div className={styles.grid2}>
+                                <div>
+                                    <label className={styles.labelStyle}>Blood Type (Optional)</label>
+                                    <div className={styles.relative}>
+                                        <select className={styles.inputStyleSelect} value={pet.bloodType} onChange={e => updatePet(pet.id, 'bloodType', e.target.value)}>
+                                            <option value="">Select Blood Type</option>
+                                            <option value="DEA 1.1">DEA 1.1</option>
+                                            <option value="DEA 1.2">DEA 1.2</option>
+                                        </select>
+                                        <FiChevronDown className={styles.selectChevron} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={styles.labelStyle}>Weight (Optional)</label>
+                                    <div className={styles.relative}>
+                                        <input type="text" className={styles.inputStyle} placeholder="Enter Weight" value={pet.weight} onChange={e => updatePet(pet.id, 'weight', e.target.value)} />
+                                        <span className={styles.weightUnit}>KG <FiChevronDown style={{ verticalAlign: 'middle', marginLeft: '4px' }} /></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={styles.labelStyle}>Microchip ID (Optional)</label>
+                                    <input type="text" className={styles.inputStyle} placeholder="Enter Microchip ID" maxLength={15} value={pet.microchipNo} onChange={e => {
+                                        updatePet(pet.id, 'microchipNo', e.target.value.replace(/\D/g, ''));
+                                        if (errors[`pet_${index}_microchip`]) {
+                                            setErrors({ ...errors, [`pet_${index}_microchip`]: null });
+                                        }
+                                    }} />
+                                    {errors[`pet_${index}_microchip`] && <span className={styles.errorText}>{errors[`pet_${index}_microchip`]}</span>}
+                                </div>
+                                <div>
+                                    <label className={styles.labelStyle}>Rabies Tag (Optional)</label>
+                                    <input type="text" className={styles.inputStyle} placeholder="Enter Rabies Tag" value={pet.rabiesTag} onChange={e => updatePet(pet.id, 'rabiesTag', e.target.value)} />
+                                </div>
+                                <div className={styles.gridFull}>
+                                    <label className={styles.labelStyle}>Notes (Optional)</label>
+                                    <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Enter here..." value={pet.notes} onChange={e => updatePet(pet.id, 'notes', e.target.value)}></textarea>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
+                ))}
 
+                <div className={styles.footer}>
+                    <button
+                        className={styles.cancelBtn}
+                        onClick={onBack}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className={styles.saveBtn}
+                        onClick={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? "Saving..." : "Save"}
+                    </button>
                 </div>
-            ))}
-
-            <div className={styles.footer}>
-                <button
-                    className={styles.cancelBtn}
-                    onClick={onBack}
-                >
-                    Cancel
-                </button>
-                <button
-                    className={styles.saveBtn}
-                    onClick={handleSave}
-                    disabled={loading}
-                >
-                    {loading ? "Saving..." : "Save"}
-                </button>
-            </div>
             </div>
 
             {/* Right side: sticky summary */}
             <div className={styles.rightPanel}>
                 <h3 className={styles.summaryTitle}>Summary</h3>
-                
+
                 <h4 className={styles.summarySectionTitle}>Customer Details</h4>
                 <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Source</span>

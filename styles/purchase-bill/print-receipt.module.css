@@ -10,11 +10,11 @@
     min-height: 297mm;
     margin: 40px auto;
     padding: 20mm;
-    background: #fff;
-    color: #333;
+    background: var(--color-white);
+    color: var(--color-text-body);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--color-border-gray);
     border-radius: 8px;
 }
 
@@ -146,7 +146,7 @@
     body {
         margin: 0;
         padding: 0;
-        background: #fff;
+        background: var(--color-white);
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }

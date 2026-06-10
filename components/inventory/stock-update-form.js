@@ -211,10 +211,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     variantId: parseInt(data.variantId || data.variant?.variantId),
                     sourceStatus: isOS ? "Open Stock" : (isHold ? "Hold Qty" : ""),
                     batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
-                    currentQty: data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : (data.stock !== undefined && data.stock !== null ? data.stock : currentQtyVal),
+                    currentQty: isOS ? ((data.openQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (isHold ? ((data.holdQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal)),
                     add: data.add || 0,
                     remove: data.remove || 0,
-                    updatedQty: data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : (isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : updatedQtyVal)),
+                    updatedQty: isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal)),
                     reason: data.reason,
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,
@@ -557,6 +557,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
         setSubmitting(true);
         try {
+            const runningQuantities = {};
+
             for (const row of rows) {
                 const createdDateFields = updateDate
                     ? dateOnlyWithTimeZone(
@@ -566,11 +568,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     : {};
 
                 const product = products.find(p => p.productId === row.productId);
-                const variant = product?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                const variantId = parseInt(row.variantId);
+                const variant = product?.variants?.find(v => v.variantId === variantId);
                 const stockData = variant?.stockUpdates || {};
 
-                const baseOpenStock = stockData.openStockQuantity || 0;
-                const baseHoldQty = stockData.onHoldQuantity || 0;
+                if (!runningQuantities[variantId]) {
+                    runningQuantities[variantId] = {
+                        openStock: stockData.openStockQuantity || 0,
+                        holdQty: stockData.onHoldQuantity || 0
+                    };
+                }
+
+                const baseOpenStock = runningQuantities[variantId].openStock;
+                const baseHoldQty = runningQuantities[variantId].holdQty;
 
                 let finalOpenQty = baseOpenStock;
                 let finalHoldQty = baseHoldQty;
@@ -583,11 +593,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     if (row.reason === "OnHold") {
                         finalHoldQty = baseHoldQty + remove;
                     }
+                    runningQuantities[variantId].openStock = finalOpenQty;
+                    runningQuantities[variantId].holdQty = finalHoldQty;
                 } else if (row.sourceStatus === "Hold Qty") {
                     finalHoldQty = baseHoldQty + add - remove;
                     if (row.reason === "Open Stock") {
                         finalOpenQty = baseOpenStock + remove;
                     }
+                    runningQuantities[variantId].openStock = finalOpenQty;
+                    runningQuantities[variantId].holdQty = finalHoldQty;
                 }
 
                 const payload = {
@@ -609,7 +623,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     openQty: finalOpenQty,
                     holdQty: finalHoldQty,
                     stock: parseInt(row.currentQty),
-                    updatedQty: parseInt(row.updatedQty)
+                    updatedQty: row.sourceStatus === "Open Stock" ? finalOpenQty : (row.sourceStatus === "Hold Qty" ? finalHoldQty : parseInt(row.updatedQty))
                 };
                 if (row.reason === "Expired") {
                     payload.expDate = row.expiryDate;

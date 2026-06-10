@@ -1,6 +1,6 @@
 .container {
     padding: 40px;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 0;
     box-shadow: none;
     width: 100%;
@@ -11,8 +11,8 @@
 }
 
 .headerCard {
-    background: #fff;
-    border: 1px solid #f0f0f0;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-lighter);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 30px;
@@ -32,12 +32,12 @@
 }
 
 .orderNumber span {
-    color: #E9315D;
+    color: var(--color-primary);
 }
 
 .orderDate {
     font-size: 14px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .orderStatusText {
@@ -52,7 +52,7 @@
 }
 
 .statusDefault {
-    color: #000;
+    color: var(--color-black);
 }
 
 .statusInfo {
@@ -72,7 +72,7 @@
 
 .label {
     font-size: 15px;
-    color: #999;
+    color: var(--color-text-lighter);
     font-weight: 400;
 }
 
@@ -129,7 +129,7 @@
     gap: 100px;
     margin-top: 24px;
     padding-top: 24px;
-    border-top: 1px solid #f8f9fa;
+    border-top: 1px solid var(--color-bg-subtle);
 }
 
 .addressGroup {
@@ -138,7 +138,7 @@
 
 .addressLabel {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-light);
     margin-bottom: 12px;
     display: block;
 }
@@ -146,14 +146,14 @@
 .addressName {
     font-weight: 700;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     margin-bottom: 8px;
     display: block;
 }
 
 .addressText {
     font-size: 13px;
-    color: #666;
+    color: var(--color-text-muted);
     line-height: 1.6;
 }
 
@@ -170,16 +170,16 @@
 }
 
 .table th {
-    background: #f9fafb;
+    background: var(--color-bg-light);
     padding: 14px 12px;
     text-align: left;
     font-size: 11px;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--color-text-gray-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .table th:last-child {
@@ -189,7 +189,7 @@
 .table td {
     padding: 14px 12px;
     font-size: 13px;
-    color: #333;
+    color: var(--color-text-body);
     border-right: 1px solid #f3f4f6;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: top;
@@ -199,7 +199,7 @@
     border-right: none;
 }
 
-.sno { color: #000; font-weight: 600; }
+.sno { color: var(--color-black); font-weight: 600; }
 
 .productCell {
     display: flex;
@@ -209,12 +209,12 @@
 
 .productName {
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .productSubtext {
     font-size: 11px;
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .qtyCell {
@@ -225,7 +225,7 @@
 
 .orderedQtySub {
     font-size: 11px;
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .costCell {
@@ -241,8 +241,8 @@
 
 .breakdownWrapper {
     width: 320px;
-    background: #fff;
-    border: 1px solid #f0f0f0;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-lighter);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
@@ -254,7 +254,7 @@
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    background: #fff;
+    background: var(--color-white);
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     outline: none;
@@ -265,12 +265,12 @@
 .breakdownTitle {
     font-size: 13px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .breakdownIcon {
     font-size: 16px;
-    color: #888;
+    color: var(--color-text-light);
     transition: transform 0.3s ease;
 }
 
@@ -304,17 +304,17 @@
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .breakdownRow span:last-child {
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .breakdownDivider {
     height: 1px;
-    background: #f0f0f0;
+    background: var(--color-border-lighter);
     margin: 4px 0;
 }
 
@@ -324,20 +324,20 @@
     align-items: center;
     margin-top: 8px;
     padding-top: 12px;
-    border-top: 2px solid #000;
+    border-top: 2px solid var(--color-black);
 }
 
 .breakdownRowTotal span:first-child {
     font-size: 14px;
     font-weight: 800;
-    color: #000;
+    color: var(--color-black);
     letter-spacing: 1px;
 }
 
 .breakdownRowTotal span:last-child {
     font-size: 18px;
     font-weight: 800;
-    color: #000;
+    color: var(--color-black);
 }
 
 .footer {
@@ -346,7 +346,7 @@
     justify-content: flex-end;
     gap: 16px;
     padding-top: 24px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--color-border-lighter);
 }
 
 .totalSection {
@@ -364,13 +364,13 @@
 .totalValue {
     font-size: 20px;
     font-weight: 800;
-    color: #000;
+    color: var(--color-black);
 }
 
 .printBtn {
     padding: 12px 40px;
-    border: 1px solid #ccc;
-    background: #fff;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-white);
     border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
@@ -378,30 +378,30 @@
 
 .markPaidBtn {
     padding: 12px 40px;
-    background: #000;
-    color: #fff;
+    background: var(--color-black);
+    color: var(--color-white);
     border: none;
     border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
 }
 .tableFooter {
-    background: #f9fafb;
+    background: var(--color-bg-light);
 }
 
 .totalLabelCell {
     text-align: left !important;
     font-weight: 700;
-    color: #374151;
+    color: var(--color-text-darkest);
     padding: 16px 20px !important;
     font-size: 14px;
-    border-top: 2px solid #e5e7eb;
+    border-top: 2px solid var(--color-border);
 }
 
 .totalValueCell {
     text-align: right !important;
     padding: 16px 20px !important;
-    border-top: 2px solid #e5e7eb;
+    border-top: 2px solid var(--color-border);
 }
 
 .totalValueWrapper {
@@ -411,7 +411,7 @@
     gap: 4px;
     font-size: 16px;
     font-weight: 800;
-    color: #000;
+    color: var(--color-black);
 }
 
 @media print {

@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #fff;
+    background: var(--color-white);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -13,7 +13,7 @@
 
 .modal {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #fff;
+    background: var(--color-white);
     width: 100%;
     height: 100%;
     display: flex;
@@ -25,11 +25,11 @@
 
 .modalHeader {
     padding: 20px 24px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-border-lighter);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fff;
+    background: var(--color-white);
 }
 
 .modalHeader h3 {
@@ -44,7 +44,7 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .modalContent {
@@ -72,7 +72,7 @@
 .field label {
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
     margin-bottom: 2px;
 }
 
@@ -83,7 +83,7 @@
     border-radius: 8px;
     background: #fcfcfc;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     outline: none;
     transition: all 0.2s;
     height: 45px;
@@ -103,8 +103,8 @@
 }
 
 .input:focus, .select:focus {
-    border-color: #eee;
-    background-color: #fff;
+    border-color: var(--color-border-light);
+    background-color: var(--color-white);
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
@@ -117,7 +117,7 @@
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #999;
+    color: var(--color-text-lighter);
     pointer-events: none;
     font-size: 14px;
 }
@@ -138,7 +138,7 @@
     text-align: left;
     font-size: 11px;
     font-weight: 700;
-    color: #555;
+    color: var(--color-text-gray);
     text-transform: uppercase;
     border: 1px solid #e0e0e0;
 }
@@ -147,7 +147,7 @@
     padding:5px 16px;
     border: 1px solid #e0e0e0;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     vertical-align: middle;
 }
 
@@ -167,7 +167,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 10px;
-    color: #999;
+    color: var(--color-text-lighter);
     margin-top: 4px;
 }
 
@@ -188,7 +188,7 @@
     display: flex;
     width: 100%;
     justify-content: space-around;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid var(--color-border-dark);
     padding-top: 4px;
     margin-top: 4px;
 }
@@ -206,18 +206,18 @@
 .footer {
     padding: 24px 0 0 0;
     margin-top: 24px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid var(--color-border-lighter);
     display: flex;
     justify-content: flex-end;
     gap: 16px;
-    background: #fff;
+    background: var(--color-white);
 }
 
 .shareBtn {
     padding: 10px 32px;
-    border: 1.5px solid #333;
-    background: #fff;
-    color: #333;
+    border: 1.5px solid var(--color-text-body);
+    background: var(--color-white);
+    color: var(--color-text-body);
     border-radius: 6px;
     font-weight: 600;
     font-size: 14px;
@@ -226,8 +226,8 @@
 
 .saveBtn {
     padding: 10px 48px;
-    background: #000;
-    color: #fff;
+    background: var(--color-black);
+    color: var(--color-white);
     border: none;
     border-radius: 6px;
     font-weight: 600;
@@ -237,7 +237,7 @@
 
 .totalRow {
     font-weight: 700;
-    background: #fff !important;
+    background: var(--color-white) !important;
 }
 
 .totalLabel {
@@ -257,7 +257,7 @@
     align-items: center;
     cursor: pointer;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .dropdownOverlay {
@@ -265,12 +265,12 @@
     top: 100%;
     left: 0;
     width: 500px;
-    background: #fff;
+    background: var(--color-white);
     box-shadow: 0 10px 40px rgba(0,0,0,0.1);
     z-index: 100;
     border-radius: 8px;
     padding: 12px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
 }
 
 .dropdownTable {
@@ -280,7 +280,7 @@
 
 .dropdownTable th {
     font-size: 10px;
-    color: #999;
+    color: var(--color-text-lighter);
     text-align: left;
     padding: 8px;
     border: none;
@@ -294,7 +294,7 @@
 }
 
 .dropdownTable tr:hover {
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
 }
 
 /* PDF View Mode Overrides */

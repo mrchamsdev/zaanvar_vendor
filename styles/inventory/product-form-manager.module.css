@@ -13,18 +13,18 @@
 }
 
 .managerActive {
-  background: #f8f9fa;
+  background: var(--color-bg-subtle);
   pointer-events: auto;
 }
 
 .tabBar {
   /* width: max-content; */
-  background: #fff;
+  background: var(--color-white);
   padding: 10px 20px 0 20px;
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  border-bottom: 2px solid #f1f1f1;
+  border-bottom: 2px solid var(--color-bg-gray);
   flex-shrink: 0;
   pointer-events: auto;
   overflow-x: auto;
@@ -40,15 +40,15 @@
 
 .tab {
   padding: 10px 20px;
-  background: #f8f9fa;
+  background: var(--color-bg-subtle);
   border-radius: 12px 12px 0 0;
   font-size: 14px;
-  color: #888;
+  color: var(--color-text-light);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   border-bottom: none;
   transition: all 0.2s;
   min-width: 150px;
@@ -57,10 +57,10 @@
 }
 
 .tabActive {
-  background: #fff;
-  color: #E9315D;
+  background: var(--color-white);
+  color: var(--color-primary);
   font-weight: 600;
-  border-top: 3px solid #E9315D;
+  border-top: 3px solid var(--color-primary);
 }
 
 .tabIcon {
@@ -113,7 +113,7 @@
   padding: 10px 15px;
   margin-bottom: 5px;
   border: none;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
@@ -124,7 +124,7 @@
   display: flex;
   gap: 15px;
   padding-bottom: 10px;
-  background: #fff;
+  background: var(--color-white);
   padding-left: 15px;
   padding-top: 15px;
   z-index: 10;
@@ -140,12 +140,12 @@
 }
 
 .managerHeader {
-  background: #fff;
+  background: var(--color-white);
   padding: 14px 24px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-body);
   pointer-events: auto;
 }
 
@@ -153,7 +153,7 @@
   flex: 1;
   display: flex;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-white);
   pointer-events: auto;
 }
 
@@ -176,7 +176,7 @@
   margin-bottom: 12px;
   font-size: 12px;
   font-weight: 700;
-  color: #E9315D;
+  color: var(--color-primary);
   text-transform: uppercase;
 }
 
@@ -204,7 +204,7 @@
 }
 
 .minimizedItem {
-  background: #fff;
+  background: var(--color-white);
   padding: 5px 10px;
   border-radius: 10px 10px 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
@@ -214,7 +214,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   border-bottom: none;
   min-width: 180px;
   justify-content: space-between;
@@ -246,15 +246,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--color-text-muted);
   border-radius: 6px;
   transition: all 0.2s;
   pointer-events: auto;
 }
 
 .minimizedActionBtn:hover {
-  background: #f0f0f0;
-  color: #000;
+  background: var(--color-border-lighter);
+  color: var(--color-black);
 }
 
 .minimizedActionBtn[title="Close"]:hover {
@@ -268,8 +268,8 @@
   left: 0;
   right: 0;
   width: 100vw;
-  background: #fff;
-  border-top: 1px solid #eee;
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border-light);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
   height: 60px;
   display: flex;
@@ -292,9 +292,9 @@
 .minimizedMode .minimizedItem {
   pointer-events: auto;
   box-shadow: none;
-  border: 1px solid #eee !important;
+  border: 1px solid var(--color-border-light) !important;
   border-radius: 8px !important;
-  background: #f8f9fa !important;
+  background: var(--color-bg-subtle) !important;
   min-width: 200px !important;
   flex-shrink: 0;
   transform: none !important;
@@ -324,12 +324,12 @@
 }
 
 .managerHeaderStatic {
-  background: #F9FAFB;
+  background: var(--color-bg-light);
   padding: 16px 48px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 15px;
   font-weight: 500;
-  color: #111;
+  color: var(--color-text-main);
 }
 
 .emptySelect {
@@ -337,7 +337,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #888;
+  color: var(--color-text-light);
 }
 
 .paddingBottom60 {
