@@ -64,7 +64,7 @@ const CustomerList = ({
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <tbody>
-              <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40 }}>Loading customers...</td></tr>
+              <tr><td colSpan="9" className={styles.loadingCell}>Loading customers...</td></tr>
             </tbody>
           </table>
         </div>
@@ -74,7 +74,7 @@ const CustomerList = ({
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ width: 40 }}>
+                  <th className={styles.checkboxColumn}>
                     <input type="checkbox" className={styles.checkbox} disabled />
                   </th>
                   <th>PETS</th>
@@ -87,7 +87,7 @@ const CustomerList = ({
               </thead>
               <tbody>
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#666', fontWeight: 500 }}>
+                  <td colSpan="7" className={styles.emptyCell}>
                     The search you entered is not matching to any record
                   </td>
                 </tr>
@@ -105,7 +105,7 @@ const CustomerList = ({
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ width: 40 }}>
+                <th className={styles.checkboxColumn}>
                   <input
                     type="checkbox"
                     className={styles.checkbox}
@@ -134,22 +134,35 @@ const CustomerList = ({
                   </td>
                   <td>
                     {c.pets && c.pets.length > 0 ? (
-                      c.pets.map((p, i) => (
-                        <div key={i} style={{ marginBottom: i < c.pets.length - 1 ? 8 : 0 }}>
-                          <div style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 13 }}>{p.petName || "-"}</div>
-                          <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>{p.breed || "-"}</div>
+                      <div className={styles.petContainer}>
+                        <div className={styles.petItem}>
+                          <div className={styles.petName}>{c.pets[0].petName || "-"}</div>
+                          <div className={styles.petBreed}>{c.pets[0].breed || "-"}</div>
                         </div>
-                      ))
+                        {c.pets.length > 1 && (
+                          <div className={styles.petBadgeWrapper}>
+                            <span className={styles.petBadge}>+{c.pets.length - 1}</span>
+                            <div className={styles.petTooltip}>
+                              {c.pets.map((p, i) => (
+                                <div key={i} className={styles.petTooltipItem}>
+                                  <div className={styles.tooltipPetName}>{p.petName || "-"}</div>
+                                  <div className={styles.petBreed}>{p.breed || "-"}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : "-"}
                   </td>
-                  <td style={{ textTransform: 'uppercase', fontWeight: 500 }}>
+                  <td className={styles.customerNameCell}>
                     {`${c.firstName || ""} ${c.lastName || ""}`.trim() || "-"}
                   </td>
                   <td>{c.phoneNumber || "-"}</td>
-                  <td style={{ fontWeight: 600 }}>
+                  <td className={styles.revenueCell}>
                     ₹{Number(c.overallTotals?.totalAmount || 0).toLocaleString()}
                   </td>
-                  <td>{c.orders?.length || 0}</td>
+                  <td>0</td>
                   <td>{formatDate(c.createdAt)}</td>
                 </tr>
               ))}
@@ -176,9 +189,8 @@ const CustomerList = ({
             {selectedIds.length > 0 && (
               <div className={styles.bulkActionsInline}>
                 <span
-                  className={styles.bulkCount}
+                  className={`${styles.bulkCount} ${styles.bulkCountBtn}`}
                   onClick={() => onSelectAll([])}
-                  style={{ cursor: 'pointer' }}
                   title="Unselect All"
                 >
                   ✕ {selectedIds.length} Items Selected
@@ -198,7 +210,7 @@ const CustomerList = ({
           </div>
 
           <div className={styles.paginationRight}>
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div className={styles.paginationBtns}>
               {currentPage > 1 && (
                 <button
                   className={styles.pageBtn}

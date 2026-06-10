@@ -1,11 +1,12 @@
 .container {
-  padding: 24px;
-  background: #fcfcfc;
-  height: calc(100vh - 65px);
+  /* padding: 24px; */
+  background: white;
+  height: calc(100vh - 70px);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: hidden;
+  padding: 20px;
 }
 
 .topSection {
@@ -212,4 +213,125 @@
 
 .checkbox {
   cursor: pointer;
+}
+
+.petContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.petItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.petBadgeWrapper {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.petBadge {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.petTooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  z-index: 100;
+  min-width: 150px;
+}
+
+.petContainer:hover .petTooltip {
+  display: block;
+}
+
+.petTooltipItem {
+  padding: 6px 0;
+}
+
+.petTooltipItem:last-child {
+  padding-bottom: 0;
+}
+
+.petTooltipItem:first-child {
+  padding-top: 0;
+}
+
+.petTooltipItem {
+  border-bottom: 1px solid #eee;
+}
+
+.petTooltipItem:last-child {
+  border-bottom: none;
+}
+
+.loadingCell {
+  text-align: center;
+  padding: 40px;
+}
+
+.checkboxColumn {
+  width: 40px;
+}
+
+.emptyCell {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-weight: 500;
+}
+
+.petName {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.petBreed {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.tooltipPetName {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: #333;
+}
+
+.customerNameCell {
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.revenueCell {
+  font-weight: 600;
+}
+
+.bulkCountBtn {
+  cursor: pointer;
+}
+
+.paginationBtns {
+  display: flex;
+  gap: 12px;
 }

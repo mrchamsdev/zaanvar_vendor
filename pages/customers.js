@@ -7,6 +7,7 @@ import useStore from "../components/state/useStore";
 import { toast } from "sonner";
 import CustomerList from "../components/customers/CustomerList";
 import CustomerFormManager from "../components/customers/CustomerFormManager";
+import CustomerView from "../components/customers/CustomerView";
 import ConfirmationModal from "../components/inventory/confirmation-modal";
 
 import useDashboardData from "../components/dashboard/useDashboardData";
@@ -47,13 +48,18 @@ const CustomersPage = () => {
   }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
 
   useEffect(() => {
-    if (router.isReady && router.query.action === 'add') {
-      openManager("Add", {});
-      // Clear query param
-      const { action, ...restQuery } = router.query;
-      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    if (router.isReady) {
+      if (router.query.action === 'add') {
+        openManager("Add", {});
+        const { action, ...restQuery } = router.query;
+        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+      } else if (router.query.action === 'view' && router.query.id) {
+        openManager("View", { vendorCustomerId: router.query.id });
+        const { action, id, ...restQuery } = router.query;
+        router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+      }
     }
-  }, [router.isReady, router.query.action]);
+  }, [router.isReady, router.query.action, router.query.id]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -71,7 +77,7 @@ const CustomersPage = () => {
 
   const customLeft = (
     <div className={dashboardStyles.branchSwitcherContainer}>
-      <select 
+      <select
         className={dashboardStyles.branchSwitcher}
         value={currentBranchId}
         onChange={handleBranchChange}
@@ -125,7 +131,7 @@ const CustomersPage = () => {
       }
 
       if (errorMsg) {
-         setErrorPopupMessage(errorMsg);
+        setErrorPopupMessage(errorMsg);
       }
     } catch (e) {
       console.error(e);
@@ -153,68 +159,81 @@ const CustomersPage = () => {
       )}
     >
       <div className={styles.container}>
-        <div className={styles.topSection}>
-          <div className={styles.searchRow}>
-            <div className={styles.searchBox}>
-              <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search by Customer Name and Mobile Number"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        {(!managerConfig || managerConfig.mode !== "View") && (
+          <div className={styles.topSection}>
+            <div className={styles.searchRow}>
+              <div className={styles.searchBox}>
+                <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by Customer Name and Mobile Number"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <CustomerList
-          customers={customers.filter(c => {
-            const fullName = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
-            const phone = c.phoneNumber || '';
-            const searchLower = searchTerm.toLowerCase();
-            return fullName.includes(searchLower) || phone.includes(searchLower);
-          })}
-          searchTerm={searchTerm}
-          loading={loading}
-          selectedIds={selectedIds}
-          onToggleSelection={(id) => setSelectedIds(prev =>
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-          )}
-          onSelectAll={(allIds) => {
-            if (selectedIds.length === allIds.length) setSelectedIds([]);
-            else setSelectedIds(allIds);
-          }}
-          onView={(id) => {
-            if (selectedIds.length > 1) {
-              const selectedData = customers.filter(c => selectedIds.includes(c.vendorCustomerId));
-              openManager("View", selectedData);
-            } else {
-              const customer = customers.find(c => c.vendorCustomerId === id);
-              openManager("View", customer);
-            }
-          }}
-          onEdit={(id) => {
-            if (selectedIds.length > 1) {
-              const selectedData = customers.filter(c => selectedIds.includes(c.vendorCustomerId));
-              openManager("Edit", selectedData);
-            } else {
-              const customer = customers.find(c => c.vendorCustomerId === id);
-              openManager("Edit", customer);
-            }
-          }}
-          onDelete={(id) => {
-            setSelectedIds([id]);
-            setShowDeleteConfirm(true);
-          }}
-          onBulkDelete={() => {
-            setShowDeleteConfirm(true);
-          }}
-          onAddClick={() => openManager("Add", null)}
-        />
+        {managerConfig && managerConfig.mode === "View" ? (
+          <div style={{ background: '#fff', borderRadius: '12px', flex: 1, minHeight: 0 }}>
+            <CustomerView
+              data={Array.isArray(managerConfig.data) ? managerConfig.data[0] : managerConfig.data}
+              onBack={() => setManagerConfig(null)}
+              isSplit={false}
+              onEdit={() => openManager("Edit", managerConfig.data)}
+            />
+          </div>
+        ) : (
+          <CustomerList
+            customers={customers.filter(c => {
+              const fullName = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase();
+              const phone = c.phoneNumber || '';
+              const searchLower = searchTerm.toLowerCase();
+              return fullName.includes(searchLower) || phone.includes(searchLower);
+            })}
+            searchTerm={searchTerm}
+            loading={loading}
+            selectedIds={selectedIds}
+            onToggleSelection={(id) => setSelectedIds(prev =>
+              prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+            )}
+            onSelectAll={(allIds) => {
+              if (selectedIds.length === allIds.length) setSelectedIds([]);
+              else setSelectedIds(allIds);
+            }}
+            onView={(id) => {
+              if (selectedIds.length > 1) {
+                const selectedData = customers.filter(c => selectedIds.includes(c.vendorCustomerId));
+                openManager("View", selectedData);
+              } else {
+                const customer = customers.find(c => c.vendorCustomerId === id);
+                openManager("View", customer);
+              }
+            }}
+            onEdit={(id) => {
+              if (selectedIds.length > 1) {
+                const selectedData = customers.filter(c => selectedIds.includes(c.vendorCustomerId));
+                openManager("Edit", selectedData);
+              } else {
+                const customer = customers.find(c => c.vendorCustomerId === id);
+                openManager("Edit", customer);
+              }
+            }}
+            onDelete={(id) => {
+              setSelectedIds([id]);
+              setShowDeleteConfirm(true);
+            }}
+            onBulkDelete={() => {
+              setShowDeleteConfirm(true);
+            }}
+            onAddClick={() => openManager("Add", null)}
+          />
+        )}
 
-        {managerConfig && (
+        {managerConfig && (managerConfig.mode === "Add" || managerConfig.mode === "Edit") && (
           <CustomerFormManager
             mode={managerConfig.mode}
             initialData={managerConfig.data}
@@ -262,7 +281,7 @@ const CustomersPage = () => {
               border: '1px solid #f1f5f9',
               fontFamily: "'Inter', sans-serif"
             }}>
-              <button 
+              <button
                 onClick={() => setErrorPopupMessage(null)}
                 style={{
                   position: 'absolute',
@@ -282,7 +301,7 @@ const CustomersPage = () => {
               >
                 <FiX />
               </button>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
                   <h3 style={{

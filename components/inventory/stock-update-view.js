@@ -118,8 +118,8 @@ const StockUpdateView = ({ stockId, onClose }) => {
     baseQty = data.updatedQty || 0;
   }
 
-  const displayUpdatedQty = baseQty;
-  const displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
+  const displayUpdatedQty = data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : baseQty;
+  const displayCurrentQty = data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : (displayUpdatedQty - (data.add || 0) + (data.remove || 0));
 
   const displayTotalVal = (() => {
     const rawVal = parseFloat(data.totalValue || 0);

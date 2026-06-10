@@ -26,6 +26,10 @@ export const customerService = {
   updateCustomer: async (jwt, id, data) => {
     const webApi = new WebApimanager(jwt);
     try {
+      if (data instanceof FormData) {
+        const response = await webApi.imagePut(`vendor/customers/${id}`, data);
+        return response || { status: "error" };
+      }
       const response = await webApi.put(`vendor/customers/${id}`, data);
       return response || { status: "error" };
     } catch (error) {

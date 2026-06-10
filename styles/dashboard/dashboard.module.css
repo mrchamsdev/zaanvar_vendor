@@ -45,15 +45,16 @@
   padding-right: 0;
 }
 
-.sidebarCollapsed .sidebarNav li a {
+.sidebarCollapsed .sidebarNav li a,
+.sidebarCollapsed .sidebarNav li div.navGroupHeader {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
   margin: 0 4px;
-  padding-left: 0;
 }
 
-.sidebarCollapsed .sidebarNav li.active a {
+.sidebarCollapsed .sidebarNav li.active a,
+.sidebarCollapsed .sidebarNav li.active div.navGroupHeader {
   margin: 0 4px;
   padding-left: 0;
 }
@@ -73,7 +74,8 @@
 }
 
 /* Tooltip on hover when collapsed */
-.sidebarCollapsed .sidebarNav li a:hover::after {
+.sidebarCollapsed .sidebarNav li a:hover::after,
+.sidebarCollapsed .sidebarNav li div.navGroupHeader:hover::after {
   content: attr(data-label);
   position: absolute;
   left: 60px;
@@ -87,7 +89,8 @@
   pointer-events: none;
 }
 
-.sidebarCollapsed .sidebarNav li a {
+.sidebarCollapsed .sidebarNav li a,
+.sidebarCollapsed .sidebarNav li div.navGroupHeader {
   position: relative;
 }
 
@@ -155,7 +158,8 @@
   margin: 2px 0;
 }
 
-.sidebarNav li a {
+.sidebarNav li a,
+.sidebarNav li div.navGroupHeader {
   display: flex;
   align-items: center;
   gap: clamp(8px, 0.8vw, 14px);
@@ -167,14 +171,17 @@
   border-radius: 0;
   transition: background 0.2s, color 0.2s;
   white-space: nowrap;
+  cursor: pointer;
 }
 
-.sidebarNav li a:hover {
+.sidebarNav li a:hover,
+.sidebarNav li div.navGroupHeader:hover {
   background: #f5f6fa;
   color: #222;
 }
 
-.sidebarNav li.active a {
+.sidebarNav li.active a,
+.sidebarNav li.active div.navGroupHeader {
   background: #111;
   color: #fff;
   border-radius: 8px;

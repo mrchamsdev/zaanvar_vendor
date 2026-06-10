@@ -213,7 +213,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                                 return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
                                             })()}
                                         </td>
-                                        <td className={styles.td}>₹ {Number(t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>₹ {Number(t.relatedBill?.overallBillAmount || t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={styles.td}>₹ {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td className={styles.td}>{getDisplayPaymentType(t)}</td>
                                         <td className={styles.td}>{getDisplayReferenceNumber(t)}</td>

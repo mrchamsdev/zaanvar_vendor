@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import styles from "../../styles/purchase-bill/purchase-out.module.css";
+import styles from "../../styles/customers/customerForm.module.css";
 import { customerService } from "../../services/customerService";
 import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
@@ -35,55 +35,120 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
 
     // Pets
     const [pets, setPets] = useState([]);
+    const [customerId, setCustomerId] = useState(initialData?.vendorCustomerId || null);
 
     const [errors, setErrors] = useState({});
     const isInitialized = useRef(false);
 
     useEffect(() => {
-        if (initialData && Object.keys(initialData).length > 0 && !isInitialized.current) {
-            setFirstName(initialData.firstName || "");
-            setLastName(initialData.lastName || "");
-            setPhone(initialData.phoneNumber || "");
-            setEmail(initialData.email || "");
-            setVeterinarianName(initialData.veterinarianName || "");
-            setVeterinarianNumber(initialData.veterinarianNumber || "");
-            setAlternatePhoneNumber(initialData.alternatePhoneNumber || "");
-            setSource(initialData.Source?.source || initialData.Source || "");
-            setIdProof(initialData.uploadIDProof || "");
-            setSelectedBranchIds(initialData.branchIds?.map(Number) || []);
-            
-            // If they are in metadata or we have standard fields
-            setServiceableAddress(initialData.serviceableAddress || "");
-            setLocationLink(initialData.locationLink || "");
-            setEmergencyContactName(initialData.emergencyContactName || "");
-            setEmergencyMobileNumber(initialData.emergencyMobileNumber || "");
-
-            if (initialData.pets && Array.isArray(initialData.pets)) {
-                setPets(initialData.pets.map(p => ({
-                    id: p.petId || Date.now() + Math.random(),
-                    petPhoto: p.photo || "",
-                    petType: p.petType || "Dog",
-                    petName: p.petName || "",
-                    petBreed: p.breed || "",
-                    petGender: p.gender || "",
-                    ageType: p.dateOfBirth ? "exact" : "approx",
-                    years: p.approximateAge ? p.approximateAge.split(' ')[0] : "",
-                    months: "",
-                    dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : "",
-                    isNeutered: p.isSpayedOrNeutered === true,
-                    isUnknown: p.isSpayedOrNeutered === null,
-                    bloodType: p.bloodType || "",
-                    weight: p.weight || "",
-                    microchipNo: p.microchipNo || "",
-                    rabiesTag: p.rabiesTag || "",
-                    notes: p.medicalNotes || ""
-                })));
-            } else {
-                setPets([]);
+        const fetchFullCustomerData = async () => {
+            if (initialData?.vendorCustomerId && !isInitialized.current) {
+                setCustomerId(initialData.vendorCustomerId);
+                setLoading(true);
+                try {
+                    const res = await customerService.getCustomerById(jwtToken, initialData.vendorCustomerId);
+                    const fullData = res?.data || res?.customer || res || initialData;
+                    
+                    setFirstName(fullData.firstName || "");
+                    setLastName(fullData.lastName || "");
+                    setPhone(fullData.phoneNumber || fullData.phone || "");
+                    setEmail(fullData.email || "");
+                    setVeterinarianName(fullData.veterinarianName || "");
+                    setVeterinarianNumber(fullData.veterinarianNumber || "");
+                    setAlternatePhoneNumber(fullData.alternatePhoneNumber || "");
+                    setSource(fullData.Source?.source || fullData.Source || "");
+                    setIdProof(fullData.uploadIDProof || "");
+                    setSelectedBranchIds(
+                        Array.isArray(fullData.branchIds) ? fullData.branchIds.map(Number) : 
+                        (typeof fullData.branchIds === 'string' ? fullData.branchIds.split(',').map(Number) : 
+                        (fullData.branchIds ? [Number(fullData.branchIds)] : []))
+                    );
+        
+                    setServiceableAddress(fullData.serviceableAddress || "");
+                    setLocationLink(fullData.locationLink || "");
+                    setEmergencyContactName(fullData.emergencyContactName || "");
+                    setEmergencyMobileNumber(fullData.emergencyMobileNumber || "");
+        
+                    if (fullData.pets && Array.isArray(fullData.pets)) {
+                        setPets(fullData.pets.map(p => ({
+                            id: p.petId || p._id || p.id || Date.now() + Math.random(),
+                            petPhoto: p.photo || "",
+                            petType: p.petType ? (p.petType.toLowerCase() === 'cat' ? 'Cat' : 'Dog') : "Dog",
+                            petName: p.petName || "",
+                            petBreed: p.breed || "",
+                            petGender: p.gender || "",
+                            ageType: p.dateOfBirth ? "exact" : "approx",
+                            years: p.approximateAge ? p.approximateAge.split(' ')[0] : "",
+                            months: "",
+                            dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : "",
+                            isNeutered: p.isSpayedOrNeutered === true,
+                            isUnknown: p.isSpayedOrNeutered === null,
+                            bloodType: p.bloodType || "",
+                            weight: p.weight || "",
+                            microchipNo: p.microchipNo || "",
+                            rabiesTag: p.rabiesTag || "",
+                            notes: p.medicalNotes || ""
+                        })));
+                    } else {
+                        setPets([]);
+                    }
+                } catch (err) {
+                    console.error("Error fetching full customer data", err);
+                } finally {
+                    setLoading(false);
+                    isInitialized.current = true;
+                }
+            } else if (initialData && Object.keys(initialData).length > 0 && !isInitialized.current) {
+                if (initialData.vendorCustomerId) setCustomerId(initialData.vendorCustomerId);
+                setFirstName(initialData.firstName || "");
+                setLastName(initialData.lastName || "");
+                setPhone(initialData.phoneNumber || "");
+                setEmail(initialData.email || "");
+                setVeterinarianName(initialData.veterinarianName || "");
+                setVeterinarianNumber(initialData.veterinarianNumber || "");
+                setAlternatePhoneNumber(initialData.alternatePhoneNumber || "");
+                setSource(initialData.Source?.source || initialData.Source || "");
+                setIdProof(initialData.uploadIDProof || "");
+                setSelectedBranchIds(
+                    Array.isArray(initialData.branchIds) ? initialData.branchIds.map(Number) : 
+                    (typeof initialData.branchIds === 'string' ? initialData.branchIds.split(',').map(Number) : 
+                    (initialData.branchIds ? [Number(initialData.branchIds)] : []))
+                );
+    
+                setServiceableAddress(initialData.serviceableAddress || "");
+                setLocationLink(initialData.locationLink || "");
+                setEmergencyContactName(initialData.emergencyContactName || "");
+                setEmergencyMobileNumber(initialData.emergencyMobileNumber || "");
+    
+                if (initialData.pets && Array.isArray(initialData.pets)) {
+                    setPets(initialData.pets.map(p => ({
+                        id: p.petId || p._id || p.id || Date.now() + Math.random(),
+                        petPhoto: p.photo || "",
+                        petType: p.petType ? (p.petType.toLowerCase() === 'cat' ? 'Cat' : 'Dog') : "Dog",
+                        petName: p.petName || "",
+                        petBreed: p.breed || "",
+                        petGender: p.gender || "",
+                        ageType: p.dateOfBirth ? "exact" : "approx",
+                        years: p.approximateAge ? p.approximateAge.split(' ')[0] : "",
+                        months: "",
+                        dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split('T')[0] : "",
+                        isNeutered: p.isSpayedOrNeutered === true,
+                        isUnknown: p.isSpayedOrNeutered === null,
+                        bloodType: p.bloodType || "",
+                        weight: p.weight || "",
+                        microchipNo: p.microchipNo || "",
+                        rabiesTag: p.rabiesTag || "",
+                        notes: p.medicalNotes || ""
+                    })));
+                } else {
+                    setPets([]);
+                }
+                isInitialized.current = true;
             }
-            isInitialized.current = true;
-        }
-    }, [initialData]);
+        };
+
+        fetchFullCustomerData();
+    }, [initialData, jwtToken]);
 
     useEffect(() => {
         if (!isInitialized.current && mode === 'Add') {
@@ -113,10 +178,11 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     useEffect(() => {
         if (onChange && isInitialized.current) {
             onChange({
+                vendorCustomerId: customerId,
                 firstName, lastName, phone, email, pets
             });
         }
-    }, [firstName, lastName, phone, email, pets]);
+    }, [firstName, lastName, phone, email, pets, customerId]);
 
     const branchesList = (branches || []).map(br => ({
         id: Number(br.id || br._id || br.branchId),
@@ -157,10 +223,18 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         let newErrors = {};
         if (!firstName) newErrors.firstName = "First name is required";
         if (!phone) newErrors.phone = "Phone number is required";
+        else if (phone.length !== 10) newErrors.phone = "Phone number must be exactly 10 digits";
         if (selectedBranchIds.length === 0) newErrors.branch = "Branch is required";
+
+        pets.forEach((p, idx) => {
+            if (p.microchipNo && p.microchipNo.length !== 15) {
+                newErrors[`pet_${idx}_microchip`] = "Must be exactly 15 digits";
+            }
+        });
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            toast.error("Please fix the highlighted errors before saving");
             return;
         }
 
@@ -173,7 +247,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             veterinarianName,
             veterinarianNumber,
             Source: source ? { source } : null,
-            uploadIDProof: idProof,
+            uploadIDProof: typeof idProof === 'string' ? idProof : null,
             branchIds: selectedBranchIds,
             serviceableAddress,
             locationLink,
@@ -192,21 +266,67 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 bloodType: p.bloodType,
                 isSpayedOrNeutered: p.isUnknown ? null : p.isNeutered,
                 medicalNotes: p.notes,
-                photo: p.petPhoto
+                photo: typeof p.petPhoto === 'string' ? p.petPhoto : null
             }))
         };
 
         setLoading(true);
         try {
+            if (mode === 'Edit' && !customerId) {
+                toast.error("Internal Error: Customer ID is missing. Please close this tab and reopen it.");
+                setLoading(false);
+                return;
+            }
+
             let res;
-            if (initialData?.vendorCustomerId) {
-                res = await customerService.updateCustomer(jwtToken, initialData.vendorCustomerId, payload);
+            const uploadImagesSequentially = async (customerRefId, resData) => {
+                const responsePets = resData?.pets || resData?.data?.pets || resData?.customer?.pets || [];
+                
+                if (idProof instanceof File) {
+                    const idFormData = new FormData();
+                    idFormData.append('uploadIDProof', idProof);
+                    await customerService.updateCustomer(jwtToken, customerRefId, idFormData);
+                }
+
+                for (let i = 0; i < pets.length; i++) {
+                    if (pets[i].petPhoto instanceof File) {
+                        const petFormData = new FormData();
+                        petFormData.append('photo', pets[i].petPhoto);
+                        
+                        let petId = responsePets[i]?.petId || responsePets[i]?._id || responsePets[i]?.id;
+                        if (!petId && customerId) {
+                            if (typeof pets[i].id === 'number' && pets[i].id > 1000000000000) {
+                                // Skip if local temporary ID and backend didn't return a real one
+                            } else {
+                                petId = pets[i].id; 
+                            }
+                        }
+                        
+                        if (petId) {
+                            petFormData.append('petId', petId);
+                            await customerService.updateCustomer(jwtToken, customerRefId, petFormData);
+                        }
+                    }
+                }
+            };
+
+            if (customerId) {
+                res = await customerService.updateCustomer(jwtToken, customerId, payload);
+                if (res && (res.status === "success" || res.status === 200)) {
+                    await uploadImagesSequentially(customerId, res);
+                }
             } else {
                 res = await customerService.createCustomer(jwtToken, payload);
+                if (res && (res.status === "success" || res.status === 200)) {
+                    const newId = res.vendorCustomerId || res.data?.vendorCustomerId || res.data?._id || res.data?.id;
+                    if (newId) {
+                        await uploadImagesSequentially(newId, res);
+                    }
+                }
             }
 
             if (res && (res.status === "success" || res.status === 200)) {
-                toast.success(initialData?.vendorCustomerId ? "Customer updated successfully" : "Customer added successfully");
+                toast.success(customerId ? "Customer updated successfully" : "Customer added successfully");
                 onSave();
             } else {
                 toast.error(res?.msg || res?.message || "Failed to save customer");
@@ -218,260 +338,311 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         }
     };
 
-    const sectionTitleStyle = { fontSize: '16px', fontWeight: '700', color: '#111', marginBottom: '20px' };
-    const sectionContainerStyle = { background: '#fff', padding: '32px', borderRadius: '12px', border: '1px solid #E5E7EB', marginBottom: '32px' };
-    const inputStyle = { boxSizing: 'border-box', width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F9FAFB', fontSize: '14px', color: '#333', outline: 'none' };
-    const labelStyle = { fontSize: '13px', fontWeight: '600', color: '#333', marginBottom: '8px', display: 'block' };
-
     return (
-        <div style={{ boxSizing: 'border-box', width: '100%', background: '#fff', padding: '32px', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
+        <div className={styles.formLayout}>
             
-            {/* Customer Details */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={sectionTitleStyle}>Customer Details</h3>
-            </div>
-            <div style={sectionContainerStyle}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px' }}>
+            {/* Left side: scrollable form */}
+            <div className={styles.leftPanel}>
+                {/* Customer Details */}
+                <div className={styles.sectionHeader}>
+                    <h3 className={styles.sectionTitle}>Customer Details</h3>
+                </div>
+            <div className={styles.sectionContainer}>
+                <div className={styles.grid2}>
                     <div>
-                        <label style={labelStyle}>First name <span style={{ color: '#FF4D4F' }}>*</span></label>
-                        <input type="text" style={inputStyle} placeholder="Enter first name" value={firstName} onChange={e => {setFirstName(e.target.value); setErrors({...errors, firstName: null})}} />
-                        {errors.firstName && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px' }}>{errors.firstName}</span>}
+                        <label className={styles.labelStyle}>First name <span className={styles.asterisk}>*</span></label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter first name" value={firstName} onChange={e => { setFirstName(e.target.value); setErrors({ ...errors, firstName: null }) }} />
+                        {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
                     </div>
                     <div>
-                        <label style={labelStyle}>Last Name</label>
-                        <input type="text" style={inputStyle} placeholder="Enter last name" value={lastName} onChange={e => setLastName(e.target.value)} />
+                        <label className={styles.labelStyle}>Last Name</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter last name" value={lastName} onChange={e => setLastName(e.target.value)} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Phone Number <span style={{ color: '#FF4D4F' }}>*</span></label>
-                        <input type="text" style={inputStyle} placeholder="Enter Phone Number" value={phone} onChange={e => {setPhone(e.target.value); setErrors({...errors, phone: null})}} />
-                        {errors.phone && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px' }}>{errors.phone}</span>}
+                        <label className={styles.labelStyle}>Phone Number <span className={styles.asterisk}>*</span></label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Phone Number" maxLength={10} value={phone} onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setPhone(val);
+                            setErrors({ ...errors, phone: null });
+                        }} />
+                        {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                     </div>
                     <div>
-                        <label style={labelStyle}>Email (Optional)</label>
-                        <input type="email" style={inputStyle} placeholder="Enter mail id" value={email} onChange={e => setEmail(e.target.value)} />
+                        <label className={styles.labelStyle}>Email (Optional)</label>
+                        <input type="email" className={styles.inputStyle} placeholder="Enter mail id" value={email} onChange={e => setEmail(e.target.value)} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Veterinarian Name (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Enter Veterinarian Name" value={veterinarianName} onChange={e => setVeterinarianName(e.target.value)} />
+                        <label className={styles.labelStyle}>Veterinarian Name (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Name" value={veterinarianName} onChange={e => setVeterinarianName(e.target.value)} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Veterinarian Number (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Enter Veterinarian Number" value={veterinarianNumber} onChange={e => setVeterinarianNumber(e.target.value)} />
+                        <label className={styles.labelStyle}>Veterinarian Number (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Veterinarian Number" value={veterinarianNumber} onChange={e => setVeterinarianNumber(e.target.value)} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Alternate Phone Number (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Enter Alternate Phone Number" value={alternatePhoneNumber} onChange={e => setAlternatePhoneNumber(e.target.value)} />
+                        <label className={styles.labelStyle}>Alternate Phone Number (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Alternate Phone Number" maxLength={10} value={alternatePhoneNumber} onChange={e => setAlternatePhoneNumber(e.target.value.replace(/\D/g, ''))} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Branch <span style={{ color: '#FF4D4F' }}>*</span></label>
+                        <label className={styles.labelStyle}>Branch <span className={styles.asterisk}>*</span></label>
                         <MultiSelectDropdown
                             listItems={branchesList}
                             selectedIds={selectedBranchIds}
                             setSelectedIds={(ids) => {
                                 setSelectedBranchIds(ids.map(Number));
-                                setErrors({...errors, branch: null});
+                                setErrors({ ...errors, branch: null });
                             }}
                             placeholder="Select Branch"
                             customStyles={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '6px 16px', borderRadius: '8px' }}
                         />
-                        {errors.branch && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px' }}>{errors.branch}</span>}
+                        {errors.branch && <span className={styles.errorText}>{errors.branch}</span>}
                     </div>
                     <div>
-                        <label style={labelStyle}>Source (Optional)</label>
-                        <div style={{ position: 'relative' }}>
-                            <select style={{...inputStyle, appearance: 'none'}} value={source} onChange={e => setSource(e.target.value)}>
+                        <label className={styles.labelStyle}>Source (Optional)</label>
+                        <div className={styles.relative}>
+                            <select className={styles.inputStyleSelect} value={source} onChange={e => setSource(e.target.value)}>
                                 <option value="">Select here</option>
                                 <option value="Walk-in">Walk-in</option>
                                 <option value="Referral">Referral</option>
                                 <option value="Instagram">Instagram</option>
                             </select>
-                            <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none' }} />
+                            <FiChevronDown className={styles.selectChevron} />
                         </div>
                     </div>
                     <div>
-                        <label style={labelStyle}>ID Proof (optional)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', ...inputStyle, padding: '4px' }}>
-                            <label style={{ background: '#6B7280', color: '#fff', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
+                        <label className={styles.labelStyle}>ID Proof (optional)</label>
+                        <div className={styles.fileInputContainer}>
+                            <label className={styles.fileInputBtn}>
                                 Choose file
-                                <input type="file" style={{ display: 'none' }} />
+                                <input type="file" className={styles.hidden} onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        setIdProof(e.target.files[0]);
+                                    }
+                                }} accept="image/*,.pdf" />
                             </label>
-                            <span style={{ fontSize: '13px', color: '#888' }}>No file Choosen</span>
+                            <span className={styles.fileName}>
+                                {idProof ? (idProof.name || (typeof idProof === 'string' ? idProof.split('/').pop() : "File Selected")) : "No file Choosen"}
+                            </span>
+                            {idProof && (
+                                <button type="button" onClick={() => setIdProof("")} className={styles.removeBtn}>Remove</button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Address Details */}
-            <div style={{ marginBottom: '16px' }}>
-                <h3 style={sectionTitleStyle}>Address Details <span style={{color: '#888', fontWeight: 500, fontSize: '14px'}}>(Optional)</span></h3>
+            <div className={styles.sectionTitleMargin}>
+                <h3 className={styles.sectionTitle}>Address Details <span className={styles.optionalText}>(Optional)</span></h3>
             </div>
-            <div style={sectionContainerStyle}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className={styles.sectionContainer}>
+                <div className={styles.flexCol}>
                     <div>
-                        <label style={labelStyle}>Serviceable Address (Optional)</label>
-                        <textarea style={{...inputStyle, minHeight: '80px', resize: 'vertical'}} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
+                        <label className={styles.labelStyle}>Serviceable Address (Optional)</label>
+                        <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
                     </div>
                     <div>
-                        <label style={labelStyle}>Location Link (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
+                        <label className={styles.labelStyle}>Location Link (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
                     </div>
                 </div>
             </div>
 
             {/* Emergency Contact */}
-            <div style={{ marginBottom: '16px' }}>
-                <h3 style={sectionTitleStyle}>Emergency Contact Details <span style={{color: '#888', fontWeight: 500, fontSize: '14px'}}>(Optional)</span></h3>
+            <div className={styles.sectionTitleMargin}>
+                <h3 className={styles.sectionTitle}>Emergency Contact Details <span className={styles.optionalText}>(Optional)</span></h3>
             </div>
-            <div style={sectionContainerStyle}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px' }}>
+            <div className={styles.sectionContainer}>
+                <div className={styles.grid2}>
                     <div>
-                        <label style={labelStyle}>Emergency Contact Name (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Enter Emergency Contact Name" value={emergencyContactName} onChange={e => setEmergencyContactName(e.target.value)} />
+                        <label className={styles.labelStyle}>Emergency Contact Name (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Emergency Contact Name" value={emergencyContactName} onChange={e => setEmergencyContactName(e.target.value)} />
                     </div>
                     <div>
-                        <label style={labelStyle}>Mobile Number (Optional)</label>
-                        <input type="text" style={inputStyle} placeholder="Enter Mobile Number" value={emergencyMobileNumber} onChange={e => setEmergencyMobileNumber(e.target.value)} />
+                        <label className={styles.labelStyle}>Mobile Number (Optional)</label>
+                        <input type="text" className={styles.inputStyle} placeholder="Enter Mobile Number" maxLength={10} value={emergencyMobileNumber} onChange={e => setEmergencyMobileNumber(e.target.value.replace(/\D/g, ''))} />
                     </div>
                 </div>
             </div>
 
             {/* Pet Details */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={sectionTitleStyle}>Pet Details</h3>
-                <button onClick={handleAddPet} style={{ color: '#E9315D', background: 'none', border: 'none', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>+ Add Pet</button>
+            <div className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}>Pet Details</h3>
+                <button onClick={handleAddPet} className={styles.addPetBtn}>+ Add Pet</button>
             </div>
-            
+
             {pets.map((pet, index) => (
-                <div key={pet.id} style={{...sectionContainerStyle, position: 'relative'}}>
+                <div key={pet.id} className={styles.petContainer}>
                     {pets.length > 1 && (
-                        <button onClick={() => removePet(pet.id)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}><FiX size={20}/></button>
+                        <button onClick={() => removePet(pet.id)} className={styles.removePetBtn}><FiX size={20} /></button>
                     )}
-                    
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>Pet Profile Photo</h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#E5E7EB' }}></div>
-                        <div>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>Upload Pet Photo <span style={{color: '#888'}}>(Optional)</span></div>
-                            <div style={{ fontSize: '11px', color: '#E9315D' }}>File size not more than 2 MB</div>
+
+                    <h4 className={styles.petSubtitle}>Pet Profile Photo</h4>
+                    <div className={styles.petPhotoSection}>
+                        <div className={styles.petPhotoCircle}>
+                            {pet.petPhoto && (typeof pet.petPhoto === 'object' ? (
+                                <img src={URL.createObjectURL(pet.petPhoto)} alt="Pet" className={styles.petPhotoImg} />
+                            ) : (
+                                <img src={pet.petPhoto} alt="Pet" className={styles.petPhotoImg} />
+                            ))}
                         </div>
-                        <button style={{ marginLeft: 'auto', background: '#000', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Upload Picture</button>
+                        <div>
+                            <div className={styles.photoInstructionTitle}>Upload Pet Photo <span className={styles.optionalText}>(Optional)</span></div>
+                            <div className={styles.photoInstructionSub}>File size not more than 2 MB</div>
+                            {pet.petPhoto && typeof pet.petPhoto === 'object' && (
+                                <div className={styles.photoFileName}>{pet.petPhoto.name}</div>
+                            )}
+                        </div>
+                        <div className={styles.photoActions}>
+                            <label className={styles.uploadPhotoBtn}>
+                                {pet.petPhoto ? "Change Picture" : "Upload Picture"}
+                                <input type="file" className={styles.hidden} accept="image/*" onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        updatePet(pet.id, 'petPhoto', e.target.files[0]);
+                                    }
+                                }} />
+                            </label>
+                            {pet.petPhoto && (
+                                <button type="button" onClick={() => updatePet(pet.id, 'petPhoto', "")} className={styles.removePhotoBtn}>Remove</button>
+                            )}
+                        </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px', marginBottom: '32px' }}>
+                    <div className={styles.grid2}>
                         <div>
-                            <label style={labelStyle}>Pet Type</label>
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', ...inputStyle, cursor: 'pointer' }}>
-                                    <input type="radio" name={`petType_${pet.id}`} checked={pet.petType === 'Dog'} onChange={() => updatePet(pet.id, 'petType', 'Dog')} /> Dog
+                            <label className={styles.labelStyle}>Pet Type</label>
+                            <div className={styles.flexRow}>
+                                <label className={styles.radioLabel}>
+                                    <input type="radio" checked={pet.petType === 'Dog'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Dog')} /> Dog
                                 </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', ...inputStyle, cursor: 'pointer' }}>
-                                    <input type="radio" name={`petType_${pet.id}`} checked={pet.petType === 'Cat'} onChange={() => updatePet(pet.id, 'petType', 'Cat')} /> Cat
+                                <label className={styles.radioLabel}>
+                                    <input type="radio" checked={pet.petType === 'Cat'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'petType', 'Cat')} /> Cat
                                 </label>
                             </div>
                         </div>
-                        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                        <div className={`${styles.grid2} ${styles.gridFull}`}>
                             <div>
-                                <label style={labelStyle}>Pet name</label>
-                                <input type="text" style={inputStyle} placeholder="Enter Pet name" value={pet.petName} onChange={e => updatePet(pet.id, 'petName', e.target.value)} />
+                                <label className={styles.labelStyle}>Pet name</label>
+                                <input type="text" className={styles.inputStyle} placeholder="Enter Pet name" value={pet.petName} onChange={e => updatePet(pet.id, 'petName', e.target.value)} />
                             </div>
                             <div>
-                                <label style={labelStyle}>Pet Breed</label>
-                                <div style={{ position: 'relative' }}>
-                                    <select style={{...inputStyle, appearance: 'none'}} value={pet.petBreed} onChange={e => updatePet(pet.id, 'petBreed', e.target.value)}>
+                                <label className={styles.labelStyle}>Pet Breed</label>
+                                <div className={styles.relative}>
+                                    <select className={styles.inputStyleSelect} value={pet.petBreed} onChange={e => updatePet(pet.id, 'petBreed', e.target.value)}>
                                         <option value="">Select here</option>
                                         <option value="Golden Retriever">Golden Retriever</option>
                                         <option value="German Shepherd">German Shepherd</option>
                                         <option value="Siamese">Siamese</option>
                                     </select>
-                                    <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none' }} />
+                                    <FiChevronDown className={styles.selectChevron} />
                                 </div>
                             </div>
                         </div>
                         <div>
-                            <label style={labelStyle}>Pet Gender</label>
-                            <div style={{ position: 'relative' }}>
-                                <select style={{...inputStyle, appearance: 'none'}} value={pet.petGender} onChange={e => updatePet(pet.id, 'petGender', e.target.value)}>
+                            <label className={styles.labelStyle}>Pet Gender</label>
+                            <div className={styles.relative}>
+                                <select className={styles.inputStyleSelect} value={pet.petGender} onChange={e => updatePet(pet.id, 'petGender', e.target.value)}>
                                     <option value="">Select here</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                 </select>
-                                <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none' }} />
+                                <FiChevronDown className={styles.selectChevron} />
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '32px' }}>
-                        <label style={labelStyle}>Pet Age</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500' }}>
-                                <input type="radio" checked={pet.ageType === 'approx'} onChange={() => updatePet(pet.id, 'ageType', 'approx')} /> Approximate Age
+                    <div className={styles.sectionTitleMargin}>
+                        <label className={styles.labelStyle}>Pet Age</label>
+                        <div className={styles.petAgeSection}>
+                            <label className={styles.radioLabelSimple}>
+                                <input type="radio" checked={pet.ageType === 'approx'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'approx')} /> Approximate Age
                             </label>
                             {pet.ageType === 'approx' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginLeft: '24px' }}>
+                                <div className={styles.petAgeGrid}>
                                     <div>
-                                        <label style={{...labelStyle, color: '#666'}}>Years</label>
-                                        <input type="number" style={inputStyle} value={pet.years} onChange={e => updatePet(pet.id, 'years', e.target.value)} placeholder="0" />
+                                        <label className={styles.labelStyle}>Years</label>
+                                        <input type="number" className={styles.inputStyle} value={pet.years} onChange={e => updatePet(pet.id, 'years', e.target.value)} placeholder="0" />
                                     </div>
                                     <div>
-                                        <label style={{...labelStyle, color: '#666'}}>Months</label>
-                                        <input type="number" style={inputStyle} value={pet.months} onChange={e => updatePet(pet.id, 'months', e.target.value)} placeholder="0" />
+                                        <label className={styles.labelStyle}>Months</label>
+                                        <input type="number" className={styles.inputStyle} value={pet.months} onChange={e => updatePet(pet.id, 'months', e.target.value)} placeholder="0" />
                                     </div>
                                 </div>
                             )}
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500', marginTop: '8px' }}>
-                                <input type="radio" checked={pet.ageType === 'exact'} onChange={() => updatePet(pet.id, 'ageType', 'exact')} /> Exact Age
+                            <label className={styles.radioLabelSimple}>
+                                <input type="radio" checked={pet.ageType === 'exact'} className={styles.radioInput} onChange={() => updatePet(pet.id, 'ageType', 'exact')} /> Exact Age
                             </label>
                             {pet.ageType === 'exact' && (
-                                <div style={{ marginLeft: '24px', width: 'calc(50% - 16px)' }}>
-                                    <label style={{...labelStyle, color: '#666'}}>Date of Birth</label>
-                                    <input type="date" style={inputStyle} value={pet.dateOfBirth} onChange={e => updatePet(pet.id, 'dateOfBirth', e.target.value)} />
+                                <div className={styles.petAgeExact}>
+                                    <label className={styles.labelStyle}>Date of Birth</label>
+                                    <input type="date" className={styles.inputStyle} value={pet.dateOfBirth} onChange={e => updatePet(pet.id, 'dateOfBirth', e.target.value)} />
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px' }}>Pet Medical Information <span style={{color: '#888', fontWeight: 500}}>(Optional)</span></h4>
-                    <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
-                        <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500' }}>
-                                <input type="checkbox" checked={pet.isNeutered} onChange={e => {updatePet(pet.id, 'isNeutered', e.target.checked); if(e.target.checked) updatePet(pet.id, 'isUnknown', false);}} /> Neutered
+                    <h4 className={styles.petSubtitle}>Pet Medical Information <span className={styles.optionalText}>(Optional)</span></h4>
+                    <div className={styles.petMedicalSection}>
+                        <div className={styles.flexRow} style={{ marginBottom: '24px' }}>
+                            <label className={styles.radioLabelSimple}>
+                                <input type="radio" checked={pet.isNeutered} className={styles.radioInput} onChange={e => {
+                                    setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: true, isUnknown: false } : p));
+                                }} onClick={e => {
+                                    if (pet.isNeutered) {
+                                        e.preventDefault();
+                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isNeutered: false } : p));
+                                    }
+                                }} /> Neutered
                             </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '500' }}>
-                                <input type="checkbox" checked={pet.isUnknown} onChange={e => {updatePet(pet.id, 'isUnknown', e.target.checked); if(e.target.checked) updatePet(pet.id, 'isNeutered', false);}} /> Unknown
+                            <label className={styles.radioLabelSimple}>
+                                <input type="radio" checked={pet.isUnknown} className={styles.radioInput} onChange={e => {
+                                    setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: true, isNeutered: false } : p));
+                                }} onClick={e => {
+                                    if (pet.isUnknown) {
+                                        e.preventDefault();
+                                        setPets(pets.map(p => p.id === pet.id ? { ...p, isUnknown: false } : p));
+                                    }
+                                }} /> Unknown
                             </label>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 32px' }}>
+                        <div className={styles.grid2}>
                             <div>
-                                <label style={labelStyle}>Blood Type (Optional)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <select style={{...inputStyle, appearance: 'none'}} value={pet.bloodType} onChange={e => updatePet(pet.id, 'bloodType', e.target.value)}>
+                                <label className={styles.labelStyle}>Blood Type (Optional)</label>
+                                <div className={styles.relative}>
+                                    <select className={styles.inputStyleSelect} value={pet.bloodType} onChange={e => updatePet(pet.id, 'bloodType', e.target.value)}>
                                         <option value="">Select Blood Type</option>
                                         <option value="DEA 1.1">DEA 1.1</option>
                                         <option value="DEA 1.2">DEA 1.2</option>
                                     </select>
-                                    <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none' }} />
+                                    <FiChevronDown className={styles.selectChevron} />
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Weight (Optional)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input type="text" style={inputStyle} placeholder="Enter Weight" value={pet.weight} onChange={e => updatePet(pet.id, 'weight', e.target.value)} />
-                                    <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: '#777', background: '#F9FAFB', paddingLeft: '8px' }}>KG <FiChevronDown style={{verticalAlign: 'middle', marginLeft: '4px'}}/></span>
+                                <label className={styles.labelStyle}>Weight (Optional)</label>
+                                <div className={styles.relative}>
+                                    <input type="text" className={styles.inputStyle} placeholder="Enter Weight" value={pet.weight} onChange={e => updatePet(pet.id, 'weight', e.target.value)} />
+                                    <span className={styles.weightUnit}>KG <FiChevronDown style={{ verticalAlign: 'middle', marginLeft: '4px' }} /></span>
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Microchip ID (Optional)</label>
-                                <input type="text" style={inputStyle} placeholder="Enter Microchip ID" value={pet.microchipNo} onChange={e => updatePet(pet.id, 'microchipNo', e.target.value)} />
+                                <label className={styles.labelStyle}>Microchip ID (Optional)</label>
+                                <input type="text" className={styles.inputStyle} placeholder="Enter Microchip ID" maxLength={15} value={pet.microchipNo} onChange={e => {
+                                    updatePet(pet.id, 'microchipNo', e.target.value.replace(/\D/g, ''));
+                                    if (errors[`pet_${index}_microchip`]) {
+                                        setErrors({ ...errors, [`pet_${index}_microchip`]: null });
+                                    }
+                                }} />
+                                {errors[`pet_${index}_microchip`] && <span className={styles.errorText}>{errors[`pet_${index}_microchip`]}</span>}
                             </div>
                             <div>
-                                <label style={labelStyle}>Rabies Tag (Optional)</label>
-                                <input type="text" style={inputStyle} placeholder="Enter Rabies Tag" value={pet.rabiesTag} onChange={e => updatePet(pet.id, 'rabiesTag', e.target.value)} />
+                                <label className={styles.labelStyle}>Rabies Tag (Optional)</label>
+                                <input type="text" className={styles.inputStyle} placeholder="Enter Rabies Tag" value={pet.rabiesTag} onChange={e => updatePet(pet.id, 'rabiesTag', e.target.value)} />
                             </div>
-                            <div style={{ gridColumn: '1 / -1' }}>
-                                <label style={labelStyle}>Notes (Optional)</label>
-                                <textarea style={{...inputStyle, minHeight: '80px', resize: 'vertical'}} placeholder="Enter here..." value={pet.notes} onChange={e => updatePet(pet.id, 'notes', e.target.value)}></textarea>
+                            <div className={styles.gridFull}>
+                                <label className={styles.labelStyle}>Notes (Optional)</label>
+                                <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Enter here..." value={pet.notes} onChange={e => updatePet(pet.id, 'notes', e.target.value)}></textarea>
                             </div>
                         </div>
                     </div>
@@ -479,20 +650,73 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 </div>
             ))}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', marginTop: '40px', paddingBottom: '40px', borderTop: '1px solid #eee', paddingTop: '24px' }}>
+            <div className={styles.footer}>
                 <button
-                    style={{ padding: '12px 36px', borderRadius: '8px', border: '1px solid #333', background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#333' }}
+                    className={styles.cancelBtn}
                     onClick={onBack}
                 >
                     Cancel
                 </button>
                 <button
-                    style={{ padding: '12px 48px', borderRadius: '8px', border: 'none', background: '#000', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}
+                    className={styles.saveBtn}
                     onClick={handleSave}
                     disabled={loading}
                 >
                     {loading ? "Saving..." : "Save"}
                 </button>
+            </div>
+            </div>
+
+            {/* Right side: sticky summary */}
+            <div className={styles.rightPanel}>
+                <h3 className={styles.summaryTitle}>Summary</h3>
+                
+                <h4 className={styles.summarySectionTitle}>Customer Details</h4>
+                <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Source</span>
+                    <span className={styles.summaryValue}>{source || 'Unknown'}</span>
+                </div>
+                <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Customer Name</span>
+                    <span className={styles.summaryValue}>{`${firstName} ${lastName}`.trim() || '-'}</span>
+                </div>
+                <div className={styles.summaryRowSpaced}>
+                    <span className={styles.summaryLabel}>Mobile Number</span>
+                    <span className={styles.summaryValue}>{phone ? `+91 ${phone}` : '-'}</span>
+                </div>
+
+                <h4 className={styles.summarySectionTitle}>Pet Details</h4>
+                {pets.map((pet, idx) => (
+                    <div key={pet.id} className={`${styles.petSummaryBlock} ${idx === pets.length - 1 ? styles.petSummaryBlockLast : ''}`}>
+                        <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Pet Type</span>
+                            <span className={styles.summaryValue}>{pet.petType || '-'}</span>
+                        </div>
+                        <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Pet Name</span>
+                            <span className={styles.summaryValue}>{pet.petName || '-'}</span>
+                        </div>
+                        <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Breed</span>
+                            <span className={styles.summaryValue}>{pet.petBreed || '-'}</span>
+                        </div>
+                        {pet.ageType === 'exact' ? (
+                            <div className={styles.summaryRow}>
+                                <span className={styles.summaryLabel}>Date of Birth</span>
+                                <span className={styles.summaryValue}>{pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : '-'}</span>
+                            </div>
+                        ) : (
+                            <div className={styles.summaryRow}>
+                                <span className={styles.summaryLabel}>Age</span>
+                                <span className={styles.summaryValue}>{(pet.years || pet.months) ? `${pet.years || 0}y ${pet.months || 0}m` : '-'}</span>
+                            </div>
+                        )}
+                        <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Gender</span>
+                            <span className={styles.summaryValue}>{pet.petGender || '-'}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
