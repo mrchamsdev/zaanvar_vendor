@@ -128,7 +128,11 @@ const SalesInvoicePage = () => {
                 saleId={router.query.id}
                 trigger={managerTrigger}
                 onClose={() => {
-                    const { add, view, edit, id, ...restQuery } = router.query;
+                    if (router.query.returnUrl) {
+                        router.push(router.query.returnUrl);
+                        return;
+                    }
+                    const { add, view, edit, id, returnUrl, ...restQuery } = router.query;
                     router.push({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
                 }}
                 onRefresh={() => {

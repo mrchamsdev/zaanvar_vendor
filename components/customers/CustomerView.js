@@ -1,217 +1,371 @@
-import React, { useState } from "react";
-import { FiArrowLeft, FiMoreVertical, FiEdit2, FiInfo } from "react-icons/fi";
-import styles from "../../styles/purchase-bill/purchase-out.module.css";
+import React, { useState, useEffect } from "react";
+import { FiMoreVertical } from "react-icons/fi";
+import styles from "../../styles/customers/customerView.module.css";
+import { customerService } from "../../services/customerService";
+import { useRouter } from "next/router";
+import useStore from "../state/useStore";
 
-const CustomerView = ({ data, onBack, isSplit, onEdit }) => {
+const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
+    const { jwtToken } = useStore();
+    const [data, setData] = useState(initialData || {});
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("Sales");
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+    const router = useRouter();
 
-    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Reviews"];
-    const rightTabs = ["Clinic", "Boarding", "Daycare", "Grooming", "Ordered", "Return"];
+    useEffect(() => {
+        const fetchFullData = async () => {
+            if (initialData?.vendorCustomerId) {
+                setLoading(true);
+                try {
+                    const res = await customerService.getCustomerById(jwtToken, initialData.vendorCustomerId);
+                    if (res && (res.data || res.customer)) {
+                        setData(res.data || res.customer);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch full customer data", err);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        fetchFullData();
+    }, [initialData?.vendorCustomerId, jwtToken]);
+
+    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Payments ", "Reviews"];
+    const rightTabs = ["Clinic", "Boarding", "Daycare", "Grooming", "Ordered", "Return", "Payments "];
 
     const [activeRightTab, setActiveRightTab] = useState("Ordered");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeRightTab]);
+
+    const PaginationFooter = ({ totalItems = 0 }) => {
+        const totalPages = Math.ceil(totalItems / rowsPerPage);
+        const startItem = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+        const endItem = Math.min(currentPage * rowsPerPage, totalItems);
+
+        return (
+            <div className={styles.paginationContainer}>
+                <div className={styles.paginationLeft}>
+                    <div className={styles.rowsPerPageContainer}>
+                        Rows per Page
+                        <select
+                            className={styles.rowsSelect}
+                            value={rowsPerPage}
+                            onChange={(e) => {
+                                setRowsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                        </select>
+                    </div>
+                    <div>{totalItems > 0 ? `${startItem} - ${endItem} of ${totalItems} Items` : "0 Items"}</div>
+                </div>
+                <div className={styles.paginationRight}>
+                    <button
+                        className={`${styles.pageButton} ${styles.pageButtonPrev}`}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    >Previous</button>
+                    <button
+                        className={`${styles.pageButton} ${styles.pageButtonNext}`}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        style={{ opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1, cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer' }}
+                    >Next</button>
+                </div>
+            </div>
+        );
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const d = new Date(dateString);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
 
     const renderRightContent = () => {
+        if (loading) {
+            return <div className={styles.emptyState}>Loading...</div>;
+        }
+
         if (activeRightTab === "Ordered") {
+            const orders = data.orders || [];
             return (
-                <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #E5E7EB' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Recent Orders</h4>
-                        <div style={{ display: 'flex', gap: '4px', background: '#f5f5f5', padding: '4px', borderRadius: '8px' }}>
+                <div className={styles.tableCard}>
+                    <div className={styles.tableHeader}>
+                        <h4 className={styles.tableTitle}> Orders</h4>
+                        <div className={styles.tableTabsContainer}>
                             {rightTabs.map(t => (
-                                <button key={t} onClick={() => setActiveRightTab(t)} style={{
-                                    border: 'none', background: activeRightTab === t ? '#fff' : 'transparent',
-                                    color: activeRightTab === t ? '#E9315D' : '#555',
-                                    fontWeight: activeRightTab === t ? '600' : '500',
-                                    padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
-                                    boxShadow: activeRightTab === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}>
+                                <button key={t} onClick={() => setActiveRightTab(t)} className={`${styles.tableTab} ${activeRightTab === t ? styles.tableTabActive : styles.tableTabInactive}`}>
                                     {t}
                                 </button>
                             ))}
                         </div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                        <thead>
-                            <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', textTransform: 'uppercase', fontSize: '12px' }}>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Date</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Invoice</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Payment Type</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Amount</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Balance</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600', textAlign: 'center' }}>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[1, 2, 3, 4].map((item, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                    <td style={{ padding: '16px 24px' }}>20 Apr 2026</td>
-                                    <td style={{ padding: '16px 24px' }}>0{item}</td>
-                                    <td style={{ padding: '16px 24px' }}>Cash</td>
-                                    <td style={{ padding: '16px 24px' }}>₹ 0000</td>
-                                    <td style={{ padding: '16px 24px' }}>₹ 0000</td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><button style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiMoreVertical /></button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    {orders.length === 0 ? (
+                        <div className={styles.emptyState}>No orders found</div>
+                    ) : (
+                        <div className={styles.tableScrollContainer}>
+                            <table className={styles.dataTable}>
+                                <thead>
+                                    <tr className={styles.dataTableHeaderRow}>
+                                        <th className={styles.dataTableHeader}>Date</th>
+                                        <th className={styles.dataTableHeader}>Invoice</th>
+                                        <th className={styles.dataTableHeader}>Payment Type</th>
+                                        <th className={styles.dataTableHeader}>Amount</th>
+                                        <th className={styles.dataTableHeader}>Balance</th>
+                                        <th className={styles.dataTableHeaderCenter}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {orders.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item, i) => (
+                                        <tr key={i} className={styles.dataTableRow}>
+                                            <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.dueAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCellCenter} style={{ position: 'relative' }}>
+                                                <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.userOrderId ? null : item.userOrderId)}>
+                                                    <FiMoreVertical />
+                                                </button>
+                                                {openDropdownId === item.userOrderId && (
+                                                    <div className={styles.dropdownMenu}>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            const returnUrl = `/customers?branchId=${router.query.branchId || ''}&action=view&id=${data.vendorCustomerId || initialData?.vendorCustomerId}`;
+                                                            router.push(`/sale/sales-invoice?branchId=91&view=true&id=${item.userOrderId}&returnUrl=${encodeURIComponent(returnUrl)}`);
+                                                        }}>View</button>
+                                                        <button className={styles.dropdownItem}>Print</button>
+                                                        <button className={styles.dropdownItem}>Open PDF</button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    <PaginationFooter totalItems={orders.length} />
                 </div>
             );
         } else if (activeRightTab === "Return") {
+            const returns = data.returns || [];
             return (
-                <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #E5E7EB' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Recent Returns</h4>
-                        <div style={{ display: 'flex', gap: '4px', background: '#f5f5f5', padding: '4px', borderRadius: '8px' }}>
+                <div className={styles.tableCard}>
+                    <div className={styles.tableHeader}>
+                        <h4 className={styles.tableTitle}> Returns</h4>
+                        <div className={styles.tableTabsContainer}>
                             {rightTabs.map(t => (
-                                <button key={t} onClick={() => setActiveRightTab(t)} style={{
-                                    border: 'none', background: activeRightTab === t ? '#fff' : 'transparent',
-                                    color: activeRightTab === t ? '#E9315D' : '#555',
-                                    fontWeight: activeRightTab === t ? '600' : '500',
-                                    padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
-                                    boxShadow: activeRightTab === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}>
+                                <button key={t} onClick={() => setActiveRightTab(t)} className={`${styles.tableTab} ${activeRightTab === t ? styles.tableTabActive : styles.tableTabInactive}`}>
                                     {t}
                                 </button>
                             ))}
                         </div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                        <thead>
-                            <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', textTransform: 'uppercase', fontSize: '12px' }}>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Date</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Ref No</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Received</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600' }}>Balance</th>
-                                <th style={{ padding: '12px 24px', fontWeight: '600', textAlign: 'center' }}>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[1, 2, 3, 4].map((item, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                    <td style={{ padding: '16px 24px' }}>20 Apr 2026</td>
-                                    <td style={{ padding: '16px 24px' }}>0{item}</td>
-                                    <td style={{ padding: '16px 24px' }}>₹ 0000</td>
-                                    <td style={{ padding: '16px 24px' }}>₹ 0000</td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><button style={{ background: 'none', border: 'none', cursor: 'pointer' }}><FiMoreVertical /></button></td>
-                                </tr>
+                    {returns.length === 0 ? (
+                        <div className={styles.emptyState}>No returns found</div>
+                    ) : (
+                        <div className={styles.tableScrollContainer}>
+                            <table className={styles.dataTable}>
+                                <thead>
+                                    <tr className={styles.dataTableHeaderRow}>
+                                        <th className={styles.dataTableHeader}>Date</th>
+                                        <th className={styles.dataTableHeader}>Bill No</th>
+                                        <th className={styles.dataTableHeader}>Return No</th>
+                                        <th className={styles.dataTableHeader}>Received</th>
+                                        <th className={styles.dataTableHeader}>Balance</th>
+                                        <th className={styles.dataTableHeaderCenter}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {returns.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item, i) => (
+                                        <tr key={i} className={styles.dataTableRow}>
+                                            <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
+                                            <td className={styles.dataTableCell}>-</td>
+                                            <td className={styles.dataTableCell}>{item.customerReturnId}</td>
+                                            <td className={styles.dataTableCell}>₹ {item.totalReturnAmount || '0.00'}</td>
+                                            <td className={styles.dataTableCell}>₹ 0.00</td>
+                                            <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    <PaginationFooter totalItems={returns.length} />
+                </div>
+            );
+        } else if (activeRightTab === "Payments " || activeRightTab === "Payment History") {
+            const payments = data.payments || [];
+            return (
+                <div className={styles.tableCard}>
+                    <div className={styles.tableHeader}>
+                        <h4 className={styles.tableTitle}>Payments</h4>
+                        <div className={styles.tableTabsContainer}>
+                            {rightTabs.map(t => (
+                                <button key={t} onClick={() => setActiveRightTab(t)} className={`${styles.tableTab} ${activeRightTab === t ? styles.tableTabActive : styles.tableTabInactive}`}>
+                                    {t}
+                                </button>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
+                    {payments.length === 0 ? (
+                        <div className={styles.emptyState}>No payment history found</div>
+                    ) : (
+                        <div className={styles.tableScrollContainer}>
+                            <table className={styles.dataTable}>
+                                <thead>
+                                    <tr className={styles.dataTableHeaderRow}>
+                                        <th className={styles.dataTableHeader}>Invoice Number</th>
+                                        <th className={styles.dataTableHeader}>Invoice Id</th>
+                                        <th className={styles.dataTableHeader}>Payment Date</th>
+                                        <th className={styles.dataTableHeader}>Total amount</th>
+                                        <th className={styles.dataTableHeader}>Payment Type</th>
+                                        <th className={styles.dataTableHeader}>Paid amount</th>
+                                        <th className={styles.dataTableHeader}>Balance</th>
+                                        <th className={styles.dataTableHeaderCenter}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payments.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item, i) => (
+                                        <tr key={i} className={styles.dataTableRow}>
+                                            <td className={styles.dataTableCell}>{safeRender(item.invoiceNumber, 'Inv-0856054')}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.invoiceId, '12345')}</td>
+                                            <td className={styles.dataTableCell}>{formatDate(item.paymentDate || item.createdDate)}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.amount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.balance, '0.00')}</td>
+                                            <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    <PaginationFooter totalItems={payments.length} />
                 </div>
             );
         } else {
-             return (
-                <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #E5E7EB' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Recent {activeRightTab}</h4>
-                        <div style={{ display: 'flex', gap: '4px', background: '#f5f5f5', padding: '4px', borderRadius: '8px' }}>
+            return (
+                <div className={styles.tableCard}>
+                    <div className={styles.tableHeader}>
+                        <h4 className={styles.tableTitle}> {activeRightTab}</h4>
+                        <div className={styles.tableTabsContainer}>
                             {rightTabs.map(t => (
-                                <button key={t} onClick={() => setActiveRightTab(t)} style={{
-                                    border: 'none', background: activeRightTab === t ? '#fff' : 'transparent',
-                                    color: activeRightTab === t ? '#E9315D' : '#555',
-                                    fontWeight: activeRightTab === t ? '600' : '500',
-                                    padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px',
-                                    boxShadow: activeRightTab === t ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}>
+                                <button key={t} onClick={() => setActiveRightTab(t)} className={`${styles.tableTab} ${activeRightTab === t ? styles.tableTabActive : styles.tableTabInactive}`}>
                                     {t}
                                 </button>
                             ))}
                         </div>
                     </div>
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Data under development</div>
+                    <div className={styles.emptyState}>Data under development</div>
                 </div>
-             );
+            );
         }
     };
 
+    const safeRender = (val, fallback = '-') => {
+        if (val === null || val === undefined || val === '') return fallback;
+        if (typeof val === 'object') return JSON.stringify(val);
+        return String(val);
+    };
+
     return (
-        <div style={{ padding: '24px', background: '#F9FAFB', minHeight: '100%', fontFamily: "'Inter', sans-serif" }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E9315D', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginBottom: '24px' }} onClick={onBack}>
-                <button style={{ background: '#fcecf0', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E9315D', cursor: 'pointer' }}><span style={{fontSize: '18px', lineHeight: '18px', marginTop: '-2px'}}>←</span></button>
+        <div className={styles.viewContainer}>
+            <div className={styles.backButtonContainer} onClick={onBack}>
+                <button className={styles.backButton}><span className={styles.backIcon}>←</span></button>
                 Back
             </div>
 
-            <div style={{ display: 'flex', gap: '24px', flexDirection: isSplit ? 'column' : 'row' }}>
+            <div className={`${styles.mainLayout} ${isSplit ? styles.mainLayoutColumn : styles.mainLayoutRow}`}>
                 {/* Left Sidebar */}
-                <div style={{ width: isSplit ? '100%' : '300px', flexShrink: 0, background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '24px', borderBottom: '1px solid #E5E7EB' }}>
-                        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: '0 0 4px 0' }}>{`${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown'}</h2>
-                        <div style={{ color: '#6B7280', fontSize: '14px' }}>({data.phoneNumber || 'N/A'})</div>
+                <div className={isSplit ? styles.leftSidebarSplit : styles.leftSidebarNormal}>
+                    <div className={styles.sidebarHeader}>
+                        <h2 className={styles.sidebarName}>{`${safeRender(data.firstName, '')} ${safeRender(data.lastName, '')}`.trim() || 'Unknown'}</h2>
+                        <div className={styles.sidebarPhone}>({safeRender(data.phoneNumber, 'N/A')})</div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 0' }}>
+                    <div className={styles.navContainer}>
                         {sidebarNavs.map(nav => (
-                            <button key={nav} onClick={() => setActiveTab(nav)} style={{
-                                background: activeTab === nav ? '#fcecf0' : 'transparent',
-                                border: 'none', textAlign: 'left', padding: '16px 24px', fontSize: '14px',
-                                color: activeTab === nav ? '#E9315D' : '#4B5563',
-                                fontWeight: activeTab === nav ? '600' : '500',
-                                cursor: 'pointer', transition: 'background 0.2s'
-                            }}>
+                            <button key={nav} onClick={() => setActiveTab(nav)} className={`${styles.navButton} ${activeTab === nav ? styles.navButtonActive : styles.navButtonInactive}`}>
                                 {nav}
                             </button>
                         ))}
                     </div>
-                    <div style={{ padding: '24px', borderTop: '1px solid #E5E7EB', marginTop: 'auto' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 16px 0', color: '#111' }}>Personal Information</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                    <div className={styles.personalInfoSection}>
+                        <h4 className={styles.personalInfoTitle}>Personal Information</h4>
+                        <div className={styles.infoGrid}>
                             <div>
-                                <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>Alternate Phone No</div>
-                                <div style={{ fontSize: '13px', fontWeight: '500' }}>{data.alternatePhoneNumber || '-'}</div>
+                                <div className={styles.infoLabel}>Alternate Phone No</div>
+                                <div className={styles.infoValue}>{safeRender(data.alternatePhoneNumber)}</div>
                             </div>
                             <div>
-                                <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>E-mail Id</div>
-                                <div style={{ fontSize: '13px', fontWeight: '500', wordBreak: 'break-all' }}>{data.email || '-'}</div>
+                                <div className={styles.infoLabel}>E-mail Id</div>
+                                <div className={styles.infoValueBreak}>{safeRender(data.email)}</div>
                             </div>
                         </div>
-                        <button onClick={onEdit} style={{
-                            width: '100%', padding: '12px', background: 'transparent', border: '1px solid #E9315D',
-                            color: '#E9315D', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                        }}>
-                            <span style={{transform: 'scale(1.2)'}}>✎</span> Edit Customer Details
+                        <button onClick={onEdit} className={styles.editButton}>
+                            <span className={styles.editIcon}>✎</span> Edit Customer Details
                         </button>
                     </div>
                 </div>
 
                 {/* Right Content */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: isSplit ? '1fr' : '1fr 1fr', gap: '24px' }}>
-                        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', padding: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Grooming Overview</h4>
-                                <span style={{ color: '#9CA3AF', cursor: 'help' }}>ⓘ</span>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>₹900</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>Revenue</div>
+                <div className={styles.rightContent}>
+                    {activeTab === "Sales" ? (
+                        <>
+                            <div className={isSplit ? styles.overviewGridSplit : styles.overviewGridNormal}>
+                                <div className={styles.overviewCard}>
+                                    <div className={styles.overviewHeader}>
+                                        <h4 className={styles.overviewTitle}>Grooming Overview</h4>
+                                        <span className={styles.overviewIcon}>ⓘ</span>
+                                    </div>
+                                    <div className={styles.overviewStatsGrid}>
+                                        <div>
+                                            <div className={styles.statValue}>₹900</div>
+                                            <div className={styles.statLabel}>Revenue</div>
+                                        </div>
+                                        <div>
+                                            <div className={styles.statValue}>1</div>
+                                            <div className={styles.statLabel}>Appointments</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>1</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>Appointments</div>
+                                <div className={styles.overviewCard}>
+                                    <div className={styles.overviewHeader}>
+                                        <h4 className={styles.overviewTitle}>Boarding and Daycare Overview</h4>
+                                        <span className={styles.overviewIcon}>ⓘ</span>
+                                    </div>
+                                    <div className={styles.overviewStatsGrid}>
+                                        <div>
+                                            <div className={styles.statValue}>₹900</div>
+                                            <div className={styles.statLabel}>Revenue</div>
+                                        </div>
+                                        <div>
+                                            <div className={styles.statValue}>1</div>
+                                            <div className={styles.statLabel}>Appointments</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', padding: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: '600', margin: 0 }}>Boarding and Daycare Overview</h4>
-                                <span style={{ color: '#9CA3AF', cursor: 'help' }}>ⓘ</span>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>₹900</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>Revenue</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>1</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>Appointments</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {renderRightContent()}
-
+                            {renderRightContent()}
+                        </>
+                    ) : (
+                        <div className={styles.tableCard} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+                            <h2 style={{ color: '#555', fontWeight: '500' }}>{activeTab} and it is under development</h2>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -322,3 +322,36 @@
     padding: 0 10px;
   }
 }
+
+.managerHeaderStatic {
+  background: #F9FAFB;
+  padding: 16px 48px;
+  border-bottom: 1px solid #eee;
+  font-size: 15px;
+  font-weight: 500;
+  color: #111;
+}
+
+.emptySelect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #888;
+}
+
+.paddingBottom60 {
+  padding-bottom: 60px;
+}
+
+.displayContents {
+  display: contents;
+}
+
+.displayFlex {
+  display: flex;
+}
+
+.hidden {
+  display: none !important;
+}

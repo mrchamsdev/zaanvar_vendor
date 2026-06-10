@@ -208,7 +208,7 @@ const CustomerFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
   const activeTab = tabs.find(t => t.id === activeTabId);
 
   return (
-    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`} style={{ paddingBottom: minimizedTabs.length > 0 ? '60px' : '0' }}>
+    <div className={`${styles.taskManager} ${isAnyVisible ? styles.managerActive : ""} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""} ${minimizedTabs.length > 0 ? styles.paddingBottom60 : ""}`}>
       {isAnyVisible && (
         <div className={styles.tabBar}>
           {visibleTabs.map(tab => (
@@ -228,16 +228,16 @@ const CustomerFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
         </div>
       )}
 
-      <div style={{ display: (isAnyVisible && activeTab && !activeTab.isMinimized) ? 'contents' : 'none' }}>
-        <div className={styles.managerHeader} style={{ background: '#F9FAFB', padding: '16px 48px', borderBottom: '1px solid #eee', fontSize: '15px', fontWeight: '500', color: '#111' }}>
+      <div className={(isAnyVisible && activeTab && !activeTab.isMinimized) ? styles.displayContents : styles.hidden}>
+        <div className={`${styles.managerHeader} ${styles.managerHeaderStatic}`}>
           {(activeTab || {}).mode || mode} Customer
         </div>
         <div className={`${styles.formContent} ${splitMode ? styles.splitMode : ""}`}>
-          <div className={styles.formWrapper} style={{ display: (!splitMode || splitTabIds[0]) ? 'flex' : 'none' }}>
+          <div className={`${styles.formWrapper} ${(!splitMode || splitTabIds[0]) ? styles.displayFlex : styles.hidden}`}>
             {tabs.map(tab => (
               <div 
                 key={tab.id} 
-                style={{ display: tab.id === (splitMode ? splitTabIds[0] : activeTabId) && !tab.isMinimized ? 'contents' : 'none' }}
+                className={(tab.id === (splitMode ? splitTabIds[0] : activeTabId) && !tab.isMinimized) ? styles.displayContents : styles.hidden}
               >
                 {splitMode && <div className={styles.formLabel}>{tab.title}</div>}
                 {tab.mode === "View" ? (
@@ -277,14 +277,14 @@ const CustomerFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
                 )}
               </div>
             ))}
-            {splitMode && !splitTabIds[0] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select customer</div>}
+            {splitMode && !splitTabIds[0] && <div className={styles.emptySelect}>Select customer</div>}
           </div>
 
-          <div className={styles.formWrapper} style={{ display: splitMode ? 'flex' : 'none' }}>
+          <div className={`${styles.formWrapper} ${splitMode ? styles.displayFlex : styles.hidden}`}>
             {tabs.map(tab => (
               <div 
                 key={tab.id} 
-                style={{ display: tab.id === splitTabIds[1] && !tab.isMinimized ? 'contents' : 'none' }}
+                className={(tab.id === splitTabIds[1] && !tab.isMinimized) ? styles.displayContents : styles.hidden}
               >
                 <div className={styles.formLabel}>{tab.title}</div>
                 {tab.mode === "View" ? (
@@ -312,7 +312,7 @@ const CustomerFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
                 )}
               </div>
             ))}
-            {!splitTabIds[1] && <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#888'}}>Select customer</div>}
+            {!splitTabIds[1] && <div className={styles.emptySelect}>Select customer</div>}
           </div>
         </div>
       </div>
