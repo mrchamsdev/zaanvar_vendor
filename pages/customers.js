@@ -93,7 +93,7 @@ const CustomersPage = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const res = await customerService.getCustomers(jwtToken);
+      const res = await customerService.getCustomers(jwtToken, currentBranchId);
       if (res.status === "success") {
         setCustomers(res.data || []);
       }

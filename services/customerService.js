@@ -1,10 +1,11 @@
 import { WebApimanager } from "../components/utilities/WebApiManager";
 
 export const customerService = {
-  getCustomers: async (jwt) => {
+  getCustomers: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/customers`);
+      const url = branchId ? `vendor/customers?branchId=${branchId}` : `vendor/customers`;
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching customers:", error);
