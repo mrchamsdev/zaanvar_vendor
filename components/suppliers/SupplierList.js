@@ -74,7 +74,7 @@ const SupplierList = ({
               <tbody>
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: 40, color: '#666', fontWeight: 500 }}>
-                    The search you entered is not matching to any record
+                    The search you entered is not matching to any supplier
                   </td>
                 </tr>
               </tbody>

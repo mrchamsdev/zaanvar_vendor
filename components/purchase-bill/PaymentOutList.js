@@ -599,7 +599,7 @@ const PaymentOutList = ({ onAddClick }) => {
             if (key === 'refNo') targetValue = String(t.suppliersTransactionId);
             else if (key === 'partyName') targetValue = String(t.supplierName || t.transactionInfo || "");
             else if (key === 'paymentType') targetValue = String(t.paymentType || "");
-            else if (key === 'total') targetValue = String(getSupplierTotalBill(t.supplierId));
+            else if (key === 'total') targetValue = String(t.overallBillAmount || getSupplierTotalBill(t.supplierId));
             else if (key === 'paid') targetValue = String(getDisplayTotalAmount(t));
             else if (key === 'balance') targetValue = String(t.totalBalanceAmount || 0);
 
@@ -647,7 +647,7 @@ const PaymentOutList = ({ onAddClick }) => {
                 `" ${new Date(t.userTransactionDate).toLocaleDateString('en-GB')}"`,
                 `"${t.suppliersTransactionId}"`,
                 `"${(t.supplierName || t.transactionInfo || "N/A").replace(/"/g, '""')}"`,
-                `"${getSupplierTotalBill(t.supplierId)}"`,
+                `"${t.overallBillAmount || getSupplierTotalBill(t.supplierId)}"`,
                 `"${getDisplayTotalAmount(t)}"`,
                 `"${getDisplayPaymentType(t)}"`,
                 `"${(t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0}"`
@@ -722,14 +722,14 @@ const PaymentOutList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => new Date(item.userTransactionDate).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'suppliersTransactionId', align: 'left' },
                     { header: 'SUPPLIER NAME', render: (item) => item.supplierName || item.transactionInfo || 'N/A', align: 'left' },
-                    { header: 'TOTAL', align: 'right', render: (item) => Number(getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.overallBillAmount || getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
                     { header: 'BALANCE AMOUNT', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
                 ]}
                 items={filteredTransactions}
                 summary={[
-                    { label: 'Total Amount', value: `₹${Number(totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Total Amount', value: `₹${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                     { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                     { label: 'Balance', value: `₹${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
@@ -813,7 +813,7 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryTop}>
                             <div className={styles.summaryItem}>
                                 <span className={styles.summaryLabel}>Total Amount</span>
-                                <span className={styles.summaryValue}>₹{Number(totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className={styles.summaryValue}>₹{Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.summaryStats}>
                                 <span className={styles.percentText}>0% <FiArrowUpRight /></span>
@@ -999,7 +999,7 @@ const PaymentOutList = ({ onAddClick }) => {
                             {filteredTransactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        The search you entered is not matching to any record
+                                        The search you entered is not matching to any payment out
                                     </td>
                                 </tr>
                             ) : (
@@ -1015,7 +1015,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                                 <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
                                                 <td>{t.suppliersTransactionId}</td>
                                                 <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
-                                                <td>{Number(getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{Number(t.overallBillAmount || getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(t)}</td>
                                                 <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>

@@ -193,8 +193,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{item.bill?.userOrderId || item.userOrderId || '-'}</td>
                                             <td className={styles.dataTableCell}>{item.customerReturnId}</td>
-                                            <td className={styles.dataTableCell}>₹ {Number(item.totalReturnAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                            <td className={styles.dataTableCell}>₹ {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                            <td className={styles.dataTableCell}>₹ {Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className={styles.dataTableCell}>₹ {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
                                         </tr>
                                     ))}
@@ -239,13 +239,13 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                 <tbody>
                                     {payments.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item, i) => (
                                         <tr key={i} className={styles.dataTableRow}>
-                                            <td className={styles.dataTableCell}>{safeRender(item.invoiceNumber, 'Inv-0856054')}</td>
-                                            <td className={styles.dataTableCell}>{safeRender(item.invoiceId, '12345')}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
+                                            <td className={styles.dataTableCell}>{safeRender(item.paymentId)}</td>
                                             <td className={styles.dataTableCell}>{formatDate(item.paymentDate || item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.amount, '0.00')}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.balance, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>₹ {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
                                             <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
                                         </tr>
                                     ))}

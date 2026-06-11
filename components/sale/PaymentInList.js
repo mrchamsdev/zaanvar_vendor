@@ -647,7 +647,7 @@ const PaymentInList = ({ onAddClick }) => {
             let targetVal = "";
             if (col === 'refNo') targetVal = refNo;
             if (col === 'partyName') targetVal = partyName;
-            if (col === 'amount') targetVal = getCustomerTotalAmount(p.vendorCustomerId).toString();
+            if (col === 'amount') targetVal = (p.totalAmount !== undefined && p.totalAmount !== null ? p.totalAmount : getCustomerTotalAmount(p.vendorCustomerId)).toString();
             if (col === 'paid') targetVal = getDisplayTotalAmount(p).toString();
             if (col === 'balance') targetVal = (p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)).toString();
 
@@ -751,7 +751,7 @@ const PaymentInList = ({ onAddClick }) => {
                 `" ${(parseApiToLocal(p.paymentDate || p.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
                 `"${p.userOrderId || p.paymentId || ""}"`,
                 `"${(p.customer ? p.customer.firstName + ' ' + p.customer.lastName : 'N/A').replace(/"/g, '""')}"`,
-                `"${getCustomerTotalAmount(p.vendorCustomerId)}"`,
+                `"${p.totalAmount !== undefined && p.totalAmount !== null ? p.totalAmount : getCustomerTotalAmount(p.vendorCustomerId)}"`,
                 `"${getDisplayPaymentType(p)}"`,
                 `"${getDisplayTotalAmount(p)}"`,
                 `"${p.dueAtTime !== undefined && p.dueAtTime !== null ? p.dueAtTime : getCustomerBalanceAmount(p.vendorCustomerId)}"`
@@ -826,7 +826,7 @@ const PaymentInList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.paymentDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.paymentId || "" },
                     { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : `Customer #${item.vendorCustomerId}`, align: 'left' },
-                    { header: 'TOTAL', align: 'right', render: (item) => Number(getCustomerTotalAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.totalAmount !== undefined && item.totalAmount !== null ? item.totalAmount : getCustomerTotalAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
                     { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAtTime !== undefined && item.dueAtTime !== null ? item.dueAtTime : getCustomerBalanceAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -1096,7 +1096,7 @@ const PaymentInList = ({ onAddClick }) => {
                             {filteredPayments.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className={styles.noDataCell}>
-                                        The search you entered is not matching to any record
+                                        The search you entered is not matching to any payment in
                                     </td>
                                 </tr>
                             ) : (
@@ -1125,7 +1125,7 @@ const PaymentInList = ({ onAddClick }) => {
                                                     )}
                                                 </td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
-                                                <td>{Number(getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{Number(p.totalAmount !== undefined && p.totalAmount !== null ? p.totalAmount : getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>
                                                 <td>{Number(getDisplayTotalAmount(p)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>
