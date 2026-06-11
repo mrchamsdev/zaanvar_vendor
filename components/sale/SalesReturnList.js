@@ -600,7 +600,7 @@ const SalesReturnList = ({ onAddClick }) => {
         });
         return {
             totalReturnAmount: totals?.totalReturnAmount || totals?.totalAmount || totalReturnAmount,
-            dueAmount: totals?.dueAmount || totals?.totalBalance || dueAmount
+            dueAmount: totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || dueAmount
         };
     }, [filteredReturns, totals]);
 
@@ -721,7 +721,7 @@ const SalesReturnList = ({ onAddClick }) => {
                 items={filteredReturns}
                 summary={[
                     { label: 'Total Return Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Total Balance Amount', value: `₹${Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Balance Amount', value: `₹${Number(totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
             />
         );

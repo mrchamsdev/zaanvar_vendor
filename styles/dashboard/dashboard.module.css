@@ -365,6 +365,13 @@
   margin: 0 0 clamp(14px, 2vh, 20px);
 }
 
+
+.dashboardPage {
+  height: 100vh;
+  padding: 20px;
+  background-color: white;
+}
+
 /* ── Dashboard: Company/Branch Cards row ── */
 .branchRow {
   display: flex;
