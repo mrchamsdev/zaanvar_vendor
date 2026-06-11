@@ -101,7 +101,7 @@ const CustomerList = ({
               <tbody>
                 <tr>
                   <td colSpan="7" className={styles.emptyCell}>
-                    The search you entered is not matching to any record
+                    The search you entered is not matching to any customer
                   </td>
                 </tr>
               </tbody>

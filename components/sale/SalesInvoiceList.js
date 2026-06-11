@@ -941,7 +941,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             {filteredInvoices.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className={styles.noDataCell}>
-                                        The search you entered is not matching to any record
+                                        The search you entered is not matching to any sales invoice
                                     </td>
                                 </tr>
                             ) : (
