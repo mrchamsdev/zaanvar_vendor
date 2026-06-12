@@ -127,6 +127,11 @@ const StockUpdateView = ({ stockId, onClose }) => {
 
   let displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
 
+  if (data.reason === "Marked damaged items as waste" || data.reason === "Marked expired items as waste") {
+    if (data.currentQty !== undefined && data.currentQty !== null) displayCurrentQty = data.currentQty;
+    if (data.updatedQty !== undefined && data.updatedQty !== null) displayUpdatedQty = data.updatedQty;
+  }
+
   const displayTotalVal = (() => {
     const rawVal = parseFloat(data.totalValue || 0);
     const addQty = parseInt(data.add) || 0;

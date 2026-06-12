@@ -202,6 +202,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 let updatedQtyVal = baseQty;
                 let currentQtyVal = updatedQtyVal - (data.add || 0) + (data.remove || 0);
 
+                let displayCurrentQty = isOS ? ((data.openQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (isHold ? ((data.holdQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal));
+                let displayUpdatedQty = isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal));
+
+                if (data.reason === "Marked damaged items as waste" || data.reason === "Marked expired items as waste") {
+                    if (data.currentQty !== undefined && data.currentQty !== null) displayCurrentQty = data.currentQty;
+                    if (data.updatedQty !== undefined && data.updatedQty !== null) displayUpdatedQty = data.updatedQty;
+                }
+
                 // Map API response to form row using correct keys from StockUpdateView
                 const mappedRow = {
                     id: data.stockUpdateId,
@@ -211,10 +219,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     variantId: parseInt(data.variantId || data.variant?.variantId),
                     sourceStatus: isOS ? "Open Stock" : (isHold ? "Hold Qty" : ""),
                     batchNumber: data.billItem?.batchNumber || data.batchNumber || "",
-                    currentQty: isOS ? ((data.openQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (isHold ? ((data.holdQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal)),
+                    currentQty: displayCurrentQty,
                     add: data.add || 0,
                     remove: data.remove || 0,
-                    updatedQty: isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal)),
+                    updatedQty: displayUpdatedQty,
                     reason: data.reason,
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,
