@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import PurchaseOrderForm from "./purchase-order-form";
 import ReceiveOrderForm from "./receive-order-form";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
     const formatVariantSize = (size) => {
@@ -31,6 +32,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
+    const [isPdf, setIsPdf] = useState(false);
 
     useEffect(() => {
         if (jwtToken && requestId) {
@@ -118,6 +120,63 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
 
     if (orderData.orderStatus === "received") {
         return <ReceiveOrderForm requestId={requestId} onClose={onClose} mode="view" />;
+    }
+
+    if (isPdf) {
+        const columns = [
+            { header: "S.NO", accessor: "sno" },
+            { header: "PRODUCT NAME", accessor: "productName" },
+            { header: "UNIT", accessor: "variant" },
+            { header: "QTY", accessor: "orderQty" },
+            { header: "PRICE", accessor: "costPrice" },
+            { header: "TAX", accessor: "tax" },
+            { header: "DISCOUNT", accessor: "discount" },
+            { header: "AMOUNT", accessor: "amount" }
+        ];
+
+        const pdfItems = orderData.items.map((item, idx) => ({
+            sno: String(idx + 1).padStart(2, '0'),
+            productName: item.productName,
+            variant: [item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--",
+            costPrice: item.costPrice ? `₹ ${item.costPrice}` : "-",
+            orderQty: item.qty,
+            tax: "-",
+            discount: "-",
+            amount: "-"
+        }));
+
+        const formattedAddress = orderData.branchAddress?.addressText || [orderData.branchAddress?.flatNo, orderData.branchAddress?.area, orderData.branchAddress?.city, [orderData.branchAddress?.state, orderData.branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+        const formattedCountry = orderData.branchAddress?.country || "";
+        const completeAddress = [formattedAddress, formattedCountry].filter(Boolean).join(", ");
+        
+        const customerAddress = [orderData.supplier?.street, orderData.supplier?.city, orderData.supplier?.state, orderData.supplier?.areaPinCode].filter(Boolean).join(", ") + (orderData.supplier?.country ? `, ${orderData.supplier?.country}` : "");
+
+        const orderDateFormatted = (orderData.modifiedDate || orderData.orderDate || orderData.createdDate) ?
+            new Date(orderData.modifiedDate || orderData.orderDate || orderData.createdDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "--";
+
+        return (
+            <PrintInvoiceTemplate
+                title={`Purchase Order ${orderData.orderStatus.toUpperCase()}`}
+                headerDetails={{
+                    companyName: orderData.branchName || "Branch Name",
+                    companyPhone: orderData.branchAddress?.phone || orderData.branchAddress?.mobile || null
+                }}
+                customerDetails={{
+                    name: orderData.supplier?.supplierName || "N/A",
+                    address: customerAddress,
+                    phone: orderData.supplier?.phone
+                }}
+                invoiceDetails={{
+                    "From Branch": orderData.branchName || "N/A",
+                    "Branch Address": completeAddress,
+                    "Order No": `PO-${String(orderData.purchaseRequestId).padStart(6, '0')}`,
+                    "Date": orderDateFormatted
+                }}
+                columns={columns}
+                items={pdfItems}
+                onClose={() => setIsPdf(false)}
+            />
+        );
     }
 
     return (
@@ -208,15 +267,15 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                 {orderData.orderStatus === "order placed" && (
                     <>
                         <button className={styles.cancelBtn} onClick={() => handleUpdateStatus("cancel order")}>Cancel Order</button>
-                        <button className={styles.printBtn} onClick={() => window.print()}>Print</button>
+                        <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
                         <button className={styles.placeOrderBtn} style={{ background: '#000' }} onClick={onReceive}>Receive Order</button>
                     </>
                 )}
                 {orderData.orderStatus === "cancel order" && (
-                    <button className={styles.printBtn} onClick={() => window.print()}>Print Summary</button>
+                    <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print Summary</button>
                 )}
                 {orderData.orderStatus === "received" && (
-                    <button className={styles.printBtn} onClick={() => window.print()}>Print Receipt</button>
+                    <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print Receipt</button>
                 )}
             </div>
         </div>

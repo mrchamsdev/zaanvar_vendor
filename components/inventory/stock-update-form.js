@@ -205,7 +205,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 let displayCurrentQty = isOS ? ((data.openQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (isHold ? ((data.holdQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal));
                 let displayUpdatedQty = isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal));
 
-                if (data.reason === "Marked damaged items as waste" || data.reason === "Marked expired items as waste") {
+                const reasonLower = (data.reason || "").trim().toLowerCase();
+                if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {
                     if (data.currentQty !== undefined && data.currentQty !== null) displayCurrentQty = data.currentQty;
                     if (data.updatedQty !== undefined && data.updatedQty !== null) displayUpdatedQty = data.updatedQty;
                 }
@@ -223,7 +224,13 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     add: data.add || 0,
                     remove: data.remove || 0,
                     updatedQty: displayUpdatedQty,
-                    reason: data.reason,
+                    reason: (() => {
+                        const r = data.reason || "";
+                        const rLower = r.toLowerCase();
+                        if (rLower === "marked damaged items as waste") return "Damaged";
+                        if (rLower === "marked expired items as waste") return "Expired";
+                        return r;
+                    })(),
                     expiryDate: data.billItem?.expiryDate?.split('T')[0] || data.expiryDate?.split('T')[0] || "",
                     costPrice: data.billItem?.costPrice || data.costPrice || 0,
                     total: (() => {
@@ -817,6 +824,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                 if (row.sourceStatus === "Hold Qty" && r === "OnHold") return false;
                                                                 return true;
                                                             }).map(r => <option key={r} value={r}>{r}</option>)}
+                                                            {mode === "View" && row.reason && !REASONS.includes(row.reason) && (
+                                                                <option value={row.reason}>{row.reason}</option>
+                                                            )}
                                                         </select>
                                                         {errors[`${index}_reason`] && <span className={styles.errorText}>{errors[`${index}_reason`]}</span>}
                                                     </td>
