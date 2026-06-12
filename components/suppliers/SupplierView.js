@@ -301,15 +301,18 @@ const SupplierView = ({ data, onBack, isSplit }) => {
 
                         {/* Right Section: Statistics Card */}
                         <div className={`${styles.statsCard} ${isSplit ? styles.statsCardSplit : ""}`}>
-                            <h4 className={styles.statsTitle}>Statistics</h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h4 className={styles.statsTitle} style={{ margin: 0 }}>Statistics</h4>
+                                <span style={{ fontSize: '13px', color: '#666' }}>Total order : <strong style={{ color: '#000', fontWeight: '500' }}>{supplier?.purchaseOrders?.length || supplier?.totalOrders || 0}</strong></span>
+                            </div>
                             <div className={styles.statsGrid}>
-                                <div>
-                                    <p className={styles.infoValue}>{supplier?.purchaseOrders?.length || 0}</p>
-                                    <p className={styles.infoLabel}>Total order </p>
-                                </div>
                                 <div>
                                     <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.overallBillAmount || supplier?.totals?.[0]?.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     <p className={styles.infoLabel}>Total Amount</p>
+                                </div>
+                                <div>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className={styles.infoLabel}>Paid Amount</p>
                                 </div>
                                 <div>
                                     <p className={styles.infoValue} style={{
@@ -321,8 +324,8 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    <p className={styles.infoLabel}>Paid Amount</p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 408).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className={styles.infoLabel}>Return Amount</p>
                                 </div>
                             </div>
                         </div>

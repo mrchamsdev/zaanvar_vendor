@@ -293,24 +293,27 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                     </div>
                                 </div>
 
-                                <div style={{ width: '300px', background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
-                                    <h4 style={{ marginBottom: '20px', fontSize: '14px', fontWeight: '600' }}>Statistics</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ width: '350px', background: '#fff', padding: '30px', borderRadius: '12px', border: '1px solid #eee' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                        <h4 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: '#000' }}>Statistics</h4>
+                                        <span style={{ fontSize: '13px', color: '#666' }}>Total order : <strong style={{ color: '#000', fontWeight: '500' }}>{supplier?.totalOrders ?? supplier?.totalOrderVolume ?? 50}</strong></span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                         <div>
-                                            <p style={{ fontWeight: '600', fontSize: '15px' }}>50</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>Total oreder Volume</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.totalAmount ?? '7499.00'}</p>
+                                            <p style={{ color: '#888', fontSize: '13px' }}>Total Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '600', fontSize: '15px' }}>₹ 7499.00</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>Total order value</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.paidAmount ?? '450'}</p>
+                                            <p style={{ color: '#888', fontSize: '13px' }}>Paid Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '600', fontSize: '15px' }}>₹ 0</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>Payment Due</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#b34162', marginBottom: '8px' }}>₹ {supplier?.balanceAmount ?? '0'}</p>
+                                            <p style={{ color: '#888', fontSize: '13px' }}>Balance Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '600', fontSize: '15px' }}>₹ 450</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>Credit Balance</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.totalReturnAmount ?? '408.00'}</p>
+                                            <p style={{ color: '#888', fontSize: '13px' }}>Return Amount</p>
                                         </div>
                                     </div>
                                 </div>
