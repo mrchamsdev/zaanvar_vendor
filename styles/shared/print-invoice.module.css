@@ -383,10 +383,26 @@
     background-color: white;
   }
 
+  body * {
+    visibility: hidden;
+  }
+
+  body.is-printing-pdf > :not(#print-invoice-wrapper) {
+    display: none !important;
+  }
+
+  .printWrapper, .printWrapper * {
+    visibility: visible;
+  }
+
   .printWrapper {
     background-color: transparent;
     padding: 0;
-    position: static;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
     height: auto;
     overflow: visible;
   }

@@ -2,6 +2,7 @@ import React from "react";
 import styles from "../../styles/purchase-bill/purchase-order-summary.module.css";
 import { FiChevronDown, FiPrinter } from "react-icons/fi";
 import PaymentDetailsPopup from "./payment-details-popup";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     const formatVariantSize = (size) => {
@@ -63,6 +64,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
     };
 
     const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
+    const [isPdf, setIsPdf] = React.useState(false);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return "-";
@@ -109,6 +111,36 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         let calculatedDamagedAmountTotal = 0;
         let calculatedShortfallAmountTotal = 0;
 
+        const pdfItems = items.map((item, idx) => {
+            const cost = parseFloat(item.costPrice) || 0;
+            const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
+            const received = parseFloat(item.receivedQty) || 0;
+            const damaged = parseFloat(item.damagedQty) || 0;
+
+            const baseQty = payBasedOnOrdered ? ordered : received;
+            const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
+
+            const billableSubtotal = billingQty * cost;
+
+            const discPercent = parseFloat(item.discount) || 0;
+            const discAmount = (billableSubtotal * discPercent / 100);
+            const afterDisc = billableSubtotal - discAmount;
+            const taxPercent = parseFloat(item.taxGroupId || item.tax) || 0;
+            const tax = (afterDisc * taxPercent / 100);
+            const finalProductAmount = afterDisc + tax;
+
+            return {
+                sno: String(idx + 1).padStart(2, '0'),
+                productName: item.productName,
+                variant: [formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--",
+                receivedQty: item.receivedQty || ordered,
+                costPrice: `₹ ${cost.toLocaleString()}`,
+                tax: taxPercent,
+                discount: discPercent,
+                amount: `₹ ${finalProductAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            };
+        });
+
         itemsList.forEach(item => {
             const cost = parseFloat(item.costPrice) || 0;
             const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
@@ -120,7 +152,6 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             totalOrderValue += (ordered * cost);
 
             const baseQty = payBasedOnOrdered ? ordered : received;
-            // Only deduct damaged from billing if returnsApplicable is true
             const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
             const billableSubtotal = billingQty * cost;
@@ -160,6 +191,41 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         const previousCredit = Number(finalPreviousCredit) || 0;
         const finalAmount = subtotal - overallDiscountVal + overallTaxVal - previousCredit;
 
+        const summaryData = [
+            { label: "Total Ordered Cost", value: `₹ ${totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+        ];
+
+        if (!payBasedOnOrdered && shortfallAmountTotal > 0) {
+            summaryData.push({ label: "Shortfall Amount", value: `- ₹ ${shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        if (returnsApplicable && damagedAmountTotal > 0) {
+            summaryData.push({ label: "Damaged Amount", value: `- ₹ ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        summaryData.push(
+            { label: "Subtotal", value: `₹ ${(subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+        );
+        if (overallDiscountVal > 0) {
+            summaryData.push({ label: "Overall Discount", value: `- ₹ ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        if (overallTaxVal > 0) {
+            summaryData.push({ label: "Overall Tax", value: `₹ ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        if (previousCredit > 0) {
+            summaryData.push({ label: "Previous Credit", value: `- ₹ ${previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        summaryData.push({ label: "Total Amount", value: `₹ ${finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true });
+
+        const columns = [
+            { header: "S.NO", accessor: "sno" },
+            { header: "PRODUCT NAME", accessor: "productName" },
+            { header: "UNIT", accessor: "variant" },
+            { header: "QTY", accessor: "receivedQty" },
+            { header: "PRICE", accessor: "costPrice" },
+            { header: "TAX", accessor: "tax" },
+            { header: "DISCOUNT", accessor: "discount" },
+            { header: "AMOUNT", accessor: "amount" }
+        ];
+
         return {
             totalCost: totalOrderValue,
             shortfallAmountTotal,
@@ -174,9 +240,46 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             finalAmount,
             previousCredit,
             payBasedOnOrdered,
-            damagedReturnedGoods
+            damagedReturnedGoods,
+            pdfItems,
+            columns,
+            summaryData
         };
     }, [items, data, finalOverallTax, finalOverallDiscount, finalPreviousCredit, receivedDetails]);
+
+    if (isPdf) {
+        const formattedAddress = branchAddress?.addressText || [branchAddress?.flatNo, branchAddress?.area, branchAddress?.city, [branchAddress?.state, branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+        const formattedCountry = branchAddress?.country || "";
+        const completeAddress = [formattedAddress, formattedCountry].filter(Boolean).join(", ");
+
+        const customerAddress = [supplier?.street, supplier?.city, supplier?.state, supplier?.areaPinCode].filter(Boolean).join(", ") + (supplier?.country ? `, ${supplier?.country}` : "");
+
+        return (
+            <PrintInvoiceTemplate
+                title="Received Order Receipt"
+                headerDetails={{
+                    companyName: branchName || "Branch Name",
+                    companyPhone: branchAddress?.phone || branchAddress?.mobile || null
+                }}
+                customerDetails={{
+                    name: supplier?.supplierName || "N/A",
+                    address: customerAddress,
+                }}
+                invoiceDetails={{
+                    "Delivered To": branchName || "N/A",
+                    "Delivery Address": completeAddress,
+                    "Order No": `PO-${String(purchaseRequestId || "").padStart(6, '0')}`,
+                    "Order Date": formatDate(orderDate),
+                    "Delivered On": formatDate(receivedDate || receivedDetails?.receivedDate || createdAt || orderDate),
+                    "Bill No": productsBillId || receivedDetails?.id || data?.id || "N/A"
+                }}
+                columns={breakdown.columns}
+                items={breakdown.pdfItems}
+                summary={breakdown.summaryData}
+                onClose={() => setIsPdf(false)}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -385,7 +488,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             </div> */}
 
             <div className={styles.footer}>
-                <button className={styles.printBtn} onClick={() => window.print()}>Print</button>
+                <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
                 {paymentStatus !== "Full" && (
                     <button className={styles.markPaidBtn} onClick={() => setShowPaymentPopup(true)}>Mark as Paid</button>
                 )}

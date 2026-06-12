@@ -284,21 +284,10 @@ const ProductsPage = () => {
         <div className={styles.addBtnWrapper}>
           <button
             className={styles.addBtn}
-            onClick={() => setShowAddDropdown(!showAddDropdown)}
+            onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
           >
-            <IconPlus /> Add Product <IconChevronDown />
+            <IconPlus /> Add Product
           </button>
-          {showAddDropdown && (
-            <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); setTriggerAddProduct(prev => prev + 1); }}>
-                <IconPlus /> Add Product
-              </div>
-              <hr style={{ margin: 0, border: 'none', borderTop: '1px solid #eee' }} />
-              <div className={styles.dropdownItem}>
-                <IconPlus /> Add Bulk Product
-              </div>
-            </div>
-          )}
         </div>
       )}
     >

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styles from '../../styles/shared/print-invoice.module.css';
 import useDashboardData from '../../components/dashboard/useDashboardData';
 import { numberToWords } from '../utilities/numberToWords';
@@ -12,20 +13,22 @@ const PrintInvoiceTemplate = ({
   items,
   summary,
   notes,
-  onClose
+  onClose,
+  useDynamicColumns,
+  headerDetails
 }) => {
   const { branch, company, vendor } = useDashboardData({ skipReviews: true });
 
-  const companyName = branch?.branchName || branch?.name || company?.name || vendor?.businessName || 'My Company';
-  const companyPhone = branch?.contactUs?.mobile || branch?.contactUs?.phone || branch?.mobileNo || branch?.phoneNumber || branch?.mobile || branch?.phone || company?.contactUs?.mobile || company?.contactUs?.phone || company?.mobileNo || company?.phoneNumber || company?.mobile || company?.phone || vendor?.phone || vendor?.mobile || vendor?.mobileNo || '-';
-  let clinicProfileImage = branch?.clinicProfileImage || branch?.logo || company?.clinicProfileImage || company?.logo || vendor?.clinicProfileImage || vendor?.logo || null;
+  const companyName = headerDetails?.companyName || branch?.branchName || branch?.name || company?.name || vendor?.businessName || 'My Company';
+  const companyPhone = headerDetails?.companyPhone || branch?.contactUs?.mobile || branch?.contactUs?.phone || branch?.mobileNo || branch?.phoneNumber || branch?.mobile || branch?.phone || company?.contactUs?.mobile || company?.contactUs?.phone || company?.mobileNo || company?.phoneNumber || company?.mobile || company?.phone || vendor?.phone || vendor?.mobile || vendor?.mobileNo || '-';
+  let clinicProfileImage = headerDetails?.logo || branch?.clinicProfileImage || branch?.logo || company?.clinicProfileImage || company?.logo || vendor?.clinicProfileImage || vendor?.logo || null;
   if (clinicProfileImage && !clinicProfileImage.startsWith('http')) {
-      clinicProfileImage = `${IMAGE_URL}${clinicProfileImage}`;
+    clinicProfileImage = `${IMAGE_URL}${clinicProfileImage}`;
   }
 
   // Determine layout type based on title
   const isPayment = title && title.toLowerCase().includes('payment');
-  
+
   // Extract Paid Amount for payments
   const totalRow = summary?.find(row => row.isTotal);
   const paidAmountStr = totalRow ? totalRow.value : '0';
@@ -34,18 +37,18 @@ const PrintInvoiceTemplate = ({
   const handleDownload = async () => {
     const element = document.getElementById('pdf-content-container');
     if (!element) return;
-    
+
     // Dynamically import html2pdf to avoid SSR issues
     const html2pdf = (await import('html2pdf.js')).default;
-    
+
     const opt = {
-      margin:       0.4,
-      filename:     `${title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'document'}.pdf`,
-      image:        { type: 'jpeg', quality: 1.0 },
-      html2canvas:  { scale: 3, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      margin: 0.4,
+      filename: `${title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'document'}.pdf`,
+      image: { type: 'jpeg', quality: 1.0 },
+      html2canvas: { scale: 3, useCORS: true, logging: false },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
-    
+
     html2pdf().set(opt).from(element).save();
   };
 
@@ -70,7 +73,40 @@ const PrintInvoiceTemplate = ({
     const discCol = columns.find(c => c.header.toLowerCase().includes('discount'));
     const amtCol = columns.find(c => c.header.toLowerCase().includes('amount') || c.header.toLowerCase().includes('total'));
 
-    const getVal = (col, item, idx) => col ? (col.accessor ? item[col.accessor] : col.render(item, idx)) : '-';
+    const getVal = (col, item, idx) => col ? (col.accessor ? item[col.accessor] : col.render ? col.render(item, idx) : item[col.accessor]) : '-';
+
+    if (useDynamicColumns) {
+      return (
+        <div className={styles.tableContainer}>
+          <table className={styles.itemsTable}>
+            <thead>
+              <tr>
+                {columns.map((c, i) => (
+                  <th key={i} style={{ textAlign: c.align || 'center' }}>{c.header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, rowIdx) => (
+                <tr key={rowIdx}>
+                  {columns.map((col, colIdx) => (
+                    <td key={colIdx} style={{ textAlign: col.align || 'center' }}>
+                      {getVal(col, item, rowIdx)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {summary && summary.filter(s => s.isTotal).length > 0 && (
+                <tr className={styles.tableTotalRow}>
+                  <td colSpan={columns.length - 1} className={styles.left}>TOTAL</td>
+                  <td style={{ textAlign: columns[columns.length - 1].align || 'center' }}>{paidAmountStr}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
 
     return (
       <div className={styles.tableContainer}>
@@ -114,22 +150,20 @@ const PrintInvoiceTemplate = ({
             ))}
             <tr className={styles.tableTotalRow}>
               <td colSpan={2} className={styles.left}>TOTAL</td>
-              <td>{items.reduce((acc, item) => acc + parseFloat(item.quantity || item.qty || 0), 0).toString().padStart(2, '0')}</td>
+              <td>{items.reduce((acc, item) => acc + parseFloat(item.quantity || item.qty || item.orderQty || item.receivedQty || 0), 0).toString().padStart(2, '0')}</td>
               <td></td>
               <td></td>
-              <td style={{ padding: 0 }}>
-                 <div className={styles.nestedCell}>
-                    <span style={{ border: 'none' }}></span>
-                    <span style={{ fontWeight: 'bold' }}>00</span>
-                  </div>
+              <td></td>
+              <td></td>
+              <td className={styles.right}>
+                {`₹ ${items.reduce((acc, item) => {
+                  let val = item.amount || item.total || item.totalValue || item.netAmount || 0;
+                  if (typeof val === 'string') {
+                    val = parseFloat(val.replace(/[^0-9.-]+/g, '')) || 0;
+                  }
+                  return acc + val;
+                }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </td>
-              <td style={{ padding: 0 }}>
-                 <div className={styles.nestedCell}>
-                    <span style={{ border: 'none' }}></span>
-                    <span style={{ fontWeight: 'bold' }}>00</span>
-                  </div>
-              </td>
-              <td className={styles.right}>{paidAmountStr}</td>
             </tr>
           </tbody>
         </table>
@@ -171,8 +205,15 @@ const PrintInvoiceTemplate = ({
     );
   };
 
-  return (
-    <div className={styles.printWrapper}>
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    document.body.classList.add('is-printing-pdf');
+    return () => document.body.classList.remove('is-printing-pdf');
+  }, []);
+
+  const content = (
+    <div id="print-invoice-wrapper" className={styles.printWrapper}>
       <div className={styles.pdfTopbar}>
         <span className={styles.pdfTitle}>{title} Preview</span>
         <div className={styles.pdfActions}>
@@ -196,9 +237,9 @@ const PrintInvoiceTemplate = ({
           </div>
           <div className={styles.imagePlaceholder} style={clinicProfileImage ? { background: 'transparent' } : {}}>
             {clinicProfileImage ? (
-                <img src={clinicProfileImage} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              <img src={clinicProfileImage} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (
-                "Image"
+              "Image"
             )}
           </div>
         </div>
@@ -285,6 +326,11 @@ const PrintInvoiceTemplate = ({
       </div>
     </div>
   );
+
+  if (mounted) {
+    return createPortal(content, document.body);
+  }
+  return content;
 };
 
 export default PrintInvoiceTemplate;
