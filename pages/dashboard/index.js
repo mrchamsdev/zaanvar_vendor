@@ -185,8 +185,9 @@ export default function DashboardHomePage() {
   ];
 
   const suppPaymentData = [
-    { name: 'Paid Out', value: Number(paymentsToSupplier?.paidOut || 0), color: '#3b82f6' },
-    { name: 'Due to suppliers', value: Number(paymentsToSupplier?.dueToSuppliers || 0), color: '#f97316' },
+    { name: 'Paid', value: Number(paymentsToSupplier?.paidOut || paymentsToSupplier?.paid || 0), color: '#3b82f6' },
+    { name: 'Pending', value: Number(paymentsToSupplier?.dueToSuppliers || paymentsToSupplier?.pending || 0), color: '#f59e0b' },
+    { name: 'Overdue', value: Number(paymentsToSupplier?.overdue || 0), color: '#ef4444' },
   ];
 
   const StatCard = ({ title, value, icon, bg }) => (
@@ -452,7 +453,7 @@ export default function DashboardHomePage() {
               <div style={{ width: 160, height: 160 }}>
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={suppPaymentData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
+                    <Pie data={suppPaymentData} innerRadius={55} outerRadius={75} paddingAngle={0} dataKey="value" stroke="none">
                       {suppPaymentData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
