@@ -85,9 +85,9 @@ const PaymentOutFormPage = () => {
                 setSupplierName(supplier ? `${supplier.supplierName} (${supplier.phone || ""})` : (t.transactionInfo || "Supplier"));
 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
-                setTotalBalance(totals.supplierTotalAmount || "000");
-                setTotalBillAmt(totals.overallBillAmount || totals.totalBillAmount || "");
-                setTotalBalanceAmt(totals.totalBalanceAmount || "");
+                setTotalBalance(t.overallBillAmount || totals.supplierTotalAmount || "000");
+                setTotalBillAmt(t.overallBillAmount || totals.overallBillAmount || totals.totalBillAmount || "");
+                setTotalBalanceAmt(t.totalBalanceAmount || totals.totalBalanceAmount || "");
                 setDescription(t.transactionInfo || "");
 
                 const splitList = t.splitTransactions || [];
