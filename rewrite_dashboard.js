@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+const fs = require('fs');
+
+const fileContent = `import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
@@ -28,7 +30,6 @@ const formatCurrency = (val) =>
 const TimeFilterDropdown = ({ value, fromDate, toDate, onChange, onDateChange }) => (
   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
     <select className={styles.timeSelect} value={value} onChange={e => onChange(e.target.value)}>
-      <option value="thisMonth">This Month</option>
       <option value="weekly">Weekly</option>
       <option value="lastMonth">Last Month</option>
       <option value="last3Months">Last 3 Months</option>
@@ -67,7 +68,7 @@ export default function DashboardHomePage() {
   const [loading, setLoading] = useState(true);
 
   // Initialize independent filters for each of the 8 dashboard sections
-  const defaultFilter = { filter: 'thisMonth', from: '', to: '' };
+  const defaultFilter = { filter: 'thisFinancialYear', from: '', to: '' };
   const [filters, setFilters] = useState({
     overallStats: { ...defaultFilter },
     saleVsPurchaseTrends: { ...defaultFilter },
@@ -93,20 +94,20 @@ export default function DashboardHomePage() {
         const id = branchId || vendor?.branchId || 91;
         const webApi = new WebApimanager(jwtToken);
         
-        let queryParams = `branchId=${id}`;
+        let queryParams = \`branchId=\${id}\`;
         
         Object.entries(filters).forEach(([section, values]) => {
-           queryParams += `&${section}DateFilter=${values.filter}`;
+           queryParams += \`&\${section}DateFilter=\${values.filter}\`;
            if (values.filter === 'custom') {
-              if (values.from) queryParams += `&${section}FromDate=${values.from}`;
-              if (values.to) queryParams += `&${section}ToDate=${values.to}`;
+              if (values.from) queryParams += \`&\${section}FromDate=\${values.from}\`;
+              if (values.to) queryParams += \`&\${section}ToDate=\${values.to}\`;
            }
            if (section === 'overallStats') {
-               queryParams += `&profitCategory=product`;
+               queryParams += \`&profitCategory=product\`;
            }
         });
 
-        const res = await webApi.get(`vendor/dashboard?${queryParams}`);
+        const res = await webApi.get(\`vendor/dashboard?\${queryParams}\`);
         const payload = res.data || res;
         if (payload && payload.status === "success") {
           setData(payload.data);
@@ -390,7 +391,7 @@ export default function DashboardHomePage() {
                   <Tooltip cursor={{ fill: 'transparent' }} />
                   <Bar dataKey="Sales" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={16}>
                     {topCategoriesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#a855f7', '#22c55e', '#fbbf24', '#ef4444'][index % 4]} />
+                      <Cell key={\`cell-\${index}\`} fill={['#a855f7', '#22c55e', '#fbbf24', '#ef4444'][index % 4]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -418,7 +419,7 @@ export default function DashboardHomePage() {
                   <PieChart>
                     <Pie data={custPaymentData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
                       {custPaymentData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={\`cell-\${index}\`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -454,7 +455,7 @@ export default function DashboardHomePage() {
                   <PieChart>
                     <Pie data={suppPaymentData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
                       {suppPaymentData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={\`cell-\${index}\`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -478,3 +479,7 @@ export default function DashboardHomePage() {
     </DashboardLayout>
   );
 }
+`;
+
+fs.writeFileSync('c:/Users/Sanja/OneDrive/Desktop/zaanvar_vendor/pages/dashboard/index.js', fileContent);
+console.log('Success');

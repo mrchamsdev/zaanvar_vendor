@@ -188,16 +188,27 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
         newItems[index][field] = finalValue;
         setItems(newItems);
 
-        if (formErrors.items?.[index]?.[field]) {
-            const newErrors = { ...formErrors };
+        const newErrors = { ...formErrors };
+        let hasError = false;
+
+        if (field === "costPrice" && finalValue !== "" && newItems[index].mrp) {
+            if (parseFloat(finalValue) > parseFloat(newItems[index].mrp)) {
+                if (!newErrors.items) newErrors.items = [];
+                if (!newErrors.items[index]) newErrors.items[index] = {};
+                newErrors.items[index].costPrice = `Max: ${newItems[index].mrp}`;
+                hasError = true;
+            }
+        }
+
+        if (!hasError && newErrors.items?.[index]?.[field]) {
             if (newErrors.items?.[index]) {
                 delete newErrors.items[index][field];
                 if (Object.keys(newErrors.items[index]).length === 0) {
                     newErrors.items[index] = null;
                 }
             }
-            setFormErrors(newErrors);
         }
+        setFormErrors(newErrors);
     };
 
     const selectProduct = (index, product) => {
@@ -476,19 +487,21 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                         {items.map((item, index) => (
                             <tr key={item.id}>
                                 <td style={{ textAlign: 'center', fontWeight: '700' }}>{String(index + 1).padStart(2, '0')}</td>
-                                <td className={styles.productSearchWrapper} style={{ minWidth: '250px', position: 'relative' }}>
-                                    <input
-                                        className={`${styles.tableInput} ${formErrors.items?.[index]?.productId ? styles.errorField : ""}`}
-                                        type="text"
-                                        placeholder="SELECT PRODUCT"
-                                        value={item.productName}
-                                        onFocus={() => {
-                                            setFocusedItemIndex(index);
-                                        }}
-                                        onChange={(e) => updateItem(index, "productName", e.target.value)}
-                                    />
-                                    <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
+                                <td className={`${styles.productSearchWrapper} ${formErrors.items?.[index]?.productId ? styles.errorField : ""}`} style={{ minWidth: '250px', position: 'relative', verticalAlign: 'top' }}>
+                                    <div style={{ position: 'relative', width: '100%' }}>
+                                        <input
+                                            className={styles.tableInput}
+                                            type="text"
+                                            placeholder="SELECT PRODUCT"
+                                            value={item.productName}
+                                            onFocus={() => {
+                                                setFocusedItemIndex(index);
+                                            }}
+                                            onChange={(e) => updateItem(index, "productName", e.target.value)}
+                                        />
+                                        <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.4 }}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
+                                        </div>
                                     </div>
                                     {formErrors.items?.[index]?.productId && (
                                         <div className={styles.errorMessage} style={{ fontSize: '11px', marginTop: '4px' }}>Required</div>
@@ -525,15 +538,17 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 </td>
                                 <td
                                     className={`${styles.variantCell} ${formErrors.items?.[index]?.variant ? styles.errorField : ""}`}
-                                    style={{ textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer' }}
+                                    style={{ textAlign: 'center', color: '#999', position: 'relative', cursor: 'pointer', verticalAlign: 'top' }}
                                     onClick={() => setFocusedVariantIndex(index)}
                                 >
-                                    {item.variant || "--"}
-                                    {item.allVariants?.length > 1 && (
-                                        <div style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }}>
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
-                                        </div>
-                                    )}
+                                    <div style={{ position: 'relative', width: '100%', minHeight: '19px' }}>
+                                        {item.variant || "--"}
+                                        {item.allVariants?.length > 1 && (
+                                            <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }}>
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6" /></svg>
+                                            </div>
+                                        )}
+                                    </div>
                                     {formErrors.items?.[index]?.variant && (
                                         <div className={styles.errorMessage} style={{ fontSize: '11px', marginTop: '4px', textAlign: 'center' }}>Required</div>
                                     )}
@@ -553,9 +568,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                     )}
                                 </td>
                                 <td style={{ textAlign: 'center', fontWeight: '700' }}>{item.currentStock || 0}</td>
-                                <td>
+                                <td className={formErrors.items?.[index]?.orderQty ? styles.errorField : ""}>
                                     <input
-                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.orderQty ? styles.errorField : ""}`}
+                                        className={styles.qtyInput}
                                         type="number"
                                         min="0"
                                         placeholder="0"
@@ -566,9 +581,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                         <div className={styles.errorMessage} style={{ textAlign: 'center' }}>Required</div>
                                     )}
                                 </td>
-                                <td>
+                                <td className={formErrors.items?.[index]?.costPrice ? styles.errorField : ""}>
                                     <input
-                                        className={`${styles.qtyInput} ${formErrors.items?.[index]?.costPrice ? styles.errorField : ""}`}
+                                        className={styles.qtyInput}
                                         type="number"
                                         step="0.01"
                                         placeholder="0.00"
