@@ -2,21 +2,21 @@ import React, { useState } from "react";
 import styles from "../../styles/pet-store/products.module.css";
 import { FiTrash2, FiEdit2, FiX } from "react-icons/fi";
 
-const ProductTable = ({ 
-  products = [], 
-  type, 
-  onTypeChange, 
+const ProductTable = ({
+  products = [],
+  type,
+  onTypeChange,
   onSelectionChange,
   onView,
   onDelete,
   onEdit,
-  selectedIds = [] 
+  selectedIds = []
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.productCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -42,14 +42,14 @@ const ProductTable = ({
   };
 
 
-  console.log(paginatedProducts,"paginatedProducts")
+  console.log(paginatedProducts, "paginatedProducts")
 
   return (
     <div className={styles.tableCard}>
       <div className={styles.tableSearch}>
-        <input 
-          type="text" 
-          placeholder="Search products here" 
+        <input
+          type="text"
+          placeholder="Search products here"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -60,8 +60,8 @@ const ProductTable = ({
           <thead>
             <tr>
               <th>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className={styles.checkbox}
                   onChange={toggleSelectAll}
                   checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))}
@@ -82,7 +82,7 @@ const ProductTable = ({
               paginatedProducts.map((product) => {
                 const variants = product.variants || [];
                 const firstVariant = variants[0] || {};
-                
+
                 // Calculate totals across variants
                 const totalQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.totalQuantity || 0), 0) || product.totalQuantity || "0";
                 const openQty = variants.reduce((sum, v) => sum + (v.stockUpdates?.openStockQuantity || 0), 0) || product.openingStock || "0";
@@ -93,16 +93,16 @@ const ProductTable = ({
                 return (
                   <tr key={product.id || product.productId}>
                     <td>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className={styles.checkbox}
                         checked={selectedIds.includes(product.id || product.productId)}
                         onChange={() => toggleSelectOne(product.id || product.productId)}
                       />
                     </td>
                     <td>{displayCode}</td>
-                    <td 
-                      className={styles.clickableName} 
+                    <td
+                      className={styles.clickableName}
                       onClick={() => onView(product)}
                     >
                       {product.productName}
@@ -130,7 +130,7 @@ const ProductTable = ({
       <div className={styles.pagination}>
         <div className={styles.paginationLeft}>
           <div className={styles.rowsPerPage}>
-            Rows per Page 
+            Rows per Page
             <select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -160,15 +160,15 @@ const ProductTable = ({
 
         <div className={styles.pageActions}>
           {currentPage > 1 && (
-            <button 
-              className={styles.paginationBtn} 
+            <button
+              className={styles.paginationBtn}
               onClick={() => setCurrentPage(prev => prev - 1)}
             >
               Previous
             </button>
           )}
           {currentPage < totalPages && (
-            <button 
+            <button
               className={`${styles.paginationBtn} ${styles.nextBtn}`}
               onClick={() => setCurrentPage(prev => prev + 1)}
             >

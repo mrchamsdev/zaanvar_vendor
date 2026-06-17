@@ -25,17 +25,11 @@ const IconX = () => (
 );
 
 const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialData, triggerNewTab }) => {
-    // Lock body scroll
-    useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = 'auto'; };
-    }, []);
-
     const [tabs, setTabs] = useState(() => {
         if (mode === "View" && initialId) {
             return [{ 
                 id: initialId, 
-                title: `Stock Details #${initialId}`, 
+                title: `Stock Details ${initialId}`, 
                 isMinimized: false, 
                 data: initialData || {}, 
                 mode: mode 
@@ -44,10 +38,24 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
         return []; 
     });
 
-    const [activeTabId, setActiveTabId] = useState(initialId || '1');
+    const [activeTabId, setActiveTabId] = useState(mode === "View" && initialId ? initialId : null);
     const [splitMode, setSplitMode] = useState(false);
-    const [splitTabIds, setSplitTabIds] = useState(['1', null]);
+    const [splitTabIds, setSplitTabIds] = useState([mode === "View" && initialId ? initialId : null, null]);
     const lastProcessedTrigger = React.useRef(0);
+
+    const visibleTabs = tabs.filter(t => !t.isMinimized);
+    const isAnyVisible = visibleTabs.length > 0;
+    const minimizedTabs = tabs.filter(t => t.isMinimized);
+
+    // Lock body scroll only when at least one tab is visible
+    useEffect(() => {
+        if (isAnyVisible) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+        return () => { document.body.style.overflow = 'auto'; };
+    }, [isAnyVisible]);
 
     // Handle external triggers for new tabs (Add mode)
     useEffect(() => {
@@ -64,7 +72,7 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
             if (!exists) {
                 const newTab = { 
                     id: initialId, 
-                    title: `Stock Details #${initialId}`, 
+                    title: `Stock Details ${initialId}`, 
                     isMinimized: false, 
                     data: initialData || {}, 
                     mode: "View" 
@@ -84,7 +92,7 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
     const addTab = () => {
         const newId = String(Date.now());
         const nextNum = tabs.length + 1;
-        const newTab = { id: newId, title: `Update Stock #${nextNum}`, isMinimized: false, data: {}, mode: "Add" };
+        const newTab = { id: newId, title: `Update Stock ${nextNum}`, isMinimized: false, data: {}, mode: "Add" };
         setTabs([...tabs, newTab]);
         setActiveTabId(newId);
         if (splitMode && !splitTabIds[1]) {
@@ -135,31 +143,34 @@ const StockUpdateManager = ({ onClose, onSave, mode = "Add", initialId, initialD
     };
 
     const activeTab = tabs.find(t => t.id === activeTabId);
-    const visibleTabs = tabs.filter(t => !t.isMinimized);
-    const isAnyVisible = visibleTabs.length > 0;
-    const minimizedTabs = tabs.filter(t => t.isMinimized);
 
     return (
-        <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.minimizedMode : ""}`}>
-            <div className={`${styles.tabBar} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
-                {visibleTabs.map(tab => (
-                    <div 
-                        key={tab.id} 
-                        className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
-                        onClick={() => setActiveTabId(tab.id)}
-                    >
-                        <span>{tab.title}</span>
-                        <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
-                    </div>
-                ))}
-                <button className={styles.addTabBtn} onClick={addTab}>+</button>
+        <div className={`${styles.taskManager} ${(!isAnyVisible && minimizedTabs.length > 0) ? `${styles.minimizedMode} task-manager-minimized` : ""}`}>
+            {isAnyVisible && (
+                <div className={styles.tabBar}>
+                    {visibleTabs.map(tab => (
+                        <div 
+                            key={tab.id} 
+                            className={`${styles.tab} ${activeTabId === tab.id ? styles.tabActive : ""}`}
+                            onClick={() => setActiveTabId(tab.id)}
+                        >
+                            <span>{tab.title}</span>
+                            <span className={styles.tabClose} onClick={(e) => closeTab(tab.id, e)}><IconX /></span>
+                        </div>
+                    ))}
+                    {mode === "Add" && (
+                        <button className={styles.addTabBtn} onClick={addTab}>+</button>
+                    )}
 
-                <div className={styles.windowActions}>
-                    <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
-                    <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
-                    <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
+                    <div className={styles.windowActions}>
+                        <span className={styles.windowActionIcon} onClick={() => toggleMinimize(activeTabId)} title="Minimize"><IconMinimize /></span>
+                        {tabs.length > 1 && (
+                            <span className={styles.windowActionIcon} onClick={toggleSplit} title="Split View"><IconSplit /></span>
+                        )}
+                        <span className={styles.windowActionIcon} onClick={onClose} title="Close All"><IconX /></span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className={`${styles.managerHeader} ${(!isAnyVisible && minimizedTabs.length > 0) ? styles.hidden : ""}`}>
                 Update Stock Multi-Tasking

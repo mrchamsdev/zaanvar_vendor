@@ -1,0 +1,456 @@
+.formLayout {
+    box-sizing: border-box;
+    width: 100%;
+    background: var(--color-white);
+    padding: 0px 32px 32px 32px;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+.leftPanel {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 16px;
+    padding-bottom: 32px;
+}
+
+.rightPanel {
+    width: 320px;
+    flex-shrink: 0;
+    margin-top: 16px;
+    padding: 24px;
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    margin-top: 16px;
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin-bottom: 20px;
+}
+
+.sectionTitleMargin {
+    margin-bottom: 16px;
+}
+
+.sectionContainer {
+    background: var(--color-white);
+    padding: 32px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    margin-bottom: 32px;
+}
+
+.petContainer {
+    background: var(--color-white);
+    padding: 32px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    margin-bottom: 32px;
+    position: relative;
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 32px;
+}
+
+.gridFull {
+    grid-column: 1 / -1;
+}
+
+.flexCol {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.flexRow {
+    display: flex;
+    gap: 16px;
+}
+
+.flexRowSpaced {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.labelStyle {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-body);
+    margin-bottom: 8px;
+    display: block;
+}
+
+.inputStyle {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    font-size: 14px;
+    color: var(--color-text-body);
+    outline: none;
+}
+
+.inputStyleSelect {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    font-size: 14px;
+    color: var(--color-text-body);
+    outline: none;
+    appearance: none;
+}
+
+.textAreaStyle {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.errorText {
+    color: var(--color-danger);
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+.asterisk {
+    color: var(--color-danger);
+}
+
+.optionalText {
+    color: var(--color-text-light);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.relative {
+    position: relative;
+}
+
+.selectChevron {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-gray-light);
+    pointer-events: none;
+}
+
+.weightUnit {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: var(--color-text-gray-light);
+    background: var(--color-bg-light);
+    padding-left: 8px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* File Upload Styles */
+.fileInputContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+}
+
+.fileInputBtn {
+    background: var(--color-text-gray-muted);
+    color: var(--color-white);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.fileName {
+    font-size: 13px;
+    color: var(--color-text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.removeBtn {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+}
+
+/* Pet Specific Styles */
+.addPetBtn {
+    color: var(--color-primary);
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.removePetBtn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--color-text-lighter);
+    cursor: pointer;
+}
+
+.petPhotoSection {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.petPhotoCircle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-border);
+    overflow: hidden;
+}
+
+.petPhotoImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photoInstructionTitle {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.photoInstructionSub {
+    font-size: 11px;
+    color: var(--color-primary);
+}
+
+.photoFileName {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.photoActions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+}
+
+.uploadPhotoBtn {
+    background: var(--color-black);
+    color: var(--color-white);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.removePhotoBtn {
+    background: var(--color-primary-light);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.petSubtitle {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-light);
+    font-size: 14px;
+    color: var(--color-text-body);
+    outline: none;
+    cursor: pointer;
+}
+
+.radioInput {
+    accent-color: var(--color-primary-dark);
+}
+
+.radioLabelSimple {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.petAgeSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.petAgeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-left: 24px;
+}
+
+.petAgeExact {
+    margin-left: 24px;
+    width: calc(50% - 16px);
+}
+
+.petMedicalSection {
+    background: var(--color-white);
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+}
+
+/* Footer Actions */
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 20px;
+    margin-top: 40px;
+    padding-bottom: 40px;
+    border-top: 1px solid var(--color-border-light);
+    padding-top: 24px;
+}
+
+.cancelBtn {
+    padding: 12px 36px;
+    border-radius: 8px;
+    border: 1px solid var(--color-text-body);
+    background: var(--color-white);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-body);
+}
+
+.saveBtn {
+    padding: 12px 48px;
+    border-radius: 8px;
+    border: none;
+    background: var(--color-black);
+    color: var(--color-white);
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Summary Styles */
+.summaryTitle {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-main);
+}
+
+.summarySectionTitle {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--color-text-main);
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.summaryRowSpaced {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    font-size: 13px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.summaryLabel {
+    color: var(--color-text-light);
+}
+
+.summaryValue {
+    font-weight: 500;
+    color: var(--color-text-body);
+}
+
+.petSummaryBlock {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.petSummaryBlockLast {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}

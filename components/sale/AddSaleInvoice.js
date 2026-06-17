@@ -1,3 +1,4 @@
+import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -21,6 +22,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
 
     const formatVariantSize = (size) => {
         if (!size) return "";
+        let formattedSize = size;
         if (typeof size === 'string' && size.trim().startsWith('{')) {
             try {
                 const parsed = JSON.parse(size);
@@ -30,43 +32,48 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 if (parsed.length) parts.push(`${parsed.length}${parsed.lengthUnit || 'mm'}L`);
                 if (parsed.radius) parts.push(`${parsed.radius}${parsed.radiusUnit || 'mm'}R`);
                 if (parsed.weight) parts.push(`${parsed.weight}${parsed.weightUnit || 'g'}`);
-                return parts.length > 0 ? parts.join(" x ") : size;
+                formattedSize = parts.length > 0 ? parts.join(" x ") : size;
             } catch (e) {
-                return size;
+                formattedSize = size;
             }
         }
-        return size;
+        const sizeStr = formattedSize.toString().trim();
+        if (/^\d+(\.\d+)?$/.test(sizeStr)) {
+            return `${sizeStr} pcs`;
+        }
+        return formattedSize;
     };
-    
+
     const [formData, setFormData] = useState({
         partyName: "",
         phone: "",
         vendorCustomerId: null,
         discountForCustomer: 0,
         invoiceNumber: "",
-        invoiceDate: new Date().toISOString().split('T')[0],
+        invoiceDate: toApiDateOnly(new Date()),
         status: "Pending"
     });
 
-    const [items, setItems] = useState([{ 
-        productId: "", 
+    const [items, setItems] = useState([{
+        productId: "",
         variantId: "",
-        productName: "", 
+        productName: "",
         unit: "Unit Type",
-        qty: 1, 
-        price: 0, 
+        qty: 1,
+        price: 0,
         discount: 0,
-        taxPercent: 0, 
-        taxAmount: 0, 
+        taxPercent: 0,
+        taxAmount: 0,
         amount: 0,
         availableQty: 0,
         availableVariants: []
     }]);
 
-    const [payments, setPayments] = useState([{ method: "Cash", amount: 0 }]);
-    
+    const [payments, setPayments] = useState([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (isOpen) {
@@ -99,24 +106,25 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             vendorCustomerId: null,
             discountForCustomer: 0,
             invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
-            invoiceDate: new Date().toISOString().split('T')[0],
+            invoiceDate: toApiDateOnly(new Date()),
             status: "Pending"
         });
-        setItems([{ 
-            productId: "", 
+        setItems([{
+            productId: "",
             variantId: "",
-            productName: "", 
+            productName: "",
             unit: "Unit Type",
-            qty: 1, 
-            price: 0, 
+            qty: 1,
+            price: 0,
             discount: 0,
-            taxPercent: 0, 
-            taxAmount: 0, 
+            taxPercent: 0,
+            taxAmount: 0,
             amount: 0,
             availableQty: 0,
             availableVariants: []
         }]);
-        setPayments([{ method: "Cash", amount: 0 }]);
+        setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+        setErrors({});
     };
 
     const fetchInitialData = async () => {
@@ -124,7 +132,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             // Using separate calls to handle individual failures gracefully
             const custRes = await saleService.getCustomers(jwtToken, branchId).catch(() => ({ status: "success", data: [] }));
             const prodRes = await productService.getAllProductsBrief(jwtToken, branchId).catch(() => []);
-            
+
             if (custRes.status === "success") setCustomers(custRes.data || []);
             setProducts(prodRes || []);
         } catch (error) {
@@ -151,13 +159,14 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 const data = res.data;
                 const customerName = data.customer ? `${data.customer.firstName} ${data.customer.lastName}`.trim() : (data.partyName || "");
                 const customerPhone = data.customer?.phoneNumber || data.phone || "";
-                
+
                 setFormData({
                     partyName: customerName,
                     phone: customerPhone,
                     vendorCustomerId: data.vendorCustomerId || null,
+                    discountForCustomer: data.discountForCustomer || 0,
                     invoiceNumber: data.userOrderId || data.invoiceNumber || "",
-                    invoiceDate: data.createdDate ? data.createdDate.split('T')[0] : "",
+                    invoiceDate: (data.invoiceDate || data.createdDate) ? (data.invoiceDate || data.createdDate).split('T')[0] : "",
                     status: data.status || "Pending"
                 });
 
@@ -166,11 +175,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     const variant = it.variant || it.Variant || {};
                     const vType = variant.variantType || {};
                     const unitLabel = formatVariantSize(vType.size) || vType.type || "Unit";
-                    
+
                     return {
                         productId: it.productId,
                         variantId: it.variantId,
-                        productName: it.productName || variant.SKU || "Product",
+                        productName: it.productName || it.product?.productName || variant.SKU || "Product",
                         unit: unitLabel,
                         qty: it.quantity || 0,
                         price: parseFloat(it.sellingPrice || 0),
@@ -179,18 +188,22 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         taxAmount: parseFloat(it.taxAmount || 0),
                         amount: parseFloat(it.itemTotal || 0),
                         availableQty: variant.currentQty || 0,
-                        availableVariants: variant.variantId ? [variant] : [] 
+                        availableVariants: variant.variantId ? [variant] : []
                     };
                 });
-                setItems(mappedItems.length > 0 ? mappedItems : [{ 
-                    productId: "", variantId: "", productName: "", unit: "Unit Type", qty: 1, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [] 
+                setItems(mappedItems.length > 0 ? mappedItems : [{
+                    productId: "", variantId: "", productName: "", unit: "Unit Type", qty: 1, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: []
                 }]);
-                
+
                 // Map payments if available, otherwise construct from paidAmount
                 if (data.payments && data.payments.length > 0) {
-                    setPayments(data.payments);
+                    setPayments(data.payments.map(pm => ({
+                        method: pm.method || pm.paymentMethod || pm.paymentType || "Cash",
+                        amount: parseFloat(pm.amount || 0),
+                        referenceNumber: pm.referenceNumber || pm.transactionRef || ""
+                    })));
                 } else if (data.paidAmount) {
-                    setPayments([{ method: "Cash", amount: parseFloat(data.paidAmount) }]);
+                    setPayments([{ method: data.paymentMethod || "Cash", amount: parseFloat(data.paidAmount), referenceNumber: data.referenceNumber || "" }]);
                 }
             }
         } catch (error) {
@@ -204,12 +217,18 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         if (type === 'name') {
             setFormData({ ...formData, partyName: val });
             setShowCustomerDropdown(true);
+            if (errors.partyName) {
+                setErrors(prev => ({ ...prev, partyName: null }));
+            }
             // Just updating the name, phone update happens on selection from dropdown usually
             // But if there's an exact match, we can fill it
             const exact = customers.find(c => `${c.firstName} ${c.lastName}`.toLowerCase() === val.toLowerCase());
             if (exact) setFormData(prev => ({ ...prev, phone: exact.phoneNumber, vendorCustomerId: exact.vendorCustomerId }));
         } else {
             setFormData({ ...formData, phone: val });
+            if (errors.phone) {
+                setErrors(prev => ({ ...prev, phone: null }));
+            }
             // Auto-select customer if 10 digits are entered
             if (val.length === 10) {
                 const found = customers.find(c => c.phoneNumber === val);
@@ -224,9 +243,9 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const newItems = [...items];
         const variants = prod.variants || [];
         const selectedVariant = variants.length > 0 ? variants[0] : null;
-        
+
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
-        const tax = parseFloat(prod.taxGroupId === 2 ? 18 : prod.taxGroupId === 3 ? 12 : 0);
+        const tax = parseFloat(prod.taxGroupId || 0);
         const qty = 1;
         const taxAmount = (price * qty * tax) / 100;
 
@@ -248,6 +267,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             amount: (price * qty) + taxAmount,
             availableQty: availableQty,
             availableVariants: variants, // Store for the unit dropdown
+            productError: null,
             error: qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
@@ -258,7 +278,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const newItems = [...items];
         const it = newItems[index];
         const v = it.availableVariants.find(varnt => String(varnt.variantId) === String(variantId));
-        
+
         if (v) {
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
             const taxAmount = (price * it.qty * it.taxPercent) / 100;
@@ -285,14 +305,15 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const qty = parseFloat(val) || 0;
         const newItems = [...items];
         const it = newItems[index];
-        
+
         const taxAmount = (it.price * qty * it.taxPercent) / 100;
         newItems[index] = {
             ...it,
             qty: val === "" ? "" : qty,
             taxAmount: taxAmount,
             amount: (it.price * qty) + taxAmount,
-            error: qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null
+            qtyError: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null),
+            error: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null)
         };
         setItems(newItems);
     };
@@ -307,7 +328,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     };
 
     const handleAddPayment = () => {
-        setPayments([...payments, { method: "Cash", amount: 0 }]);
+        setPayments([...payments, { method: "Cash", amount: 0, referenceNumber: "" }]);
     };
 
     const handlePaymentChange = (index, field, val) => {
@@ -317,27 +338,56 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     };
 
     const totalBillAmount = items.reduce((acc, it) => acc + (it.amount || 0), 0);
+    const discountForCustomer = parseFloat(formData.discountForCustomer || 0);
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
-    const balanceAmount = totalBillAmount - totalPaidAmount;
+    const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount;
 
     const handleSave = async () => {
-        if (!formData.partyName || !formData.phone) {
-            toast.error("Please provide customer name and phone");
+        const validationErrors = {};
+        if (!formData.partyName) {
+            validationErrors.partyName = "Customer name is required";
+        }
+        if (!formData.phone) {
+            validationErrors.phone = "Phone number is required";
+        }
+        if (!formData.invoiceDate) {
+            validationErrors.invoiceDate = "Invoice date is required";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (formData.invoiceDate > todayStr) {
+                validationErrors.invoiceDate = "Invoice date cannot be in the future";
+            }
+        }
+
+        const updatedItems = items.map(it => {
+            const itemErrors = {};
+            if (!it.productId) {
+                itemErrors.product = "Please select a product";
+            }
+            const qtyVal = parseFloat(it.qty) || 0;
+            if (qtyVal <= 0) {
+                itemErrors.qty = "Quantity must be greater than 0";
+            } else if (qtyVal > it.availableQty) {
+                itemErrors.qty = `Cannot exceed quantity (${it.availableQty})`;
+            }
+            return {
+                ...it,
+                productError: itemErrors.product || null,
+                qtyError: itemErrors.qty || null,
+                error: itemErrors.qty || null
+            };
+        });
+
+        const hasItemErrors = updatedItems.some(it => it.productError || it.qtyError);
+        const hasFormErrors = Object.keys(validationErrors).length > 0;
+
+        if (hasFormErrors || hasItemErrors) {
+            setErrors(validationErrors);
+            setItems(updatedItems);
             return;
         }
 
         const validItems = items.filter(it => it.productId);
-        if (validItems.length === 0) {
-            toast.error("Please add at least one product");
-            return;
-        }
-
-        for (const it of validItems) {
-            if (it.qty > it.availableQty) {
-                toast.error(`Quantity for ${it.productName} cannot exceed ${it.availableQty}`);
-                return;
-            }
-        }
 
         const payload = {
             branchId,
@@ -345,6 +395,22 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             discountForCustomer: parseFloat(formData.discountForCustomer || 0),
             amountPaid: totalPaidAmount,
             paymentMethod: payments[0]?.method || "Cash",
+            referenceNumber: payments[0]?.referenceNumber || "",
+            payments: payments.map(p => ({
+                paymentMethod: p.method,
+                paymentType: p.method,
+                method: p.method,
+                amount: parseFloat(p.amount) || 0,
+                referenceNumber: p.referenceNumber || ""
+            })),
+            paymentMethods: payments.map(p => ({
+                paymentMethod: p.method,
+                paymentType: p.method,
+                method: p.method,
+                amount: parseFloat(p.amount) || 0,
+                transactionRef: p.referenceNumber || "",
+                referenceNumber: p.referenceNumber || ""
+            })),
             items: validItems.map(it => ({
                 productId: it.productId,
                 variantId: it.variantId,
@@ -358,6 +424,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             createdBy: userInfo?.id || 1,
             modifiedBy: mode === 'edit' ? (userInfo?.id || 1) : null
         };
+
+        Object.assign(payload, dateOnlyWithTimeZone('invoiceDate', formData.invoiceDate));
 
         setLoading(true);
         try {
@@ -398,8 +466,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         <div className={styles.field}>
                             <label>Customer Name</label>
                             <div className={styles.searchableDropdown}>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     className={styles.input}
                                     placeholder="Enter customer name"
                                     value={formData.partyName}
@@ -412,10 +480,10 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                         {customers
                                             .filter(c => !formData.partyName || `${c.firstName} ${c.lastName}`.toLowerCase().includes(formData.partyName.toLowerCase()))
                                             .map(c => (
-                                                <div key={c.vendorCustomerId || c.id} className={styles.dropdownItem} onClick={() => { 
+                                                <div key={c.vendorCustomerId || c.id} className={styles.dropdownItem} onClick={() => {
                                                     const fullName = `${c.firstName} ${c.lastName}`.trim();
-                                                    setFormData(prev => ({ ...prev, partyName: fullName, phone: c.phoneNumber, vendorCustomerId: c.vendorCustomerId })); 
-                                                    setShowCustomerDropdown(false); 
+                                                    setFormData(prev => ({ ...prev, partyName: fullName, phone: c.phoneNumber, vendorCustomerId: c.vendorCustomerId }));
+                                                    setShowCustomerDropdown(false);
                                                 }}>
                                                     {c.firstName} {c.lastName} ({c.phoneNumber})
                                                 </div>
@@ -427,17 +495,27 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     </div>
                                 )}
                             </div>
+                            {errors.partyName && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.partyName}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Phone Number</label>
-                            <input 
-                                type="text" 
-                                className={styles.input} 
+                            <input
+                                type="text"
+                                className={styles.input}
                                 placeholder="Enter Phone"
                                 value={formData.phone}
                                 onChange={(e) => handleCustomerSearch(e.target.value, 'phone')}
                                 disabled={isViewOnly}
                             />
+                            {errors.phone && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.phone}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Invoice No</label>
@@ -445,7 +523,17 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         </div>
                         <div className={styles.field}>
                             <label>Invoice Date</label>
-                            <input type="date" className={styles.input} value={formData.invoiceDate} onChange={(e) => setFormData({...formData, invoiceDate: e.target.value})} disabled={isViewOnly} />
+                            <input type="date" className={styles.input} value={formData.invoiceDate} onChange={(e) => {
+                                setFormData({ ...formData, invoiceDate: e.target.value });
+                                if (errors.invoiceDate) {
+                                    setErrors(prev => ({ ...prev, invoiceDate: null }));
+                                }
+                            }} disabled={isViewOnly} />
+                            {errors.invoiceDate && (
+                                <div style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', fontWeight: '500' }}>
+                                    {errors.invoiceDate}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -455,15 +543,15 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                 <tr>
                                     <th rowSpan="2">S NO.</th>
                                     <th rowSpan="2">ENTER ITEM</th>
+                                    <th rowSpan="2" style={{ minWidth: "120px" }}>UNIT</th>
                                     <th rowSpan="2">QTY</th>
-                                    <th rowSpan="2">UNIT</th>
-                                    <th colSpan="1">Price /Unit</th>
-                                    <th colSpan="2" style={{textAlign: 'center'}}>TAX</th>
-                                    <th rowSpan="2" style={{textAlign: 'right'}}>AMOUNT</th>
+                                    <th colSpan="1">PRICE</th>
+                                    <th colSpan="2" style={{ textAlign: 'center' }}>TAX</th>
+                                    <th rowSpan="2" style={{ textAlign: 'right' }}>AMOUNT</th>
                                     {!isViewOnly && <th rowSpan="2"></th>}
                                 </tr>
                                 <tr>
-                                    <th className={styles.subHeader}>WITHOUT TAX <FiChevronDown size={10} /></th>
+                                    <th className={styles.subHeader}></th>
                                     <th className={styles.subHeader}>%</th>
                                     <th className={styles.subHeader}>AMOUNT</th>
                                 </tr>
@@ -472,22 +560,35 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                 {items.map((it, idx) => (
                                     <tr key={idx}>
                                         <td>{String(idx + 1).padStart(2, '0')}</td>
-                                        <td style={{position: 'relative', width: '35%'}}>
-                                            <div className={styles.searchableDropdown}>
-                                                <input 
-                                                    type="text" 
-                                                    className={styles.tableInput} 
+                                        <td style={{ position: 'relative', width: '28%' }}>
+                                            <div className={styles.searchableDropdown} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                                <input
+                                                    type="text"
+                                                    className={styles.tableInput}
+                                                    style={{ paddingRight: '20px' }}
                                                     placeholder="Select product"
                                                     value={it.productName}
                                                     onChange={(e) => {
                                                         const newItems = [...items];
                                                         newItems[idx].productName = e.target.value;
+                                                        newItems[idx].productError = null;
                                                         setItems(newItems);
                                                         setShowProductDropdown(idx);
                                                     }}
                                                     onFocus={() => setShowProductDropdown(idx)}
                                                     disabled={isViewOnly}
                                                 />
+                                                {!isViewOnly && (
+                                                    <FiChevronDown
+                                                        size={14}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '8px',
+                                                            pointerEvents: 'none',
+                                                            color: '#999'
+                                                        }}
+                                                    />
+                                                )}
                                                 {showProductDropdown === idx && !isViewOnly && (
                                                     <div className={styles.dropdownList}>
                                                         {products
@@ -496,68 +597,94 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                                 return !search || (p.productName || "").toLowerCase().includes(search);
                                                             })
                                                             .map((p) => (
-                                                                <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
-                                                                    <span style={{fontWeight: '600'}}>{p.productName}</span>
+                                                                 <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
+                                                                    <span style={{ fontWeight: '600' }}>{p.productName}</span>
                                                                 </div>
                                                             ))
                                                         }
                                                     </div>
                                                 )}
                                             </div>
-                                        </td>
-                                        <td style={{verticalAlign: 'top', paddingTop: '12px'}}>
-                                            <input 
-                                                type="number" 
-                                                className={styles.tableInputCenter} 
-                                                style={it.error ? { border: '1px solid #ff4d4f', background: '#fffcfc' } : {}}
-                                                value={it.qty === 0 ? "" : it.qty} 
-                                                onChange={(e) => handleQtyChange(idx, e.target.value)} 
-                                                disabled={isViewOnly} 
-                                            />
-                                            {it.error && (
-                                                <div style={{color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap'}}>
-                                                    {it.error}
+                                            {it.productError && (
+                                                <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', fontWeight: '500' }}>
+                                                    {it.productError}
                                                 </div>
                                             )}
                                         </td>
-                                        <td>
-                                            {it.availableVariants && it.availableVariants.length > 0 ? (
-                                                <select 
-                                                    className={styles.unitSelect} 
-                                                    value={it.variantId} 
-                                                    onChange={(e) => handleVariantChange(idx, e.target.value)}
-                                                    disabled={isViewOnly}
-                                                >
-                                                    {it.availableVariants.map(v => (
-                                                        <option key={v.variantId} value={v.variantId}>
-                                                            {formatVariantSize(v.variantType?.size) || v.variantType?.type || "Unit"}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                        <td style={{ minWidth: "120px" }}>
+                                            {isViewOnly ? (
+                                                <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
+                                                    <span>{it.unit || (it.availableVariants?.find(v => String(v.variantId) === String(it.variantId))?.variantType?.size ? formatVariantSize(it.availableVariants.find(v => String(v.variantId) === String(it.variantId)).variantType.size) : "Unit")}</span>
+                                                </div>
                                             ) : (
-                                                <div className={styles.unitSelector}>
-                                                    <span>{it.unit || 'Unit Type'}</span>
-                                                    <FiChevronDown size={12} />
+                                                it.availableVariants && it.availableVariants.length > 0 ? (
+                                                    <div className={styles.unitSelector}>
+                                                        <select
+                                                            className={styles.unitSelect}
+                                                            value={it.variantId}
+                                                            onChange={(e) => handleVariantChange(idx, e.target.value)}
+                                                            style={{
+                                                                appearance: "none",
+                                                                WebkitAppearance: "none",
+                                                                MozAppearance: "none",
+                                                                paddingRight: "16px",
+                                                                width: "100%",
+                                                                cursor: "pointer",
+                                                                fontWeight: "600",
+                                                                color: "#333",
+                                                                background: "transparent",
+                                                                border: "none",
+                                                                outline: "none"
+                                                            }}
+                                                        >
+                                                            {it.availableVariants.map(v => (
+                                                                <option key={v.variantId} value={v.variantId}>
+                                                                    {formatVariantSize(v.variantType?.size) || v.variantType?.type || "Unit"}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
+                                                    </div>
+                                                ) : (
+                                                    <div className={styles.unitSelector}>
+                                                        <span>{it.unit || 'Unit Type'}</span>
+                                                        <FiChevronDown size={12} />
+                                                    </div>
+                                                )
+                                            )}
+                                        </td>
+                                        <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
+                                            <input
+                                                type="number"
+                                                className={styles.tableInputCenter}
+                                                style={it.error || it.qtyError ? { border: '1px solid #ff4d4f', background: '#fffcfc' } : {}}
+                                                value={it.qty === 0 ? "" : it.qty}
+                                                onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                                disabled={isViewOnly}
+                                            />
+                                            {(it.error || it.qtyError) && (
+                                                <div style={{ color: '#ff4d4f', fontSize: '10px', marginTop: '4px', textAlign: 'center', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                                                    {it.qtyError || it.error}
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{fontWeight: '700', textAlign: 'center'}}>{it.price.toLocaleString()}</td>
-                                        <td style={{fontWeight: '700', textAlign: 'center'}}>{it.taxPercent}%</td>
-                                        <td style={{fontWeight: '700', textAlign: 'center'}}>{it.taxAmount.toLocaleString()}</td>
-                                        <td style={{fontWeight: '700', textAlign: 'right'}}>{it.amount.toLocaleString()}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.price.toLocaleString()}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxPercent}%</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxAmount.toLocaleString()}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'right' }}>{it.amount.toLocaleString()}</td>
                                         {!isViewOnly && (
-                                            <td><FiTrash2 onClick={() => handleRemoveRow(idx)} style={{cursor: 'pointer', color: '#E93E64'}} /></td>
+                                            <td><FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: 'pointer', color: '#E93E64' }} /></td>
                                         )}
                                     </tr>
                                 ))}
                                 <tr className={styles.totalRowSummary}>
-                                    <td colSpan="2" style={{fontWeight: '700', paddingLeft: '40px'}}>TOTAL</td>
-                                    <td style={{fontWeight: '600', textAlign: 'center'}}>{String(items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)).padStart(3, '0')}</td>
+                                    <td colSpan="2" style={{ fontWeight: '700', paddingLeft: '40px' }}>TOTAL</td>
                                     <td></td>
-                                    <td style={{fontWeight: '600', textAlign: 'center'}}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
                                     <td></td>
-                                    <td style={{fontWeight: '600', textAlign: 'center'}}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString()}</td>
-                                    <td style={{fontWeight: '700', textAlign: 'right'}}>{totalBillAmount.toLocaleString()}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString()}</td>
+                                    <td style={{ fontWeight: '700', textAlign: 'right' }}>{totalBillAmount.toLocaleString()}</td>
                                     {!isViewOnly && <td></td>}
                                 </tr>
                             </tbody>
@@ -567,18 +694,30 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         )}
                     </div>
 
-                    <div className={styles.paymentSection}>
+                    <div className={styles.paymentSection} style={{ gridTemplateColumns: "1.5fr 0.5fr 1.2fr" }}>
                         <div className={styles.paymentList}>
-                            <label style={{fontWeight: '700'}}>Payment Details</label>
+                            <label style={{ fontWeight: '700' }}>Payment Details</label>
                             {payments.map((p, idx) => (
-                                <div key={idx} className={styles.paymentRow}>
+                                <div key={idx} className={styles.paymentRow} style={{ gridTemplateColumns: p.method === "UPI" || p.method === "Cheque" ? "1fr 1fr 1.2fr" : "1fr 1fr" }}>
+
                                     <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly}>
                                         <option value="Cash">Cash</option>
-                                        <option value="Online">Online</option>
+                                        <option value="UPI">UPI</option>
                                         <option value="Card">Card</option>
                                         <option value="Cheque">Cheque</option>
+                                        <option value="Bank">Bank</option>
                                     </select>
                                     <input type="number" className={styles.input} placeholder="Amount" value={p.amount} onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)} disabled={isViewOnly} />
+                                    {(p.method === "UPI" || p.method === "Cheque") && (
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
+                                            value={p.referenceNumber || ""}
+                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                            disabled={isViewOnly}
+                                        />
+                                    )}
                                 </div>
                             ))}
                             {!isViewOnly && (
@@ -587,17 +726,49 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         </div>
                         <div className={styles.spacer}></div>
                         <div className={styles.totalSection}>
-                            <div className={styles.totalRow}>
+                            <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Sub Total</span>
                                 <span>Rs {totalBillAmount.toLocaleString()}</span>
                             </div>
-                            <div className={styles.totalRow}>
+                            {mode !== "add" && (
+                                <div className={styles.totalRow} style={{ width: "250px", alignItems: "center" }}>
+                                    <span>Discount (After Tax)</span>
+                                    {isViewOnly ? (
+                                        <span>Rs {parseFloat(formData.discountForCustomer || 0).toLocaleString()}</span>
+                                    ) : (
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            style={{
+                                                width: "100px",
+                                                padding: "6px 8px",
+                                                border: "1px solid #e5e7eb",
+                                                borderRadius: "6px",
+                                                textAlign: "right",
+                                                fontWeight: "600",
+                                                background: "#fcfcfc",
+                                                outline: "none"
+                                            }}
+                                            value={formData.discountForCustomer === "" || formData.discountForCustomer === 0 || formData.discountForCustomer === "0" ? "" : formData.discountForCustomer}
+                                            placeholder="0"
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+                                                if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
+                                                    val = String(Number(val));
+                                                }
+                                                setFormData({ ...formData, discountForCustomer: val === "" ? "" : val });
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Total Paid</span>
-                                <span style={{color: '#1E8E3E'}}>Rs {totalPaidAmount.toLocaleString()}</span>
+                                <span style={{ color: '#1E8E3E' }}>Rs {totalPaidAmount.toLocaleString()}</span>
                             </div>
-                            <div className={`${styles.totalRow} ${styles.main}`}>
+                            <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
                                 <span>Balance</span>
-                                <span style={{color: balanceAmount > 0 ? '#D93025' : '#1E8E3E'}}>Rs {balanceAmount.toLocaleString()}</span>
+                                <span style={{ color: balanceAmount > 0 ? '#D93025' : '#1E8E3E' }}>Rs {balanceAmount.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -606,7 +777,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
                     {isViewOnly && (
-                        <button className={styles.saveBtn} onClick={() => window.print()} style={{ background: '#4285F4' }}>
+                        <button className={styles.saveBtn} onClick={() => window.print()} >
                             Print Invoice
                         </button>
                     )}

@@ -5,13 +5,17 @@ import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiX } from "react-icons/fi";
 import { Country, State, City } from 'country-state-city';
+import { useRouter } from "next/router";
 
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
+    const router = useRouter();
+    const branchId = router.query.branchId || "";
     const { jwtToken, userInfo } = useStore();
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
+    const [errorPopupMessage, setErrorPopupMessage] = useState(null);
 
     // Form states
     const [supplierName, setSupplierName] = useState("");
@@ -35,12 +39,12 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [countryError, setCountryError] = useState("");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
     const [branchError, setBranchError] = useState("");
-    
+
     // Dropdown lists
     const [countries, setCountries] = useState([]);
     const [states, setStates] = useState([]);
     const [cities, setCities] = useState([]);
-    
+
     // Selection codes for fetching
     const [selectedCountryCode, setSelectedCountryCode] = useState("");
     const [selectedStateCode, setSelectedStateCode] = useState("");
@@ -53,7 +57,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (supplierId && jwtToken) {
             const fetchFullDetails = async () => {
                 try {
-                    const res = await purchaseService.getSupplierById(jwtToken, supplierId);
+                    const res = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
                     const data = res?.data || res;
                     if (data && data.branches && !hasUserEditedBranches.current) {
                         const fullBranchIds = data.branches.map(b => Number(b.id || b.branchId || b._id));
@@ -67,7 +71,15 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         }
     }, [supplierId, jwtToken]);
 
+    const lastSupplierIdRef = useRef(null);
+
     useEffect(() => {
+        const currentSupplierId = initialData?.supplierId || "new";
+        if (lastSupplierIdRef.current !== currentSupplierId) {
+            isInitialized.current = false;
+            lastSupplierIdRef.current = currentSupplierId;
+        }
+
         if (isInitialized.current) return;
         isInitialized.current = true;
 
@@ -84,8 +96,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             setAreaPinCode(initialData.areaPinCode || "");
             setCountry(initialData.country || "");
             setSelectedBranchIds(
-                initialData.selectedBranchIds?.map(Number) || 
-                initialData.branches?.map(b => Number(b.id || b.branchId || b._id)) || 
+                initialData.selectedBranchIds?.map(Number) ||
+                initialData.branches?.map(b => Number(b.id || b.branchId || b._id)) ||
                 []
             );
 
@@ -105,14 +117,14 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
 
             setSelectedCountryCode(initialData.selectedCountryCode || "");
             setSelectedStateCode(initialData.selectedStateCode || "");
-            
+
             if (!initialData.selectedCountryCode && initialData.country) {
                 const foundCountry = allCountries.find(c => c.name === initialData.country);
                 if (foundCountry) {
                     setSelectedCountryCode(foundCountry.isoCode);
                     const foundStates = State.getStatesOfCountry(foundCountry.isoCode);
                     setStates(foundStates);
-                    
+
                     if (initialData.state) {
                         const foundState = foundStates.find(s => s.name === initialData.state);
                         if (foundState) {
@@ -192,9 +204,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         });
     }
 
-    const branchesList = combinedBranches.map(br => ({ 
-        id: Number(br.id || br._id || br.branchId), 
-        name: br.name || br.branchName 
+    const branchesList = combinedBranches.map(br => ({
+        id: Number(br.id || br._id || br.branchId),
+        name: br.name || br.branchName
     }));
 
     const handleSave = async () => {
@@ -264,15 +276,29 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 res = await purchaseService.createSupplier(jwtToken, payload);
             }
 
-            if (res.status === "success" || res.status === 200) {
+            const isSuccess = res && 
+                              (res.status === "success" || res.status === 200) && 
+                              (!res.data || (res.data.status !== "fail" && res.data.status !== "error"));
+
+            if (isSuccess) {
                 toast.success(supplierId ? "Supplier updated successfully" : "Supplier added successfully");
                 onSave();
             } else {
-                toast.error(res.message || "Something went wrong");
+                const errMsg = res ? (res.message || res.data?.message || res.msg || res.data?.msg) : null;
+                if (errMsg) {
+                    setErrorPopupMessage(errMsg);
+                } else {
+                    toast.error("Something went wrong");
+                }
             }
         } catch (e) {
             console.error(e);
-            toast.error("An error occurred");
+            const errMsg = e.response?.data?.message || e.response?.data?.msg || e.message || "An error occurred";
+            if (errMsg && (errMsg.includes("branches") || errMsg.includes("Branch"))) {
+                setErrorPopupMessage(errMsg);
+            } else {
+                toast.error(errMsg);
+            }
         } finally {
             setLoading(false);
         }
@@ -286,25 +312,25 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier name
+                                Supplier name <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
-                            <input 
+                            <input
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Supplier Name"
-                                value={supplierName} onChange={(e) => { setSupplierName(e.target.value); if(supplierNameError) setSupplierNameError(""); }}
+                                value={supplierName} onChange={(e) => { setSupplierName(e.target.value); if (supplierNameError) setSupplierNameError(""); }}
                             />
                             {supplierNameError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{supplierNameError}</span>}
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Branch Name
+                                Branch Name <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
-                            <MultiSelectDropdown 
+                            <MultiSelectDropdown
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
-                                setSelectedIds={(ids) => { 
+                                setSelectedIds={(ids) => {
                                     hasUserEditedBranches.current = true;
-                                    setSelectedBranchIds(ids.map(Number)); 
-                                    if(branchError) setBranchError(""); 
+                                    setSelectedBranchIds(ids.map(Number));
+                                    if (branchError) setBranchError("");
                                 }}
                                 placeholder="Select Branch Name here"
                                 customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
@@ -313,12 +339,12 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Supplier Type
+                                Supplier Type <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
-                            <MultiSelectDropdown 
+                            <MultiSelectDropdown
                                 listItems={supplierTypes}
                                 selectedIds={supplierType}
-                                setSelectedIds={(ids) => { setSupplierType(ids); if(supplierTypeError) setSupplierTypeError(""); }}
+                                setSelectedIds={(ids) => { setSupplierType(ids); if (supplierTypeError) setSupplierTypeError(""); }}
                                 placeholder="Select Supplier Type here"
                                 customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
                             />
@@ -326,11 +352,11 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
-                                Phone Number
+                                Phone Number <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
-                            <input 
+                            <input
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Phone Number"
-                                value={phone} 
+                                value={phone}
                                 maxLength={10}
                                 onChange={(e) => {
                                     const val = e.target.value.replace(/\D/g, '');
@@ -343,10 +369,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {phoneError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{phoneError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID</label>
-                            <input 
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID <span style={{ color: '#FF4D4F' }}>*</span></label>
+                            <input
                                 type="email" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Email ID here"
-                                value={email} 
+                                value={email}
                                 onChange={(e) => {
                                     setEmail(e.target.value);
                                     if (emailError) setEmailError("");
@@ -364,12 +390,12 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 48px' }}>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
-                                <select 
-                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: country ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
-                                    value={selectedCountryCode} 
-                                    onChange={(e) => { 
+                                <select
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: country ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                    value={selectedCountryCode}
+                                    onChange={(e) => {
                                         const code = e.target.value;
                                         const name = countries.find(c => c.isoCode === code)?.name || "";
                                         setSelectedCountryCode(code);
@@ -379,7 +405,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         setState("");
                                         setCities([]);
                                         setCity("");
-                                        if(countryError) setCountryError(""); 
+                                        if (countryError) setCountryError("");
                                     }}
                                 >
                                     <option value="">Select country here</option>
@@ -392,19 +418,19 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {countryError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{countryError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
-                                <select 
-                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: state ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
-                                    value={selectedStateCode} 
-                                    onChange={(e) => { 
+                                <select
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: state ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                    value={selectedStateCode}
+                                    onChange={(e) => {
                                         const code = e.target.value;
                                         const name = states.find(s => s.isoCode === code)?.name || "";
                                         setSelectedStateCode(code);
                                         setState(name);
                                         setCities(City.getCitiesOfState(selectedCountryCode, code));
                                         setCity("");
-                                        if(stateError) setStateError(""); 
+                                        if (stateError) setStateError("");
                                     }}
                                     disabled={!selectedCountryCode}
                                 >
@@ -418,14 +444,14 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {stateError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{stateError}</span>}
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City</label>
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
-                                <select 
-                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: city ? '#333' : '#777', appearance: 'none', outline: 'none' }} 
-                                    value={city} 
-                                    onChange={(e) => { 
-                                        setCity(e.target.value); 
-                                        if(cityError) setCityError(""); 
+                                <select
+                                    style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: city ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                    value={city}
+                                    onChange={(e) => {
+                                        setCity(e.target.value);
+                                        if (cityError) setCityError("");
                                     }}
                                     disabled={!selectedStateCode}
                                 >
@@ -440,23 +466,23 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Area Name</label>
-                            <input 
+                            <input
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Area Name"
                                 value={locality} onChange={(e) => setLocality(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Landmark</label>
-                            <input 
+                            <input
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Landmark here"
                                 value={landmark} onChange={(e) => setLandmark(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
-                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code</label>
-                            <input 
+                            <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code <span style={{ color: '#FF4D4F' }}>*</span></label>
+                            <input
                                 type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Pin Code here"
-                                value={areaPinCode} 
+                                value={areaPinCode}
                                 maxLength={6}
                                 onChange={(e) => {
                                     const val = e.target.value.replace(/\D/g, '');
@@ -473,13 +499,13 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', marginTop: '40px', paddingBottom: '40px' }}>
-                <button 
+                <button
                     style={{ padding: '12px 36px', borderRadius: '8px', border: '1px solid #333', background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#333' }}
                     onClick={onBack}
                 >
                     Cancel
                 </button>
-                <button 
+                <button
                     style={{ padding: '12px 48px', borderRadius: '8px', border: 'none', background: '#000', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}
                     onClick={handleSave}
                     disabled={loading}
@@ -487,6 +513,100 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     {loading ? "Saving..." : "Save"}
                 </button>
             </div>
+            
+            {errorPopupMessage && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff',
+                        borderRadius: '16px',
+                        padding: '32px',
+                        maxWidth: '480px',
+                        width: '90%',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        position: 'relative',
+                        border: '1px solid #f1f5f9',
+                        fontFamily: "'Inter', sans-serif"
+                    }}>
+                        <button 
+                            onClick={() => setErrorPopupMessage(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '16px',
+                                right: '16px',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '20px',
+                                color: '#94a3b8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '4px',
+                                borderRadius: '50%'
+                            }}
+                        >
+                            <FiX />
+                        </button>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            
+                            <div>
+                                <h3 style={{
+                                    fontSize: '18px',
+                                    fontWeight: '600',
+                                    color: '#0f172a',
+                                    margin: '0 0 8px 0'
+                                }}>
+                                    Unable to Update Branches
+                                </h3>
+                                <p style={{
+                                    fontSize: '14px',
+                                    color: '#64748b',
+                                    lineHeight: '1.6',
+                                    margin: 0
+                                }}>
+                                    {errorPopupMessage}
+                                </p>
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginTop: '8px'
+                            }}>
+                                <button
+                                    onClick={() => setErrorPopupMessage(null)}
+                                    style={{
+                                        padding: '10px 24px',
+                                        backgroundColor: '#0f172a',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

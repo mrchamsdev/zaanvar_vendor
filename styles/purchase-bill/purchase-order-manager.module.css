@@ -4,7 +4,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
     z-index: 2000;
     display: flex;
@@ -24,37 +24,47 @@
 }
 
 .tabBar {
-    background: #fff;
+    background: var(--color-white);
     padding: 10px 20px 0 20px;
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    border-bottom: 2px solid #f1f1f1;
+    border-bottom: 2px solid var(--color-bg-gray);
     flex-shrink: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabBar::-webkit-scrollbar {
+    display: none;
 }
 
 .tab {
     padding: 10px 20px;
-    background: #f8f9fa;
+    background: var(--color-bg-subtle);
     border-radius: 12px 12px 0 0;
     font-size: 14px;
-    color: #888;
+    color: var(--color-text-light);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     border-bottom: none;
     transition: all 0.2s;
     min-width: 150px;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .tabActive {
-    background: #fff;
-    color: #E9315D;
+    background: var(--color-white);
+    color: var(--color-primary);
     font-weight: 600;
-    border-top: 3px solid #E9315D;
+    border-top: 3px solid var(--color-primary);
 }
 
 .tabClose {
@@ -70,9 +80,10 @@
     padding: 10px 15px;
     margin-bottom: 5px;
     border: none;
-    background: #f1f1f1;
+    background: var(--color-bg-gray);
     border-radius: 8px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .windowActions {
@@ -80,6 +91,13 @@
     display: flex;
     gap: 15px;
     padding-bottom: 10px;
+    position: sticky;
+    right: -20px;
+    margin-right: -20px;
+    background: var(--color-white);
+    padding-left: 15px;
+    padding-right: 20px;
+    z-index: 10;
 }
 
 .windowActionIcon {
@@ -95,22 +113,22 @@
     flex: 1;
     overflow: hidden;
     position: relative;
-    background: #fff;
+    background: var(--color-white);
     display: flex;
 }
 
 .splitMode {
     gap: 20px;
     padding: 0 10px;
-    background: #f8f9fa;
+    background: var(--color-bg-subtle);
 }
 
 .formWrapper {
     flex: 1;
     height: 100%;
     overflow-y: auto;
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: var(--color-white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     position: relative;
@@ -120,14 +138,14 @@
     padding: 16px 24px;
     font-size: 18px;
     font-weight: 700;
-    color: #333;
-    background: #fff;
-    border-bottom: 1px solid #f1f1f1;
+    color: var(--color-text-body);
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-bg-gray);
 }
 
 .minimizedBar {
-    background: #fff;
-    /* border-top: 2px solid #E9315D; */
+    background: var(--color-white);
+    /* border-top: 2px solid var(--color-primary); */
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -135,15 +153,19 @@
     gap: 15px;
     height: 60px;
     flex-shrink: 0;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-    border-top: 1px solid #eee;
-    pointer-events: auto; /* Re-enable pointer events for the bar in minimized mode */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--color-border-light);
+    pointer-events: auto;
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .minimizedItem {
     padding: 10px 20px;
-    background: #f8f9fa;
-    border: 1px solid #eee;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -151,6 +173,7 @@
     cursor: pointer;
     min-width: 200px;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .minimizedTitle {
@@ -179,9 +202,9 @@
 
 .formLabel {
     padding: 10px 24px;
-    background: #f1f1f1;
+    background: var(--color-bg-gray);
     font-weight: 600;
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 12px;
     text-transform: uppercase;
 }
@@ -191,7 +214,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #888;
+    color: var(--color-text-light);
     background: #fcfcfc;
     font-size: 14px;
     font-weight: 500;
@@ -223,7 +246,7 @@
 
     .formWrapper {
         box-shadow: none;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--color-border-light);
     }
 
     .minimizedBar {
@@ -236,4 +259,48 @@
         min-width: 140px;
         padding: 6px 12px;
     }
+
+    .minimizedMode .minimizedBar {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: 50px;
+        padding: 0 10px;
+    }
+}
+
+.minimizedMode .minimizedBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    background: var(--color-white);
+    border-top: 1px solid var(--color-border-light);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    height: 60px;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 20px;
+    gap: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+    z-index: 2100;
+    box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.minimizedMode .minimizedBar::-webkit-scrollbar {
+    display: none;
+}
+
+.minimizedMode .minimizedItem {
+    pointer-events: auto;
+    box-shadow: none;
+    border: 1px solid var(--color-border-light);
+    flex-shrink: 0;
 }

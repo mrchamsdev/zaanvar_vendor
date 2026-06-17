@@ -2,7 +2,7 @@
     display: flex;
     gap: 30px;
     padding: 24px;
-    background: #f8f9fa;
+    background: var(--color-bg-subtle);
     height: 100%;
     overflow-y: auto;
     width: 100%;
@@ -28,7 +28,7 @@
 }
 
 .requestId {
-    color: #E9315D;
+    color: var(--color-primary);
 }
 
 /* Card Styles matching Image 2 */
@@ -39,7 +39,7 @@
 }
 
 .productCard {
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
     border: 1px solid #eef0f2;
     transition: all 0.2s ease;
@@ -48,7 +48,7 @@
 }
 
 .productCardActive {
-    border-color: #ddd;
+    border-color: var(--color-border-dark);
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
 
@@ -73,7 +73,7 @@
 }
 
 .index {
-    color: #000;
+    color: var(--color-black);
     font-weight: 600;
     font-size: 14px;
 }
@@ -81,14 +81,14 @@
 .productName {
     font-weight: 600;
     font-size: 16px;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .headerStatsLine {
     display: flex;
     gap: 20px;
     font-size: 13px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .headerRight {
@@ -99,16 +99,16 @@
 
 .headerTotalValue {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .headerTotalValue span {
     font-weight: 600;
-    color: #000;
+    color: var(--color-black);
 }
 
 .expandIcon {
-    color: #999;
+    color: var(--color-text-lighter);
     transition: transform 0.3s ease;
     font-size: 18px;
 }
@@ -140,7 +140,7 @@
 }
 
 .fieldGrid::-webkit-scrollbar-thumb {
-    background: #eee;
+    background: var(--color-border-light);
     border-radius: 10px;
 }
 
@@ -163,7 +163,7 @@
 .fieldLabel {
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .labelRow {
@@ -174,12 +174,12 @@
 
 .errorLabel {
     font-size: 11px;
-    color: #E9315D;
+    color: var(--color-primary);
     font-weight: 600;
 }
 
 .inputError {
-    border: 1px solid #E9315D !important;
+    border: 1px solid var(--color-primary) !important;
     background: #FFF1F4 !important;
 }
 
@@ -196,13 +196,13 @@
 }
 
 .infoIcon {
-    color: #888;
+    color: var(--color-text-light);
     font-size: 14px;
     transition: color 0.2s;
 }
 
 .infoIcon:hover {
-    color: #E9315D;
+    color: var(--color-primary);
 }
 
 .inputWrapper {
@@ -216,13 +216,13 @@
     position: absolute;
     left: 12px;
     font-size: 13px;
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .calendarIcon {
     position: absolute;
     right: 12px;
-    color: #888;
+    color: var(--color-text-light);
     pointer-events: none;
 }
 
@@ -230,8 +230,8 @@
     width: 100%;
     padding: 12px 16px;
     border: none;
-    background: #f8f9fa;
-    border: 1px solid #f1f1f1;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-bg-gray);
     border-radius: 8px;
     font-size: 14px;
     outline: none;
@@ -244,7 +244,7 @@
 }
 
 .input:focus {
-    background: #fff;
+    background: var(--color-white);
     box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
 }
 
@@ -253,7 +253,7 @@
     min-height: 100px;
     padding: 16px;
     border: none;
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
     border-radius: 12px;
     font-size: 14px;
     resize: vertical;
@@ -264,7 +264,7 @@
     display: flex;
     gap: 40px;
     padding-top: 20px;
-    border-top: 1px solid #f8f9fa;
+    border-top: 1px solid var(--color-bg-subtle);
 }
 
 .summaryItem {
@@ -275,13 +275,13 @@
 
 .summaryLabel {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .summaryValue {
     font-size: 16px;
     font-weight: 700;
-    color: #000;
+    color: var(--color-black);
 }
 
 /* Sidebar Styles Overhaul */
@@ -291,8 +291,8 @@
 }
 
 .summarySection {
-    background: #fff;
-    border: 1px solid #eee;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
     border-radius: 16px;
     padding: 24px;
     display: flex;
@@ -304,7 +304,7 @@
 .sidebarTitle {
     font-size: 18px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
     margin-bottom: 4px;
 }
 
@@ -317,19 +317,19 @@
 .infoLabel {
     font-size: 12px;
     font-weight: 600;
-    color: #999;
+    color: var(--color-text-lighter);
     margin-bottom: 2px;
 }
 
 .infoValue {
     font-size: 14px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .infoSubValue {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-light);
     line-height: 1.4;
 }
 
@@ -355,7 +355,7 @@
 .toggle {
     width: 44px;
     height: 22px;
-    background: #ddd;
+    background: var(--color-border-dark);
     border-radius: 20px;
     position: relative;
     cursor: pointer;
@@ -363,13 +363,13 @@
 }
 
 .toggleActive {
-    background: #E9315D;
+    background: var(--color-primary);
 }
 
 .toggleCircle {
     width: 18px;
     height: 18px;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 50%;
     position: absolute;
     top: 2px;
@@ -400,7 +400,7 @@
 .alertValue {
     font-size: 16px;
     font-weight: 800;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .alertAction {
@@ -409,17 +409,17 @@
     gap: 6px;
     font-size: 11px;
     font-weight: 600;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .checkIconActive {
-    color: #E9315D;
+    color: var(--color-primary);
     font-size: 16px;
 }
 
 .alertSub {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .alertSmall {
@@ -442,7 +442,7 @@
 
 .combinedInput {
     display: flex;
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -458,22 +458,29 @@
 
 .miniSelect {
     width: 40%;
-    padding: 10px;
+    padding: 10px 28px 10px 12px;
     border: none;
-    background: #f0f0f0;
+    background: var(--color-border-lighter);
     font-size: 14px;
     outline: none;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23333333' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 18px;
 }
 
 .balanceText {
     font-size: 12px;
-    color: #888;
+    color: var(--color-text-light);
     margin-top: 4px;
 }
 
 .breakdownContainer {
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--color-border-lighter);
     border-radius: 12px;
     overflow: hidden;
 }
@@ -490,12 +497,12 @@
 .breakdownTitle {
     font-size: 14px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .breakdownContent {
     padding: 16px;
-    background: #fff;
+    background: var(--color-white);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -505,12 +512,12 @@
     display: flex;
     justify-content: space-between;
     font-size: 13px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .breakdownDivider {
     height: 1px;
-    background: #f0f0f0;
+    background: var(--color-border-lighter);
     margin: 4px 0;
 }
 
@@ -519,7 +526,7 @@
     justify-content: space-between;
     font-size: 15px;
     font-weight: 800;
-    color: #000;
+    color: var(--color-black);
 }
 
 .statusGrid {
@@ -534,31 +541,31 @@
     align-items: center;
     gap: 8px;
     padding: 10px;
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
     border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
-    color: #666;
+    color: var(--color-text-muted);
     border: 1px solid transparent;
 }
 
 .statusBadgeActive {
-    background: #fff;
-    border-color: #eee;
+    background: var(--color-white);
+    border-color: var(--color-border-light);
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    color: #000;
+    color: var(--color-black);
     font-weight: 600;
 }
 
 .statusBadgeActive .radioCircle {
-    background: #E9315D;
-    border-color: #E9315D;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
 }
 
 .radioCircle {
     width: 14px;
     height: 14px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--color-border-dark);
     border-radius: 50%;
     transition: all 0.2s;
 }
@@ -572,8 +579,8 @@
 
 .saveBtn {
     padding: 14px;
-    background: #000;
-    color: #fff;
+    background: var(--color-black);
+    color: var(--color-white);
     border: none;
     border-radius: 12px;
     font-weight: 700;
@@ -583,8 +590,8 @@
 
 .cancelBtn {
     padding: 14px;
-    background: #fff;
-    border: 1px solid #eee;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
     border-radius: 12px;
     font-weight: 700;
     cursor: pointer;

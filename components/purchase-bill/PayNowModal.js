@@ -1,21 +1,23 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/pay-now-modal.module.css";
 import { FiX, FiCalendar, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initialBillData, allOrders }) => {
     const { jwtToken, userInfo } = useStore();
     const branchId = userInfo?.branchId || 91;
     const [loading, setLoading] = useState(false);
-    
+
     // Header Data
     const [billDetails, setBillDetails] = useState(null);
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [paymentDate, setPaymentDate] = useState(toApiDateOnly(new Date()));
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
-    
+
     // Round off
     const [isRoundOff, setIsRoundOff] = useState(false);
     const [roundOffValue, setRoundOffValue] = useState("0");
@@ -24,13 +26,22 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const [paymentEntries, setPaymentEntries] = useState([
         { id: Date.now(), type: "Cash", amount: "", refNo: "" }
     ]);
+    const [topPaidAmount, setTopPaidAmount] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [orderError, setOrderError] = useState("");
+    const [amountError, setAmountError] = useState("");
+    const [exceededError, setExceededError] = useState("");
 
     useEffect(() => {
         if (isOpen) {
             setIsSubmitted(false);
             setOrderError("");
+            setAmountError("");
+            setExceededError("");
+            setTopPaidAmount("");
+            setPaymentEntries([
+                { id: Date.now(), type: "Cash", amount: "", refNo: "" }
+            ]);
             if (initialBillData) {
                 console.log("PayNowModal: Using initialBillData", initialBillData);
                 // Map the PO/Order data to the billDetails format expected by the modal
@@ -50,6 +61,8 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
     const handleOrderChange = (newBillId) => {
         setOrderError("");
+        setAmountError("");
+        setExceededError("");
         if (!newBillId) {
             setBillDetails(null);
             return;
@@ -71,12 +84,12 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         try {
             console.log("PayNowModal: Fetching bill with ID:", billId);
             let res = await purchaseService.getBillById(jwtToken, billId);
-            
+
             // If fetching by Bill ID fails with 404, it might be a Purchase Request ID
             if (res.status === "error" || !res.data) {
                 console.log("PayNowModal: Bill not found, trying Purchase Request Summary for ID:", billId);
                 const poRes = await purchaseService.getPurchaseRequestSummary(jwtToken, billId);
-                
+
                 if (poRes.status === "success" && poRes.data?.productsBillId) {
                     const actualBillId = poRes.data.productsBillId;
                     console.log("PayNowModal: Found linked Bill ID:", actualBillId);
@@ -108,98 +121,197 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
         }
     };
 
+    const validateAmountsOnChange = (entries, topAmount) => {
+        const topVal = parseFloat(topAmount) || 0;
+        const totalSum = entries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+        if (totalSum > topVal) {
+            return "Amount paid should not exceed Paid Amount";
+        }
+        return "";
+    };
+
+    const validateAmountsOnSubmit = (entries, topAmount) => {
+        const topVal = parseFloat(topAmount) || 0;
+        const totalSum = entries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+        if (totalSum > topVal) {
+            return "Amount paid should not exceed Paid Amount";
+        }
+        if (totalSum < topVal) {
+            return "Amount paid should not be less than Paid Amount";
+        }
+        return "";
+    };
+
+    const handleTopPaidAmountChange = (val) => {
+        setTopPaidAmount(val);
+        let updatedEntries = [...paymentEntries];
+        if (paymentEntries.length === 1) {
+            updatedEntries = [{ ...paymentEntries[0], amount: val }];
+            setPaymentEntries(updatedEntries);
+        }
+
+        const err = validateAmountsOnChange(updatedEntries, val);
+        setExceededError(err);
+        if (val && parseFloat(val) > 0) {
+            setAmountError("");
+        }
+    };
+
     const handleAddPayment = () => {
-        setPaymentEntries([...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }]);
+        const newEntries = [...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }];
+        setPaymentEntries(newEntries);
+        const err = validateAmountsOnChange(newEntries, topPaidAmount);
+        setExceededError(err);
     };
 
     const handleRemovePayment = (id) => {
         if (paymentEntries.length > 1) {
-            setPaymentEntries(paymentEntries.filter(p => p.id !== id));
+            const newEntries = paymentEntries.filter(p => p.id !== id);
+            setPaymentEntries(newEntries);
+            const err = validateAmountsOnChange(newEntries, topPaidAmount);
+            setExceededError(err);
         }
     };
 
     const updatePayment = (id, field, value) => {
-        setPaymentEntries(paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p));
+        const updated = paymentEntries.map(p => p.id === id ? { ...p, [field]: value } : p);
+        setPaymentEntries(updated);
+
+        const err = validateAmountsOnChange(updated, topPaidAmount);
+        setExceededError(err);
+        if (field === "amount" && value && parseFloat(value) > 0) {
+            setAmountError("");
+        }
     };
 
     // Calculations
     const previouslyPaid = parseFloat(billDetails?.amountPaidToSupplier || 0);
     const currentBalance = parseFloat(billDetails?.balanceAmount || 0);
-    const totalBillAmount = parseFloat(billDetails?.totalAmount || (previouslyPaid + currentBalance));
-    
+    const totalBillAmount = parseFloat(billDetails?.overallBillAmount || billDetails?.totalAmount || (previouslyPaid + currentBalance));
+
     // Amount currently being entered (top Paid Amount field)
-    const currentEntryAmount = parseFloat(paymentEntries[0]?.amount || 0);
+    const currentEntryAmount = parseFloat(topPaidAmount || 0);
     const totalPaidInModal = paymentEntries.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
     // Final Summary Values
-    const summaryTotal = isRoundOff ? Math.round(currentEntryAmount) : currentEntryAmount + parseFloat(roundOffValue || 0);
+    const summaryTotal = isRoundOff ? Math.round(totalPaidInModal) : totalPaidInModal + parseFloat(roundOffValue || 0);
     const summaryPaidTotal = previouslyPaid + summaryTotal;
     const summaryPendingAmount = currentBalance - summaryTotal;
 
     useEffect(() => {
         if (isRoundOff) {
-            const diff = Math.round(currentEntryAmount) - currentEntryAmount;
+            const diff = Math.round(totalPaidInModal) - totalPaidInModal;
             setRoundOffValue(diff.toFixed(2));
         } else {
             setRoundOffValue("0");
         }
-    }, [isRoundOff, currentEntryAmount]);
+    }, [isRoundOff, totalPaidInModal]);
 
     const handlePay = async () => {
         console.log("PayNowModal: handlePay called. billDetails:", billDetails);
         setIsSubmitted(true);
+
+        let hasError = false;
         if (!billDetails?.productsBillId && !billDetails?.productsPurchaseRqstID) {
             console.log("PayNowModal: Validation failed - no order selected");
             setOrderError("Select order");
             toast.error("Select order");
-            return;
+            hasError = true;
+        } else {
+            setOrderError("");
         }
-        setOrderError("");
 
-        if (totalPaidInModal <= 0) {
-            toast.error("Please enter a payment amount");
+        const isTopAmountEmpty = !topPaidAmount || parseFloat(topPaidAmount) <= 0;
+        const isAmountEmpty = paymentEntries.some(entry => !entry.amount || parseFloat(entry.amount) <= 0);
+
+        if (isTopAmountEmpty) {
+            setAmountError("Amount is required");
+            toast.error("Please enter Paid Amount");
+            hasError = true;
+        } else if (parseFloat(topPaidAmount) > currentBalance) {
+            setAmountError("Paid Amount cannot exceed Balance Amount");
+            toast.error("Paid Amount cannot exceed Balance Amount");
+            hasError = true;
+        } else if (isAmountEmpty) {
+            setAmountError("Amount is required");
+            toast.error("Please enter all payment amounts");
+            hasError = true;
+        } else {
+            setAmountError("");
+        }
+
+        if (!isTopAmountEmpty && !isAmountEmpty) {
+            const limitErr = validateAmountsOnSubmit(paymentEntries, topPaidAmount);
+            if (limitErr) {
+                setExceededError(limitErr);
+                toast.error(limitErr);
+                hasError = true;
+            } else {
+                setExceededError("");
+            }
+        } else {
+            setExceededError("");
+        }
+
+        if (hasError) {
             return;
         }
 
         setLoading(true);
         try {
-            // According to requirements, we send one request per payment type if multiple exist
-            // and follow the payload structure provided.
-            for (const entry of paymentEntries) {
-                if (parseFloat(entry.amount) <= 0) continue;
+            const validEntries = paymentEntries.filter(entry => parseFloat(entry.amount) > 0);
+            const currentBillId =
+                billDetails?.productsBillId ||
+                billDetails?.receiptItems?.[0]?.productsBillId ||
+                billDetails?.receiptItems?.[0]?.productsBillItemsId ||
+                billDetails?.productsPurchaseRqstID ||
+                billId;
 
-                const currentBillId = 
-                    billDetails?.productsBillId || 
-                    billDetails?.receiptItems?.[0]?.productsBillId || 
-                    billDetails?.receiptItems?.[0]?.productsBillItemsId || 
-                    billDetails?.productsPurchaseRqstID || 
-                    billId;
-
-                const payload = {
-                    amount: parseFloat(entry.amount),
-                    debitOrCredit: "Debit",
-                    paymentFrom: "payment out",
-                    paymentType: entry.type,
-                    userTransactionDate: new Date(paymentDate).toISOString(),
-                    supplierId: supplierData?.supplierId || billDetails?.supplierId,
-                    branchId: branchId,
-                    createdBy: userInfo?.userId || 1,
-                    productsBillId: parseInt(currentBillId),
-                    transactionInfo: description || `Payment for invoice #${currentBillId}`,
-                    transactionImg: "", // Will be uploaded separately
-                    returnProductsId: null,
-                    returnsDeduction: false
-                };
-
-                const res = await purchaseService.createTransaction(jwtToken, payload);
-                
-                if (res.status === "success" || res.status === 200) {
-                    const transId = res.data?.suppliersTransactionId;
-                    if (selectedImage && transId) {
-                        const formData = new FormData();
-                        formData.append("transactionImg", selectedImage);
-                        await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
+            const payload = {
+                debitOrCredit: "Debit",
+                paymentFrom: "payment out",
+                ...dateOnlyWithTimeZone(
+                    "userTransactionDate",
+                    parseWallClockDate(paymentDate) || new Date(paymentDate),
+                ),
+                supplierId: supplierData?.supplierId || billDetails?.supplierId,
+                branchId: branchId,
+                createdBy: userInfo?.userId || 1,
+                productsBillId: parseInt(currentBillId),
+                transactionInfo: description || `Payment for invoice #${currentBillId}`,
+                returnProductsId: null,
+                returnsDeduction: false,
+                paymentTypes: validEntries.map(entry => {
+                    const typeObj = {
+                        paymentType: entry.type,
+                        amount: parseFloat(entry.amount)
+                    };
+                    if (entry.refNo && entry.type !== 'Cash') {
+                        typeObj.referenceNumber = entry.refNo;
                     }
+                    return typeObj;
+                })
+            };
+
+            const res = await purchaseService.createTransaction(jwtToken, payload);
+
+            if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
+                const resData = res.data?.data || res.data;
+                let transId = null;
+                if (Array.isArray(resData)) {
+                    transId = resData[0]?.suppliersTransactionId;
+                } else if (resData && typeof resData === 'object') {
+                    if (Array.isArray(resData.data)) {
+                        transId = resData.data[0]?.suppliersTransactionId;
+                    } else {
+                        transId = resData.suppliersTransactionId || resData.data?.suppliersTransactionId;
+                    }
+                }
+
+                if (selectedImage && transId) {
+                    const formData = new FormData();
+                    formData.append("transactionImg", selectedImage);
+                    await purchaseService.uploadTransactionImage(jwtToken, transId, formData);
                 }
             }
 
@@ -230,22 +342,23 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     <div className={styles.headerGrid}>
                         <div className={styles.field}>
                             <label>Supplier Name</label>
-                            <input 
-                                type="text" 
-                                className={`${styles.input} ${styles.readOnly}`} 
-                                value={supplierData?.supplierName || billDetails?.vendor?.supplierName || "N/A"} 
-                                readOnly 
+                            <input
+                                type="text"
+                                className={`${styles.input} ${styles.readOnly}`}
+                                value={supplierData?.supplierName || billDetails?.vendor?.supplierName || "N/A"}
+                                readOnly
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Payment Date</label>
-                            <div style={{position: 'relative'}}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="date"
+                                    className={styles.input}
                                     value={paymentDate}
+                                    max={toApiDateOnly(new Date())}
                                     onChange={(e) => setPaymentDate(e.target.value)}
-                                    style={{width: '100%'}}
+                                    style={{ width: '100%' }}
                                 />
                             </div>
                         </div>
@@ -254,14 +367,19 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     {/* Bill Stats */}
                     <div className={styles.col5}>
                         <div className={styles.field}>
-                            <label>Order Number <span style={{color: '#ff4d4f'}}>*</span></label>
-                            <select 
+                            <label>Order Number <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <select
                                 className={`${styles.select} ${orderError ? styles.errorInput : ""}`}
                                 value={billDetails?.productsBillId || billDetails?.productsPurchaseRqstID || ""}
                                 onChange={(e) => handleOrderChange(e.target.value)}
                             >
                                 <option value="">Select Order</option>
-                                {allOrders?.filter(o => o.orderStatus === 'received').map(order => (
+                                {allOrders?.filter(o =>
+                                    o.orderStatus === 'received' &&
+                                    o.paymentStatus !== 'Full' &&
+                                    o.paymentStatus !== 'Paid' &&
+                                    parseFloat(o.balanceAmount || 0) > 0
+                                ).map(order => (
                                     <option key={order.productsPurchaseRqstID} value={order.productsBillId || order.productsPurchaseRqstID}>
                                         PO-{String(order.productsPurchaseRqstID).padStart(5, '0')}
                                     </option>
@@ -287,13 +405,18 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
                         <div className={styles.field}>
                             <label>Paid Amount</label>
-                            <input 
-                                type="number" 
-                                className={styles.input} 
-                                value={paymentEntries[0]?.amount || ""} 
-                                onChange={(e) => updatePayment(paymentEntries[0]?.id, "amount", e.target.value)}
+                            <input
+                                type="number"
+                                className={`${styles.input} ${amountError ? styles.errorInput : ""}`}
+                                value={topPaidAmount}
+                                onChange={(e) => handleTopPaidAmountChange(e.target.value)}
                                 placeholder="0"
                             />
+                            {amountError && (
+                                <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
+                                    {amountError}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -302,10 +425,10 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         <div className={styles.summaryCol}>
                             <div className={styles.field}>
                                 <label>Add Description</label>
-                                <textarea 
-                                    className={styles.textarea} 
-                                    rows={2} 
-                                    placeholder="Lorem ipsum dolor sit..." 
+                                <textarea
+                                    className={styles.textarea}
+                                    rows={2}
+                                    placeholder="Enter Descrition"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
@@ -314,13 +437,13 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                 <label>Add Image</label>
                                 <div className={styles.imageUpload}>
                                     <label htmlFor="modalImage" className={styles.uploadTrigger}>Choose file</label>
-                                    <input 
-                                        type="file" 
-                                        id="modalImage" 
-                                        style={{display: 'none'}} 
+                                    <input
+                                        type="file"
+                                        id="modalImage"
+                                        style={{ display: 'none' }}
                                         onChange={(e) => setSelectedImage(e.target.files[0])}
                                     />
-                                    <span style={{fontSize: '12px', color: '#666'}}>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>
                                         {selectedImage ? selectedImage.name : "No file Choosen"}
                                     </span>
                                 </div>
@@ -328,20 +451,20 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
 
                         <div className={styles.summaryCol}>
-                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px'}}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                 <div className={styles.field}>
                                     <label>Round Off</label>
                                     <div className={styles.roundOffContainer}>
-                                        <input 
-                                            type="checkbox" 
-                                            className={styles.checkbox} 
+                                        <input
+                                            type="checkbox"
+                                            className={styles.checkbox}
                                             checked={isRoundOff}
                                             onChange={(e) => setIsRoundOff(e.target.checked)}
                                         />
-                                        <input 
-                                            type="number" 
-                                            className={styles.input} 
-                                            value={roundOffValue} 
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            value={roundOffValue}
                                             onChange={(e) => setRoundOffValue(e.target.value)}
                                             placeholder="0"
                                         />
@@ -364,59 +487,80 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                     </div>
 
                     {/* Payment Entries */}
-                    <div style={{marginTop: '32px'}}>
-                        {paymentEntries.map((entry, index) => (
-                            <div key={entry.id} className={styles.paymentEntry}>
-                                <div className={styles.grid}>
-                                    <div className={styles.field}>
-                                        <label>Payment Type</label>
-                                        <select 
-                                            className={styles.select}
-                                            value={entry.type}
-                                            onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
-                                        >
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Card">Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Bank">Bank Transfer</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label>Amount Paid</label>
-                                        <div style={{display: 'flex', gap: '12px'}}>
-                                            <input 
-                                                type="number" 
-                                                className={styles.input} 
-                                                placeholder="₹ 25000" 
-                                                value={entry.amount}
-                                                onChange={(e) => updatePayment(entry.id, "amount", e.target.value)}
-                                                style={{flex: 1}}
-                                            />
-                                            {paymentEntries.length > 1 && (
-                                                <button className={styles.miniRemove} onClick={() => handleRemovePayment(entry.id)}>
-                                                    <FiTrash2 />
-                                                </button>
+                    <div style={{ marginTop: '32px' }}>
+                        {paymentEntries.map((entry, index) => {
+                            const isLast = index === paymentEntries.length - 1;
+                            const hasAmountRequiredError = amountError && (!entry.amount || parseFloat(entry.amount) <= 0);
+                            const showExceededOnAmount = exceededError && isLast;
+                            const showExceededOnType = exceededError && paymentEntries.length > 1 && isLast;
+
+                            return (
+                                <div key={entry.id} className={styles.paymentEntry}>
+                                    <div className={styles.grid}>
+                                        <div className={styles.field}>
+                                            <label>Payment Type</label>
+                                            <select
+                                                className={`${styles.select} ${showExceededOnType ? styles.errorInput : ""}`}
+                                                value={entry.type}
+                                                onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
+                                            >
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Bank">Bank Transfer</option>
+                                            </select>
+                                            {showExceededOnType && (
+                                                <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
+                                                    {exceededError.includes("exceed") ? "Exceeds Paid Amount" : "Less than Paid Amount"}
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
-                                {entry.type !== "Cash" && (
-                                    <div className={styles.refField}>
                                         <div className={styles.field}>
-                                            <label>REFERENCE NUMBER</label>
-                                            <input 
-                                                type="text" 
-                                                className={styles.input} 
-                                                placeholder="****************" 
-                                                value={entry.refNo}
-                                                onChange={(e) => updatePayment(entry.id, "refNo", e.target.value)}
-                                            />
+                                            <label>Amount Paid</label>
+                                            <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', gap: '12px' }}>
+                                                    <input
+                                                        type="number"
+                                                        className={`${styles.input} ${hasAmountRequiredError || showExceededOnAmount ? styles.errorInput : ""}`}
+                                                        placeholder="0"
+                                                        value={entry.amount}
+                                                        onChange={(e) => {
+                                                            updatePayment(entry.id, "amount", e.target.value);
+                                                        }}
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    {paymentEntries.length > 1 && (
+                                                        <button className={styles.miniRemove} onClick={() => handleRemovePayment(entry.id)}>
+                                                            <FiTrash2 />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {(hasAmountRequiredError || showExceededOnAmount) && (
+                                                    <div style={{ color: '#E9315D', fontSize: '12px', fontWeight: 'bold', marginTop: '5px', display: 'block' }}>
+                                                        {hasAmountRequiredError ? amountError : exceededError}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        ))}
+                                    {entry.type !== "Cash" && entry.type !== "Bank" && (
+                                        <div className={styles.refField}>
+                                            <div className={styles.field}>
+                                                <label>REFERENCE NUMBER</label>
+                                                <input
+                                                    type="text"
+                                                    className={styles.input}
+                                                    placeholder="****************"
+                                                    value={entry.refNo}
+                                                    onChange={(e) => updatePayment(entry.id, "refNo", e.target.value.replace(/[^0-9]/g, ''))}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                         <div className={styles.addPaymentLink} onClick={handleAddPayment}>
                             +ADD ANOTHER PAYMENT
                         </div>

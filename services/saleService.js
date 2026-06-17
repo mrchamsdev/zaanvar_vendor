@@ -2,10 +2,21 @@
 import { WebApimanager } from "../components/utilities/WebApiManager";
 
 export const saleService = {
-  getSalesInvoices: async (jwt, branchId) => {
+  getSalesInvoices: async (jwt, branchId, dateFilterParams = {}) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/user-orders/branch/${branchId}`);
+      let url = `vendor/user-orders/branch/${branchId}`;
+      const queryParams = [];
+      if (dateFilterParams.dateFilter) {
+        queryParams.push(`dateFilter=${dateFilterParams.dateFilter}`);
+      } else if (dateFilterParams.fromDate && dateFilterParams.toDate) {
+        queryParams.push(`fromDate=${dateFilterParams.fromDate}`);
+        queryParams.push(`toDate=${dateFilterParams.toDate}`);
+      }
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join("&")}`;
+      }
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [], overallTotals: {} };
     } catch (error) {
       console.error("Error fetching sales invoices:", error);
@@ -57,10 +68,21 @@ export const saleService = {
     }
   },
 
-  getPayments: async (jwt, branchId) => {
+  getPayments: async (jwt, branchId, dateFilterParams = {}) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/payments/branch/${branchId}`);
+      let url = `vendor/payments/branch/${branchId}`;
+      const queryParams = [];
+      if (dateFilterParams.dateFilter) {
+        queryParams.push(`dateFilter=${dateFilterParams.dateFilter}`);
+      } else if (dateFilterParams.fromDate && dateFilterParams.toDate) {
+        queryParams.push(`fromDate=${dateFilterParams.fromDate}`);
+        queryParams.push(`toDate=${dateFilterParams.toDate}`);
+      }
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join("&")}`;
+      }
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [], overallTotals: {} };
     } catch (error) {
       console.error("Error fetching payments:", error);
@@ -76,6 +98,17 @@ export const saleService = {
     } catch (error) {
       console.error("Error fetching payment detail:", error);
       return { status: "error", data: null };
+    }
+  },
+
+  getPaymentHistory: async (jwt, id) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/payments/${id}/history`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      return { status: "error", data: [] };
     }
   },
 
@@ -97,6 +130,17 @@ export const saleService = {
       return response || { status: "error" };
     } catch (error) {
       console.error("Error updating payment:", error);
+      return { status: "error" };
+    }
+  },
+
+  uploadPaymentImage: async (jwt, paymentId, formData) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.imagePut(`vendor/payments/${paymentId}`, formData);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error uploading payment image:", error);
       return { status: "error" };
     }
   },
@@ -134,10 +178,21 @@ export const saleService = {
     }
   },
 
-  getAllSalesReturns: async (jwt, branchId) => {
+  getAllSalesReturns: async (jwt, branchId, dateFilterParams = {}) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/customer-returns/branch/${branchId}`);
+      let url = `vendor/customer-returns/branch/${branchId}`;
+      const queryParams = [];
+      if (dateFilterParams.dateFilter) {
+        queryParams.push(`dateFilter=${dateFilterParams.dateFilter}`);
+      } else if (dateFilterParams.fromDate && dateFilterParams.toDate) {
+        queryParams.push(`fromDate=${dateFilterParams.fromDate}`);
+        queryParams.push(`toDate=${dateFilterParams.toDate}`);
+      }
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join("&")}`;
+      }
+      const response = await webApi.get(url);
       return response?.data || { status: "error", data: [] };
     } catch (error) {
       console.error("Error fetching all sales returns:", error);

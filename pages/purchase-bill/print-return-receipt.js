@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import { purchaseService } from "../../services/purchaseService";
 import styles from "../../styles/purchase-bill/print-receipt.module.css";
+import { parseApiToLocal } from "../../utilities/date-time-utils";
 
 const PrintReturnReceipt = () => {
     const router = useRouter();
@@ -29,10 +30,69 @@ const PrintReturnReceipt = () => {
         setLoading(true);
         try {
             const branchId = userInfo?.branchId || 1;
-            const res = await purchaseService.getBranchReturns(jwtToken, branchId);
-            if (res.status === "success") {
-                const returnData = res.data.find(r => r.returnProductsId === parseInt(id));
-                setData(returnData);
+            let returnData = null;
+            let phone = "";
+
+            // 1. Try to fetch detailed return by ID to get vendor details
+            try {
+                const detailRes = await purchaseService.getReturnById(jwtToken, id);
+                if (detailRes.status === "success" && detailRes.data) {
+                    const detail = detailRes.data;
+                    phone = detail.productsBill?.vendor?.phone || detail.supplierPhone || detail.phone || "";
+                    returnData = {
+                        ...detail,
+                        totalAmount: detail.totalAmount || detail.returnAmount || 0
+                    };
+                }
+            } catch (err) {
+                console.error("Error fetching return by ID:", err);
+            }
+
+            // 2. Fetch list of returns if not fetched or if phone is missing
+            if (!returnData || !phone) {
+                const listRes = await purchaseService.getBranchReturns(jwtToken, branchId);
+                if (listRes.status === "success" && listRes.data) {
+                    const matchedReturn = listRes.data.find(r => r.returnProductsId === parseInt(id));
+                    if (matchedReturn) {
+                        if (!returnData) {
+                            returnData = matchedReturn;
+                        }
+                        phone = phone || matchedReturn.supplierPhone || matchedReturn.phone || "";
+                        
+                        // If phone is still missing, search in suppliers list
+                        if (!phone) {
+                            try {
+                                const supRes = await purchaseService.getSuppliers(jwtToken, branchId);
+                                if (supRes.status === "success" && supRes.data) {
+                                    const supplierId = returnData.supplierId || matchedReturn.supplierId;
+                                    const supplierName = returnData.supplierName || matchedReturn.supplierName;
+                                    
+                                    let matchedSupplier = null;
+                                    if (supplierId) {
+                                        matchedSupplier = supRes.data.find(s => s.supplierId === supplierId);
+                                    }
+                                    if (!matchedSupplier && supplierName) {
+                                        matchedSupplier = supRes.data.find(s => 
+                                            s.supplierName?.toLowerCase() === supplierName.toLowerCase()
+                                        );
+                                    }
+                                    if (matchedSupplier) {
+                                        phone = matchedSupplier.phone || "";
+                                    }
+                                }
+                            } catch (supErr) {
+                                console.error("Error fetching suppliers for lookup:", supErr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (returnData) {
+                setData({
+                    ...returnData,
+                    supplierPhone: phone || "N/A"
+                });
             }
         } catch (error) {
             console.error("Error fetching data for print:", error);
@@ -85,7 +145,7 @@ const PrintReturnReceipt = () => {
                         <div className={styles.labelRow}>Return Details:</div>
                         <div className={styles.valueRow}>
                             <p>No: {data.returnProductsId}</p>
-                            <p>Date: {new Date(data.createdDate).toLocaleDateString('en-GB')}</p>
+                            <p>Date: {(parseApiToLocal(data.returnDate || data.createdDate) || new Date()).toLocaleDateString('en-GB')}</p>
                         </div>
                     </div>
                 </div>

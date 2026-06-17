@@ -17,7 +17,7 @@
 
 .viewHeaderLeft {
   flex: 1;
-  background: #f9f9f9;
+  background: var(--color-bg-gray-light);
   padding: 24px 32px;
   border-radius: 4px;
   display: flex;
@@ -42,7 +42,7 @@
   display: block;
   font-size: 11px;
   text-transform: uppercase;
-  color: #888;
+  color: var(--color-text-light);
   margin-bottom: 4px;
   letter-spacing: 0.5px;
 }
@@ -50,12 +50,12 @@
 .infoGridItem strong {
   display: block;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-body);
 }
 
 .viewHeaderRight {
   width: 380px;
-  background: #fff;
+  background: var(--color-white);
   padding: 5px;
   display: flex;
   flex-direction: column;
@@ -79,7 +79,7 @@
 .viewImageThumb {
   width: 60px;
   height: 60px;
-  background: #eee;
+  background: var(--color-border-light);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -100,7 +100,7 @@
 }
 
 .overflowThumb {
-  background: #000;
+  background: var(--color-black);
   position: relative;
 }
 
@@ -121,14 +121,14 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-white);
   font-size: 16px;
   z-index: 2;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .addImageThumb {
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--color-border-dark);
   color: #aaa;
   font-size: 24px;
   cursor: pointer;
@@ -153,7 +153,7 @@
   width: 90%;
   max-width: 1000px;
   height: 80vh;
-  background: #fff;
+  background: var(--color-white);
   border-radius: 12px;
   position: relative;
   overflow: hidden;
@@ -165,7 +165,7 @@
   position: absolute;
   top: 15px;
   right: 20px;
-  background: #eee;
+  background: var(--color-border-light);
   border: none;
   width: 32px;
   height: 32px;
@@ -193,7 +193,7 @@
   display: block; /* Use block instead of flex for simpler scrolling */
   overflow-y: scroll !important;
   max-height: calc(80vh - 40px); /* Strictly constrain to modal height */
-  border-right: 1px solid #eee;
+  border-right: 1px solid var(--color-border-light);
   box-sizing: border-box;
 }
 
@@ -205,7 +205,7 @@
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s;
-  background: #fff;
+  background: var(--color-white);
   margin-bottom: 12px; /* Gap for block layout */
 }
 
@@ -214,7 +214,7 @@
 }
 
 .thumbnailsSidebar::-webkit-scrollbar-thumb {
-  background: #ddd;
+  background: var(--color-border-dark);
   border-radius: 4px;
 }
 
@@ -226,7 +226,7 @@
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s;
-  background: #fff;
+  background: var(--color-white);
 }
 
 .sidebarThumb img {
@@ -236,7 +236,7 @@
 }
 
 .activeSidebarThumb {
-  border-color: #000;
+  border-color: var(--color-black);
   transform: scale(1.05);
 }
 
@@ -246,7 +246,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background: #fff;
+  background: var(--color-white);
 }
 
 .mainModalImage {
@@ -277,7 +277,7 @@
 .viewSectionTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #555;
+  color: var(--color-text-gray);
   text-transform: uppercase;
   margin: 32px 0 16px 0;
   letter-spacing: 1px;
@@ -286,18 +286,18 @@
 .viewSubTitle {
   font-size: 13px;
   font-weight: 600;
-  color: #888;
+  color: var(--color-text-light);
   margin: 20px 0 12px 0;
 }
 
 .viewTableWrapper {
-  background: #fff;
+  background: var(--color-white);
   border-radius: 8px;
   overflow-x: auto;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   width: 100%;
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #ddd transparent;
+  scrollbar-color: var(--color-border-dark) transparent;
 }
 
 .viewTableWrapper::-webkit-scrollbar {
@@ -305,7 +305,7 @@
 }
 
 .viewTableWrapper::-webkit-scrollbar-thumb {
-  background: #ddd;
+  background: var(--color-border-dark);
   border-radius: 10px;
 }
 
@@ -325,9 +325,9 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #666;
-  border-bottom: 1px solid #eee;
-  border-right: 1px solid #eee;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-light);
+  border-right: 1px solid var(--color-border-light);
   white-space: nowrap; /* Single line */
 }
 
@@ -335,15 +335,15 @@
   padding: 12px 20px;
   font-size: 13px;
   color: #444;
-  border-bottom: 1px solid #f9f9f9;
-  border-right: 1px solid #eee;
+  border-bottom: 1px solid var(--color-bg-gray-light);
+  border-right: 1px solid var(--color-border-light);
   text-align: center;
   white-space: nowrap; /* Keep content on single line too */
 }
 
 .viewHistorySection {
   margin-top: 40px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-border-light);
   padding-top: 20px;
 }
 
@@ -355,8 +355,8 @@
 }
 
 .nextBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
   border: none;
   padding: 8px 24px;
   border-radius: 8px;

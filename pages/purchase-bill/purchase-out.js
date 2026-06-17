@@ -4,10 +4,11 @@ import PaymentOutList from "../../components/purchase-bill/PaymentOutList";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { FiChevronDown, FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 
 const PurchaseOutPage = () => {
     const router = useRouter();
-    const { branches, branchId: defaultBranchId } = useDashboardData();
+    const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
     const currentBranchId = router.query.branchId || "";
 
     React.useEffect(() => {
@@ -18,8 +19,10 @@ const PurchaseOutPage = () => {
                 pathname: router.pathname,
                 query: { ...router.query, branchId: targetId }
             }, undefined, { shallow: true });
+        } else if (currentBranchId) {
+            setSelectedBranchId(currentBranchId);
         }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId]);
+    }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
 
     const handleBranchChange = (e) => {
         router.push({
@@ -29,26 +32,15 @@ const PurchaseOutPage = () => {
     };
 
     const customLeft = (
-        <div style={{ display: 'flex', alignItems: 'center', marginLeft: '20px' }}>
+        <div className={dashboardStyles.branchSwitcherContainer}>
             <select 
-                style={{ 
-                    border: '1px solid #eee', 
-                    background: '#f8f9fa', 
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '14px', 
-                    fontWeight: 500, 
-                    color: '#666',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    minWidth: '200px'
-                }}
+                className={dashboardStyles.branchSwitcher}
                 value={currentBranchId}
                 onChange={handleBranchChange}
             >
-                {branches?.length > 1 && <option value="">All Firms</option>}
+                {branches?.length > 1 && <option value="">Select Branch</option>}
                 {branches?.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
                 ))}
             </select>
         </div>

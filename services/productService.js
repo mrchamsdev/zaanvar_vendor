@@ -9,13 +9,12 @@ export const productService = {
     try {
       // Construction query params
       const params = {
-        branchId,
-        productType: type
+        branchId
       };
       if (search) params.search = search;
-      
+
       const response = await webApi.get(`vendor/products`, params);
-      
+
       const body = response?.data || response;
       let productsList = [];
       let total = 0;
@@ -103,10 +102,10 @@ export const productService = {
     return await webApi.get(`vendor/product-variants/generate-sku`);
   },
 
-  getStockUpdates: async (jwt) => {
+  getStockUpdates: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/stock-updates/manual-entries`);
+      const response = await webApi.get(`vendor/stock-updates/manual-entries`, { branchId });
       const body = response?.data || response;
       return body?.data || (Array.isArray(body) ? body : []);
     } catch (error) {
@@ -118,7 +117,7 @@ export const productService = {
   getAllProductsBrief: async (jwt, branchId) => {
     const webApi = new WebApimanager(jwt);
     try {
-      const response = await webApi.get(`vendor/products`, { branchId});
+      const response = await webApi.get(`vendor/products`, { branchId });
       const body = response?.data || response;
       return body?.data || (Array.isArray(body) ? body : []);
     } catch (error) {
@@ -141,13 +140,19 @@ export const productService = {
     const webApi = new WebApimanager(jwt);
     try {
       const response = await webApi.get(`vendor/products/stock-reports`, { branchId });
-      return response?.data?.data || {
+      const data = response?.data?.data;
+      if (data) {
+        data.counts = response?.data?.counts;
+      }
+      return data || {
         outOfStock: [],
         lowStock: [],
         expired: [],
+        expiredProducts: [],
         shortExpiry: [],
         damagedBillItems: [],
-        customerDamagedReturns: []
+        customerDamagedReturns: [],
+        damageProducts: []
       };
     } catch (error) {
       console.error("Error fetching stock reports:", error);
@@ -155,16 +160,19 @@ export const productService = {
     }
   },
 
-  restoreDamagedItem: async (jwt, consumptionId) => {
+  restoreDamagedItem: async (jwt, id, useStockUpdateId = false) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.put(`vendor/products/stock-reports`, { consumptionId, action: "restore" });
+    const payload = useStockUpdateId
+      ? { stockUpdateId: id, action: "restore" }
+      : { consumptionId: id, action: "restore" };
+    return await webApi.put(`vendor/products/stock-reports`, payload);
   },
 
-  markAsWaste: async (jwt, id, isExpired = false) => {
+  markAsWaste: async (jwt, id, isExpired = false, useStockUpdateId = false) => {
     const webApi = new WebApimanager(jwt);
-    const payload = isExpired 
-        ? { stockUpdateId: id, action: "waste", type: "expired" }
-        : { consumptionId: id, action: "waste" };
+    const payload = (isExpired || useStockUpdateId)
+      ? { stockUpdateId: id, action: "waste", ...(isExpired ? { type: "expired" } : {}) }
+      : { consumptionId: id, action: "waste" };
     return await webApi.put(`vendor/products/stock-reports`, payload);
   }
 };

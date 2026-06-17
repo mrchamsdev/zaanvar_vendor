@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/inventory/stockUpdates.module.css";
+import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
@@ -19,7 +20,8 @@ const IconSearch = () => (
 const StockUpdatesPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
-  const { branches, branchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
+  const currentBranchId = router.query.branchId || "";
   const [stockUpdates, setStockUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,21 +34,46 @@ const StockUpdatesPage = () => {
   const [activeToggle, setActiveToggle] = useState("Update Stock");
 
   useEffect(() => {
+    if (!router.isReady) return;
+    if (!currentBranchId && branches && branches.length > 0) {
+      const targetId = defaultBranchId || branches[0].id;
+      router.replace({
+        pathname: router.pathname,
+        query: { ...router.query, branchId: targetId }
+      }, undefined, { shallow: true });
+    } else if (currentBranchId) {
+      setSelectedBranchId(currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+
+  useEffect(() => {
     if (!isHydrated) return;
     
-    if (jwtToken && branchId) {
+    if (jwtToken && currentBranchId) {
       fetchStockUpdates();
     } else if (isHydrated && !jwtToken) {
       setLoading(false);
     }
-  }, [jwtToken, branchId, isHydrated]);
+  }, [jwtToken, currentBranchId, isHydrated]);
 
   const fetchStockUpdates = async () => {
     setLoading(true);
     try {
-      // BranchId is no longer needed in the URL as per user request
-      const data = await productService.getStockUpdates(jwtToken);
-      setStockUpdates(Array.isArray(data) ? data : (data?.data || []));
+      const data = await productService.getStockUpdates(jwtToken, currentBranchId);
+      const updates = Array.isArray(data) ? data : (data?.data || []);
+      // Sort by stockUpdateId descending to show newly added records at the top
+      updates.sort((a, b) => {
+        const idB = parseInt(b.stockUpdateId) || 0;
+        const idA = parseInt(a.stockUpdateId) || 0;
+        if (idB !== idA) {
+          return idB - idA;
+        }
+        // Fallback to date sorting if IDs are equal or missing
+        const dateB = new Date(b.createdDate || b.modifiedDate || 0).getTime();
+        const dateA = new Date(a.createdDate || a.modifiedDate || 0).getTime();
+        return dateB - dateA;
+      });
+      setStockUpdates(updates);
     } catch (error) {
       console.error("API ERROR:", error);
       toast.error("Failed to fetch stock updates");
@@ -54,6 +81,28 @@ const StockUpdatesPage = () => {
       setLoading(false);
     }
   };
+
+  const handleBranchChange = (e) => {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: e.target.value }
+    }, undefined, { shallow: true });
+  };
+
+  const customLeft = (
+    <div className={dashboardStyles.branchSwitcherContainer}>
+      <select 
+        className={dashboardStyles.branchSwitcher}
+        value={currentBranchId}
+        onChange={handleBranchChange}
+      >
+        {branches?.length > 1 && <option value="">Select Branch</option>}
+        {branches?.map(b => (
+          <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+        ))}
+      </select>
+    </div>
+  );
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -73,6 +122,7 @@ const StockUpdatesPage = () => {
 
   return (
     <DashboardLayout
+      customTopbarLeft={customLeft}
       customTopbarRight={(
         <div className={styles.topbarRight}>
             <button 
@@ -113,8 +163,13 @@ const StockUpdatesPage = () => {
           ) : filteredUpdates.length === 0 ? (
             <div className={styles.emptyContainer}>
                 <EmptyState 
-                    title="No Stock Updates Found"
-                    description="You haven't made any stock adjustments for this branch yet."
+                    buttonText="Update Stock"
+                    onAddClick={() => {
+                        setManagerMode("Add");
+                        setSelectedStockId(null);
+                        setShowUpdateForm(true);
+                        setTriggerNewTab(prev => prev + 1);
+                    }}
                 />
             </div>
           ) : (
@@ -203,7 +258,7 @@ const StockUpdatesPage = () => {
               value={rowsPerPage}
               onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
             >
-              {[10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              {[10, 20, 30, 40, 50].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             <span>{Math.min((currentPage - 1) * rowsPerPage + 1, filteredUpdates.length)} - {Math.min(currentPage * rowsPerPage, filteredUpdates.length)} of {filteredUpdates.length} Items</span>
           </div>

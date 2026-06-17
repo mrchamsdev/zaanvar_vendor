@@ -10,9 +10,9 @@
 
 .tabBar {
   display: flex;
-  background: #fff;
+  background: var(--color-white);
   padding: 0 40px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
   gap: 40px;
   flex-shrink: 0;
 }
@@ -21,15 +21,33 @@
   padding: 20px 0;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-body);
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  background: #f1f3f5;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.badgeActive {
+  background: var(--color-primary);
+  color: var(--color-white);
 }
 
 .tabActive {
-  color: #000;
+  color: var(--color-black);
   font-weight: 700;
 }
 
@@ -40,7 +58,7 @@
   left: -20px;
   right: -20px;
   height: 3px;
-  background: #E9315D;
+  background: var(--color-primary);
   border-radius: 3px 3px 0 0;
 }
 
@@ -70,7 +88,7 @@
 .searchBox input {
   width: 100%;
   padding: 10px 16px 10px 40px;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -82,12 +100,12 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
+  color: var(--color-text-lighter);
 }
 
 .exportBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 12px;
@@ -101,7 +119,7 @@
 
 .tableContainer {
   flex: 1;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   overflow: auto;
@@ -119,32 +137,32 @@
   text-align: left;
   font-size: 11px;
   font-weight: 700;
-  color: #777;
+  color: var(--color-text-gray-light);
   text-transform: uppercase;
   border: 1px solid #e0e0e0;
   white-space: nowrap;
 }
 
 .subTh {
-  background: #f8f9fa !important;
+  background: var(--color-bg-subtle) !important;
   font-size: 10px !important;
 }
 
 .table td {
   padding: 16px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--color-border-lighter);
   font-size: 13px;
-  color: #333;
+  color: var(--color-text-body);
 }
 
 .productName {
   font-weight: 700;
-  color: #000;
+  color: var(--color-black);
   text-transform: uppercase;
 }
 
 .category {
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 12px;
   text-transform: uppercase;
   font-weight: 500;
@@ -179,24 +197,24 @@
 }
 
 .restockBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .removeBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .wasteBtn {
-  background: #fff;
-  color: #000;
-  border: 1px solid #ccc;
+  background: var(--color-white);
+  color: var(--color-black);
+  border: 1px solid var(--color-border-dark);
 }
 
 .flashSaleBtn {
-    background: #000;
-    color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
 }
 
 .pagination {
@@ -209,7 +227,7 @@
 
 .paginationLeft {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -217,7 +235,7 @@
 
 .rowsSelect {
   padding: 4px 8px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   border-radius: 4px;
   outline: none;
 }
@@ -229,8 +247,8 @@
 
 .pageBtn {
   padding: 8px 16px;
-  border: 1px solid #eee;
-  background: #fff;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-white);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -238,7 +256,7 @@
 }
 
 .pageBtnNext {
-  background: #000;
-  color: #fff;
-  border-color: #000;
+  background: var(--color-black);
+  color: var(--color-white);
+  border-color: var(--color-black);
 }

@@ -1,5 +1,6 @@
+import { toApiDateOnly, parseApiToLocal, parseWallClockDate } from "@/utilities/date-time-utils";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/sales-invoice.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiX, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -7,6 +8,7 @@ import { useRouter } from "next/router";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
+import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(() => {
@@ -26,7 +28,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -37,6 +39,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -87,8 +90,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const inRange = isInRange(day);
                     const today = isToday(day);
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${today ? styles.today : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -103,7 +106,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -117,8 +120,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -135,12 +138,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
+                    <input
+                        type="text"
+                        className={styles.dateInput}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
@@ -148,9 +151,9 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -164,7 +167,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
-        single: currentDate?.single || new Date().toISOString().split('T')[0],
+        single: currentDate?.single || toApiDateOnly(new Date()),
         from: currentDate?.from || '',
         to: currentDate?.to || ''
     });
@@ -188,8 +191,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -206,7 +209,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -244,13 +247,13 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     {showCalendar && (
                         <div style={{
-                            position: 'absolute', 
-                            top: '0', 
-                            left: '105%', 
+                            position: 'absolute',
+                            top: '0',
+                            left: '105%',
                             zIndex: 3000,
                             minWidth: '280px'
                         }}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -272,9 +275,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -286,6 +289,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const SalesInvoiceList = ({ onAddClick }) => {
     const router = useRouter();
@@ -301,9 +305,13 @@ const SalesInvoiceList = ({ onAddClick }) => {
     const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), 0, 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), 11, 31))
     });
+
+    // Share modal state
+    const [isShareModalOpen, setIsShareModalOpen] = useState(null);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
 
     // Multi-modal filter state
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
@@ -319,6 +327,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
         balance: { mode: 'Contains', value: '' }
     });
 
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
+
     useEffect(() => {
         if (router.query.branchId) {
             setSelectedBranchId(router.query.branchId);
@@ -327,18 +343,57 @@ const SalesInvoiceList = ({ onAddClick }) => {
         }
     }, [router.query.branchId, defaultBranchId]);
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchInvoices = async (branchId) => {
         if (!branchId) return;
         setLoading(true);
         try {
-            const res = await saleService.getSalesInvoices(jwtToken, branchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await saleService.getSalesInvoices(jwtToken, branchId, dateParams);
             if (res.status === "success") {
-                setInvoices(res.data || []);
+                const newInvoices = res.data || [];
+                setInvoices(newInvoices);
                 setTotals({
                     totalAmount: res.overallTotals?.totalAmount || 0,
                     paid: res.overallTotals?.paidAmount || 0,
                     balance: res.overallTotals?.dueAmount || 0
                 });
+
+                if (filterType === "All" && newInvoices.length > 0) {
+                    const parsedDates = newInvoices.map(inv => parseWallClockDate(inv.invoiceDate || inv.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        lastFetchedRef.current = {
+                            branchId: branchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching sales invoices:", error);
@@ -349,9 +404,20 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchInvoices(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchInvoices(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     useEffect(() => {
         const handleRefresh = () => {
@@ -377,8 +443,19 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (invoices && invoices.length > 0) {
+                    const parsedDates = invoices.map(inv => parseWallClockDate(inv.invoiceDate || inv.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -405,54 +482,75 @@ const SalesInvoiceList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
     };
 
     const filteredInvoices = invoices.filter(inv => {
-        const invDate = new Date(inv.createdDate);
-        invDate.setHours(0,0,0,0);
+        const invDate = parseWallClockDate(inv.invoiceDate || inv.createdDate) || new Date();
+        invDate.setHours(0, 0, 0, 0);
 
         let matchesDate = true;
         if (dateFilterMode) {
             if (dateFilterMode === 'Equal to' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = invDate.getTime() === target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() === target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Less than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = invDate.getTime() < target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() < target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Greater than' && dateFilterValues.single) {
-                const target = new Date(dateFilterValues.single);
-                target.setHours(0,0,0,0);
-                matchesDate = invDate.getTime() > target.getTime();
+                const target = parseWallClockDate(dateFilterValues.single);
+                if (target) {
+                    target.setHours(0, 0, 0, 0);
+                    matchesDate = invDate.getTime() > target.getTime();
+                } else {
+                    matchesDate = false;
+                }
             } else if (dateFilterMode === 'Range' && dateFilterValues.from && dateFilterValues.to) {
-                const start = new Date(dateFilterValues.from);
-                const end = new Date(dateFilterValues.to);
-                start.setHours(0,0,0,0);
-                end.setHours(23,59,59,999);
-                matchesDate = invDate >= start && invDate <= end;
+                const start = parseWallClockDate(dateFilterValues.from);
+                const end = parseWallClockDate(dateFilterValues.to);
+                if (start && end) {
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(23, 59, 59, 999);
+                    matchesDate = invDate >= start && invDate <= end;
+                } else {
+                    matchesDate = false;
+                }
             }
         } else {
-            const start = new Date(dateRange.startDate);
-            const end = new Date(dateRange.endDate);
-            end.setHours(23, 59, 59, 999);
-            matchesDate = invDate >= start && invDate <= end;
+            const start = parseWallClockDate(dateRange.startDate);
+            const end = parseWallClockDate(dateRange.endDate);
+            if (start && end) {
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                matchesDate = invDate >= start && invDate <= end;
+            } else {
+                matchesDate = false;
+            }
         }
 
         const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
         const invoiceNo = (inv.userOrderId || inv.invoiceNumber || "").toString();
 
         const matchesSearch = partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
+            invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (!filter.value) return;
+            if (filter.value === undefined || filter.value === null || filter.value === '') return;
 
             let targetVal = "";
             if (col === 'invoiceNo') targetVal = invoiceNo;
@@ -461,13 +559,38 @@ const SalesInvoiceList = ({ onAddClick }) => {
             if (col === 'paid') targetVal = (inv.paidAmount || 0).toString();
             if (col === 'balance') targetVal = (inv.dueAmount || 0).toString();
 
-            if (filter.mode === 'Contains') {
-                if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
-            } else if (filter.mode === 'Exact Match') {
-                if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (col === 'amount' || col === 'paid' || col === 'balance') {
+                const numTarget = parseFloat(targetVal);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetVal.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
+            } else {
+                if (filter.mode === 'Contains') {
+                    if (!targetVal.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                } else if (filter.mode === 'Exact Match') {
+                    if (targetVal.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                }
             }
         });
-        
+
         return matchesDate && matchesSearch && matchesColFilters;
     });
 
@@ -478,7 +601,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
             let label = `Date: ${dateFilterMode}`;
             if (dateFilterValues?.single) label += ` ${new Date(dateFilterValues.single).toLocaleDateString('en-GB')}`;
             if (dateFilterValues?.from) label += ` ${new Date(dateFilterValues.from).toLocaleDateString('en-GB')} - ${new Date(dateFilterValues.to).toLocaleDateString('en-GB')}`;
-            
+
             chips.push({
                 id: 'date',
                 label,
@@ -491,7 +614,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
         Object.keys(columnFilters).forEach(col => {
             const filter = columnFilters[col];
-            if (filter.value) {
+            if (filter.value !== undefined && filter.value !== null && filter.value !== '') {
                 const labels = {
                     invoiceNo: 'Invoice No',
                     partyName: 'Customer Name',
@@ -526,7 +649,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
     const exportToExcel = () => {
         const headers = ["DATE", "INVOICE NO", "CUSTOMER NAME", "AMOUNT", "PAID", "BALANCE"];
         const rows = filteredInvoices.map(inv => [
-            `"${new Date(inv.createdDate).toLocaleDateString('en-GB')}"`,
+            `" ${(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${inv.userOrderId || inv.invoiceNumber || ''}"`,
             `"${(inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer")).replace(/"/g, '""')}"`,
             `"${inv.totalAmount || 0}"`,
@@ -539,11 +662,60 @@ const SalesInvoiceList = ({ onAddClick }) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Sales_Invoices_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Sales_Invoices_${toApiDateOnly(new Date())}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
+
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
+    const handlePrint = () => {
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
+    };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Sales Invoice History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.invoiceDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'INVOICE NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.invoiceNumber || '' },
+                    { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : (item.partyName || "Walk-in Customer"), align: 'left' },
+                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                ]}
+                items={filteredInvoices}
+                summary={[
+                    { label: 'Total Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `₹${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                ]}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -553,7 +725,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.customSelectWrapper}>
                         <div className={styles.customSelectHeader} onClick={() => setShowFilterDropdown(!showFilterDropdown)}>
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
@@ -567,14 +739,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
                     <div className={styles.dateDisplay} onClick={() => setShowCustomPicker(!showCustomPicker)}>
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
@@ -588,9 +760,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
             <div className={styles.searchBar}>
                 <FiSearch className={styles.searchIcon} />
-                <input 
-                    type="text" 
-                    placeholder="Search customer or invoice number" 
+                <input
+                    type="text"
+                    placeholder="Search customer or invoice number"
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -608,9 +780,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
                         <div className={styles.trendLabel}>vs Last month</div>
                     </div>
                 </div>
-                
+
                 <div className={styles.summaryLine}></div>
-                
+
                 <div className={styles.summaryBottom}>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Paid :</span>
@@ -623,15 +795,13 @@ const SalesInvoiceList = ({ onAddClick }) => {
                 </div>
             </div>
 
-            {renderAppliedFilters()}
-
             <div className={styles.transactionsHeader}>
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
-                    <button className={styles.iconBtn} onClick={() => window.print()} title="Print">
+                    <button className={styles.iconBtn} onClick={handlePrint} title="Print">
                         <FiPrinter />
                     </button>
                 </div>
@@ -639,8 +809,8 @@ const SalesInvoiceList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Invoices..." />
-            ) : filteredInvoices.length === 0 ? (
-                <EmptyState 
+            ) : invoices.length === 0 ? (
+                <EmptyState
                     buttonText="Add Sale Invoice"
                     onAddClick={onAddClick}
                 />
@@ -649,14 +819,16 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -667,88 +839,98 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    INVOICE NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>INVOICE NO</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.invoiceNo.value !== undefined && columnFilters.invoiceNo.value !== null && columnFilters.invoiceNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'invoiceNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Invoice No"
                                             currentMode={columnFilters.invoiceNo.mode}
                                             currentValue={columnFilters.invoiceNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, invoiceNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, invoiceNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    CUSTOMER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>CUSTOMER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.partyName.value !== undefined && columnFilters.partyName.value !== null && columnFilters.partyName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'partyName' ? null : 'partyName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'partyName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Customer Name"
                                             currentMode={columnFilters.partyName.mode}
                                             currentValue={columnFilters.partyName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, partyName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, partyName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.amount.value !== undefined && columnFilters.amount.value !== null && columnFilters.amount.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'amount' ? null : 'amount'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'amount' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Amount"
                                             currentMode={columnFilters.amount.mode}
                                             currentValue={columnFilters.amount.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, amount: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, amount: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    PAID 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>PAID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.paid.value !== undefined && columnFilters.paid.value !== null && columnFilters.paid.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'paid' ? null : 'paid'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'paid' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Paid"
                                             currentMode={columnFilters.paid.mode}
                                             currentValue={columnFilters.paid.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, paid: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, paid: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    BALANCE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>BALANCE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Balance"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -756,35 +938,72 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredInvoices.map((inv, idx) => {
-                                const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
-                                return (
-                                    <tr key={inv.userOrderId || idx}>
-                                        <td>{new Date(inv.createdDate).toLocaleDateString('en-GB')}</td>
-                                        <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
-                                        <td>{partyName}</td>
-                                        <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
-                                        <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
-                                        <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
-                                        <td>
-                                            <div className={styles.actions}>
-                                                <FiShare2 className={styles.actionIcon} />
-                                                <div style={{position: 'relative'}}>
-                                                    <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
-                                                    {activeDropdown === idx && (
-                                                        <div className={styles.dropdownMenu}>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: inv.userOrderId } }); }}>Edit</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>Open PDF</div>
-                                                            <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId, print: 'true' } }); }}>Print</div>
-                                                        </div>
-                                                    )}
+                            {filteredInvoices.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className={styles.noDataCell}>
+                                        The search you entered is not matching to any sales invoice
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredInvoices.map((inv, idx) => {
+                                    const partyName = inv.customer ? `${inv.customer.firstName} ${inv.customer.lastName}`.trim() : (inv.partyName || "Walk-in Customer");
+                                    return (
+                                        <tr key={inv.userOrderId || idx}>
+                                            <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                            <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
+                                            <td>{partyName}</td>
+                                            <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
+                                            <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
+                                            <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
+                                            <td>
+                                                <div className={styles.actions}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiShare2
+                                                            className={styles.actionIcon}
+                                                            onClick={() => {
+                                                                setSelectedTransaction(inv);
+                                                                setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                            }}
+                                                        />
+                                                        {isShareModalOpen === `share-${idx}` && (
+                                                            <ShareModal
+                                                                isOpen={true}
+                                                                onClose={() => setIsShareModalOpen(false)}
+                                                                data={inv}
+                                                                branchId={selectedBranchId || defaultBranchId}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
+                                                        {activeDropdown === idx && (
+                                                            <div className={styles.dropdownMenu}>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: inv.userOrderId } }); }}>View</div>
+                                                                <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
+                                                                <div className={styles.dropdownItem} onClick={() => {
+                                                                    setActiveDropdown(null);
+                                                                    const printUrl = `${window.location.pathname}?view=true&id=${inv.userOrderId}&print=true&pdf=true`;
+                                                                    const iframe = document.createElement('iframe');
+                                                                    iframe.style.position = 'fixed';
+                                                                    iframe.style.width = '0';
+                                                                    iframe.style.height = '0';
+                                                                    iframe.style.border = '0';
+                                                                    iframe.src = printUrl;
+                                                                    document.body.appendChild(iframe);
+                                                                    const cleanup = () => {
+                                                                        window.removeEventListener('focus', cleanup);
+                                                                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                    };
+                                                                    window.addEventListener('focus', cleanup);
+                                                                }}>Print</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            </td>
+                                        </tr>
+                                    );
+                                }))}
                         </tbody>
                     </table>
                 </div>

@@ -186,6 +186,7 @@ function buildMenuFromVendor(userInfo) {
       icon: <IconShop />,
       subItems: SERVICE_MAP["Sale"].subItems
     },
+    { label: "Customers", path: "/customers", icon: <IconUser /> },
     { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
   ];
 
@@ -348,7 +349,7 @@ const DashboardLayout = ({
             const isExpanded = expandedMenus[item.path];
 
             return (
-              <li key={item.path} className={isActive && !hasSub ? styles.active : ""}>
+              <li key={item.path} className={isActive ? styles.active : ""}>
                 {!hasSub ? (
                   <Link href={item.path} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
                     <span className={styles.navIcon}>{item.icon}</span>
@@ -362,19 +363,14 @@ const DashboardLayout = ({
                       onClick={() => {
                         setExpandedMenus(prev => ({ ...prev, [item.path]: !prev[item.path] }));
                       }}
-                      className={isActive ? styles.active : ""}
+                      className={styles.navGroupHeader}
                       title={sidebarCollapsed ? item.label : undefined}
-                      style={{
-                        display: "flex", alignItems: "center", cursor: "pointer",
-                        padding: "12px 16px", borderRadius: "8px",
-                        background: isActive ? "#000" : "transparent",
-                        color: isActive ? "#fff" : "inherit"
-                      }}
+                      data-label={item.label}
                     >
-                      <span className={styles.navIcon} style={{ display: 'flex', alignItems: 'center', opacity: 1 }}>{item.icon}</span>
+                      <span className={styles.navIcon}>{item.icon}</span>
                       {!sidebarCollapsed && (
                         <>
-                          <span className={styles.navLabel} style={{ flex: 1, paddingLeft: "12px", opacity: 1 }}>{item.label}</span>
+                          <span className={styles.navLabel}>{item.label}</span>
                           <span style={{ fontSize: "10px", marginLeft: "10px", opacity: 0.6 }}>{isExpanded ? "▲" : "▼"}</span>
                         </>
                       )}
@@ -462,7 +458,7 @@ const DashboardLayout = ({
                   value={selectedBranchId || ""}
                   onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
                 >
-                  {branches.length > 1 && <option value="">All Firms</option>}
+                  {branches.length > 1 && <option value="">Select Branch</option>}
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
                   ))}

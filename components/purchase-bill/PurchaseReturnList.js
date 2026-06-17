@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { toApiDateOnly, parseApiToLocal, parseWallClockDate } from "@/utilities/date-time-utils";
+import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-return.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiSearch, FiCheck } from "react-icons/fi";
 import { FaFileExcel } from "react-icons/fa";
@@ -7,10 +8,10 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import AddPaymentOut from "./AddPaymentOut";
 import ShareModal from "./ShareModal";
-import HistoryModal from "./HistoryModal";
 import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
@@ -27,7 +28,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
         const m = String(viewDate.getMonth() + 1).padStart(2, '0');
         const d = String(day).padStart(2, '0');
         const clickedDate = `${y}-${m}-${d}`;
-        
+
         if (selecting === 'start') {
             onSelect({ startDate: clickedDate, endDate: clickedDate });
             setSelecting('end');
@@ -38,6 +39,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                 onSelect({ startDate: startDate, endDate: clickedDate });
             }
             setSelecting('start');
+            if (onClose) onClose();
         }
     };
 
@@ -91,12 +93,12 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
                     const day = i + 1;
                     const selected = isSelected(day);
                     const inRange = isInRange(day);
-                    const isStart = new Date(year, month, day).toISOString().split('T')[0] === startDate;
-                    const isEnd = new Date(year, month, day).toISOString().split('T')[0] === endDate;
+                    const isStart = toApiDateOnly(new Date(year, month, day)) === startDate;
+                    const isEnd = toApiDateOnly(new Date(year, month, day)) === endDate;
 
                     return (
-                        <div 
-                            key={day} 
+                        <div
+                            key={day}
                             className={`${styles.calendarDay} ${selected ? styles.selectedDay : ''} ${inRange ? styles.inRangeDay : ''} ${isStart ? styles.rangeStart : ''} ${isEnd ? styles.rangeEnd : ''}`}
                             onClick={() => handleDayClick(day)}
                         >
@@ -111,7 +113,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
     const [mode, setMode] = useState(currentMode || 'Contains');
-    const [value, setValue] = useState(currentValue || '');
+    const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
     const options = ['Contains', 'Exact Match'];
 
@@ -125,8 +127,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -143,12 +145,12 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
-                    <input 
-                        type="text" 
-                        className={styles.dateInput} 
+                    <input
+                        type="text"
+                        className={styles.dateInput}
                         placeholder={`Enter ${label}`}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
@@ -156,9 +158,9 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setValue('');
-                             onApply(null, null);
-                             onClose();
+                            setValue('');
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -172,7 +174,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
-        single: currentDate?.single || new Date().toISOString().split('T')[0],
+        single: currentDate?.single || toApiDateOnly(new Date()),
         from: currentDate?.from || '',
         to: currentDate?.to || ''
     });
@@ -196,8 +198,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
-                        <div 
-                            key={opt} 
+                        <div
+                            key={opt}
                             className={`${styles.optionItem} ${mode === opt ? styles.active : ''}`}
                             onClick={() => {
                                 setMode(opt);
@@ -214,7 +216,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{transform: 'rotate(90deg)', color: '#666'}} />
+                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -251,8 +253,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     )}
 
                     {showCalendar && (
-                        <div style={{position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px'}}>
-                            <CustomDateRangePicker 
+                        <div style={{ position: 'absolute', top: '0', left: '105%', zIndex: 3000, minWidth: '280px' }}>
+                            <CustomDateRangePicker
                                 startDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 endDate={showCalendar === 'single' ? dates.single : (showCalendar === 'from' ? dates.from : dates.to)}
                                 showInputs={mode === 'Range'}
@@ -274,9 +276,9 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
                     <div className={styles.modalActions}>
                         <button className={styles.clearBtn} onClick={() => {
-                             setDates({single: '', from: '', to: ''});
-                             onApply(null, null);
-                             onClose();
+                            setDates({ single: '', from: '', to: '' });
+                            onApply(null, null);
+                            onClose();
                         }}>Clear</button>
                         <button className={styles.applyBtn} onClick={handleApply}>Apply</button>
                     </div>
@@ -294,15 +296,14 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeDropdown, setActiveDropdown] = useState(null);
-    const [selectedReturn, setSelectedReturn] = useState(null);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const { branches, branchId: defaultBranchId } = useDashboardData();
     const [selectedBranchId, setSelectedBranchId] = useState("");
     const [filterType, setFilterType] = useState("This Year");
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [dateRange, setDateRange] = useState({
-        startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-        endDate: new Date(new Date().getFullYear(), 11, 31).toISOString().split('T')[0]
+        startDate: toApiDateOnly(new Date(new Date().getFullYear(), 0, 1)),
+        endDate: toApiDateOnly(new Date(new Date().getFullYear(), 11, 31))
     });
 
     // New multi-modal date filter state
@@ -311,15 +312,23 @@ const PurchaseReturnList = ({ onAddClick }) => {
     const [dateFilterValues, setDateFilterValues] = useState(null);
 
     const [isShareModalOpen, setIsShareModalOpen] = useState(null);
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     const [openFilterCol, setOpenFilterCol] = useState(null); // 'refNo', 'supplierName', 'received', 'balance'
     const [columnFilters, setColumnFilters] = useState({
         refNo: { mode: 'Contains', value: '' },
+        billNo: { mode: 'Contains', value: '' },
         supplierName: { mode: 'Contains', value: '' },
         totalAmount: { mode: 'Contains', value: '' },
         balance: { mode: 'Contains', value: '' }
     });
+
+    const hasFiltersApplied = useMemo(() => {
+        return !!(
+            searchTerm ||
+            dateFilterMode ||
+            Object.values(columnFilters).some(f => f.value !== undefined && f.value !== null && f.value !== '')
+        );
+    }, [searchTerm, dateFilterMode, columnFilters]);
 
     useEffect(() => {
         if (router.query.branchId) {
@@ -329,23 +338,68 @@ const PurchaseReturnList = ({ onAddClick }) => {
         }
     }, [router.query.branchId, defaultBranchId]);
 
+    const lastFetchedRef = React.useRef({ branchId: null, filterType: null, dateRange: null });
+
     const fetchReturns = async (branchId) => {
         if (!branchId) return;
         setLoading(true);
         try {
-            const res = await purchaseService.getBranchReturns(jwtToken, branchId);
+            let dateParams = {};
+            if (filterType === "Custom") {
+                dateParams = {
+                    fromDate: dateRange.startDate,
+                    toDate: dateRange.endDate
+                };
+            } else if (filterType !== "All") {
+                const mapType = {
+                    "This Month": "thisMonth",
+                    "Last Month": "lastMonth",
+                    "This Quarter": "thisQuarter",
+                    "This Year": "thisYear"
+                }[filterType];
+                if (mapType) {
+                    dateParams = { dateFilter: mapType };
+                }
+            }
+
+            const res = await purchaseService.getBranchReturns(jwtToken, branchId, dateParams);
             if (res.status === "success") {
                 const data = res.data || [];
                 setReturns(data);
-                // Calculate totals if not provided by API
-                if (res.totals) {
-                    setTotals(Array.isArray(res.totals) ? res.totals[0] : res.totals);
+
+                // If filterType is "All", update the dateRange based on the fetched returns
+                if (filterType === "All" && data.length > 0) {
+                    const parsedDates = data.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        const start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        const end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                        const newRange = {
+                            startDate: toApiDateOnly(start),
+                            endDate: toApiDateOnly(end)
+                        };
+                        // Update ref first so the useEffect doesn't trigger a duplicate fetch
+                        lastFetchedRef.current = {
+                            branchId,
+                            filterType: "All",
+                            dateRange: newRange
+                        };
+                        setDateRange(newRange);
+                    }
+                }
+
+                // Calculate totals
+                if (res.totals || res.totalReturnAmount !== undefined || res.totalBalanceAmount !== undefined) {
+                    const apiTotals = res.totals ? (Array.isArray(res.totals) ? res.totals[0] : res.totals) : res;
+                    const localTotalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
+                    setTotals({
+                        totalAmount: apiTotals.totalAmount || apiTotals.totalReturnAmount || data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0),
+                        totalReceived: apiTotals.totalReceived || data.reduce((acc, curr) => acc + Number(curr.received || 0), 0),
+                        totalBalance: apiTotals.totalBalanceAmount !== undefined && apiTotals.totalBalanceAmount !== null ? Number(apiTotals.totalBalanceAmount) : localTotalBal
+                    });
                 } else {
                     const totalAmt = data.reduce((acc, curr) => acc + Number(curr.returnAmount || 0), 0);
                     const totalRec = data.reduce((acc, curr) => acc + Number(curr.received || 0), 0);
-                    const totalBal = (res.suppliers && Array.isArray(res.suppliers)) 
-                        ? res.suppliers.reduce((acc, curr) => acc + Number(curr.balance || 0), 0)
-                        : data.reduce((acc, curr) => acc + Number(curr.balance || 0), 0);
+                    const totalBal = data.reduce((acc, curr) => acc + Number(curr.totalBalanceAmount || 0), 0);
                     setTotals({ totalAmount: totalAmt, totalReceived: totalRec, totalBalance: totalBal });
                 }
             }
@@ -358,9 +412,21 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
     useEffect(() => {
         if (selectedBranchId) {
-            fetchReturns(selectedBranchId);
+            const isCustom = filterType === "Custom";
+            const last = lastFetchedRef.current;
+            const dateRangeChanged = last.dateRange?.startDate !== dateRange.startDate || last.dateRange?.endDate !== dateRange.endDate;
+
+            if (selectedBranchId !== last.branchId || filterType !== last.filterType || (isCustom && dateRangeChanged)) {
+                // Update ref
+                lastFetchedRef.current = {
+                    branchId: selectedBranchId,
+                    filterType,
+                    dateRange
+                };
+                fetchReturns(selectedBranchId);
+            }
         }
-    }, [selectedBranchId]);
+    }, [selectedBranchId, filterType, dateRange]);
 
     const handleFilterChange = (type) => {
         setFilterType(type);
@@ -369,8 +435,19 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
         switch (type) {
             case "All":
-                start = new Date(2000, 0, 1);
-                end = new Date(2100, 11, 31);
+                if (returns && returns.length > 0) {
+                    const parsedDates = returns.map(r => parseWallClockDate(r.returnDate || r.createdDate)).filter(Boolean);
+                    if (parsedDates.length > 0) {
+                        start = new Date(Math.min(...parsedDates.map(d => d.getTime())));
+                        end = new Date(Math.max(...parsedDates.map(d => d.getTime())));
+                    } else {
+                        start = new Date(2000, 0, 1);
+                        end = new Date(2100, 11, 31);
+                    }
+                } else {
+                    start = new Date(2000, 0, 1);
+                    end = new Date(2100, 11, 31);
+                }
                 break;
             case "This Month":
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -397,8 +474,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
         }
 
         setDateRange({
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
+            startDate: toApiDateOnly(start),
+            endDate: toApiDateOnly(end)
         });
         setShowCustomPicker(false);
         // Clear multi-modal filter when top level filter changes
@@ -407,101 +484,171 @@ const PurchaseReturnList = ({ onAddClick }) => {
     };
 
     const filteredReturns = returns.filter(r => {
-        const transDate = new Date(r.createdDate);
-        const start = new Date(dateRange.startDate);
-        const end = new Date(dateRange.endDate);
-        start.setHours(0,0,0,0);
-        end.setHours(23,59,59,999);
+        const transDate = parseWallClockDate(r.returnDate || r.createdDate) || new Date();
+        const start = parseWallClockDate(dateRange.startDate);
+        const end = parseWallClockDate(dateRange.endDate);
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(23, 59, 59, 999);
 
-        let matchesDate = transDate >= start && transDate <= end;
+        let matchesDate = start && end ? (transDate >= start && transDate <= end) : true;
 
         if (dateFilterMode && dateFilterValues) {
-            const single = new Date(dateFilterValues.single);
-            const from = new Date(dateFilterValues.from);
-            const to = new Date(dateFilterValues.to);
-            single.setHours(0,0,0,0);
-            from.setHours(0,0,0,0);
-            to.setHours(23,59,59,999);
-            const checkDate = new Date(r.createdDate);
-            checkDate.setHours(0,0,0,0);
+            const single = parseWallClockDate(dateFilterValues.single);
+            const from = parseWallClockDate(dateFilterValues.from);
+            const to = parseWallClockDate(dateFilterValues.to);
+            if (single) single.setHours(0, 0, 0, 0);
+            if (from) from.setHours(0, 0, 0, 0);
+            if (to) to.setHours(23, 59, 59, 999);
+            const checkDate = parseWallClockDate(r.returnDate || r.createdDate) || new Date();
+            checkDate.setHours(0, 0, 0, 0);
 
-            if (dateFilterMode === 'Equal to') matchesDate = checkDate.getTime() === single.getTime();
-            else if (dateFilterMode === 'Less than') matchesDate = checkDate < single;
-            else if (dateFilterMode === 'Greater than') matchesDate = checkDate > single;
-            else if (dateFilterMode === 'Range') matchesDate = checkDate >= from && checkDate <= to;
+            if (dateFilterMode === 'Equal to' && single) matchesDate = checkDate.getTime() === single.getTime();
+            else if (dateFilterMode === 'Less than' && single) matchesDate = checkDate < single;
+            else if (dateFilterMode === 'Greater than' && single) matchesDate = checkDate > single;
+            else if (dateFilterMode === 'Range' && from && to) matchesDate = checkDate >= from && checkDate <= to;
         }
 
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
             (r.supplierName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
             (String(r.returnProductsId)).toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesColFilters = true;
         Object.keys(columnFilters).forEach(key => {
             const filter = columnFilters[key];
-            if (!filter.value) return;
+            if (filter.value === undefined || filter.value === null || filter.value === '') return;
 
             let targetValue = "";
             if (key === 'refNo') targetValue = String(r.returnProductsId);
+            else if (key === 'billNo') targetValue = String(r.productsBillId || "");
             else if (key === 'supplierName') targetValue = String(r.supplierName || "");
             else if (key === 'totalAmount') targetValue = String(r.returnAmount || 0);
-            else if (key === 'balance') targetValue = String(r.balance || 0);
+            else if (key === 'balance') targetValue = String(r.totalBalanceAmount || 0);
 
-            if (filter.mode === 'Exact Match') {
-                if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+            if (key === 'totalAmount' || key === 'balance') {
+                const numTarget = parseFloat(targetValue);
+                const numFilter = parseFloat(filter.value);
+                const isNumTarget = !isNaN(numTarget);
+                const isNumFilter = !isNaN(numFilter);
+
+                if (isNumTarget && isNumFilter) {
+                    if (filter.mode === 'Exact Match') {
+                        if (numTarget !== numFilter) matchesColFilters = false;
+                    } else { // Contains
+                        const strTarget = numTarget.toString();
+                        const strFilter = numFilter.toString();
+                        if (!strTarget.includes(strFilter) && !targetValue.toLowerCase().includes(filter.value.toLowerCase())) {
+                            matchesColFilters = false;
+                        }
+                    }
+                } else {
+                    if (filter.mode === 'Exact Match') {
+                        if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                    } else {
+                        if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                    }
+                }
             } else {
-                if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                if (filter.mode === 'Exact Match') {
+                    if (targetValue.toLowerCase() !== filter.value.toLowerCase()) matchesColFilters = false;
+                } else {
+                    if (!targetValue.toLowerCase().includes(filter.value.toLowerCase())) matchesColFilters = false;
+                }
             }
         });
 
         return matchesDate && matchesSearch && matchesColFilters;
-    }).sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+    }).sort((a, b) => Number(b.returnProductsId || 0) - Number(a.returnProductsId || 0));
 
     const exportToExcel = () => {
-        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "RECEIVED", "BALANCE"];
+        const headers = ["DATE", "REF NO", "SUPPLIER NAME", "TOTAL RETURN AMOUNT", "TOTAL BALANCE AMOUNT"];
         const rows = filteredReturns.map(r => [
-            `"${new Date(r.createdDate).toLocaleDateString('en-GB')}"`,
+            `" ${(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}"`,
             `"${r.returnProductsId || '000'}"`,
             `"${(r.supplierName || "N/A").replace(/"/g, '""')}"`,
-            `"${r.totalAmount || 0}"`,
-            `"0"`
+            `"${r.returnAmount || 0}"`,
+            `"${r.totalBalanceAmount || 0}"`
         ]);
 
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
         const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        
+
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Purchase_Return_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Purchase_Return_Report_${toApiDateOnly(new Date())}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
+    const isPrintList = router.query.printList === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('printList') === 'true');
+
+    useEffect(() => {
+        if (isPrintList && !loading) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isPrintList, loading]);
+
     const handlePrint = () => {
-        window.print();
+        const printUrl = `${window.location.pathname}?printList=true`;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.src = printUrl;
+        document.body.appendChild(iframe);
+        const cleanup = () => {
+            window.removeEventListener('focus', cleanup);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+        };
+        window.addEventListener('focus', cleanup);
     };
+
+    if (isPrintList) {
+        return (
+            <PrintInvoiceTemplate
+                title="Purchase Return History"
+                columns={[
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.returnDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
+                    { header: 'RETURN ID', accessor: 'returnProductsId', align: 'left' },
+                    { header: 'BILL NO', accessor: 'productsBillId', align: 'left' },
+                    { header: 'SUPPLIER NAME', render: (item) => item.supplierName || 'N/A', align: 'left' },
+                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.returnAmount || 0).toLocaleString() },
+                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.totalBalanceAmount || 0).toLocaleString() }
+                ]}
+                items={filteredReturns}
+                summary={[
+                    { label: 'Total Return Amount', value: `Rs ${Number(totals.totalAmount || 0).toLocaleString()}` },
+                    { label: 'Total Balance Amount', value: `Rs ${Number(totals.totalBalance || 0).toLocaleString()}`, isTotal: true }
+                ]}
+            />
+        );
+    }
 
     return (
         <div className={styles.container}>
             <h1 className={styles.printOnlyTitle}>Purchase Return History</h1>
-            
+
             <div className={styles.filters}>
                 <div className={styles.filterGroup}>
                     <span className={styles.filterLabel}>Filter by :</span>
                     <div className={styles.customSelectWrapper}>
-                        <div 
+                        <div
                             className={styles.customSelectHeader}
                             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                         >
                             <span>{filterType}</span>
-                            <FiChevronRight style={{transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s'}} />
+                            <FiChevronRight style={{ transform: showFilterDropdown ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }} />
                         </div>
                         {showFilterDropdown && (
                             <div className={styles.customSelectDropdown}>
                                 {["This Month", "Last Month", "This Quarter", "This Year", "All", "Custom"].map(opt => (
-                                    <div 
-                                        key={opt} 
+                                    <div
+                                        key={opt}
                                         className={`${styles.customSelectOption} ${filterType === opt ? styles.active : ''}`}
                                         onClick={() => {
                                             handleFilterChange(opt);
@@ -515,22 +662,23 @@ const PurchaseReturnList = ({ onAddClick }) => {
                         )}
                     </div>
                 </div>
-                <div className={styles.filterGroup} style={{position: 'relative'}}>
-                    <div 
-                        className={styles.dateDisplay} 
+                <div className={styles.filterGroup} style={{ position: 'relative' }}>
+                    <div
+                        className={styles.dateDisplay}
                         onClick={() => setShowCustomPicker(!showCustomPicker)}
                     >
-                        <FiCalendar style={{marginRight: '8px', color: '#666'}} />
+                        <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
                         {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                     </div>
                     {showCustomPicker && (
                         <div className={styles.customPickerWrapper}>
-                            <CustomDateRangePicker 
+                            <CustomDateRangePicker
                                 startDate={dateRange.startDate}
                                 endDate={dateRange.endDate}
                                 isEmbedded={true}
                                 onSelect={(range) => {
                                     setDateRange(range);
+                                    setFilterType("Custom");
                                 }}
                                 onClose={() => setShowCustomPicker(false)}
                             />
@@ -541,9 +689,9 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             <div className={styles.searchBar}>
                 <FiSearch className={styles.searchIcon} />
-                <input 
-                    type="text" 
-                    placeholder="Search products here" 
+                <input
+                    type="text"
+                    placeholder="Search products here"
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -554,7 +702,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 <h2 className={styles.transactionsTitle}>Transactions</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                        <FaFileExcel style={{color: '#217346'}} />
+                        <FaFileExcel style={{ color: '#217346' }} />
                     </button>
                     <button className={styles.iconBtn} onClick={handlePrint} title="Print Report">
                         <FiPrinter />
@@ -564,8 +712,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
             {loading ? (
                 <Loader message="Loading Returns..." />
-            ) : filteredReturns.length === 0 ? (
-                <EmptyState 
+            ) : returns.length === 0 ? (
+                <EmptyState
                     buttonText="Add Purchase Return"
                     onAddClick={onAddClick}
                 />
@@ -574,14 +722,16 @@ const PurchaseReturnList = ({ onAddClick }) => {
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th style={{position: 'relative'}}>
-                                    DATE 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>DATE</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${dateFilterMode ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setIsDateFilterOpen(!isDateFilterOpen); setOpenFilterCol(null); }}
+                                        />
+                                    </div>
                                     {isDateFilterOpen && (
-                                        <DateFilterModal 
+                                        <DateFilterModal
                                             currentMode={dateFilterMode}
                                             currentDate={dateFilterValues}
                                             onClose={() => setIsDateFilterOpen(false)}
@@ -592,71 +742,96 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    REF NO 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>RETURN ID</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.refNo.value !== undefined && columnFilters.refNo.value !== null && columnFilters.refNo.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'refNo' ? null : 'refNo'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'refNo' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Ref no"
                                             currentMode={columnFilters.refNo.mode}
                                             currentValue={columnFilters.refNo.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, refNo: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, refNo: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    SUPPLIER NAME 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
+                                <th>
+                                    BILL NO
+                                    <FiFilter
+                                        className={`${styles.filterIcon} ${(columnFilters.billNo.value !== undefined && columnFilters.billNo.value !== null && columnFilters.billNo.value !== '') ? styles.filterIconActive : ''}`}
+                                        onClick={() => { setOpenFilterCol(openFilterCol === 'billNo' ? null : 'billNo'); setIsDateFilterOpen(false); }}
                                     />
+                                    {openFilterCol === 'billNo' && (
+                                        <GeneralFilterModal
+                                            type="text"
+                                            label="Bill No"
+                                            currentMode={columnFilters.billNo.mode}
+                                            currentValue={columnFilters.billNo.value}
+                                            onClose={() => setOpenFilterCol(null)}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, billNo: { mode, value: val } })}
+                                        />
+                                    )}
+                                </th>
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>SUPPLIER NAME</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.supplierName.value !== undefined && columnFilters.supplierName.value !== null && columnFilters.supplierName.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'supplierName' ? null : 'supplierName'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'supplierName' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Supplier Name"
                                             currentMode={columnFilters.supplierName.mode}
                                             currentValue={columnFilters.supplierName.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, supplierName: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, supplierName: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    Total Return Amount 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>Total Return Amount</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.totalAmount.value !== undefined && columnFilters.totalAmount.value !== null && columnFilters.totalAmount.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'totalAmount' ? null : 'totalAmount'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'totalAmount' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Return Amount"
                                             currentMode={columnFilters.totalAmount.mode}
                                             currentValue={columnFilters.totalAmount.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, totalAmount: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, totalAmount: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
-                                <th style={{position: 'relative'}}>
-                                    TOTAL BALANCE AMOUNT 
-                                    <FiFilter 
-                                        className={styles.filterIcon} 
-                                        onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
-                                    />
+                                <th>
+                                    <div className={styles.thContent}>
+                                        <span>TOTAL BALANCE AMOUNT</span>
+                                        <FiFilter
+                                            className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
+                                            onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}
+                                        />
+                                    </div>
                                     {openFilterCol === 'balance' && (
-                                        <GeneralFilterModal 
+                                        <GeneralFilterModal
                                             type="text"
                                             label="Total Balance Amount"
                                             currentMode={columnFilters.balance.mode}
                                             currentValue={columnFilters.balance.value}
                                             onClose={() => setOpenFilterCol(null)}
-                                            onApply={(mode, val) => setColumnFilters({...columnFilters, balance: {mode, value: val}})}
+                                            onApply={(mode, val) => setColumnFilters({ ...columnFilters, balance: { mode, value: val } })}
                                         />
                                     )}
                                 </th>
@@ -664,97 +839,116 @@ const PurchaseReturnList = ({ onAddClick }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredReturns.map((r, idx) => (
-                                <tr key={idx}>
-                                    <td>{new Date(r.createdDate).toLocaleDateString('en-GB')}</td>
-                                    <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
-                                    <td>{r.supplierName || "N/A"}</td>
-                                    <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
-                                    <td style={{ 
-                                        fontWeight: '600',
-                                        color: Number(r.balance) < 0 ? '#28a745' : (Number(r.balance) > 0 ? '#E9315D' : 'inherit')
-                                    }}>
-                                        {Math.abs(Number(r.balance || 0)).toLocaleString()}
-                                    </td>
-                                    <td>
-                                        <div className={styles.actions}>
-                                             <div style={{position: 'relative'}}>
-                                                <FiShare2 
-                                                    className={styles.actionIcon} 
-                                                    onClick={() => {
-                                                        setSelectedReturn(r);
-                                                        setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
-                                                    }}
-                                                />
-                                                {isShareModalOpen === `share-${idx}` && (
-                                                    <ShareModal 
-                                                        isOpen={true}
-                                                        onClose={() => setIsShareModalOpen(false)}
-                                                        data={r}
-                                                    />
-                                                )}
-                                            </div>
-                                            <div style={{position: 'relative'}}>
-                                                <FiMoreVertical 
-                                                    className={styles.actionIcon} 
-                                                    onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
-                                                />
-                                                 {activeDropdown === idx && (
-                                                    <div className={styles.dropdownMenu}>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
-                                                            setActiveDropdown(null);
-                                                        }}>View</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
-                                                            setActiveDropdown(null);
-                                                        }}>Edit</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Open PDF</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            window.open(`/purchase-bill/print-return-receipt?id=${r.returnProductsId}&autoPrint=true`, '_blank');
-                                                            setActiveDropdown(null);
-                                                        }}>Print</div>
-                                                        <div className={styles.dropdownItem} onClick={() => {
-                                                            setSelectedReturn(r);
-                                                            setIsHistoryModalOpen(true);
-                                                            setActiveDropdown(null);
-                                                        }}>View History</div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                            {filteredReturns.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className={styles.noDataCell}>
+                                        The search you entered is not matching to any purchase return
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredReturns.map((r, idx) => (
+                                    <tr key={idx}>
+                                        <td>{(parseApiToLocal(r.returnDate || r.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
+                                        <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
+                                        <td>{r.productsBillId || "N/A"}</td>
+                                        <td>{r.supplierName || "N/A"}</td>
+                                        <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
+                                        <td style={{
+                                            fontWeight: '600',
+                                            color: Number(r.totalBalanceAmount) < 0 ? '#28a745' : (Number(r.totalBalanceAmount) > 0 ? '#E9315D' : 'inherit')
+                                        }}>
+                                            {Math.abs(Number(r.totalBalanceAmount || 0)).toLocaleString()}
+                                        </td>
+                                        <td>
+                                            <div className={styles.actions}>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiShare2
+                                                        className={styles.actionIcon}
+                                                        onClick={() => {
+                                                            setIsShareModalOpen(isShareModalOpen === `share-${idx}` ? null : `share-${idx}`);
+                                                        }}
+                                                    />
+                                                    {isShareModalOpen === `share-${idx}` && (
+                                                        <ShareModal
+                                                            isOpen={true}
+                                                            onClose={() => setIsShareModalOpen(false)}
+                                                            data={{
+                                                                ...r,
+                                                                suppliersTransactionId: `SR-${r.returnProductsId}`,
+                                                                supplierName: r.supplierName,
+                                                                amount: r.returnAmount,
+                                                                userTransactionDate: r.returnDate || r.createdDate,
+                                                                branchId: r.branchId || selectedBranchId || defaultBranchId
+                                                            }}
+                                                            branchId={selectedBranchId || defaultBranchId}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div style={{ position: 'relative' }}>
+                                                    <FiMoreVertical
+                                                        className={styles.actionIcon}
+                                                        onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)}
+                                                    />
+                                                    {activeDropdown === idx && (
+                                                        <div className={styles.dropdownMenu}>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                router.push({ pathname: router.pathname, query: { ...router.query, view: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
+                                                                setActiveDropdown(null);
+                                                            }}>View</div>
+                                                            {/* <div className={styles.dropdownItem} onClick={() => {
+                                                            router.push({ pathname: router.pathname, query: { ...router.query, edit: 'true', id: r.returnProductsId } }, undefined, { shallow: true });
+                                                            setActiveDropdown(null);
+                                                        }}>Edit</div> */}
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                window.open(`${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true`, '_blank');
+                                                                setActiveDropdown(null);
+                                                            }}>Open PDF</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
+                                                                setActiveDropdown(null);
+                                                                const printUrl = `${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true&print=true`;
+                                                                const iframe = document.createElement('iframe');
+                                                                iframe.style.position = 'fixed';
+                                                                iframe.style.width = '0';
+                                                                iframe.style.height = '0';
+                                                                iframe.style.border = '0';
+                                                                iframe.src = printUrl;
+                                                                document.body.appendChild(iframe);
+                                                                const cleanup = () => {
+                                                                    window.removeEventListener('focus', cleanup);
+                                                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                                };
+                                                                window.addEventListener('focus', cleanup);
+                                                            }}>Print</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )))}
                         </tbody>
                     </table>
                 </div>
             )}
 
             {returns.length > 0 && (
-                <div className={styles.bottomSummary}>
-                    <div className={styles.summaryItem}>
-                        Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <div className={styles.bottomSummary} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                        <span>Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className={styles.summaryItem}>
-                        Total Balance Amount : Rs {Number(totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                        <span>Total Balance Amount : </span>
+                        <span style={{ color: Number(totals?.totalBalance) > 0 ? '#FF4D4F' : Number(totals?.totalBalance) < 0 ? '#52c41a' : 'inherit', marginLeft: '6px' }}>
+                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                     </div>
                 </div>
             )}
 
-            {isHistoryModalOpen && (
-                <HistoryModal 
-                    isOpen={isHistoryModalOpen} 
-                    onClose={() => setIsHistoryModalOpen(false)} 
-                    data={selectedReturn}
-                    userInfo={userInfo}
-                />
-            )}
+
         </div>
     );
 };
 
 export default PurchaseReturnList;
+

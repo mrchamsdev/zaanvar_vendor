@@ -1,277 +1,480 @@
-import React, { useMemo } from "react";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import useStore from "../../components/state/useStore";
+import { WebApimanager } from "../../components/utilities/WebApiManager";
 import styles from "../../styles/dashboard/dashboard.module.css";
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+import {
+  TotalSalesIcon,
+  TotalPurchasesIcon,
+  ProfitIcon,
+  LossIcon,
+  PurchaseReturnIcon,
+  TotalCustomersIcon,
+  SaleReturnIcon,
+  TotalSuppliersIcon,
+  InventoryIcon
+} from "../../components/dashboard/DashboardIcons";
 
-/* ── helpers ── */
-const AVATAR_COLORS = ["#e05c2d", "#2d8ae0", "#2de07a", "#c42de0", "#e0c42d", "#2dc4e0"];
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Helper to format currency
+const formatCurrency = (val) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(Number(val));
 
-const StarIcon = ({ filled }) => (
-  <svg width="13" height="13" viewBox="0 0 24 24"
-    fill={filled ? "#fbbf24" : "none"} stroke="#fbbf24" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
+const TimeFilterDropdown = ({ value, fromDate, toDate, onChange, onDateChange }) => (
+  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+    <select className={styles.timeSelect} value={value} onChange={e => onChange(e.target.value)}>
+      <option value="thisMonth">This Month</option>
+      <option value="weekly">Weekly</option>
+      <option value="lastMonth">Last Month</option>
+      <option value="last3Months">Last 3 Months</option>
+      <option value="last6Months">Last 6 Months</option>
+      <option value="last1Year">Last 1 year</option>
+      <option value="thisFinancialYear">This Financial year</option>
+      <option value="lastFinancialYear">Last Financial year</option>
+      <option value="custom">Custom</option>
+    </select>
+    {value === 'custom' && (
+      <>
+        <input 
+          type="date" 
+          value={fromDate} 
+          onChange={e => onDateChange('from', e.target.value)} 
+          className={styles.timeSelect} 
+          style={{ width: '130px', padding: '0.3rem' }} 
+        />
+        <span style={{ color: '#666', fontSize: '13px' }}>to</span>
+        <input 
+          type="date" 
+          value={toDate} 
+          onChange={e => onDateChange('to', e.target.value)} 
+          className={styles.timeSelect} 
+          style={{ width: '130px', padding: '0.3rem' }} 
+        />
+      </>
+    )}
+  </div>
 );
 
-/* ── SVG Donut ── */
-const DonutChart = ({ value = 0, total = 0, size = 72 }) => {
-  const displayVal = value ? Number(value).toFixed(1) : "—";
-  const r = (size - 12) / 2;
-  const circ = 2 * Math.PI * r;
-  const fill = value ? Math.min((value / 5) * circ, circ) : 0;
-  return (
-    <svg width={size} height={size}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e9ecef" strokeWidth="10" />
-      {fill > 0 && (
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#8b5cf6" strokeWidth="10"
-          strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      )}
-      <text x="50%" y="46%" textAnchor="middle" dy="0.35em" fontSize="14" fontWeight="700" fill="#111">
-        {displayVal}
-      </text>
-      {total > 0 && (
-        <text x="50%" y="68%" textAnchor="middle" fontSize="7" fill="#999">
-          {total} Reviews
-        </text>
-      )}
-    </svg>
-  );
-};
-
-/* ── ordinal helper ── */
-function ordinal(n) {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-
-/* ═══════════════════════════════════════════════════════════
- * Dashboard Home
- * ═══════════════════════════════════════════════════════════ */
 export default function DashboardHomePage() {
-  const router = useRouter();
-  const {
-    vendor, company, branches, timings,
-    reviews, ratings, reviewsLoading,
-  } = useDashboardData({ skipReviews: false });
+  const { vendor, branchId } = useDashboardData({ skipReviews: true });
+  const { jwtToken } = useStore();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const topbarButtons = useMemo(() => [
-    // { label: "+ Add Rooms",    color: "purple", action: "addRooms" },
-    // { label: "+ Add Bookings", color: "red",    action: "addBookings" },
-    // { label: "+ Add More",     color: "gray",   action: "addMore" },
-  ], []);
+  // Initialize independent filters for each of the 8 dashboard sections
+  const defaultFilter = { filter: 'thisMonth', from: '', to: '' };
+  const [filters, setFilters] = useState({
+    overallStats: { ...defaultFilter },
+    saleVsPurchaseTrends: { ...defaultFilter },
+    profitAndLoss: { ...defaultFilter },
+    inventoryOverview: { ...defaultFilter },
+    customerGrowth: { ...defaultFilter },
+    topSellingCategories: { ...defaultFilter },
+    paymentsFromCustomers: { ...defaultFilter },
+    paymentsToSupplier: { ...defaultFilter }
+  });
 
-  /* ── Rating distribution bars ── */
-  const distBars = useMemo(() => {
-    if (!ratings?.distribution) return null;
-    const dist = ratings.distribution;
-    const colours = { 5: "#22c55e", 4: "#84cc16", 3: "#fbbf24", 2: "#fb923c", 1: "#ef4444" };
-    return [5, 4, 3, 2, 1].map((s) => ({
-      stars: s,
-      pct: dist[s] ?? 0,
-      color: colours[s],
+  const handleFilterChange = (section, type, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [section]: { ...prev[section], [type]: value }
     }));
-  }, [ratings]);
+  };
 
-  /* ── Recent reviews (latest 4) ── */
-  const recentReviews = reviews.slice(0, 4);
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        if (!jwtToken) return;
+        const id = branchId || vendor?.branchId || 91;
+        const webApi = new WebApimanager(jwtToken);
+        
+        let queryParams = `branchId=${id}`;
+        
+        Object.entries(filters).forEach(([section, values]) => {
+           queryParams += `&${section}DateFilter=${values.filter}`;
+           if (values.filter === 'custom') {
+              if (values.from) queryParams += `&${section}FromDate=${values.from}`;
+              if (values.to) queryParams += `&${section}ToDate=${values.to}`;
+           }
+           if (section === 'overallStats') {
+               queryParams += `&profitCategory=product`;
+           }
+        });
+
+        const res = await webApi.get(`vendor/dashboard?${queryParams}`);
+        const payload = res.data || res;
+        if (payload && payload.status === "success") {
+          setData(payload.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // We want to fetch if the filter is NOT custom, OR if it IS custom and both dates are selected
+    // Otherwise we'd trigger lots of requests when the user is picking custom dates.
+    // For simplicity, we just trigger it immediately. In most browsers <input type="date"> fires onChange only on complete.
+    fetchDashboard();
+  }, [branchId, vendor?.branchId, filters]);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div style={{ padding: 40, textAlign: 'center' }}>Loading Dashboard...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!data) {
+    return (
+      <DashboardLayout>
+        <div style={{ padding: 40, textAlign: 'center' }}>No Dashboard Data Available</div>
+      </DashboardLayout>
+    );
+  }
+
+  const {
+    overallStats,
+    saleVsPurchaseTrends,
+    profitAndLoss,
+    inventoryOverview,
+    customerGrowth,
+    topSellingCategories,
+    paymentsFromCustomers,
+    paymentsToSupplier
+  } = data;
+
+  // Recharts Mappers
+  const trendsData = saleVsPurchaseTrends?.labels?.map((label, i) => ({
+    name: label,
+    Sale: Number(saleVsPurchaseTrends.sales[i]),
+    Purchase: Number(saleVsPurchaseTrends.purchases[i]),
+    SaleReturn: Number(saleVsPurchaseTrends.saleReturns[i]),
+    PurchaseReturn: Number(saleVsPurchaseTrends.purchaseReturns[i]),
+  })) || [];
+
+  const plData = profitAndLoss?.labels?.map((label, i) => ({
+    name: label,
+    GrossProfit: Number(profitAndLoss.grossProfit[i]),
+    NetProfit: Number(profitAndLoss.netProfit[i]),
+    Loss: Number(profitAndLoss.loss[i]),
+  })) || [];
+
+  const customerData = customerGrowth?.labels?.map((label, i) => ({
+    name: label,
+    NewCustomer: Number(customerGrowth.newCustomers[i]),
+    ReturningCustomer: Number(customerGrowth.returningCustomers[i]),
+  })) || [];
+
+  const topCategoriesData = topSellingCategories?.map(item => ({
+    name: item.category,
+    Sales: Number(item.sales)
+  })) || [];
+
+  const custPaymentData = [
+    { name: 'Paid', value: Number(paymentsFromCustomers?.paid || 0), color: '#22c55e' },
+    { name: 'Pending', value: Number(paymentsFromCustomers?.pending || 0), color: '#fbbf24' },
+    { name: 'Overdue', value: Number(paymentsFromCustomers?.overdue || 0), color: '#ef4444' },
+  ];
+
+  const suppPaymentData = [
+    { name: 'Paid', value: Number(paymentsToSupplier?.paidOut || paymentsToSupplier?.paid || 0), color: '#3b82f6' },
+    { name: 'Pending', value: Number(paymentsToSupplier?.dueToSuppliers || paymentsToSupplier?.pending || 0), color: '#f59e0b' },
+    { name: 'Overdue', value: Number(paymentsToSupplier?.overdue || 0), color: '#ef4444' },
+  ];
+
+  const StatCard = ({ title, value, icon, bg }) => (
+    <div className={styles.statCard}>
+      <div className={styles.statInfo}>
+        <span className={styles.statLabel}>{title}</span>
+        <h3 className={styles.statValue}>{value}</h3>
+      </div>
+      <div className={styles.statIconWrap} >
+        {icon}
+      </div>
+    </div>
+  );
 
   return (
-    <DashboardLayout topbarButtons={topbarButtons}>
-
-      {/* ═══ Company / Branch cards ═══ */}
-      <div className={styles.branchRow}>
-        {/* Main Company card */}
-        {company ? (
-          <div
-            className={`${styles.branchCard} ${styles.branchCardMain}`}
-            onClick={() => router.push("/dashboard/profile")}
-          >
-            <span className={styles.branchLabel}>Main company</span>
-            <h3 className={styles.branchName}>{company.name}</h3>
-            <div className={styles.branchLogo}>
-              {(company.name?.[0] || "C").toUpperCase()}
-            </div>
-            <span className={styles.branchBadge}>24hr</span>
-            <p className={styles.branchLocation}>
-              {company.address?.area
-                ? `${company.address.area}, ${company.address.city}`
-                : company.branches?.[0]?.location || "—"}
-            </p>
-          </div>
-        ) : (
-          /* No company — only branch */
-          vendor?.branchId && (
-            <div
-              className={`${styles.branchCard} ${styles.branchCardMain}`}
-              onClick={() => router.push("/dashboard/profile")}
-            >
-              <span className={styles.branchLabel}>My Branch</span>
-              <h3 className={styles.branchName}>{vendor?.businessName || "Branch"}</h3>
-              <div className={styles.branchLogo}>B</div>
-              <span className={styles.branchBadge}>24hr</span>
-            </div>
-          )
-        )}
-
-        {/* Branch cards */}
-        {branches.map((br, i) => (
-          <div
-            key={br.id || i}
-            className={styles.branchCard}
-            onClick={() => router.push("/dashboard/profile")}
-          >
-            <span className={styles.branchLabel}>{ordinal(i + 1)} Branch</span>
-            <h3 className={styles.branchName}>{br.name || "Branch name"}</h3>
-            <div
-              className={styles.branchLogo}
-              style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-            >
-              {(br.name?.[0] || "B").toUpperCase()}
-            </div>
-            <span className={styles.branchBadge}>24hr</span>
-            <p className={styles.branchLocation}>
-              {br.addressDetails?.area
-                ? `${br.addressDetails.area}, ${br.addressDetails.city}`
-                : br.location || "—"}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* ═══ Three-column grid ═══ */}
-      <div className={styles.dashGrid}>
-
-        {/* ── Timing Slots ── */}
-        <div className={styles.dashCard}>
-          <h4 className={styles.dashCardTitle}>Timing slots</h4>
-          {DAYS.map((day) => {
-            const key = day.toLowerCase();
-            const slot = timings?.[key];
-            const isClosed = !slot || slot.open === "closed";
-            return (
-              <div key={day} className={styles.timingRow}>
-                <span className={styles.timingDay}>{day}</span>
-                <span className={styles.timingValue}>
-                  {isClosed ? (
-                    <span style={{ color: "#ef4444" }}>Closed</span>
-                  ) : (
-                    <>
-                      <span>{slot.open}</span>
-                      <span className={styles.timingSep}>–</span>
-                      <span>{slot.close}</span>
-                    </>
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── Recent Reviews ── */}
-        <div className={styles.dashCard}>
-          <h4 className={styles.dashCardTitle}>Recent Reviews</h4>
-
-          {reviewsLoading ? (
-            <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
-              Loading reviews…
-            </p>
-          ) : recentReviews.length === 0 ? (
-            <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
-              No reviews yet.
-            </p>
-          ) : (
-            recentReviews.map((r, i) => {
-              const name = r.userName || r.name || r.reviewerName || "User";
-              const rating = r.rating || r.stars || 0;
-              const comment = r.comment || r.text || r.review || "";
-              const timeAgo = r.createdAt
-                ? new Date(r.createdAt).toLocaleDateString("en-IN")
-                : r.time || "";
-              return (
-                <div key={i} className={styles.reviewItem}>
-                  <div
-                    className={styles.reviewAvatar}
-                    style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                  >
-                    {name[0].toUpperCase()}
-                  </div>
-                  <div className={styles.reviewBody}>
-                    <div className={styles.reviewName}>
-                      {name}
-                      <span className={styles.reviewTime}>{timeAgo}</span>
-                    </div>
-                    <div className={styles.reviewStars}>
-                      {Array.from({ length: 5 }).map((_, si) => (
-                        <StarIcon key={si} filled={si < Math.round(rating)} />
-                      ))}
-                    </div>
-                    <p className={styles.reviewText}>{comment}</p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          <div className={styles.reviewViewAll}>
-            <Link href="/reviews">View All</Link>
+    <DashboardLayout>
+      <div className={styles.newDashboardPage}>
+        <div className={styles.pageHeader}>
+          <div>
+            <h1 className={styles.pageTitle}>Dashboard</h1>
+            <p className={styles.pageSubtitle}>Welcome Back, <b>Admin</b></p>
           </div>
         </div>
 
-        {/* ── Distribution ── */}
-        <div className={styles.dashCard}>
-          <h4 className={styles.dashCardTitle}>Distribution</h4>
-          <p className={styles.distSubTitle}>
-            {company?.name || "Your business"} ratings overview
-          </p>
-          <p className={styles.ratingDistTitle}>Rating Distribution</p>
+        {/* ROW 1: Overall Statistics */}
+        <div className={styles.sectionBlock}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Overall Statistics</h2>
+            <TimeFilterDropdown 
+               value={filters.overallStats.filter} 
+               fromDate={filters.overallStats.from} 
+               toDate={filters.overallStats.to}
+               onChange={(val) => handleFilterChange('overallStats', 'filter', val)}
+               onDateChange={(type, val) => handleFilterChange('overallStats', type, val)}
+            />
+          </div>
+          <div className={styles.statsGrid}>
+            <StatCard title="Total Sales" value={formatCurrency(overallStats?.totalSales || 0)} bg="#f4f6fb" icon={<TotalSalesIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Total Purchases" value={formatCurrency(overallStats?.totalPurchases || 0)} bg="#f4f6fb" icon={<TotalPurchasesIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Profit" value={formatCurrency(overallStats?.profit || 0)} bg="#f4f6fb" icon={<ProfitIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Loss" value={formatCurrency(overallStats?.loss || 0)} bg="#f4f6fb" icon={<LossIcon style={{ width: '100%', height: 'auto' }} />} />
 
-          <div className={styles.donutWrap}>
-            <div className={styles.donutCenter}>
-              <DonutChart
-                value={ratings?.averageRating || 0}
-                total={ratings?.totalReviews || reviews.length}
+            <StatCard title="Purchase Returns" value={formatCurrency(overallStats?.purchaseReturns || 0)} bg="#f4f6fb" icon={<PurchaseReturnIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Total Customers" value={overallStats?.totalCustomers || 0} bg="#f4f6fb" icon={<TotalCustomersIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Sale Returns" value={formatCurrency(overallStats?.saleReturns || 0)} bg="#f4f6fb" icon={<SaleReturnIcon style={{ width: '100%', height: 'auto' }} />} />
+            <StatCard title="Total Suppliers" value={overallStats?.totalSuppliers || 0} bg="#f4f6fb" icon={<TotalSuppliersIcon style={{ width: '100%', height: 'auto' }} />} />
+          </div>
+        </div>
+
+        {/* ROW 2: Trends and P&L */}
+        <div className={styles.rowTwoGrid}>
+          <div className={styles.chartCard} style={{ flex: 1.5 }}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Sale Vs Purchase Trends</h2>
+              <TimeFilterDropdown 
+                 value={filters.saleVsPurchaseTrends.filter} 
+                 fromDate={filters.saleVsPurchaseTrends.from} 
+                 toDate={filters.saleVsPurchaseTrends.to}
+                 onChange={(val) => handleFilterChange('saleVsPurchaseTrends', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('saleVsPurchaseTrends', type, val)}
               />
             </div>
-            <div className={styles.ratingBars}>
-              {distBars ? (
-                distBars.map((b) => (
-                  <div key={b.stars} className={styles.ratingBarRow}>
-                    <span style={{ minWidth: 10 }}>{b.stars}</span>
-                    <div className={styles.ratingBarBg}>
-                      <div
-                        className={styles.ratingBarFill}
-                        style={{ width: `${b.pct}%`, background: b.color }}
-                      />
-                    </div>
-                    <span className={styles.ratingPct}>{b.pct}%</span>
-                  </div>
-                ))
-              ) : (
-                <p style={{ fontSize: 12, color: "#aaa" }}>
-                  {reviewsLoading ? "Loading…" : "No rating data yet."}
-                </p>
-              )}
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <LineChart data={trendsData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} tickFormatter={(val) => val > 0 ? (val / 1000) + 'k' : '0'} />
+                  <Tooltip />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12, top: -20, left: 0 }} />
+                  <Line type="monotone" dataKey="Sale" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="Purchase" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="SaleReturn" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="PurchaseReturn" stroke="#fbbf24" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {ratings?.source && (
-            <>
-              <p className={styles.ratingDistTitle} style={{ marginTop: 12 }}>
-                Review site Distribution
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#555" }}>
-                <span>{ratings.source}</span>
-                <span>{ratings.averageRating}</span>
-                <StarIcon filled />
-              </div>
-            </>
-          )}
+          <div className={styles.chartCard} style={{ flex: 1 }}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Profit & Loss</h2>
+              <TimeFilterDropdown 
+                 value={filters.profitAndLoss.filter} 
+                 fromDate={filters.profitAndLoss.from} 
+                 toDate={filters.profitAndLoss.to}
+                 onChange={(val) => handleFilterChange('profitAndLoss', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('profitAndLoss', type, val)}
+              />
+            </div>
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <AreaChart data={plData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} tickFormatter={(val) => val > 0 ? (val / 1000) + 'k' : '0'} />
+                  <Tooltip />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, top: -20, left: 0 }} />
+                  <Area type="monotone" dataKey="GrossProfit" stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} />
+                  <Area type="monotone" dataKey="NetProfit" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} />
+                  <Area type="monotone" dataKey="Loss" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
+
+        {/* ROW 3: Inventory, Customer Growth, Top Categories */}
+        <div className={styles.rowThreeGrid}>
+          <div className={styles.chartCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Inventory Overview</h2>
+              <TimeFilterDropdown 
+                 value={filters.inventoryOverview.filter} 
+                 fromDate={filters.inventoryOverview.from} 
+                 toDate={filters.inventoryOverview.to}
+                 onChange={(val) => handleFilterChange('inventoryOverview', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('inventoryOverview', type, val)}
+              />
+            </div>
+            <div className={styles.inventoryGrid}>
+              <div className={styles.invCard}>
+                <div className={styles.invIconWrap}><InventoryIcon style={{ width: '100%', height: 'auto' }} /></div>
+                <div>
+                  <div className={styles.invLabel}>Total Products</div>
+                  <div className={styles.invValue}>{inventoryOverview?.totalProducts || 0}</div>
+                </div>
+              </div>
+              <div className={styles.invCard}>
+                <div className={styles.invIconWrap}><InventoryIcon style={{ width: '100%', height: 'auto' }} /></div>
+                <div>
+                  <div className={styles.invLabel}>Low stock products</div>
+                  <div className={styles.invValue}>{inventoryOverview?.lowStockProducts || 0}</div>
+                </div>
+              </div>
+              <div className={styles.invCard}>
+                <div className={styles.invIconWrap}><InventoryIcon style={{ width: '100%', height: 'auto' }} /></div>
+                <div>
+                  <div className={styles.invLabel}>Out of Stock</div>
+                  <div className={styles.invValue}>{inventoryOverview?.outOfStock || 0}</div>
+                </div>
+              </div>
+              <div className={styles.invCard}>
+                <div className={styles.invIconWrap}><InventoryIcon style={{ width: '100%', height: 'auto' }} /></div>
+                <div>
+                  <div className={styles.invLabel}>Expired Products</div>
+                  <div className={styles.invValue}>{inventoryOverview?.expiredProducts || 0}</div>
+                </div>
+              </div>
+              <div className={styles.invCard}>
+                <div className={styles.invIconWrap}><InventoryIcon style={{ width: '100%', height: 'auto' }} /></div>
+                <div>
+                  <div className={styles.invLabel}>Active Products</div>
+                  <div className={styles.invValue}>{inventoryOverview?.activeProducts || 0}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Customer Growth</h2>
+              <TimeFilterDropdown 
+                 value={filters.customerGrowth.filter} 
+                 fromDate={filters.customerGrowth.from} 
+                 toDate={filters.customerGrowth.to}
+                 onChange={(val) => handleFilterChange('customerGrowth', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('customerGrowth', type, val)}
+              />
+            </div>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <AreaChart data={customerData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12, bottom: -10 }} />
+                  <Area type="monotone" dataKey="NewCustomer" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="ReturningCustomer" stroke="#fbbf24" fill="#fbbf24" fillOpacity={0.2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Top Selling Categories</h2>
+              <TimeFilterDropdown 
+                 value={filters.topSellingCategories.filter} 
+                 fromDate={filters.topSellingCategories.from} 
+                 toDate={filters.topSellingCategories.to}
+                 onChange={(val) => handleFilterChange('topSellingCategories', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('topSellingCategories', type, val)}
+              />
+            </div>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart layout="vertical" data={topCategoriesData} margin={{ top: 10, right: 30, left: -20, bottom: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} width={100} />
+                  <Tooltip cursor={{ fill: 'transparent' }} />
+                  <Bar dataKey="Sales" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={16}>
+                    {topCategoriesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#a855f7', '#22c55e', '#fbbf24', '#ef4444'][index % 4]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 4: Payments From Customers and To Suppliers */}
+        <div className={styles.rowFourGrid}>
+          <div className={styles.chartCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Payments From Customers</h2>
+              <TimeFilterDropdown 
+                 value={filters.paymentsFromCustomers.filter} 
+                 fromDate={filters.paymentsFromCustomers.from} 
+                 toDate={filters.paymentsFromCustomers.to}
+                 onChange={(val) => handleFilterChange('paymentsFromCustomers', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('paymentsFromCustomers', type, val)}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+              <div style={{ width: 160, height: 160 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={custPaymentData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
+                      {custPaymentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className={styles.legendWrap}>
+                {custPaymentData.map(c => (
+                  <div key={c.name} className={styles.legendItem}>
+                    <div className={styles.legendDot} style={{ background: c.color }} />
+                    <span className={styles.legendLabel}>{c.name}</span>
+                    <span className={styles.legendValue}>{formatCurrency(c.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Payments to Supplier</h2>
+              <TimeFilterDropdown 
+                 value={filters.paymentsToSupplier.filter} 
+                 fromDate={filters.paymentsToSupplier.from} 
+                 toDate={filters.paymentsToSupplier.to}
+                 onChange={(val) => handleFilterChange('paymentsToSupplier', 'filter', val)}
+                 onDateChange={(type, val) => handleFilterChange('paymentsToSupplier', type, val)}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+              <div style={{ width: 160, height: 160 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie data={suppPaymentData} innerRadius={55} outerRadius={75} paddingAngle={0} dataKey="value" stroke="none">
+                      {suppPaymentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className={styles.legendWrap}>
+                {suppPaymentData.map(c => (
+                  <div key={c.name} className={styles.legendItem}>
+                    <div className={styles.legendDot} style={{ background: c.color }} />
+                    <span className={styles.legendLabel}>{c.name}</span>
+                    <span className={styles.legendValue}>{formatCurrency(c.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </DashboardLayout>
   );

@@ -5,20 +5,23 @@ import { FaWhatsapp } from "react-icons/fa";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 
-const ShareModal = ({ isOpen, onClose, data }) => {
+const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
     const { jwtToken } = useStore();
     const [supplierInfo, setSupplierInfo] = React.useState(null);
 
     React.useEffect(() => {
-        if (isOpen && data?.supplierId) {
+        if (isOpen && (data?.supplierId || data?.supplierName)) {
             const fetchSupplier = async () => {
                 try {
                     // Reusing getSuppliers might work if it returns all, 
                     // but we need a specific one or filter from list.
                     // For now, let's assume we can get it or we filter.
-                    const res = await purchaseService.getSuppliers(jwtToken, data.branchId);
+                    const res = await purchaseService.getSuppliers(jwtToken, data.branchId || branchId);
                     if (res.status === "success") {
-                        const supplier = res.data.find(s => s.supplierId === data.supplierId);
+                        const supplier = res.data.find(s => 
+                            (data.supplierId && s.supplierId === data.supplierId) || 
+                            (data.supplierName && s.supplierName?.toLowerCase() === data.supplierName?.toLowerCase())
+                        );
                         setSupplierInfo(supplier);
                     }
                 } catch (error) {
@@ -27,7 +30,7 @@ const ShareModal = ({ isOpen, onClose, data }) => {
             };
             fetchSupplier();
         }
-    }, [isOpen, data, jwtToken]);
+    }, [isOpen, data, jwtToken, branchId]);
 
     if (!isOpen) return null;
 
@@ -35,7 +38,14 @@ const ShareModal = ({ isOpen, onClose, data }) => {
     const email = supplierInfo?.email || data?.email || "";
     const supplierName = supplierInfo?.supplierName || data?.transactionInfo || "Supplier";
 
-    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${data?.amount}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
+    const getDisplayTotalAmount = (t) => {
+        if (!t) return 0;
+        const mainAmount = parseFloat(t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
 
     const handleShare = (type) => {
         let url = "";
@@ -68,31 +78,52 @@ const ShareModal = ({ isOpen, onClose, data }) => {
     };
 
     return (
-        <div className={styles.floatingShareCard} style={data?.position || {}}>
-            <div className={styles.shareContent}>
-                <span className={styles.shareTitle}>Share</span>
-                <div className={styles.shareIconsRow}>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('email')}>
-                        <div className={`${styles.iconCircle} ${styles.emailCircle}`}>
-                            <FiMail />
-                        </div>
-                        <span className={styles.iconLabel}>Email</span>
+        <>
+            <div 
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 4999,
+                    background: 'transparent',
+                    cursor: 'default'
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
+            />
+            <div className={showBelow ? styles.floatingShareCardBelow : styles.floatingShareCard} style={data?.position || {}}>
+                <div className={styles.shareContent}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className={styles.shareTitle}>Share</span>
+                        <FiX style={{ cursor: 'pointer', color: '#999' }} onClick={onClose} />
                     </div>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('whatsapp')}>
-                        <div className={`${styles.iconCircle} ${styles.whatsappCircle}`}>
-                            <FaWhatsapp />
+                    <div className={styles.shareIconsRow}>
+                        <div className={styles.shareIconItem} onClick={() => handleShare('email')}>
+                            <div className={`${styles.iconCircle} ${styles.emailCircle}`}>
+                                <FiMail />
+                            </div>
+                            <span className={styles.iconLabel}>Email</span>
                         </div>
-                        <span className={styles.iconLabel}>WhatsApp</span>
-                    </div>
-                    <div className={styles.shareIconItem} onClick={() => handleShare('sms')}>
-                        <div className={`${styles.iconCircle} ${styles.smsCircle}`}>
-                            <FiMessageSquare />
+                        <div className={styles.shareIconItem} onClick={() => handleShare('whatsapp')}>
+                            <div className={`${styles.iconCircle} ${styles.whatsappCircle}`}>
+                                <FaWhatsapp />
+                            </div>
+                            <span className={styles.iconLabel}>WhatsApp</span>
                         </div>
-                        <span className={styles.iconLabel}>SMS</span>
+                        <div className={styles.shareIconItem} onClick={() => handleShare('sms')}>
+                            <div className={`${styles.iconCircle} ${styles.smsCircle}`}>
+                                <FiMessageSquare />
+                            </div>
+                            <span className={styles.iconLabel}>SMS</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

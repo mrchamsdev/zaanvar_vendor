@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -6,13 +7,16 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { saleService } from "../../services/saleService";
 import { toast } from "sonner";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import { useRouter } from "next/router";
+import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) => {
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
 
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -20,6 +24,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [cartDetails, setCartDetails] = useState(null);
     const [availableItems, setAvailableItems] = useState([]);
+    const [focusedField, setFocusedField] = useState(null);
 
     const formatVariantSize = (size) => {
         if (!size) return "";
@@ -39,15 +44,13 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         }
         return size;
     };
-    
+
     const [formData, setFormData] = useState({
         receiptNo: "",
         returnNo: `SR-${Date.now().toString().slice(-6)}`,
         returnReason: "",
         billDate: "",
-        returnDate: new Date().toISOString().split('T')[0],
-        refundMode: "Card",
-        refundReference: `REF-${Date.now().toString().slice(-9)}`
+        returnDate: toApiDateOnly(new Date())
     });
 
     const [items, setItems] = useState([]);
@@ -67,9 +70,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnNo: `SR-${Date.now().toString().slice(-6)}`,
                     returnReason: "",
                     billDate: "",
-                    returnDate: new Date().toISOString().split('T')[0],
-                    refundMode: "Card",
-                    refundReference: `REF-${Date.now().toString().slice(-9)}`
+                    returnDate: toApiDateOnly(new Date())
                 });
                 setItems([]);
                 setSelectedCustomer(null);
@@ -78,22 +79,25 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         }
     }, [isOpen, mode, returnId]);
 
+    useEffect(() => {
+        if (!loading && isOpen && mode === "view" && router.query.print === "true") {
+            const timer = setTimeout(() => {
+                window.print();
+                if (router.query.pdf !== "true") {
+                    const { print, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, isOpen, mode, router.query.print, router.query.pdf]);
+
     const fetchReturnDetails = async () => {
         setLoading(true);
         try {
             const res = await saleService.getSalesReturnById(jwtToken, returnId);
             if (res.status === "success" && res.data) {
                 const data = res.data;
-                setFormData({
-                    receiptNo: data.userOrderId,
-                    returnNo: `SR-${data.customerReturnId}`,
-                    returnReason: data.returnReason || "",
-                    billDate: data.createdDate?.split('T')[0] || "",
-                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || "",
-                    refundMode: data.refundMode || "Card",
-                    refundReference: data.refundReference || ""
-                });
-
                 // Fetch customer to get phone etc.
                 const custRes = await saleService.getCustomersByBranch(jwtToken, branchId);
                 const customersList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
@@ -103,8 +107,10 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 // Fetch original order to get max quantities
                 const orderRes = await saleService.getOrderById(jwtToken, data.userOrderId);
                 let availableItemsList = [];
+                let invoiceDateStr = "";
                 if (orderRes.status === "success" && orderRes.data) {
                     setSelectedOrder(orderRes.data);
+                    invoiceDateStr = (orderRes.data.invoiceDate || orderRes.data.createdDate || "").split('T')[0];
                     availableItemsList = (orderRes.data.cartItems || []).map(item => {
                         const vType = item.variant?.variantType || {};
                         const unitParts = [formatVariantSize(vType.size), vType.type].filter(Boolean);
@@ -116,6 +122,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             productId: item.productId,
                             variantId: item.variantId,
                             quantity: item.quantity, // original order qty
+                            returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                             unit: unitVal,
                             price: parseFloat(item.sellingPrice) || 0,
                             taxPercentage: parseFloat(item.taxPercentage) || 0,
@@ -125,6 +132,14 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     setAvailableItems(availableItemsList);
                 }
 
+                setFormData({
+                    receiptNo: data.userOrderId,
+                    returnNo: `SR-${data.customerReturnId}`,
+                    returnReason: data.returnReason || "",
+                    billDate: invoiceDateStr || data.createdDate?.split('T')[0] || "",
+                    returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
+                });
+
                 // Set items from return data
                 setItems((data.items || []).map(item => {
                     const original = availableItemsList.find(ai => ai.userOrderItemsID === item.userOrderItemsID);
@@ -133,6 +148,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         productName: original?.productName || "Product",
                         returnQty: item.quantity,
                         quantity: original?.quantity || item.quantity, // original order qty
+                        returnableQty: original?.returnableQty || item.quantity,
                         unit: original?.unit || "Unit",
                         price: parseFloat(item.sellingPrice || item.returnAmount) || 0,
                         taxPercentage: parseFloat(item.taxAmount || 0),
@@ -164,15 +180,27 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         setItems([]);
         setAvailableItems([]);
         setSelectedOrder(null);
+        setErrors(prev => ({ ...prev, customer: undefined }));
     };
 
     const handleReceiptSelect = async (orderId) => {
-        setFormData({ ...formData, receiptNo: orderId });
         setShowReceiptDropdown(false);
+        setErrors(prev => ({ ...prev, receiptNo: undefined, itemsEmpty: undefined }));
         setLoading(true);
         const res = await saleService.getOrderById(jwtToken, orderId);
         if (res.status === "success" && res.data) {
             setSelectedOrder(res.data);
+            const billDateStr = (res.data.invoiceDate || res.data.createdDate || res.data.createdAt || "").split('T')[0];
+            setFormData(prev => {
+                const nextReturnDate = (billDateStr && prev.returnDate && prev.returnDate < billDateStr) ? billDateStr : prev.returnDate;
+                return {
+                    ...prev,
+                    receiptNo: orderId,
+                    billDate: billDateStr,
+                    returnDate: nextReturnDate
+                };
+            });
+            setErrors(prev => ({ ...prev, receiptNo: undefined, itemsEmpty: undefined, returnDate: undefined }));
             const cartItems = res.data.cartItems || [];
             setAvailableItems(cartItems.map(item => {
                 const vType = item.variant?.variantType || {};
@@ -185,13 +213,14 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     productId: item.productId,
                     variantId: item.variantId,
                     quantity: item.quantity,
+                    returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                     unit: unitVal,
                     price: parseFloat(item.sellingPrice) || 0,
                     taxPercentage: parseFloat(item.taxPercentage) || 0,
                     discountPercentage: parseFloat(item.discountPercentage) || 0,
                 };
             }));
-            
+
             // Match Purchase Return behavior: Add an initial empty row
             if (cartItems.length > 0) {
                 setItems([{
@@ -242,6 +271,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         };
         setItems(newItems);
         setShowProductDropdown(null);
+        setErrors(prev => ({ ...prev, [`itemProduct_${index}`]: undefined, itemsEmpty: undefined }));
     };
 
     const updateReturnCondition = (index, condition) => {
@@ -252,16 +282,21 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     const updateItemQty = (index, qty) => {
         const newItems = [...items];
-        const maxQty = items[index].quantity || 0;
-        const returnQty = Math.min(qty, maxQty);
-        newItems[index].returnQty = returnQty;
-        
+        const maxQty = items[index].returnableQty !== undefined ? items[index].returnableQty : (items[index].quantity || 0);
+        newItems[index].returnQty = qty;
+
         const price = newItems[index].price || 0;
         const tax = (price * (newItems[index].taxPercentage || 0)) / 100;
         const disc = (price * (newItems[index].discountPercentage || 0)) / 100;
-        newItems[index].itemTotal = returnQty * (price + tax - disc);
-        
+        newItems[index].itemTotal = qty * (price + tax - disc);
+
         setItems(newItems);
+
+        if (qty > maxQty) {
+            setErrors(prev => ({ ...prev, [`itemQty_${index}`]: `Quantity cannot exceed returnable quantity (${maxQty})` }));
+        } else {
+            setErrors(prev => ({ ...prev, [`itemQty_${index}`]: undefined }));
+        }
     };
 
     const removeItem = (index) => {
@@ -278,16 +313,49 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
     };
 
     const handleSave = async () => {
-        if (!selectedCustomer || !formData.receiptNo) {
-            toast.error("Please select customer and receipt number");
+        const newErrors = {};
+        if (!selectedCustomer) {
+            newErrors.customer = "Customer name is required";
+        }
+        if (!formData.receiptNo) {
+            newErrors.receiptNo = "Receipt number is required";
+        }
+        if (!formData.returnDate) {
+            newErrors.returnDate = "Return date is required";
+        } else {
+            const todayStr = toApiDateOnly(new Date());
+            if (formData.billDate && formData.returnDate < formData.billDate) {
+                newErrors.returnDate = "Please enter a date between the invoice date and today";
+            } else if (formData.returnDate > todayStr) {
+                newErrors.returnDate = "Please enter a date between the invoice date and today";
+            }
+        }
+
+        items.forEach((item, index) => {
+            if (!item.userOrderItemsID) {
+                newErrors[`itemProduct_${index}`] = "Product name is required";
+            }
+            if (item.userOrderItemsID) {
+                const maxQty = item.returnableQty !== undefined ? item.returnableQty : (item.quantity || 0);
+                if (item.returnQty === "" || item.returnQty === null || item.returnQty === undefined || parseFloat(item.returnQty) <= 0) {
+                    newErrors[`itemQty_${index}`] = "Quantity must be greater than 0";
+                } else if (parseFloat(item.returnQty) > maxQty) {
+                    newErrors[`itemQty_${index}`] = `Quantity cannot exceed returnable quantity (${maxQty})`;
+                }
+            }
+        });
+
+        if (items.length === 0) {
+            newErrors.itemsEmpty = "Please select at least one product and quantity";
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             return;
         }
 
+        setErrors({});
         const validItems = items.filter(it => it.userOrderItemsID && it.returnQty > 0);
-        if (validItems.length === 0) {
-            toast.error("Please select at least one product and quantity");
-            return;
-        }
 
         const totalReturnAmount = validItems.reduce((acc, i) => acc + (i.itemTotal || 0), 0);
 
@@ -295,10 +363,16 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             userOrderId: parseInt(formData.receiptNo),
             branchId,
             vendorCustomerId: selectedCustomer.vendorCustomerId,
-            refundMode: formData.refundMode,
-            refundReference: formData.refundReference,
+            returnReason: formData.returnReason,
+            ...(formData.returnDate
+                ? dateOnlyWithTimeZone(
+                    "returnDate",
+                    parseWallClockDate(formData.returnDate) || new Date(formData.returnDate),
+                )
+                : {}),
             createdBy: userInfo?.userId || 1,
             totalReturnAmount: parseFloat(totalReturnAmount.toFixed(2)),
+            updatedFrom: "Sale Return",
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
                 quantity: i.returnQty,
@@ -335,11 +409,63 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     if (!isOpen) return null;
 
+    const isPdf = router.query.pdf === 'true' || router.query.print === 'true' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('print') === 'true');
+
+    if (isPdf) {
+        const columns = [
+            { header: "S NO.", align: "left", render: (item, idx) => String(idx + 1).padStart(2, '0') },
+            { header: "PRODUCT NAME", accessor: "productName", align: "left" },
+            { header: "QTY", accessor: "returnQty", align: "center" },
+            { header: "UNIT", accessor: "unit", align: "center" },
+            { header: "PRICE", accessor: "price", align: "right" },
+            { header: "TAX (%)", accessor: "taxPercentage", align: "center" },
+            { header: "DISCOUNT (%)", accessor: "discountPercentage", align: "center" },
+            { header: "AMOUNT", accessor: "itemTotal", align: "right" }
+        ];
+
+        const totalQty = items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0);
+        const subtotal = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0);
+        const totalDiscount = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0);
+        const grandTotal = items.reduce((acc, i) => acc + (i.itemTotal || 0), 0);
+
+        const summary = [
+            { label: "Total Quantity", value: totalQty },
+            { label: "Subtotal", value: subtotal.toFixed(2) },
+            { label: "Total Discount", value: totalDiscount.toFixed(2) },
+            { label: "Grand Total", value: grandTotal.toFixed(2), isTotal: true }
+        ];
+
+        // Need to require/import PrintInvoiceTemplate inline or dynamically if we don't have it at top level, 
+        // but wait, we need to import it at the top level. Let me just use standard import at top.
+        // Actually, we are replacing from line 410, so I will just return here.
+        // I will do another replacement for the top level import.
+        return (
+            <PrintInvoiceTemplate
+                title="SALE RETURN"
+                customerDetails={{
+                    name: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'N/A',
+                    phone: selectedCustomer?.phoneNumber || '',
+                }}
+                invoiceDetails={{
+                    "Receipt No": formData.receiptNo ? `Order ${formData.receiptNo}` : 'N/A',
+                    "Return No": formData.returnNo || 'N/A',
+                    "Bill Date": formData.billDate || 'N/A',
+                    "Return Date": formData.returnDate || 'N/A',
+                    "Return Reason": formData.returnReason || 'N/A'
+                }}
+                columns={columns}
+                items={items.filter(i => i.userOrderItemsID)}
+                summary={summary}
+                onClose={() => window.close()}
+            />
+        );
+    }
+
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={`${styles.overlay}`}>
+            <div className={`${styles.modal}`}>
                 <div className={styles.modalHeader}>
-                    <h3 style={{fontSize: '24px', fontWeight: '600'}}>
+                    <h3 style={{ fontSize: '24px', fontWeight: '600' }}>
                         {mode === "view" ? "View Sale Return" : mode === "edit" ? "Edit Sale Return" : "Add Sale Return"}
                     </h3>
                     <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
@@ -347,19 +473,20 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
                 <div className={styles.modalContent}>
                     <div className={styles.topGrid}>
-                        <div className={styles.field} style={{zIndex: showCustomerDropdown ? 100 : 1}}>
-                            <label>Customer Name</label>
-                            <div 
-                                className={styles.select} 
-                                onClick={() => mode === "add" && setShowCustomerDropdown(!showCustomerDropdown)} 
+                        <div className={styles.field} style={{ zIndex: showCustomerDropdown ? 100 : 1 }}>
+                            <label>Customer Name <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <div
+                                className={styles.select}
+                                onClick={() => mode === "add" && setShowCustomerDropdown(!showCustomerDropdown)}
                                 style={{
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
-                                    alignItems: 'center', 
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                    border: '2px solid #ddd'
+                                    background: '#fff',
+                                    border: errors.customer ? '2px solid red' : (showCustomerDropdown ? '2px solid #E93E64' : '2px solid #ddd'),
+                                    boxShadow: 'none'
                                 }}
                             >
                                 <span>{selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "Select Name"}</span>
@@ -374,72 +501,119 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                     ))}
                                 </div>
                             )}
+                            {errors.customer && (
+                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                    {errors.customer}
+                                </span>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Customer Phone Number</label>
-                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
+                            <input type="text" className={styles.input} value={selectedCustomer?.phoneNumber || ""} placeholder="Phone number" readOnly style={{ background: '#fff', border: '2px solid #ddd', boxShadow: 'none' }} />
                         </div>
-                        <div className={styles.field} style={{zIndex: showReceiptDropdown ? 100 : 1}}>
-                            <label>Receipt No</label>
-                            <div 
-                                className={styles.select} 
-                                onClick={() => mode === "add" && setShowReceiptDropdown(!showReceiptDropdown)} 
+                        <div className={styles.field} style={{ zIndex: showReceiptDropdown ? 100 : 1 }}>
+                            <label>Receipt No <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <div
+                                className={styles.select}
+                                onClick={() => mode === "add" && setShowReceiptDropdown(!showReceiptDropdown)}
                                 style={{
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
-                                    alignItems: 'center', 
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                     cursor: mode === "add" ? 'pointer' : 'default',
                                     opacity: mode === "add" ? 1 : 0.8,
-                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                    border: '2px solid #ddd'
+                                    background: '#fff',
+                                    border: errors.receiptNo ? '2px solid red' : (showReceiptDropdown ? '2px solid #E93E64' : '2px solid #ddd'),
+                                    boxShadow: 'none'
                                 }}
                             >
-                                <span>{formData.receiptNo ? `Order #${formData.receiptNo}` : "Enter Receipt no"}</span>
+                                <span>{formData.receiptNo ? `Order ${formData.receiptNo}` : "Enter Receipt no"}</span>
                                 {mode === "add" && <FiChevronDown />}
                             </div>
                             {showReceiptDropdown && (
                                 <div className={styles.dropdownList}>
                                     {orders.map(id => (
                                         <div key={id} className={styles.dropdownItem} onClick={() => handleReceiptSelect(id)}>
-                                            Order #{id}
+                                            Order {id}
                                         </div>
                                     ))}
                                 </div>
                             )}
+                            {errors.receiptNo && (
+                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                    {errors.receiptNo}
+                                </span>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Return No</label>
-                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
+                            <input type="text" className={styles.input} value={formData.returnNo} readOnly style={{ background: '#fff', border: '2px solid #ddd', boxShadow: 'none' }} />
                         </div>
-                        <div className={styles.field}>
+                        <div className={styles.field} style={{ gridColumn: 'span 2' }}>
                             <label>Return Reason</label>
-                            <input 
-                                type="text" 
-                                className={styles.input} 
-                                value={formData.returnReason} 
-                                onChange={(e) => setFormData({...formData, returnReason: e.target.value})} 
-                                placeholder="Enter here" 
+                            <input
+                                type="text"
+                                className={styles.input}
+                                value={formData.returnReason}
+                                onChange={(e) => setFormData({ ...formData, returnReason: e.target.value })}
+                                placeholder="Enter here"
                                 readOnly={mode === "view"}
-                                style={{background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd'}}
+                                onFocus={() => setFocusedField('returnReason')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    background: '#fff',
+                                    border: focusedField === 'returnReason' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    boxShadow: 'none'
+                                }}
                             />
                         </div>
                         <div className={styles.field}>
                             <label>Bill Date</label>
-                            <div style={{position: 'relative'}}>
-                                <input type="text" className={styles.input} value={selectedOrder ? new Date(selectedOrder.createdDate).toLocaleDateString() : (formData.billDate ? new Date(formData.billDate).toLocaleDateString() : "")} placeholder="Select Date here" readOnly style={{background: 'transparent', border: '2px solid #ddd'}} />
-                                <FiCalendar style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999'}} />
-                            </div>
+                            <input
+                                type="date"
+                                className={styles.input}
+                                value={formData.billDate}
+                                onChange={(e) => setFormData({ ...formData, billDate: e.target.value })}
+                                readOnly={mode === "view"}
+                                max={toApiDateOnly(new Date())}
+                                onFocus={() => setFocusedField('billDate')}
+                                onBlur={() => setFocusedField(null)}
+                                style={{
+                                    background: '#fff',
+                                    border: focusedField === 'billDate' ? '2px solid #E93E64' : '2px solid #ddd',
+                                    width: '100%',
+                                    boxShadow: 'none'
+                                }}
+                            />
                         </div>
                         <div className={styles.field}>
                             <label>Return Date</label>
-                            <input 
-                                type="date" 
-                                className={styles.input} 
-                                value={formData.returnDate} 
-                                onChange={(e) => setFormData({...formData, returnDate: e.target.value})} 
+                            <input
+                                type="date"
+                                className={styles.input}
+                                value={formData.returnDate}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, returnDate: e.target.value });
+                                    if (errors.returnDate) {
+                                        setErrors(prev => ({ ...prev, returnDate: undefined }));
+                                    }
+                                }}
                                 readOnly={mode === "view"}
-                                style={{background: mode === "view" ? '#f5f5f5' : '#fff', border: '2px solid #ddd'}}
+                                onFocus={() => setFocusedField('returnDate')}
+                                onBlur={() => setFocusedField(null)}
+                                min={formData.billDate || undefined}
+                                max={toApiDateOnly(new Date())}
+                                style={{
+                                    background: '#fff',
+                                    border: errors.returnDate ? '2px solid red' : (focusedField === 'returnDate' ? '2px solid #E93E64' : '2px solid #ddd'),
+                                    boxShadow: 'none'
+                                }}
                             />
+                            {errors.returnDate && (
+                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                    {errors.returnDate}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -448,108 +622,133 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             <thead>
                                 <tr>
                                     <th>S NO.</th>
-                                    <th>PRODUCT NAME</th>
-                                    <th style={{textAlign: 'center'}}>QTY</th>
-                                    <th style={{textAlign: 'center'}}>UNIT</th>
-                                    <th style={{textAlign: 'right'}}>Price /Unit</th>
-                                    <th style={{textAlign: 'center'}}>RETURN CONDITION</th>
-                                    <th style={{textAlign: 'center'}}>TAX (%)</th>
-                                    <th style={{textAlign: 'center'}}>DISCOUNT (%)</th>
-                                    <th style={{textAlign: 'right'}}>AMOUNT</th>
-                                    <th></th>
+                                    <th>PRODUCT NAME <span style={{ color: '#FF4D4F' }}>*</span></th>
+                                    <th style={{ textAlign: 'center' }}>QTY / UNIT <span style={{ color: '#FF4D4F' }}>*</span></th>
+                                    <th style={{ textAlign: 'right' }}>Price /Unit</th>
+                                    <th style={{ textAlign: 'center' }}>RETURN CONDITION</th>
+                                    <th style={{ textAlign: 'center' }}>TAX (%)</th>
+                                    <th style={{ textAlign: 'center' }}>DISCOUNT (%)</th>
+                                    <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                                    {mode === "add" && <th></th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map((item, idx) => (
                                     <tr key={idx}>
                                         <td>{String(idx + 1).padStart(2, '0')}</td>
-                                        <td style={{position: 'relative'}}>
-                                            <div 
-                                                className={styles.select} 
+                                        <td style={{ position: 'relative' }}>
+                                            <div
+                                                className={styles.select}
                                                 style={{
-                                                    padding: '10px 15px', 
-                                                    fontSize: '13px', 
-                                                    minWidth: '200px', 
-                                                    display: 'flex', 
-                                                    justifyContent: 'space-between', 
+                                                    padding: '10px 15px',
+                                                    fontSize: '13px',
+                                                    minWidth: '200px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    background: mode === "add" ? '#fff' : '#f5f5f5',
-                                                    border: '1px solid #e0e0e0',
+                                                    background: '#fff',
+                                                    border: errors[`itemProduct_${idx}`] ? '1px solid red' : (showProductDropdown === idx ? '1px solid #E93E64' : '1px solid #e0e0e0'),
                                                     borderRadius: '6px',
                                                     cursor: mode === "add" ? 'pointer' : 'default',
                                                     opacity: mode === "add" ? 1 : 0.8
                                                 }}
                                                 onClick={() => mode === "add" && setShowProductDropdown(showProductDropdown === idx ? null : idx)}
                                             >
-                                                <span style={{color: item.productName ? '#333' : '#999'}}>
+                                                <span style={{ color: item.productName ? '#333' : '#999' }}>
                                                     {item.productName || "Select Product"}
                                                 </span>
-                                                {mode === "add" && <FiChevronDown style={{color: '#888'}} />}
+                                                {mode === "add" && <FiChevronDown style={{ color: '#888' }} />}
                                             </div>
+                                            {errors[`itemProduct_${idx}`] && (
+                                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                                                    {errors[`itemProduct_${idx}`]}
+                                                </span>
+                                            )}
                                             {showProductDropdown === idx && (
-                                                <div className={styles.dropdownList} style={{top: '100%', minWidth: '450px', zIndex: 1000}}>
+                                                <div className={styles.dropdownList} style={{ top: '100%', minWidth: '450px', zIndex: 1000 }}>
                                                     <div style={{
-                                                        padding: '12px 20px', 
-                                                        background: '#f9fafb', 
-                                                        fontSize: '11px', 
-                                                        fontWeight: '700', 
-                                                        display: 'flex', 
+                                                        padding: '12px 20px',
+                                                        background: '#f9fafb',
+                                                        fontSize: '11px',
+                                                        fontWeight: '700',
+                                                        display: 'flex',
                                                         color: '#6b7280',
                                                         borderBottom: '1px solid #edf2f7',
                                                         textTransform: 'uppercase'
-                                                    }}> 
-                                                        <span style={{width: '60%'}}>PRODUCT NAME</span>
-                                                        <span style={{width: '20%', textAlign: 'center'}}>TOTAL QTY</span>
-                                                        <span style={{width: '20%', textAlign: 'right'}}>UNIT TYPE</span>
+                                                    }}>
+                                                        <span style={{ width: '60%' }}>PRODUCT NAME</span>
+                                                        <span style={{ width: '20%', textAlign: 'center' }}>RETURNABLE QTY</span>
+                                                        <span style={{ width: '20%', textAlign: 'right' }}>UNIT TYPE</span>
                                                     </div>
-                                                    <div style={{maxHeight: '250px', overflowY: 'auto'}}>
+                                                    <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
                                                         {availableProductsForDropdown(idx).map(p => (
-                                                            <div 
-                                                                key={p.userOrderItemsID} 
-                                                                className={styles.dropdownItem} 
+                                                            <div
+                                                                key={p.userOrderItemsID}
+                                                                className={styles.dropdownItem}
                                                                 onClick={() => handleProductSelect(idx, p)}
-                                                                style={{display: 'flex', padding: '12px 20px', fontSize: '13px', borderBottom: '1px solid #f1f5f9'}}
+                                                                style={{ display: 'flex', padding: '12px 20px', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}
                                                             >
-                                                                <span style={{width: '60%', fontWeight: '500'}}>{p.productName}</span>
-                                                                <span style={{width: '20%', textAlign: 'center'}}>{p.quantity}</span>
-                                                                <span style={{width: '20%', textAlign: 'right'}}>{p.unit}</span>
+                                                                <span style={{ width: '60%', fontWeight: '500' }}>{p.productName}</span>
+                                                                <span style={{ width: '20%', textAlign: 'center' }}>{p.returnableQty}</span>
+                                                                <span style={{ width: '20%', textAlign: 'right' }}>{p.unit}</span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{textAlign: 'center'}}>
-                                            {mode === "view" ? (
-                                                <div style={{fontWeight: '600', fontSize: '15px', color: '#111'}}>{item.returnQty}</div>
-                                            ) : (
-                                                <input 
-                                                    type="number" 
-                                                    className={styles.input}
-                                                    style={{width: '65px', padding: '6px 10px', textAlign: 'center', background: mode === "edit" ? '#fff' : '#f5f5f5'}}
-                                                    value={item.returnQty || ""} 
-                                                    onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
-                                                    max={item.quantity}
-                                                    disabled={!item.userOrderItemsID}
-                                                />
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                {mode === "view" ? (
+                                                    <span style={{ fontWeight: '600', fontSize: '15px', color: '#111' }}>{item.returnQty}</span>
+                                                ) : (
+                                                    <input
+                                                        type="number"
+                                                        className={styles.tableInputCenter}
+                                                        onFocus={() => setFocusedField(`itemQty_${idx}`)}
+                                                        onBlur={() => setFocusedField(null)}
+                                                        style={{
+                                                            width: '70px',
+                                                            padding: '8px 10px',
+                                                            textAlign: 'center',
+                                                            background: '#fff',
+                                                            border: errors[`itemQty_${idx}`] ? '1px solid red' : (focusedField === `itemQty_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
+                                                            borderRadius: '6px',
+                                                            outline: 'none',
+                                                            boxShadow: 'none'
+                                                        }}
+                                                        placeholder="0"
+                                                        value={item.returnQty || ""}
+                                                        onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
+                                                        disabled={!item.userOrderItemsID}
+                                                    />
+                                                )}
+                                                {item.unit && <span style={{ fontSize: '13px', color: '#333' }}>{item.unit}</span>}
+                                            </div>
+                                            {errors[`itemQty_${idx}`] && (
+                                                <span className={styles.errorMsg} style={{ color: 'red', fontSize: '11px', marginTop: '4px', display: 'block', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                                                    {errors[`itemQty_${idx}`]}
+                                                </span>
                                             )}
                                             {item.userOrderItemsID && (
-                                                <div style={{fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500'}}>
-                                                    Order: {item.quantity}
+                                                <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', textAlign: 'center', fontWeight: '500' }}>
+                                                    Returnable: {item.returnableQty}
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{textAlign: 'center'}}>{item.unit}</td>
-                                        <td style={{textAlign: 'right'}}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
-                                        <td style={{textAlign: 'center'}}>
-                                            <select 
+                                        <td style={{ textAlign: 'right' }}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <select
                                                 className={styles.unitSelect}
+                                                onFocus={() => setFocusedField(`itemCondition_${idx}`)}
+                                                onBlur={() => setFocusedField(null)}
                                                 style={{
-                                                    textAlign: 'center', 
-                                                    background: mode === "view" ? 'transparent' : '#fff',
-                                                    border: mode === "view" ? 'none' : '1px solid #e0e0e0',
+                                                    textAlign: 'center',
+                                                    background: '#fff',
+                                                    border: mode === "view" ? 'none' : (focusedField === `itemCondition_${idx}` ? '1px solid #E93E64' : '1px solid #e0e0e0'),
                                                     borderRadius: '4px',
-                                                    padding: '10px 5px'
+                                                    padding: '10px 5px',
+                                                    boxShadow: 'none'
                                                 }}
                                                 value={item.returnCondition || "Resellable"}
                                                 onChange={(e) => updateReturnCondition(idx, e.target.value)}
@@ -560,37 +759,39 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                 <option value="Expired">Expired</option>
                                             </select>
                                         </td>
-                                        <td style={{textAlign: 'center'}}>{item.taxPercentage}%</td>
-                                        <td style={{textAlign: 'center'}}>{item.discountPercentage}%</td>
-                                        <td style={{textAlign: 'right', fontWeight: '600'}}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
-                                        <td>
-                                            {mode === "add" && (
-                                                <FiTrash2 style={{color: '#ff4d4f', cursor: 'pointer'}} onClick={() => removeItem(idx)} />
-                                            )}
-                                        </td>
+                                        <td style={{ textAlign: 'center' }}>{item.taxPercentage}%</td>
+                                        <td style={{ textAlign: 'center' }}>{item.discountPercentage}%</td>
+                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
+                                        {mode === "add" && (
+                                            <td>
+                                                {items.length > 1 && (
+                                                    <FiTrash2 style={{ color: '#ff4d4f', cursor: 'pointer' }} onClick={() => removeItem(idx)} />
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
 
-                                <tr style={{height: '40px'}}><td colSpan="10"></td></tr>
+                                <tr style={{ height: '40px' }}><td colSpan={mode === "add" ? "9" : "8"}></td></tr>
 
-                                <tr style={{fontWeight: '700', borderTop: '2px solid #eee'}}>
-                                    <td colSpan="2" style={{paddingTop: '20px'}}>TOTAL</td>
-                                    <td style={{paddingTop: '20px', textAlign: 'center'}}>{items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0)}</td>
-                                    <td colSpan="2" style={{paddingTop: '20px'}}></td>
-                                    <td style={{paddingTop: '20px', textAlign: 'right'}}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0).toFixed(2)}</td>
-                                    <td style={{paddingTop: '20px'}}></td>
-                                    <td style={{paddingTop: '20px', textAlign: 'center'}}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
-                                    <td style={{paddingTop: '20px', textAlign: 'right'}}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
-                                    <td></td>
+                                <tr style={{ fontWeight: '700', borderTop: '2px solid #eee' }}>
+                                    <td colSpan="2" style={{ paddingTop: '20px' }}>TOTAL</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0)}</td>
+                                    <td colSpan="2" style={{ paddingTop: '20px' }}></td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px' }}></td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
+                                    {mode === "add" && <td></td>}
                                 </tr>
                             </tbody>
                         </table>
                         {mode === "add" && (
-                            <div 
-                                style={{marginTop: '20px', color: '#E93E64', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'}}
+                            <div
+                                style={{ marginTop: '20px', color: '#E93E64', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}
                                 onClick={handleAddRow}
                             >
-                                <FiPlus /> ADD ITEM
+                                <FiPlus style={{ fontSize: '14px' }} /> ADD ITEM
                             </div>
                         )}
                     </div>
@@ -598,6 +799,9 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
+                    {mode === "view" && (
+                        <button className={styles.saveBtn} onClick={() => window.print()} >Print</button>
+                    )}
                     {mode !== "view" && (
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
                             {loading ? "Saving..." : (mode === "edit" ? "Update" : "Save")}

@@ -1,5 +1,5 @@
 .formCard {
-  background: #fff;
+  background: var(--color-white);
   width: 100%;
   padding: 32px;
   border-radius: 4px;
@@ -42,7 +42,7 @@
 .inputField select {
   padding: 0 16px;
   height: 44px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-dark);
   border-radius: 8px;
   font-size: 14px;
   background: #fcfcfc;
@@ -51,7 +51,7 @@
   box-sizing: border-box;
   width: 100%;
   font-family: inherit;
-  color: #333;
+  color: var(--color-text-body);
 }
 
 .inputField select {
@@ -68,7 +68,7 @@
 .inputField textarea {
   padding: 12px 16px;
   min-height: 100px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-dark);
   border-radius: 8px;
   font-size: 14px;
   background: #fcfcfc;
@@ -77,14 +77,15 @@
   box-sizing: border-box;
   width: 100%;
   font-family: inherit;
-  color: #333;
+  color: var(--color-text-body);
   resize: vertical;
   line-height: 1.5;
 }
 
 .inputField input:focus,
-.inputField select:focus {
-  border-color: #E9315D;
+.inputField select:focus,
+.inputField textarea:focus {
+  border-color: var(--color-primary);
 }
 
 .selectWrapper {
@@ -108,19 +109,19 @@
   pointer-events: none;
   display: flex;
   align-items: center;
-  color: #888;
+  color: var(--color-text-light);
 }
 
 .inputField input::placeholder,
 .inputField textarea::placeholder {
-  color: #888;
+  color: var(--color-text-light);
   opacity: 1;
   /* Firefox fix */
 }
 
 .placeholderSelect,
 .placeholderText {
-  color: #888 !important;
+  color: var(--color-text-light) !important;
 }
 
 .dimensionalGrid {
@@ -128,10 +129,10 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   /* Adaptive columns */
   gap: 16px;
-  background: #f8f9fa;
+  background: var(--color-bg-subtle);
   padding: 16px;
   border-radius: 8px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   margin-top: 8px;
   box-sizing: border-box;
   width: 100%;
@@ -147,7 +148,7 @@
 .dimensionItem label {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-muted);
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -155,19 +156,25 @@
 .dimInputGroup {
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-dark);
   border-radius: 8px;
   /* Matching other inputs */
   overflow: hidden;
   height: 44px;
   /* Same as others */
   box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.dimInputGroup:focus-within {
+  border-color: var(--color-primary);
 }
 
 .dimInputGroup input {
   flex: 1;
   border: none !important;
+  outline: none !important;
   padding: 10px 12px;
   /* Adjusted for 44px height */
   font-size: 14px;
@@ -177,10 +184,11 @@
 
 .dimInputGroup select {
   border: none !important;
-  background: #eee;
+  outline: none !important;
+  background: var(--color-border-light);
   padding: 0 24px 0 8px;
   font-size: 13px;
-  border-left: 1px solid #ddd !important;
+  border-left: 1px solid var(--color-border-dark) !important;
   cursor: pointer;
   width: 90px;
   /* Increased to accommodate arrow */
@@ -195,11 +203,11 @@
 }
 
 .variantBox {
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-light);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
-  background: #fff;
+  background: var(--color-white);
   position: relative;
 }
 
@@ -222,8 +230,8 @@
   justify-content: center;
   width: 14px;
   height: 14px;
-  /* background: #eee; */
-  color: #999;
+  /* background: var(--color-border-light); */
+  color: var(--color-text-lighter);
   font-size: 10px;
   border-radius: 50%;
   cursor: help;
@@ -237,8 +245,8 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: #333;
-  color: #fff;
+  background: var(--color-text-body);
+  color: var(--color-white);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 11px;
@@ -256,14 +264,14 @@
 .uploadItem {
   width: 100px;
   height: 100px;
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--color-border-dark);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-lighter);
   font-size: 11px;
   text-align: center;
 }
@@ -273,7 +281,7 @@
   height: 100px;
   border-radius: 12px;
   position: relative;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
 }
 
 .imagePreview img {
@@ -287,8 +295,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-dark);
   border-radius: 50%;
   width: 22px;
   height: 22px;
@@ -305,29 +313,29 @@
 
 .removeImageBtn:hover {
   background: #fb3b3b;
-  color: #fff;
+  color: var(--color-white);
   border-color: #fb3b3b;
   transform: scale(1.1);
 }
 
 .pageBtn {
   padding: 8px 24px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--color-border-dark);
+  background: var(--color-white);
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
 }
 
 .nextBtn {
-  background: #000;
-  color: #fff;
+  background: var(--color-black);
+  color: var(--color-white);
   border: none;
 }
 
 .tabs {
   display: flex;
-  background: #f1f1f1;
+  background: var(--color-bg-gray);
   padding: 4px;
   border-radius: 8px;
   width: max-content;
@@ -341,7 +349,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-muted);
   font-weight: 500;
   transition: all 0.2s;
   height: 40px;
@@ -350,8 +358,8 @@
 }
 
 .tabActive {
-  background: #fff;
-  color: #E9315D;
+  background: var(--color-white);
+  color: var(--color-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -363,7 +371,7 @@
   padding-left: 16px;
   padding-right: 20px;
   /* Moved further from edge as requested */
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-dark);
   border-radius: 8px;
   background: #fcfcfc;
   height: 44px;
@@ -371,6 +379,11 @@
   position: relative;
   box-sizing: border-box;
   font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.multiSelectActive {
+  border-color: var(--color-primary) !important;
 }
 
 .multiSelectValues {
@@ -382,33 +395,33 @@
 }
 
 .placeholderText {
-  color: #999;
+  color: var(--color-text-lighter);
   font-size: 14px;
   line-height: 44px;
   /* Align with container height */
 }
 
 .multiSelectContainer:focus-within {
-  border-color: #E9315D;
+  border-color: var(--color-primary);
 }
 
 .tag {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-light);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 13px;
-  color: #333;
+  color: var(--color-text-body);
   font-weight: 500;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .removeTag {
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-lighter);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -425,8 +438,8 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #ccc;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-dark);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -438,14 +451,14 @@
 .optionItem {
   padding: 8px 16px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-body);
   cursor: pointer;
   transition: none;
 }
 
 .optionItem:hover {
-  background-color: #0066cc !important;
-  color: #ffffff !important;
+  background-color: var(--color-primary) !important;
+  color: var(--color-white) !important;
 }
 
 .errorMessage {

@@ -64,6 +64,7 @@ const ProductsPage = () => {
   const [formMode, setFormMode] = useState("Add");
   const [editProductData, setEditProductData] = useState(null);
   const [expandedRows, setExpandedRows] = useState([]);
+  const [triggerAddProduct, setTriggerAddProduct] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -108,8 +109,8 @@ const ProductsPage = () => {
         setStats({
           total: data.counts.totalBranchProducts || 0,
           expired: data.counts.expiredProducts || 0,
-          damaged: data.counts.damagedBillItems || 0,
-          saleReturn: data.counts.damagedReturns || 0
+          damaged: data.counts.damageProducts || 0,
+          saleReturn: data.counts.saleReturn || data.counts.damagedReturns || 0
         });
       }
     } catch (e) {
@@ -222,8 +223,8 @@ const ProductsPage = () => {
 
   const handleDelete = () => {
     const selectedProducts = products.filter(p => selectedIds.includes(p.productId));
-    const hasRestrictedProducts = selectedProducts.some(p => 
-      p.hasOrders === true || 
+    const hasRestrictedProducts = selectedProducts.some(p =>
+      p.hasOrders === true ||
       p.hasOrders === "true" ||
       (p.variants && p.variants.some(v => v.hasOrders === true || v.hasOrders === "true"))
     );
@@ -283,21 +284,10 @@ const ProductsPage = () => {
         <div className={styles.addBtnWrapper}>
           <button
             className={styles.addBtn}
-            onClick={() => setShowAddDropdown(!showAddDropdown)}
+            onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
           >
-            <IconPlus /> Add Product <IconChevronDown />
+            <IconPlus /> Add Product
           </button>
-          {showAddDropdown && (
-            <div className={styles.dropdownMenu} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.dropdownItem} onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setShowAddDropdown(false); }}>
-                <IconPlus /> Add Product
-              </div>
-              <hr style={{ margin: 0, border: 'none', borderTop: '1px solid #eee' }} />
-              <div className={styles.dropdownItem}>
-                <IconPlus /> Add Bulk Product
-              </div>
-            </div>
-          )}
         </div>
       )}
     >
@@ -307,6 +297,8 @@ const ProductsPage = () => {
           <ProductFormManager
             mode={formMode}
             initialData={formMode === "Add" ? null : editProductData}
+            trigger={triggerAddProduct}
+            productType={productType}
             onClose={() => {
               setIsAddingProduct(false);
               fetchProducts();
@@ -353,7 +345,7 @@ const ProductsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search products here"
+                placeholder="Search products by product code or product name"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
@@ -377,7 +369,7 @@ const ProductsPage = () => {
         ) : products.length === 0 ? (
           <EmptyState
             buttonText="Add Product"
-            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); }}
+            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
           />
         ) : (
           <div className={styles.tableWrapper}>
@@ -521,6 +513,7 @@ const ProductsPage = () => {
                         setEditProductData(fullProducts);
                         setFormMode("View");
                         setIsAddingProduct(true);
+                        setTriggerAddProduct(prev => prev + 1);
                       } catch (e) {
                         console.error("Error fetching full product details:", e);
                       } finally {
@@ -532,11 +525,30 @@ const ProductsPage = () => {
                   </div>
                   <div
                     className={styles.actionItem}
-                    onClick={() => {
-                      const productsToEdit = products.filter(p => selectedIds.includes(p.productId));
-                      setEditProductData(productsToEdit);
-                      setFormMode("Edit");
-                      setIsAddingProduct(true);
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const fullProducts = [];
+                        for (const id of selectedIds) {
+                          const res = await productService.getProductById(jwtToken, id);
+                          let prod = res?.data?.data || res?.data;
+                          if (prod) {
+                            prod = {
+                              ...prod,
+                              productId: prod.productId || prod.id || prod.ID || prod._id
+                            };
+                            fullProducts.push(prod);
+                          }
+                        }
+                        setEditProductData(fullProducts);
+                        setFormMode("Edit");
+                        setIsAddingProduct(true);
+                        setTriggerAddProduct(prev => prev + 1);
+                      } catch (e) {
+                        console.error("Error fetching full product details for edit:", e);
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
                   >
                     <IconEdit /> Edit

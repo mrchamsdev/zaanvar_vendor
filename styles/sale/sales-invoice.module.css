@@ -1,7 +1,6 @@
-
 .container {
     padding: 24px;
-    background: #fff;
+    background: var(--color-white);
     min-height: 100vh;
 }
 
@@ -16,7 +15,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 24px;
+    /* margin-bottom: 24px; */
     padding-bottom: 16px;
 }
 
@@ -28,7 +27,7 @@
 
 .filterLabel {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
     font-weight: 500;
 }
 
@@ -42,11 +41,11 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: #f9f9f9;
-    border: 1px solid #eee;
+    background: var(--color-bg-gray-light);
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     cursor: pointer;
     font-weight: 500;
 }
@@ -56,11 +55,11 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: #fff;
-    border: 1px solid #eee;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
     margin-top: 4px;
     overflow: hidden;
 }
@@ -77,16 +76,16 @@
 
 .customSelectOption.active {
     background: #E93E64;
-    color: #fff;
+    color: var(--color-white);
 }
 
 .dateDisplay {
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
     padding: 10px 16px;
     border-radius: 8px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     cursor: pointer;
     min-width: 200px;
     display: flex;
@@ -99,8 +98,8 @@
     top: 100%;
     left: 0;
     z-index: 1000;
-    background: #fff;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    background: var(--color-white);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     border-radius: 12px;
     padding: 20px;
     margin-top: 8px;
@@ -118,15 +117,15 @@
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .searchInput {
     width: 100%;
     padding: 10px 12px 10px 40px;
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
     font-size: 14px;
 }
 
@@ -138,7 +137,7 @@
     flex-direction: column;
     gap: 16px;
     width: 320px;
-    margin-bottom: 40px;
+    margin-bottom: 5px;
     border: none;
 }
 
@@ -156,7 +155,7 @@
 
 .summaryLabel {
     font-size: 13px;
-    color: #888;
+    color: var(--color-text-light);
     font-weight: 500;
 }
 
@@ -176,7 +175,7 @@
 .trendValue {
     font-size: 14px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -194,7 +193,7 @@
 
 .summaryLine {
     height: 1px;
-    background: rgba(0,0,0,0.03);
+    background: rgba(0, 0, 0, 0.03);
     width: 100%;
 }
 
@@ -212,13 +211,13 @@
 
 .rowLabel {
     font-size: 14px;
-    color: #888;
+    color: var(--color-text-light);
 }
 
 .rowValue {
     font-size: 14px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .appliedFilters {
@@ -257,21 +256,28 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .transactionsHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 4px;
 }
 
 .transactionsTitle {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .headerActions {
@@ -284,21 +290,23 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    color: #666;
+    color: var(--color-text-muted);
     display: flex;
     align-items: center;
     padding: 4px;
 }
 
 .tableContainer {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    overflow: visible; /* Changed from auto to prevent clipping */
-    min-height: 400px; /* Ensure enough space for filters */
+    overflow: visible;
+    /* Changed from auto to prevent clipping */
+    min-height: 440px;
+    /* Ensure enough space for filters */
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    background: #fff;
+    background: var(--color-white);
     position: relative;
-    margin-bottom: 24px;
+    /* margin-bottom: 24px; */
 }
 
 .table {
@@ -307,18 +315,19 @@
 }
 
 .table th {
-    background: #f9fafb;
+    background: var(--color-bg-light);
     padding: 14px 16px;
     text-align: left;
     font-size: 11px;
     font-weight: 700;
-    color: #4b5563;
+    color: var(--color-text-dark);
     text-transform: uppercase;
     position: sticky;
-    top: 0;
-    z-index: 100; /* Increased z-index */
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
+    top: 70px;
+    z-index: 100;
+    /* Increased z-index */
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
     letter-spacing: 0.05em;
     line-height: 1.2;
 }
@@ -332,7 +341,7 @@
     border-bottom: 1px solid #f3f4f6;
     border-right: 1px solid #f3f4f6;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     vertical-align: middle;
 }
 
@@ -346,7 +355,7 @@
 
 .filterIcon {
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--color-text-gray-lighter);
     cursor: pointer;
     float: right;
     margin-top: -1px;
@@ -354,13 +363,13 @@
 }
 
 .filterIcon:hover {
-    color: #4b5563;
+    color: var(--color-text-dark);
 }
 
 .actions {
     display: flex;
     gap: 16px;
-    color: #666;
+    color: var(--color-text-muted);
     align-items: center;
 }
 
@@ -373,9 +382,9 @@
     position: absolute;
     top: 100%;
     right: 0;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     width: 140px;
     padding: 4px 0;
@@ -385,7 +394,7 @@
 .dropdownItem {
     padding: 8px 16px;
     font-size: 13px;
-    color: #333;
+    color: var(--color-text-body);
     cursor: pointer;
 }
 
@@ -396,10 +405,10 @@
 /* Custom Date Picker Styles (reusing from reference) */
 /* Custom Date Picker Styles */
 .pickerContainer {
-    background: #fff;
-    border: 1px solid #eee;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-light);
     border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     width: 230px;
     padding: 12px;
     user-select: none;
@@ -416,12 +425,12 @@
 .monthLabel {
     font-size: 13px;
     font-weight: 700;
-    color: #111;
+    color: var(--color-text-main);
 }
 
 .navIcon {
     cursor: pointer;
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 16px;
     padding: 4px;
     border-radius: 6px;
@@ -433,7 +442,7 @@
 
 .navIcon:hover {
     background: #f3f4f6;
-    color: #000;
+    color: var(--color-black);
 }
 
 .calendarGrid {
@@ -445,7 +454,7 @@
 .weekday {
     font-size: 11px;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--color-text-gray-lighter);
     text-align: center;
     padding-bottom: 8px;
     text-transform: uppercase;
@@ -458,7 +467,7 @@
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    color: #374151;
+    color: var(--color-text-darkest);
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s;
@@ -472,7 +481,7 @@
 
 .selectedDay {
     background: #E93E64 !important;
-    color: #fff !important;
+    color: var(--color-white) !important;
     font-weight: 700;
 }
 
@@ -498,22 +507,22 @@
 /* Date Filter Modal (from reference) */
 .dateFilterModal {
     position: absolute;
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     z-index: 2000;
     padding: 16px;
     width: 230px;
     top: 100%;
     left: 0;
     margin-top: 10px;
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--color-border-lighter);
 }
 
 .modalLabel {
     display: block;
     font-size: 13px;
-    color: #888;
+    color: var(--color-text-light);
     margin-bottom: 8px;
     font-weight: 500;
 }
@@ -529,7 +538,7 @@
     cursor: pointer;
     min-height: 28px;
     margin-bottom: 12px;
-    color: #333;
+    color: var(--color-text-body);
     box-sizing: border-box;
 }
 
@@ -541,12 +550,12 @@
 
 .dateInput {
     padding: 4px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border-dark);
     border-radius: 8px;
     font-size: 13px;
     min-height: 28px;
     width: 100%;
-    color: #333;
+    color: var(--color-text-body);
     box-sizing: border-box;
 }
 
@@ -566,7 +575,8 @@
     margin-top: 8px;
 }
 
-.clearBtn, .applyBtn {
+.clearBtn,
+.applyBtn {
     padding: 8px 16px;
     border-radius: 30px;
     font-size: 13px;
@@ -578,13 +588,13 @@
 }
 
 .clearBtn {
-    background: #eee;
-    color: #666;
+    background: var(--color-border-light);
+    color: var(--color-text-muted);
 }
 
 .applyBtn {
     background: #E93E64;
-    color: #fff;
+    color: var(--color-white);
 }
 
 .applyBtn:hover {
@@ -604,17 +614,133 @@
     justify-content: space-between;
     align-items: center;
     border-radius: 6px;
-    color: #888;
+    color: var(--color-text-light);
     margin-bottom: 2px;
     transition: all 0.2s;
 }
 
 .optionItem:hover {
-    background: #f9f9f9;
+    background: var(--color-bg-gray-light);
 }
 
 .optionItem.active {
     background: #E93E64;
-    color: #fff !important;
+    color: var(--color-white) !important;
     font-weight: 500;
+}
+
+.filterIconActive {
+    color: #E93E64 !important;
+}
+
+.noDataCell {
+    text-align: center;
+    padding: 40px !important;
+    color: var(--color-text-muted);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.checklistContainer {
+    margin-bottom: 12px;
+}
+
+.checklistItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--color-border-dark);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-white);
+}
+
+.checkbox.checked {
+    background: #E93E64;
+    border-color: #E93E64;
+    color: var(--color-white);
+    font-size: 12px;
+}
+
+.checklistItem span {
+    font-size: 14px;
+    color: var(--color-text-body);
+}
+
+@media print {
+    .table th:last-child,
+    .table td:last-child {
+        display: none !important;
+    }
+}
+
+.paymentIdText {
+    font-size: 11px;
+    color: var(--color-text-light);
+    margin-top: 4px;
+    font-weight: 400;
+}
+
+.thContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.thContent .filterIcon {
+    float: none;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+.bottomSummary {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: var(--color-text-body);
+    font-size: 15px;
+}
+
+.bottomSummary .summaryItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+    }
+
+    .table th {
+        top: 60px;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
 }

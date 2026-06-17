@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/receive-order-form.module.css";
 import { purchaseService } from "../../services/purchaseService";
@@ -5,6 +6,7 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import PurchaseOrderSummary from "./purchase-order-summary";
+import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const formatVariantSize = (size) => {
@@ -31,18 +33,24 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     const { jwtToken, userId } = useStore();
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
-    
+
     // Form State
-    const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [receivedDate, setReceivedDate] = useState(toApiDateOnly(new Date()));
     const [items, setItems] = useState([]);
-    const [expandedItem, setExpandedItem] = useState(0);
+    const [expandedItems, setExpandedItems] = useState({ 0: true });
+    const toggleItemExpand = (index) => {
+        setExpandedItems(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
     const [showBreakdown, setShowBreakdown] = useState(true);
-    
+
     // Global Toggles & Inputs
     const [payBasedOnOrdered, setPayBasedOnOrdered] = useState(false);
     const [damagedReturnedGoods, setDamagedReturnedGoods] = useState(false);
     const [addToCreditNote, setAddToCreditNote] = useState(true);
-    
+
     const [overallTax, setOverallTax] = useState({ value: 0, type: '%' });
     const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '%' });
     const [previousCredit, setPreviousCredit] = useState(0);
@@ -65,43 +73,61 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 setOrderData(res.data);
                 const receivedDetails = res.data.receivedDetails;
                 const rawItems = res.data.items || res.data.orderItems || [];
-                
+
                 const mapped = rawItems.map(item => {
                     const productInfo = item.itemDetails || item;
-                    const savedItem = receivedDetails?.items?.find(ri => 
-                        (ri.productId === item.productId || ri.productId === productInfo.productId) && 
+                    const savedItems = receivedDetails?.items?.filter(ri =>
+                        (ri.productId === item.productId || ri.productId === productInfo.productId) &&
                         (ri.variantId === item.variantId || ri.variantId === productInfo.variantId)
-                    );
+                    ) || [];
+
+                    let batches = [];
+                    if (savedItems.length > 0) {
+                        batches = savedItems.map(savedItem => ({
+                            batchNumber: savedItem.batchNumber || "",
+                            expDate: savedItem.expDate || "",
+                            costPrice: savedItem.costPrice || "",
+                            mrp: savedItem.mrp || "",
+                            receivedQty: savedItem.receivedQty ?? "",
+                            damagedQty: savedItem.damagedQty ?? "",
+                            tax: savedItem.tax ?? savedItem.taxGroupId ?? 0,
+                            discount: savedItem.discount || 0,
+                        }));
+                    } else {
+                        batches = [{
+                            batchNumber: "",
+                            expDate: "",
+                            costPrice: item.costPrice || "",
+                            mrp: item.mrp || productInfo.mrp || "",
+                            receivedQty: "",
+                            damagedQty: "",
+                            tax: item.taxGroupId ?? productInfo.taxGroupId ?? item.tax ?? productInfo.tax ?? 0,
+                            discount: 0,
+                        }];
+                    }
+
                     return {
-                        ...item,
                         productId: item.productId || productInfo.productId,
                         variantId: item.variantId || productInfo.variantId,
                         productName: productInfo.productName || "Unknown Product",
                         variantType: productInfo.variantType || productInfo.variant || {},
-                        receivedQty: savedItem ? (savedItem.receivedQty ?? 0) : 0,
-                        damagedQty: savedItem ? (savedItem.damagedQty ?? 0) : 0,
-                        batchNumber: savedItem ? savedItem.batchNumber : "",
-                        expDate: savedItem ? savedItem.expDate : "",
-                        costPrice: savedItem ? (savedItem.costPrice || "") : (item.costPrice || ""),
-                        mrp: savedItem ? savedItem.mrp : (item.mrp || productInfo.mrp || 0),
-                        tax: savedItem ? savedItem.tax : 0,
-                        discount: savedItem ? savedItem.discount : 0,
-                        notes: savedItem ? savedItem.notes : "",
-                        qty: item.qty || item.orderQuantity || 0
+                        notes: savedItems.length > 0 ? savedItems[0].notes : "",
+                        qty: item.qty || item.orderQuantity || 0,
+                        batches
                     };
                 });
                 setItems(mapped);
 
                 if (receivedDetails) {
-                    setReceivedDate(receivedDetails.receivedDate || new Date().toISOString().split('T')[0]);
-                    setPayBasedOnOrdered(receivedDetails.toggles?.payBasedOnOrdered || false);
+                    setReceivedDate(receivedDetails.receivedDate || toApiDateOnly(new Date()));
+                    setPayBasedOnOrdered(receivedDetails.toggles?.payBasedOnOrdered || receivedDetails.shortFallApplicable || false);
                     setDamagedReturnedGoods(receivedDetails.toggles?.damagedReturnedGoods || false);
                     setAddToCreditNote(receivedDetails.toggles?.addToCreditNote || false);
                     setOverallTax(receivedDetails.overallTax || { value: 0, type: '%' });
                     setOverallDiscount(receivedDetails.overallDiscount || { value: 0, type: '₹' });
                     setPreviousCredit(receivedDetails.previousCredit || 0);
                     setPaymentStatus(receivedDetails.paymentStatus || "Pending");
-                    setPaidAmount(receivedDetails.paidAmount || 0);
+                    setPaidAmount(receivedDetails.paidAmount ? Number(receivedDetails.paidAmount).toFixed(2) : 0);
                     setDuedate(receivedDetails.duedate || "");
                 }
             } else {
@@ -117,25 +143,67 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
     };
 
     const handleItemChange = (index, field, value) => {
+        const newItems = [...items];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setItems(newItems);
+    };
+
+    const handleBatchChange = (itemIndex, batchIndex, field, value) => {
         let finalValue = value;
-        // For numeric fields, strip leading zero if it's followed by a digit (prevents "02", "05" etc.)
         const numericFields = ["costPrice", "mrp", "receivedQty", "damagedQty", "tax", "discount"];
         if (numericFields.includes(field)) {
             if (typeof value === "string" && value.length > 1 && value.startsWith("0") && value[1] !== ".") {
-                finalValue = value.slice(1);
-            }
-            if (value === "" && (field === "receivedQty" || field === "damagedQty")) {
-                finalValue = 0;
+                finalValue = value.replace(/^0+/, '') || "";
             }
         }
-        const newItems = [...items];
-        newItems[index] = { ...newItems[index], [field]: finalValue };
-        setItems(newItems);
+        
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            const newItem = { ...newItems[itemIndex] };
+            const newBatches = [...newItem.batches];
+            newBatches[batchIndex] = { ...newBatches[batchIndex], [field]: finalValue };
+            newItem.batches = newBatches;
+            newItems[itemIndex] = newItem;
+            return newItems;
+        });
+    };
+
+    const addBatch = (itemIndex) => {
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            const newItem = { ...newItems[itemIndex] };
+            const lastBatch = newItem.batches[newItem.batches.length - 1] || {};
+            newItem.batches = [
+                ...newItem.batches,
+                {
+                    batchNumber: "",
+                    expDate: "",
+                    costPrice: lastBatch.costPrice || "",
+                    mrp: lastBatch.mrp || "",
+                    receivedQty: "",
+                    damagedQty: "",
+                    tax: lastBatch.tax || 0,
+                    discount: lastBatch.discount || 0
+                }
+            ];
+            newItems[itemIndex] = newItem;
+            return newItems;
+        });
+    };
+
+    const removeBatch = (itemIndex, batchIndex) => {
+        setItems(prevItems => {
+            const newItems = [...prevItems];
+            const newItem = { ...newItems[itemIndex] };
+            newItem.batches = newItem.batches.filter((_, i) => i !== batchIndex);
+            newItems[itemIndex] = newItem;
+            return newItems;
+        });
     };
 
     const totals = useMemo(() => {
         if (!items.length) return { totalCost: 0, subtotal: 0, shortfallAmount: 0, damagedAmount: 0, itemDiscountTotal: 0, itemTaxTotal: 0, grandTotal: 0, discountableAmount: 0 };
-        
+
         let totalOrderValue = 0;
         let grandTotal = 0;
         let shortfallAmount = 0;
@@ -145,59 +213,67 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         let discountableAmountSum = 0;
 
         items.forEach(item => {
-            const isEntered = item.costPrice !== "" && item.receivedQty !== "";
-            if (!isEntered) return;
-
-            const cost = parseFloat(item.costPrice) || 0;
             const ordered = parseFloat(item.qty) || 0;
-            const received = parseFloat(item.receivedQty) || 0;
-            const damaged = parseFloat(item.damagedQty) || 0;
-            const discountPercent = parseFloat(item.discount) || 0;
-            const taxPercent = parseFloat(item.tax) || 0;
+            let totalReceived = 0;
+            let firstCost = 0;
+            let hasEnteredBatch = false;
 
-            // 1. Total Order Value = Order Qty × Cost Price
-            totalOrderValue += (ordered * cost);
+            item.batches.forEach((batch, bIdx) => {
+                const isEntered = batch.costPrice !== "" && batch.receivedQty !== "";
+                if (!isEntered) return;
+                hasEnteredBatch = true;
 
-            // 2. Shortfall Amount = (Order Qty - Received Qty) × Cost Price
-            if (ordered > received) {
-                shortfallAmount += (ordered - received) * cost;
+                const cost = parseFloat(batch.costPrice) || 0;
+                if (bIdx === 0 || firstCost === 0) firstCost = cost;
+                
+                const received = parseFloat(batch.receivedQty) || 0;
+                const damaged = parseFloat(batch.damagedQty) || 0;
+                const discountPercent = parseFloat(batch.discount) || 0;
+                const taxPercent = parseFloat(batch.tax) || 0;
+
+                totalReceived += received;
+
+                // 3. Damage Amount = Damaged Qty × Cost Price
+                damagedAmount += (damaged * cost);
+
+                // 4. Effective Billing Qty based on toggles
+                const effectiveOrdered = bIdx === 0 ? ordered : 0;
+                const baseQty = payBasedOnOrdered ? effectiveOrdered : received;
+                const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+
+                // 5. Billable Subtotal
+                const billableSubtotal = billingQty * cost;
+                discountableAmountSum += billableSubtotal;
+
+                // 6. Discount Amount
+                const discountAmount = (billableSubtotal * discountPercent / 100);
+                itemDiscountTotal += discountAmount;
+
+                // 7. Amount After Discount
+                const amountAfterDiscount = billableSubtotal - discountAmount;
+
+                // 8. Tax Amount
+                const taxAmount = (amountAfterDiscount * taxPercent / 100);
+                itemTaxTotal += taxAmount;
+
+                // 9. Final Product Amount
+                grandTotal += amountAfterDiscount + taxAmount;
+            });
+
+            if (hasEnteredBatch) {
+                totalOrderValue += (ordered * firstCost);
+                if (ordered > totalReceived) {
+                    shortfallAmount += (ordered - totalReceived) * firstCost;
+                }
             }
-
-            // 3. Damage Amount = Damaged Qty × Cost Price
-            damagedAmount += (damaged * cost);
-
-            // 4. Effective Billing Qty based on toggles
-            // If payBasedOnOrdered is true, we start with ordered quantity. Otherwise, received quantity.
-            const baseQty = payBasedOnOrdered ? ordered : received;
-            // If damagedReturnedGoods is true, we deduct damaged quantity. Otherwise, we don't.
-            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
-
-            // 5. Billable Subtotal = Effective Billing Qty × Cost Price
-            const billableSubtotal = billingQty * cost;
-            discountableAmountSum += billableSubtotal;
-
-            // 6. Discount Amount = Billable Subtotal × Discount %
-            const discountAmount = (billableSubtotal * discountPercent / 100);
-            itemDiscountTotal += discountAmount;
-
-            // 7. Amount After Discount = Billable Subtotal - Discount Amount
-            const amountAfterDiscount = billableSubtotal - discountAmount;
-
-            // 8. Tax Amount = Amount After Discount × Tax %
-            const taxAmount = (amountAfterDiscount * taxPercent / 100);
-            itemTaxTotal += taxAmount;
-
-            // 9. Final Product Amount = Amount After Discount + Tax Amount
-            const finalProductAmount = amountAfterDiscount + taxAmount;
-            grandTotal += finalProductAmount;
         });
 
-        return { 
-            totalCost: totalOrderValue, 
-            shortfallAmount, 
-            damagedAmount, 
-            itemDiscountTotal, 
-            itemTaxTotal, 
+        return {
+            totalCost: totalOrderValue,
+            shortfallAmount,
+            damagedAmount,
+            itemDiscountTotal,
+            itemTaxTotal,
             grandTotal,
             discountableAmount: discountableAmountSum
         };
@@ -207,68 +283,131 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         const { grandTotal } = totals;
         let discountVal = Number(overallDiscount.value) || 0;
         if (overallDiscount.type === '%') discountVal = (grandTotal * (overallDiscount.value / 100));
-        
+
         let taxVal = Number(overallTax.value) || 0;
         if (overallTax.type === '%') taxVal = ((grandTotal - discountVal) * (overallTax.value / 100));
-        
+
         const subtotal = grandTotal;
         const totalAfterGlobal = subtotal - discountVal + taxVal;
         const finalAmount = totalAfterGlobal - previousCredit;
-        
-        return { discountVal, taxVal, subtotal, finalAmount };
+
+        return { discountVal, taxVal, subtotal, finalAmount, totalAfterGlobal };
     }, [totals, overallTax, overallDiscount, previousCredit]);
 
     useEffect(() => {
         if (paymentStatus === "Full") {
-            setPaidAmount(breakdown.finalAmount);
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
         }
     }, [breakdown.finalAmount, paymentStatus]);
+
+    const handlePaymentStatusChange = (status) => {
+        setPaymentStatus(status);
+        if (status === "Full") {
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
+        } else if (status === "Pending" || status === "PayLaterWithRemainder") {
+            setPaidAmount(0);
+        } else if (status === "Partial") {
+            setPaidAmount("");
+        }
+    };
+
+    const scrollToFirstError = () => {
+        setTimeout(() => {
+            const firstErrorEl = document.querySelector(`.${styles.inputError}, .${styles.errorInput}`);
+            if (firstErrorEl) {
+                firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstErrorEl.focus?.();
+            }
+        }, 100);
+    };
 
     const handleSave = async () => {
         setIsSubmitted(true);
         setLoading(true);
         console.log("Starting handleSave...");
         try {
-            // Filter only "entered" items (where user provided Cost Price and Received Qty)
-            const enteredItems = items.filter(item => item.costPrice !== "" && item.receivedQty !== "");
-            
-            console.log("Entered Items count:", enteredItems.length);
-            
-            const invalidPrices = enteredItems.filter(item => Number(item.costPrice) > Number(item.mrp));
+            // Expand all invalid items so their inline errors can render in the DOM simultaneously
+            const newExpanded = { ...expandedItems };
+            let hasAnyItemError = false;
 
-            if (invalidPrices.length > 0) {
-                toast.error("Cost Price cannot be greater than MRP");
-                setLoading(false);
-                return;
+            items.forEach((item, idx) => {
+                let totalReceived = 0;
+                let hasItemError = false;
+                item.batches.forEach(batch => {
+                    const batchHasError = batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null || Number(batch.costPrice) <= 0 ||
+                        batch.mrp === "" || batch.mrp === undefined || batch.mrp === null || Number(batch.mrp) <= 0 ||
+                        batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null || Number(batch.receivedQty) <= 0 ||
+                        (batch.damagedQty !== "" && batch.damagedQty !== undefined && batch.damagedQty !== null && Number(batch.damagedQty) < 0) ||
+                        (Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) ||
+                        Number(batch.damagedQty) > Number(batch.receivedQty);
+                    
+                    if (batchHasError) hasItemError = true;
+                    totalReceived += Number(batch.receivedQty) || 0;
+                });
+                
+                if (totalReceived > Number(item.qty)) hasItemError = true;
+
+                if (hasItemError) {
+                    newExpanded[idx] = true;
+                    hasAnyItemError = true;
+                }
+            });
+
+            if (hasAnyItemError) {
+                setExpandedItems(newExpanded);
             }
 
-            const invalidReceived = enteredItems.filter(item => Number(item.receivedQty) > Number(item.qty));
-            if (invalidReceived.length > 0) {
-                toast.error("Received Qty cannot be greater than Order Qty");
-                setLoading(false);
-                return;
-            }
+            let hasEmptyFields = false;
+            let hasInvalidPrices = false;
+            let hasInvalidDamaged = false;
+            let hasInvalidReceived = false;
 
-            const invalidDamaged = enteredItems.filter(item => Number(item.damagedQty) > Number(item.receivedQty));
-            if (invalidDamaged.length > 0) {
-                toast.error("Damaged Qty cannot be greater than Received Qty");
+            items.forEach(item => {
+                let totalReceived = 0;
+                item.batches.forEach(batch => {
+                    if (batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null || Number(batch.costPrice) <= 0 ||
+                        batch.mrp === "" || batch.mrp === undefined || batch.mrp === null || Number(batch.mrp) <= 0 ||
+                        batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null || Number(batch.receivedQty) <= 0 ||
+                        (batch.damagedQty !== "" && batch.damagedQty !== undefined && batch.damagedQty !== null && Number(batch.damagedQty) < 0)) {
+                        hasEmptyFields = true;
+                    }
+                    if (Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) hasInvalidPrices = true;
+                    if (Number(batch.damagedQty) > Number(batch.receivedQty)) hasInvalidDamaged = true;
+                    totalReceived += Number(batch.receivedQty) || 0;
+                });
+                if (totalReceived > Number(item.qty)) hasInvalidReceived = true;
+            });
+
+            if (hasEmptyFields || hasInvalidPrices || hasInvalidReceived || hasInvalidDamaged) {
                 setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
             if (paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0)) {
-                toast.error("Please enter a valid Paid Amount for partial payment");
                 setLoading(false);
+                scrollToFirstError();
                 return;
             }
 
+            const todayStr = toApiDateOnly(new Date());
+            if (paymentStatus !== "Full" && (!duedate || duedate < todayStr)) {
+                setLoading(false);
+                scrollToFirstError();
+                return;
+            }
+
+            const receivedDateFields = dateOnlyWithTimeZone(
+                "receivedDate",
+                parseWallClockDate(receivedDate) || new Date(receivedDate),
+            );
             const payload = {
                 productsPurchaseRqstId: requestId,
                 branchId: orderData?.branchId || 91,
-                receivedDate: receivedDate,
-                amountPaidToSupplier: Number(paidAmount),
+                ...receivedDateFields,
+                amountPaidToSupplier: paymentStatus === "Full" ? Number(breakdown.finalAmount) : Number(paidAmount),
                 paymentStatus: paymentStatus,
-                duedate: duedate,
+                duedate: paymentStatus === "Full" ? null : duedate,
                 returnsApplicable: damagedReturnedGoods,
                 createdBy: userId || 1,
                 additionalDetails: items[0]?.notes || "Purchase order received",
@@ -277,31 +416,30 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 overallDiscount: overallDiscount,
                 previousCredit: Number(previousCredit),
                 amount: Number(breakdown.finalAmount),
+                overallBillAmount: Number(breakdown.totalAfterGlobal),
                 itemDiscountAmount: Number(totals.itemDiscountTotal),
                 itemTaxAmount: Number(totals.itemTaxTotal),
                 damagedAmount: Number(totals.damagedAmount),
                 shortfallAmount: Number(totals.shortfallAmount),
-                toggles: {
-                    payBasedOnOrdered: payBasedOnOrdered,
-                    damagedReturnedGoods: damagedReturnedGoods,
-                    addToCreditNote: addToCreditNote
-                },
+                shortFallApplicable: payBasedOnOrdered ? true : false,
                 bill: {
-                    receivedDate: receivedDate
+                    ...receivedDateFields,
                 },
-                billItems: enteredItems.map(item => ({
-                    productId: item.productId,
-                    variantId: item.variantId,
-                    costPrice: Number(item.costPrice),
-                    mrp: Number(item.mrp),
-                    qty: Number(item.qty),
-                    receivedQuantity: Number(item.receivedQty),
-                    damagedQuantity: Number(item.damagedQty),
-                    discount: Number(item.discount),
-                    taxGroupId: Number(item.tax) || 0,
-                    expiryDate: item.expDate,
-                    batchNumber: item.batchNumber
-                }))
+                billItems: items.flatMap(item => 
+                    item.batches.map((batch) => ({
+                        productId: item.productId,
+                        variantId: item.variantId,
+                        costPrice: Number(batch.costPrice),
+                        mrp: Number(batch.mrp),
+                        qty: Number(item.qty),
+                        receivedQuantity: Number(batch.receivedQty),
+                        damagedQuantity: Number(batch.damagedQty),
+                        discount: Number(batch.discount),
+                        taxGroupId: Number(batch.tax) || 0,
+                        expiryDate: batch.expDate,
+                        batchNumber: batch.batchNumber
+                    }))
+                )
             };
 
             console.log("Sending payload to vendor/bills:", payload);
@@ -336,35 +474,43 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
         <div className={styles.container}>
             <div className={styles.mainContent}>
                 <div className={styles.headerSection}>
-                    <h2 className={styles.title}>Receive Purchase Order <span className={styles.requestId}>#{String(orderData.purchaseRequestId).padStart(6, '0')}</span></h2>
+                    <h2 className={styles.title}>Receive Purchase Order <span className={styles.requestId}>{String(orderData.purchaseRequestId).padStart(6, '0')}</span></h2>
                 </div>
 
                 <div className={styles.itemList}>
                     {items.map((item, index) => {
-                        const cost = parseFloat(item.costPrice) || 0;
                         const ordered = parseFloat(item.qty) || 0;
-                        const received = parseFloat(item.receivedQty) || 0;
-                        const damaged = parseFloat(item.damagedQty) || 0;
-                        
-                        const baseQty = payBasedOnOrdered ? ordered : received;
-                        const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
-                        
-                        const billableSubtotal = billingQty * cost;
-                        const discPercent = parseFloat(item.discount) || 0;
-                        const discAmount = (billableSubtotal * discPercent / 100);
-                        const afterDiscount = billableSubtotal - discAmount;
-                        const taxPercent = parseFloat(item.tax) || 0;
-                        const taxAmount = afterDiscount * (taxPercent / 100);
-                        const rowTotal = afterDiscount + taxAmount;
-                        
-                        const orderedBase = (parseFloat(item.qty) || 0) * cost;
-                        const orderedDiscAmount = (orderedBase * discPercent / 100);
-                        const orderedAfterDisc = orderedBase - orderedDiscAmount;
-                        const rowOrdered = orderedAfterDisc + (orderedAfterDisc * (taxPercent / 100));
-                        
+                        let totalReceived = 0;
+                        let totalDamaged = 0;
+                        let itemRowTotal = 0;
+                        let firstCost = 0;
+
+                        item.batches.forEach((batch, bIdx) => {
+                            const cost = parseFloat(batch.costPrice) || 0;
+                            if (bIdx === 0) firstCost = cost;
+                            const received = parseFloat(batch.receivedQty) || 0;
+                            const damaged = parseFloat(batch.damagedQty) || 0;
+                            totalReceived += received;
+                            totalDamaged += damaged;
+
+                            const effectiveOrdered = bIdx === 0 ? ordered : 0;
+                            const baseQty = payBasedOnOrdered ? effectiveOrdered : received;
+                            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
+
+                            const billableSubtotal = billingQty * cost;
+                            const discPercent = parseFloat(batch.discount) || 0;
+                            const discAmount = (billableSubtotal * discPercent / 100);
+                            const afterDiscount = billableSubtotal - discAmount;
+                            const taxPercent = parseFloat(batch.tax) || 0;
+                            const taxAmount = afterDiscount * (taxPercent / 100);
+                            itemRowTotal += afterDiscount + taxAmount;
+                        });
+
+                        const rowOrdered = ordered * firstCost;
+
                         return (
-                            <div key={index} className={`${styles.productCard} ${expandedItem === index ? styles.productCardActive : ""}`}>
-                                <div className={styles.cardHeader} onClick={() => setExpandedItem(expandedItem === index ? -1 : index)}>
+                            <div key={index} className={`${styles.productCard} ${expandedItems[index] ? styles.productCardActive : ""}`}>
+                                <div className={styles.cardHeader} onClick={() => toggleItemExpand(index)}>
                                     <div className={styles.headerInfo}>
                                         <div className={styles.headerTitleLine}>
                                             <span className={styles.index}>{String(index + 1).padStart(2, '0')}</span>
@@ -372,160 +518,227 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                         </div>
                                         <div className={styles.headerStatsLine}>
                                             <span>Ordered : {item.qty}</span>
-                                            <span>Received : {item.receivedQty || 0}</span>
-                                            <span>Damaged : {item.damagedQty || 0}</span>
-                                            <span>Shortfall : {Math.max(0, (Number(item.qty) || 0) - (Number(item.receivedQty) || 0))}</span>
+                                            <span>Received : {totalReceived || 0}</span>
+                                            <span>Damaged : {totalDamaged || 0}</span>
+                                            <span>Shortfall : {Math.max(0, (Number(item.qty) || 0) - totalReceived)}</span>
                                         </div>
                                     </div>
                                     <div className={styles.headerRight}>
-                                        <div className={styles.headerTotalValue}>Total Value : <span>₹ {rowTotal.toLocaleString()}</span></div>
-                                        <FiChevronDown className={`${styles.expandIcon} ${expandedItem === index ? styles.expandIconActive : ""}`} />
+                                        <div className={styles.headerTotalValue}>Total Value : <span>₹ {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                                        <FiChevronDown className={`${styles.expandIcon} ${expandedItems[index] ? styles.expandIconActive : ""}`} />
                                     </div>
                                 </div>
 
-                                {expandedItem === index && (
+                                {expandedItems[index] && (
                                     <div className={styles.cardContent}>
-                                        <div className={styles.fieldGrid}>
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Batch Number</label>
-                                                <input 
-                                                    type="text" 
-                                                    className={styles.input} 
-                                                    placeholder="0000"
-                                                    value={item.batchNumber ?? ""}
-                                                    onChange={(e) => handleItemChange(index, "batchNumber", e.target.value)}
-                                                />
-                                            </div>
+                                        {item.batches.map((batch, bIdx) => {
+                                            const cost = parseFloat(batch.costPrice) || 0;
+                                            const received = parseFloat(batch.receivedQty) || 0;
+                                            const damaged = parseFloat(batch.damagedQty) || 0;
+                                            const effectiveOrdered = bIdx === 0 ? ordered : 0;
+                                            const baseQty = payBasedOnOrdered ? effectiveOrdered : received;
+                                            const billingQty = damagedReturnedGoods ? Math.max(0, baseQty - damaged) : baseQty;
 
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Expire Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    className={styles.input} 
-                                                    value={item.expDate ?? ""}
-                                                    min={new Date().toISOString().split('T')[0]}
-                                                    max="9999-12-31"
-                                                    onChange={(e) => handleItemChange(index, "expDate", e.target.value)}
-                                                />
-                                            </div>
+                                            const billableSubtotal = billingQty * cost;
+                                            const discPercent = parseFloat(batch.discount) || 0;
+                                            const discAmount = (billableSubtotal * discPercent / 100);
+                                            const afterDiscount = billableSubtotal - discAmount;
+                                            const taxPercent = parseFloat(batch.tax) || 0;
+                                            const taxAmount = afterDiscount * (taxPercent / 100);
+                                            const rowTotal = afterDiscount + taxAmount;
 
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Cost Price</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol} ${(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) ? styles.inputError : ""}`} 
-                                                        value={item.costPrice ?? ""}
-                                                        onChange={(e) => handleItemChange(index, "costPrice", e.target.value)}
-                                                    />
-                                                </div>
-                                                {(Number(item.costPrice) > Number(item.mrp) && item.mrp > 0) && (
-                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>cost price can not be greater than mrp</span>
-                                                )}
-                                            </div>
+                                            return (
+                                                <div key={bIdx} style={{ position: 'relative', marginBottom: bIdx < item.batches.length - 1 ? '32px' : '0', paddingBottom: bIdx < item.batches.length - 1 ? '32px' : '0', borderBottom: bIdx < item.batches.length - 1 ? '1px dashed #e5e7eb' : 'none' }}>
+                                                    {bIdx > 0 && (
+                                                        <div style={{ position: 'absolute', top: '-16px', right: '0', zIndex: 10 }}>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => removeBatch(index, bIdx)}
+                                                                style={{ color: '#ef4444', background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                                                            >
+                                                                Remove Batch
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className={styles.fieldGrid}>
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Batch Number</label>
+                                                            <input
+                                                                type="text"
+                                                                className={styles.input}
+                                                                placeholder="0000"
+                                                                value={batch.batchNumber ?? ""}
+                                                                onChange={(e) => handleBatchChange(index, bIdx, "batchNumber", e.target.value)}
+                                                            />
+                                                        </div>
 
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>MRP</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={item.mrp ?? ""}
-                                                        onChange={(e) => handleItemChange(index, "mrp", e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Expire Date</label>
+                                                            <input
+                                                                type="date"
+                                                                className={styles.input}
+                                                                value={batch.expDate ?? ""}
+                                                                min={toApiDateOnly(new Date())}
+                                                                max="9999-12-31"
+                                                                onChange={(e) => handleBatchChange(index, bIdx, "expDate", e.target.value)}
+                                                            />
+                                                        </div>
 
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Received Qty.</label>
-                                                <input 
-                                                    type="number" 
-                                                    className={`${styles.input} ${Number(item.receivedQty) > Number(item.qty) ? styles.inputError : ""}`} 
-                                                    value={item.receivedQty ?? ""}
-                                                    onChange={(e) => handleItemChange(index, "receivedQty", e.target.value)}
-                                                />
-                                                {Number(item.receivedQty) > Number(item.qty) && (
-                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>received qty can not be greater than order qty</span>
-                                                )}
-                                            </div>
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Cost Price <span style={{ color: '#ff4d4f' }}>*</span></label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol} ${(Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) || (batch.costPrice !== "" && batch.costPrice !== undefined && batch.costPrice !== null && Number(batch.costPrice) <= 0) || (isSubmitted && (batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null)) ? styles.inputError : ""}`}
+                                                                    placeholder="0"
+                                                                    value={batch.costPrice === 0 ? "" : (batch.costPrice ?? "")}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBatchChange(index, bIdx, "costPrice", e.target.value)}
+                                                                />
+                                                            </div>
+                                                            {(Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>cost price can not be greater than mrp</span>
+                                                            )}
+                                                            {((batch.costPrice !== "" && batch.costPrice !== undefined && batch.costPrice !== null && Number(batch.costPrice) <= 0) || (isSubmitted && (batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null))) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Cost price is required and must be greater than 0</span>
+                                                            )}
+                                                        </div>
 
-                                            <div className={styles.fieldGroup}>
-                                                <div className={styles.labelWithInfo}>
-                                                    <label className={styles.fieldLabel}>Damaged Items</label>
-                                                    <div className={styles.infoTooltip}>
-                                                        <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} title="damage quanty will count from recived quantity" />
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>MRP <span style={{ color: '#ff4d4f' }}>*</span></label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol} ${(batch.mrp !== "" && batch.mrp !== undefined && batch.mrp !== null && Number(batch.mrp) <= 0) || (isSubmitted && (batch.mrp === "" || batch.mrp === undefined || batch.mrp === null)) ? styles.inputError : ""}`}
+                                                                    placeholder="0"
+                                                                    value={batch.mrp === 0 ? "" : (batch.mrp ?? "")}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBatchChange(index, bIdx, "mrp", e.target.value)}
+                                                                />
+                                                            </div>
+                                                            {((batch.mrp !== "" && batch.mrp !== undefined && batch.mrp !== null && Number(batch.mrp) <= 0) || (isSubmitted && (batch.mrp === "" || batch.mrp === undefined || batch.mrp === null))) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>MRP is required and must be greater than 0</span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Received Qty. <span style={{ color: '#ff4d4f' }}>*</span></label>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="0"
+                                                                className={`${styles.input} ${(Number(batch.receivedQty) > Number(item.qty)) || (batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null)) ? styles.inputError : ""}`}
+                                                                value={batch.receivedQty ?? ""}
+                                                                onFocus={(e) => e.target.select()}
+                                                                onChange={(e) => handleBatchChange(index, bIdx, "receivedQty", e.target.value)}
+                                                            />
+                                                            {((batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null))) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Received quantity is required and must be greater than 0</span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <div className={styles.labelWithInfo}>
+                                                                <label className={styles.fieldLabel}>Damaged Items</label>
+                                                                <div className={styles.infoTooltip}>
+                                                                    <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} title="damage quanty will count from recived quantity" />
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="0"
+                                                                className={`${styles.input} ${(Number(batch.damagedQty) > Number(batch.receivedQty)) || (batch.damagedQty !== "" && batch.damagedQty !== undefined && batch.damagedQty !== null && Number(batch.damagedQty) < 0) ? styles.inputError : ""}`}
+                                                                value={batch.damagedQty ?? ""}
+                                                                onFocus={(e) => e.target.select()}
+                                                                onChange={(e) => handleBatchChange(index, bIdx, "damagedQty", e.target.value)}
+                                                            />
+                                                            {Number(batch.damagedQty) > Number(batch.receivedQty) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>damaged qty can not be greater than recieved qty</span>
+                                                            )}
+                                                            {(batch.damagedQty !== "" && batch.damagedQty !== undefined && batch.damagedQty !== null && Number(batch.damagedQty) < 0) && (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Damaged quantity cannot be negative</span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Discountable Amount</label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <input
+                                                                    type="text"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol}`}
+                                                                    value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    readOnly
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>TAX (%)</label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>%</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol}`}
+                                                                    value={batch.tax ?? ""}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBatchChange(index, bIdx, "tax", e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Discount (%)</label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>%</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol}`}
+                                                                    value={batch.discount ?? ""}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBatchChange(index, bIdx, "discount", e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className={styles.fieldGroup}>
+                                                            <label className={styles.fieldLabel}>Amount</label>
+                                                            <div className={styles.inputWrapper}>
+                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <input
+                                                                    type="text"
+                                                                    className={`${styles.input} ${styles.inputWithSymbol}`}
+                                                                    value={rowTotal.toFixed(2)}
+                                                                    readOnly
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <input 
-                                                    type="number" 
-                                                    className={`${styles.input} ${Number(item.damagedQty) > Number(item.receivedQty) ? styles.inputError : ""}`} 
-                                                    value={item.damagedQty ?? ""}
-                                                    onChange={(e) => handleItemChange(index, "damagedQty", e.target.value)}
-                                                />
-                                                {Number(item.damagedQty) > Number(item.receivedQty) && (
-                                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>damaged qty can not be greater than recieved qty</span>
-                                                )}
-                                            </div>
-
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Discountable Amount</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="text" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                        readOnly
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>TAX (%)</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>%</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={item.tax ?? ""}
-                                                        onChange={(e) => handleItemChange(index, "tax", e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Discount (%)</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>%</span>
-                                                    <input 
-                                                        type="number" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={item.discount ?? ""}
-                                                        onChange={(e) => handleItemChange(index, "discount", e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className={styles.fieldGroup}>
-                                                <label className={styles.fieldLabel}>Amount</label>
-                                                <div className={styles.inputWrapper}>
-                                                    <span className={styles.currencySymbol}>₹</span>
-                                                    <input 
-                                                        type="text" 
-                                                        className={`${styles.input} ${styles.inputWithSymbol}`} 
-                                                        value={rowTotal.toFixed(2)}
-                                                        readOnly
-                                                    />
-                                                </div>
-                                            </div>
+                                            );
+                                        })}
+                                        
+                                        <div style={{ marginTop: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => addBatch(index)}
+                                                style={{ background: 'transparent', border: 'none', color: '#1890ff', padding: '8px 16px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
+                                            >
+                                                + Add Another Batch
+                                            </button>
                                         </div>
 
                                         <div className={styles.fieldGroups}>
                                             <label className={styles.fieldLabel}>Additional Details</label>
                                             <textarea className={styles.textarea} placeholder="Enter Additional details here" value={item.notes || ""} onChange={(e) => handleItemChange(index, 'notes', e.target.value)} />
                                         </div>
+
+                                        {totalReceived > Number(item.qty) && (
+                                            <div style={{ color: '#ef4444', marginTop: '12px', fontSize: '14px' }}>
+                                                Total received quantity across all batches ({totalReceived}) cannot exceed ordered quantity ({item.qty}).
+                                            </div>
+                                        )}
 
                                         <div className={styles.itemSummary}>
                                             <div className={styles.summaryItem}>
@@ -534,20 +747,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Received Value</span>
-                                                <span className={styles.summaryValue}>₹ {(received * cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            </div>
-                                           
-                                            <div className={styles.summaryItem}>
-                                                <span className={styles.summaryLabel}>Total Discount Value</span>
-                                                <span className={styles.summaryValue}>₹ - {discAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            </div>
-                                            <div className={styles.summaryItem}>
-                                                <span className={styles.summaryLabel}>Tax Amount</span>
-                                                <span className={styles.summaryValue}>₹ +{taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>₹ {(totalReceived * firstCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Calculated Amount</span>
-                                                <span className={styles.summaryValue}>₹ {rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>₹ {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -561,7 +765,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             <div className={styles.sidebar}>
                 <div className={styles.summarySection}>
                     <h3 className={styles.sidebarTitle}>Purchase Summary</h3>
-                    
+
                     <div className={styles.infoGroup}>
                         <span className={styles.infoLabel}>Supplier</span>
                         <span className={styles.infoValue}>{orderData.supplier?.supplierName}</span>
@@ -582,12 +786,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         <div className={styles.infoGroup}>
                             <span className={styles.infoLabel}>Received date</span>
                             <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
-                                    value={receivedDate} 
-                                    max={new Date().toISOString().split('T')[0]} 
-                                    onChange={(e) => setReceivedDate(e.target.value)} 
+                                <input
+                                    type="date"
+                                    className={styles.input}
+                                    value={receivedDate}
+                                    max={toApiDateOnly(new Date())}
+                                    onChange={(e) => setReceivedDate(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -665,7 +869,6 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 setPreviousCredit(val);
                             }} />
                         </div>
-                        <span className={styles.balanceText}>Balance : ₹ 0</span>
                     </div>
 
                     <div className={styles.breakdownContainer}>
@@ -675,26 +878,27 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         </div>
                         {showBreakdown && (
                             <div className={styles.breakdownContent}>
-                                <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toLocaleString()}</span></div>
-                                
+                                <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toFixed(2)}</span></div>
+
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toLocaleString()}</span></div>
+                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toFixed(2)}</span></div>
                                 )}
-                                
+
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toLocaleString()}</span></div>
+                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toFixed(2)}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{fontWeight: '700', color: '#000'}}>₹ {totals.discountableAmount.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>₹ {totals.discountableAmount.toFixed(2)}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toLocaleString()}</span></div>
-                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toLocaleString()}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownRow}><span> Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
+
+                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
                                 {Number(previousCredit) > 0 && (
-                                    <div className={styles.breakdownRow}><span>(-) Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
                                 )}
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>₹ {breakdown.finalAmount.toFixed(2)}</span></div>
                             </div>
@@ -710,7 +914,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                 { label: "Partial", value: "Partial" },
                                 { label: "Not Paid", value: "Pending" }
                             ].map(status => (
-                                <div key={status.value} className={`${styles.statusBadge} ${paymentStatus === status.value ? styles.statusBadgeActive : ""}`} onClick={() => setPaymentStatus(status.value)}>
+                                <div key={status.value} className={`${styles.statusBadge} ${paymentStatus === status.value ? styles.statusBadgeActive : ""}`} onClick={() => handlePaymentStatusChange(status.value)}>
                                     <div className={styles.radioCircle} />
                                     <span>{status.label}</span>
                                 </div>
@@ -720,41 +924,58 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                     {(paymentStatus === "Partial" || paymentStatus === "Full") && (
                         <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.currencySymbol}>₹</span>
-                                <input 
-                                    type="number" 
-                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`} 
-                                    placeholder="00000" 
-                                    value={paidAmount} 
+                                <input
+                                    type="number"
+                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`}
+                                    placeholder="00000"
+                                    value={paidAmount}
                                     readOnly={paymentStatus === "Full"}
                                     onChange={(e) => {
                                         let val = e.target.value;
                                         if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
                                         setPaidAmount(val);
-                                    }} 
+                                    }}
+                                    onBlur={() => {
+                                        if (paidAmount) {
+                                            setPaidAmount(Number(paidAmount).toFixed(2));
+                                        }
+                                    }}
                                 />
                             </div>
                             {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
-                                <span style={{color: '#ff4d4f', fontSize: '11px', marginTop: '4px'}}>Paid amount is required for partial payment</span>
+                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px' }}>Paid amount is required for partial payment</span>
                             )}
                         </div>
                     )}
 
-                    {(paymentStatus === "PayLaterWithRemainder" || paymentStatus === "Partial" || paymentStatus === "Pending") && (
+                    {paymentStatus !== "Full" && (
                         <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Payment Due Date</label>
+                            <label className={styles.infoLabel}>Payment Due Date <span style={{ color: '#ff4d4f' }}>*</span></label>
                             <div className={styles.inputWrapper}>
-                                <input 
-                                    type="date" 
-                                    className={styles.input} 
-                                    value={duedate} 
-                                    min={new Date().toISOString().split('T')[0]}
+                                <input
+                                    type="date"
+                                    className={`${styles.input} ${isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) ? styles.errorInput : ""}`}
+                                    value={duedate}
+                                    min={toApiDateOnly(new Date())}
                                     max="9999-12-31"
-                                    onChange={(e) => setDuedate(e.target.value)} 
+                                    onChange={(e) => setDuedate(e.target.value)}
+                                    onBlur={(e) => {
+                                        const today = toApiDateOnly(new Date());
+                                        if (e.target.value && e.target.value < today) {
+                                            setDuedate("");
+                                            toast.error("Payment Due Date cannot be in the past");
+                                        }
+                                    }}
                                 />
                             </div>
+                            {isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) && (
+                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                                    {!duedate ? "Payment Due Date is required" : "Payment Due Date cannot be in the past"}
+                                </span>
+                            )}
                         </div>
                     )}
 

@@ -1,0 +1,436 @@
+/* CustomerView specific styles */
+.viewContainer {
+    /* padding: 24px 24px 8px 24px; */
+    /* background: var(--color-bg-light); */
+    min-height: 100%;
+    font-family: 'Inter', sans-serif;
+}
+
+.backButtonContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 10px;
+    width: fit-content;
+}
+
+.backButton {
+    background: var(--color-bg-danger-light);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    cursor: pointer;
+}
+
+.backIcon {
+    font-size: 18px;
+    line-height: 18px;
+    margin-top: -2px;
+}
+
+.mainLayout {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.mainLayoutRow {
+    flex-direction: row;
+}
+
+.mainLayoutColumn {
+    flex-direction: column;
+}
+
+.leftSidebarSplit {
+    flex: 1 1 100%;
+    min-width: 230px;
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 136px);
+}
+
+.leftSidebarNormal {
+    flex: 0 0 250px;
+    min-width: 230px;
+    max-width: 280px;
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 136px);
+}
+
+.sidebarHeader {
+    padding: 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sidebarName {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.sidebarPhone {
+    color: var(--color-text-gray-muted);
+    font-size: 14px;
+}
+
+.navContainer {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+}
+
+.navButton {
+    border: none;
+    text-align: left;
+    padding: 16px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.navButtonActive {
+    background: var(--color-bg-danger-light);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.navButtonInactive {
+    background: transparent;
+    color: var(--color-text-dark);
+}
+
+.personalInfoSection {
+    padding: 24px;
+    border-top: 1px solid var(--color-border);
+    margin-top: auto;
+}
+
+.personalInfoTitle {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--color-text-main);
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.infoLabel {
+    font-size: 12px;
+    color: var(--color-text-gray-muted);
+    margin-bottom: 4px;
+}
+
+.infoValue {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.infoValueBreak {
+    font-size: 13px;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.editButton {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.editIcon {
+    transform: scale(1.2);
+}
+
+.rightContent {
+    flex: 1 1 0%;
+    min-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: calc(100vh - 136px);
+}
+
+.overviewGridSplit {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.overviewGridNormal {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.overviewCard {
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    padding: 16px;
+}
+
+.overviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.overviewTitle {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.overviewIcon {
+    color: var(--color-text-gray-lighter);
+    cursor: help;
+}
+
+.overviewStatsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: 13px;
+    color: var(--color-text-gray-muted);
+}
+
+.tableCard {
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.tableHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--color-border);
+    gap: 10px;
+}
+
+.tableTitle {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.tableTabsContainer {
+    display: flex;
+    gap: 4px;
+    background: #f5f5f5;
+    padding: 4px;
+    border-radius: 8px;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.tableTabsContainer::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tableTabsContainer::-webkit-scrollbar-thumb {
+    background: var(--color-border-dark);
+    border-radius: 4px;
+}
+
+.tableTab {
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tableTabActive {
+    background: var(--color-white);
+    color: var(--color-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tableTabInactive {
+    background: transparent;
+    color: var(--color-text-gray);
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.emptyState {
+    padding: 40px;
+    text-align: center;
+    color: var(--color-text-light);
+}
+
+.tableScrollContainer {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.dataTable {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.dataTableHeaderRow {
+    background: var(--color-bg-light);
+    color: var(--color-text-gray-muted);
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.dataTableHeaderRow th {
+    position: sticky;
+    top: 0;
+    background: var(--color-bg-light);
+    z-index: 1;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.dataTableHeader {
+    padding: 12px 24px;
+    font-weight: 600;
+}
+
+.dataTableHeaderCenter {
+    padding: 12px 24px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.dataTableRow {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.dataTableCell {
+    padding: 16px 24px;
+}
+
+.dataTableCellCenter {
+    padding: 16px 24px;
+    text-align: center;
+}
+
+.actionButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.paginationContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--color-bg-light);
+    border-top: 1px solid var(--color-border);
+}
+
+.paginationLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--color-text-gray-muted);
+    font-size: 13px;
+}
+
+.rowsPerPageContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rowsSelect {
+    border: 1px solid var(--color-border-darker);
+    border-radius: 4px;
+    padding: 4px 8px;
+    background: var(--color-white);
+    color: var(--color-text-main);
+    outline: none;
+}
+
+.paginationRight {
+    display: flex;
+    gap: 8px;
+}
+
+.pageButton {
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.pageButtonPrev {
+    border: 1px solid var(--color-border-darker);
+    background: var(--color-white);
+    color: var(--color-text-darkest);
+}
+
+.pageButtonNext {
+    border: none;
+    background: var(--color-text-main);
+    color: var(--color-white);
+}

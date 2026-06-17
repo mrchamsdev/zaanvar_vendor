@@ -60,10 +60,10 @@ const PhoneIcon = () => (
 );
 
 const LockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg"  width="16"
-  height="16" viewBox="0 0 384 512" fill="none">
-  <path d="M373.333 192H341.333V149.333C341.333 66.99 274.344 0 192 0C109.656 0 42.667 66.99 42.667 149.333V192H10.667C4.771 192 0 196.771 0 202.667V469.334C0 492.865 19.135 512 42.667 512H341.334C364.865 512 384 492.865 384 469.333V202.667C384 196.771 379.229 192 373.333 192ZM223.938 414.823C224.271 417.833 223.303 420.854 221.282 423.115C219.261 425.375 216.365 426.667 213.334 426.667H170.667C167.636 426.667 164.74 425.375 162.719 423.115C160.698 420.855 159.729 417.834 160.063 414.823L166.792 354.313C155.865 346.365 149.334 333.792 149.334 320C149.334 296.469 168.469 277.333 192.001 277.333C215.533 277.333 234.668 296.468 234.668 320C234.668 333.792 228.137 346.365 217.21 354.313L223.938 414.823ZM277.333 192H106.667V149.333C106.667 102.281 144.948 64 192 64C239.052 64 277.333 102.281 277.333 149.333V192Z" fill="black"/>
-</svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16"
+    height="16" viewBox="0 0 384 512" fill="none">
+    <path d="M373.333 192H341.333V149.333C341.333 66.99 274.344 0 192 0C109.656 0 42.667 66.99 42.667 149.333V192H10.667C4.771 192 0 196.771 0 202.667V469.334C0 492.865 19.135 512 42.667 512H341.334C364.865 512 384 492.865 384 469.333V202.667C384 196.771 379.229 192 373.333 192ZM223.938 414.823C224.271 417.833 223.303 420.854 221.282 423.115C219.261 425.375 216.365 426.667 213.334 426.667H170.667C167.636 426.667 164.74 425.375 162.719 423.115C160.698 420.855 159.729 417.834 160.063 414.823L166.792 354.313C155.865 346.365 149.334 333.792 149.334 320C149.334 296.469 168.469 277.333 192.001 277.333C215.533 277.333 234.668 296.468 234.668 320C234.668 333.792 228.137 346.365 217.21 354.313L223.938 414.823ZM277.333 192H106.667V149.333C106.667 102.281 144.948 64 192 64C239.052 64 277.333 102.281 277.333 149.333V192Z" fill="black" />
+  </svg>
 );
 
 const SignIn = ({ onSignUpClick }) => {
@@ -88,6 +88,7 @@ const SignIn = ({ onSignUpClick }) => {
 
   // ─── Slideshow State ───────────────────────────────────────────────────────
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showBreederModal, setShowBreederModal] = useState(true);
 
   const pinRegex = /^[0-9]{6}$/;
 
@@ -185,7 +186,7 @@ const SignIn = ({ onSignUpClick }) => {
           const uniqueRoutes = [...new Set(routesToPrefetch)];
           await Promise.all(
             uniqueRoutes.map((routePath) =>
-              router.prefetch(routePath).catch(() => {})
+              router.prefetch(routePath).catch(() => { })
             )
           );
         } catch (error) {
@@ -245,8 +246,8 @@ const SignIn = ({ onSignUpClick }) => {
           phoneDigits.length === 0
             ? ""
             : phoneDigits.length < maxPhoneLen
-            ? `Enter ${maxPhoneLen} digits for this country.`
-            : "",
+              ? `Enter ${maxPhoneLen} digits for this country.`
+              : "",
       }));
       return;
     }
@@ -289,7 +290,7 @@ const SignIn = ({ onSignUpClick }) => {
 
     const loginPayload = {
       // phoneNumber: getPhoneNumberWithDefault(details.number, countryCode),
-      phoneNumber:details.number,
+      phoneNumber: details.number,
       pin: details.passWord,
     };
 
@@ -303,9 +304,31 @@ const SignIn = ({ onSignUpClick }) => {
       //   { status:"success", token, data:{ vendor } }   ← new API
       //   { token, user }                                 ← old API
       const token = response?.token;
-      const user  = response?.data?.vendor ?? response?.user;
+      const user = response?.data?.vendor ?? response?.user;
 
       if (token && user) {
+        let onlyBreeder = false;
+        let otherServices = false;
+
+        if (user.vendorCompanies && user.vendorCompanies.length > 0) {
+          for (const company of user.vendorCompanies) {
+            if (company.servicesProvided && company.servicesProvided.length > 0) {
+              for (const service of company.servicesProvided) {
+                if (service === "Pet Breeder") {
+                  onlyBreeder = true;
+                } else {
+                  otherServices = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (onlyBreeder && !otherServices) {
+          setShowBreederModal(true);
+          return;
+        }
+
         setJwtToken(token);
         setUserInfo(user);
 
@@ -316,7 +339,7 @@ const SignIn = ({ onSignUpClick }) => {
             (d) =>
               d.phoneNumber &&
               d.phoneNumber !==
-                getPhoneNumberWithDefault(details.number, countryCode)
+              getPhoneNumberWithDefault(details.number, countryCode)
           );
           localStorage.setItem(
             "loggedOutDevices",
@@ -427,6 +450,61 @@ const SignIn = ({ onSignUpClick }) => {
   // ─── NEW JSX ───────────────────────────────────────────────────────────────
   return (
     <>
+      {showBreederModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <button
+            onClick={() => setShowBreederModal(false)}
+            style={{
+              position: 'absolute', top: '20px', right: '20px',
+              background: 'none', border: 'none',
+              color: '#fff', cursor: 'pointer', fontSize: '24px'
+            }}
+          >
+            ×
+          </button>
+          <div style={{
+            background: '#fff', padding: '40px', borderRadius: '12px',
+            maxWidth: '500px', textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', margin: '0 20px'
+          }}>
+            <h2 style={{ marginBottom: '16px', color: '#333' }}>Mobile App Required</h2>
+            <p style={{ marginBottom: '24px', color: '#555', lineHeight: '1.5' }}>
+              To access your account, please download our mobile app. Your account currently do not have access to the web application.
+            </p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href="https://apps.apple.com/in/app/zaanvar-business/id6754638999"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '12px 24px', background: '#000', color: '#fff',
+                  borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold'
+                }}
+              >
+                Download iOS App
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.zaanvar.vender"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '12px 24px', background: '#3ddc84', color: '#000',
+                  borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold'
+                }}
+              >
+                Download Android App
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ================================================================
           DESKTOP VIEW  ≥ 768 px  — two-column layout
           ================================================================ */}
@@ -466,26 +544,26 @@ const SignIn = ({ onSignUpClick }) => {
               <div className={styles.newInputGroup}>
                 <span className={styles.newInputIcon}>
                   <PhoneIcon />
-                    </span>
+                </span>
                 <div className={styles.newPhoneWrapper}>
-                      <SearchableCountryCode
-                        countries={countries}
-                        selectedCode={countryCode}
-                        onSelect={(code) => setCountryCode(code)}
-                      />
-                      <input
-                        type="tel"
-                        name="number"
-                        value={details.number}
-                        onChange={handleLoginChange}
+                  <SearchableCountryCode
+                    countries={countries}
+                    selectedCode={countryCode}
+                    onSelect={(code) => setCountryCode(code)}
+                  />
+                  <input
+                    type="tel"
+                    name="number"
+                    value={details.number}
+                    onChange={handleLoginChange}
                     className={styles.newInput}
-                        maxLength={getPhoneLength(countryCode)}
-                        autoComplete="off"
+                    maxLength={getPhoneLength(countryCode)}
+                    autoComplete="off"
                     placeholder="Enter Your Mail or Phone Number"
-                        inputMode="numeric"
-                      />
-                    </div>
-                  </div>
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
               {errors.number && (
                 <span className={styles.newError}>{errors.number}</span>
               )}
@@ -494,23 +572,23 @@ const SignIn = ({ onSignUpClick }) => {
               <div className={styles.newInputGroup}>
                 <span className={styles.newInputIcon}>
                   <LockIcon />
-                    </span>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="passWord"
-                      value={details.passWord}
-                      onChange={handleLoginChange}
+                </span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="passWord"
+                  value={details.passWord}
+                  onChange={handleLoginChange}
                   className={styles.newInput}
-                      maxLength={6}
+                  maxLength={6}
                   placeholder="Enter Your Pin"
-                    />
-                    <span
+                />
+                <span
                   className={styles.newToggleIcon}
                   onClick={() => setShowPassword((prev) => !prev)}
-                    >
-                      {showPassword ? <EyeIcon /> : <ClosedEyeIcon />}
-                    </span>
-                  </div>
+                >
+                  {showPassword ? <EyeIcon /> : <ClosedEyeIcon />}
+                </span>
+              </div>
               {errors.passWord && (
                 <span className={styles.newError}>{errors.passWord}</span>
               )}
@@ -532,14 +610,14 @@ const SignIn = ({ onSignUpClick }) => {
               {/* Remember Me */}
               <div className={styles.newRememberRow}>
                 <label className={styles.newRememberLabel}>
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                      />
-                      Remember me
-                    </label>
-                  </div>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  Remember me
+                </label>
+              </div>
 
               {/* API / Login error */}
               {loginError && (
@@ -554,10 +632,10 @@ const SignIn = ({ onSignUpClick }) => {
                 className={styles.newSubmitBtn}
                 disabled={!isLoaded}
               >
-                    {isLoaded ? "Login" : "Please wait..."}
-                  </button>
+                {isLoaded ? "Login" : "Please wait..."}
+              </button>
 
-                </form>
+            </form>
           </div>
         </div>
       </div>
@@ -595,27 +673,27 @@ const SignIn = ({ onSignUpClick }) => {
             <div className={styles.newMobInputGroup}>
               <span className={styles.newMobInputIcon}>
                 <PhoneIcon />
-                  </span>
+              </span>
               <div className={styles.newMobPhoneWrapper}>
-                    <SearchableCountryCode
-                      countries={countries}
-                      selectedCode={countryCode}
-                      onSelect={(code) => setCountryCode(code)}
+                <SearchableCountryCode
+                  countries={countries}
+                  selectedCode={countryCode}
+                  onSelect={(code) => setCountryCode(code)}
                   className={styles.newMobSearchableCountry}
-                    />
-                    <input
-                      type="tel"
-                      name="number"
-                      value={details.number}
-                      onChange={handleLoginChange}
+                />
+                <input
+                  type="tel"
+                  name="number"
+                  value={details.number}
+                  onChange={handleLoginChange}
                   className={styles.newMobInput}
                   maxLength={getPhoneLength(countryCode)}
                   autoComplete="off"
                   placeholder="Enter Your Mail or Phone Number"
-                      inputMode="numeric"
-                    />
-                  </div>
-                </div>
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
             {errors.number && (
               <span className={styles.newMobError}>{errors.number}</span>
             )}
@@ -624,25 +702,25 @@ const SignIn = ({ onSignUpClick }) => {
             <div className={styles.newMobInputGroup}>
               <span className={styles.newMobInputIcon}>
                 <LockIcon />
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="passWord"
-                    value={details.passWord}
-                    onChange={handleLoginChange}
+              </span>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="passWord"
+                value={details.passWord}
+                onChange={handleLoginChange}
                 className={styles.newMobInput}
-                    maxLength={6}
+                maxLength={6}
                 placeholder="Enter Your Pin"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                  />
-                  <span
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+              <span
                 className={styles.newMobToggleIcon}
                 onClick={() => setShowPassword((prev) => !prev)}
-                  >
-                    {showPassword ? <EyeIcon /> : <ClosedEyeIcon />}
-                  </span>
-                </div>
+              >
+                {showPassword ? <EyeIcon /> : <ClosedEyeIcon />}
+              </span>
+            </div>
             {errors.passWord && (
               <span className={styles.newMobError}>{errors.passWord}</span>
             )}
@@ -664,14 +742,14 @@ const SignIn = ({ onSignUpClick }) => {
             {/* Remember Me */}
             <div className={styles.newMobRememberRow}>
               <label className={styles.newMobRememberLabel}>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                    />
-                    Remember me
-                  </label>
-                </div>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                Remember me
+              </label>
+            </div>
 
             {/* API / Login error */}
             {loginError && (
@@ -681,14 +759,14 @@ const SignIn = ({ onSignUpClick }) => {
             )}
 
             {/* Submit */}
-                <button
-                  type="submit"
+            <button
+              type="submit"
               className={styles.newMobSubmitBtn}
-                  disabled={!isLoaded}
-                >
+              disabled={!isLoaded}
+            >
               {isLoaded ? "LOG IN" : "Please wait..."}
-                  </button>
-              </form>
+            </button>
+          </form>
         </div>
       </div>
     </>

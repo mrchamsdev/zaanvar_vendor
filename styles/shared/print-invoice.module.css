@@ -1,0 +1,431 @@
+.printWrapper {
+  background-color: #f0f2f5;
+  height: 100vh;
+  padding: 20px 0 40px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.pdfTopbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #333;
+  padding: 10px 20px;
+  color: white;
+}
+
+.pdfTitle {
+  font-weight: bold;
+}
+
+.pdfActions {
+  display: flex;
+  gap: 10px;
+}
+
+.pdfBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pdfBtnClose {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pdfBtnDownload {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Base Container */
+.printContainer {
+  background-color: white;
+  color: #333;
+  font-family: 'Inter', sans-serif;
+  max-width: 900px;
+  margin: 0 auto 40px auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Grey Bar */
+.topGreyBar {
+  background-color: #bcbcbc;
+  padding: 12px 24px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #444;
+}
+
+/* Company Header Section */
+.companyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  border-bottom: 2px solid #555;
+}
+
+.companyInfo h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.2rem;
+  color: #000;
+}
+
+.companyInfo p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.imagePlaceholder {
+  background-color: #d8d8d8;
+  color: #666;
+  width: 140px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* Sub Header Details */
+.subHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 24px;
+  font-size: 0.85rem;
+}
+
+.billTo h4 {
+  margin: 0 0 8px 0;
+  color: #000;
+  font-size: 0.9rem;
+}
+
+.billTo h3 {
+  margin: 0 0 6px 0;
+  color: #000;
+  font-size: 1rem;
+}
+
+.billTo p {
+  margin: 2px 0;
+  color: #666;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.invoiceDetails {
+  text-align: right;
+}
+
+.invoiceDetails h4 {
+  margin: 0 0 8px 0;
+  color: #000;
+  font-size: 0.9rem;
+}
+
+.invoiceDetails p {
+  margin: 4px 0;
+  color: #555;
+}
+
+/* Payments Specifics */
+.amountPaidBar {
+  background-color: #e93e64;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 24px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.amountInWordsBox {
+  padding: 0 24px;
+  border-bottom: 1px solid #ddd;
+}
+
+.amountInWordsHeader {
+  background-color: #eee;
+  padding: 8px 24px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  margin: 0 -24px;
+}
+
+.amountInWordsText {
+  padding: 12px 0;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+/* Tables */
+.tableContainer {
+  padding: 0 24px;
+  margin-bottom: 16px;
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  border: 1px solid #ddd;
+}
+
+.itemsTable th {
+  background-color: #e93e64;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  border: 1px solid #fff;
+  padding: 8px 4px;
+  text-transform: uppercase;
+}
+
+.itemsTable td {
+  padding: 8px 6px;
+  border: 1px solid #ddd;
+  text-align: center;
+  color: #555;
+}
+
+.itemsTable td.left {
+  text-align: left;
+}
+
+.itemsTable td.right {
+  text-align: right;
+}
+
+/* Nested Headers */
+.nestedHeader {
+  display: flex;
+  flex-direction: column;
+}
+.nestedTop {
+  padding-bottom: 4px;
+  border-bottom: 1px solid #fff;
+}
+.nestedBottom {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+.nestedBottom span {
+  flex: 1;
+  text-align: center;
+}
+.nestedBottom span:first-child {
+  border-right: 1px solid #fff;
+}
+
+.nestedCell {
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  height: 100%;
+}
+.nestedCell span {
+  flex: 1;
+  padding: 8px 4px;
+}
+.nestedCell span:first-child {
+  border-right: 1px solid #ddd;
+}
+
+.tableTotalRow td {
+  font-weight: bold;
+  color: #000;
+  background-color: #f9f9f9;
+}
+
+.paymentTotalRow td {
+  background-color: #e93e64;
+  color: white;
+  font-weight: bold;
+  border-color: #fff;
+}
+
+/* Bottom Split Section */
+.bottomSection {
+  display: flex;
+  padding: 0 24px;
+  gap: 0;
+  margin-bottom: 40px;
+}
+
+.amountInWordsSplit {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-right: none;
+}
+
+.amountInWordsSplitHeader {
+  background-color: #e93e64;
+  color: white;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.amountInWordsSplitText {
+  padding: 16px 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.amountsSplit {
+  flex: 1;
+  border: 1px solid #ddd;
+}
+
+.amountsSplitHeader {
+  background-color: #e93e64;
+  color: white;
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.amountsSummary {
+  padding: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.summaryRow.total {
+  font-weight: bold;
+  color: #000;
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+/* Footer Section */
+.footerArea {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 24px;
+  margin-bottom: 24px;
+}
+
+.signatureBox {
+  width: 300px;
+  border: 1px solid #ddd;
+}
+
+.signatureHeader {
+  background-color: #e93e64;
+  color: white;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
+.signatureBody {
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.bottomBranding {
+  background-color: #e93e64;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+/* Print Media Query */
+@media print {
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  body.is-printing-pdf > :not(#print-invoice-wrapper) {
+    display: none !important;
+  }
+
+  .printWrapper, .printWrapper * {
+    visibility: visible;
+  }
+
+  .printWrapper {
+    background-color: transparent;
+    padding: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    height: auto;
+    overflow: visible;
+  }
+
+  .printContainer {
+    max-width: 100%;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .pdfTopbar {
+    display: none !important;
+  }
+
+  /* Force background colors to print */
+  .topGreyBar { background-color: #bcbcbc !important; }
+  .imagePlaceholder { background-color: #d8d8d8 !important; }
+  .amountPaidBar, .itemsTable th, .paymentTotalRow td, .amountInWordsSplitHeader, .amountsSplitHeader, .signatureHeader, .bottomBranding {
+    background-color: #e93e64 !important;
+    color: white !important;
+  }
+  .amountInWordsHeader { background-color: #eee !important; }
+  .tableTotalRow td { background-color: #f9f9f9 !important; }
+}

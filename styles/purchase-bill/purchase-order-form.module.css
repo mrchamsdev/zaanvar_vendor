@@ -3,18 +3,18 @@
 }
 
 .section {
-    background: #fff;
-    border: 1px solid #f1f1f1;
+    background: var(--color-white);
+    border: 1px solid var(--color-bg-gray);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .sectionTitle {
     font-size: 16px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
     margin-bottom: 24px;
 }
 
@@ -36,14 +36,15 @@
     color: #444;
 }
 
-.input, .select {
+.input,
+.select {
     height: 44px;
     padding: 0 16px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border-dark);
     border-radius: 8px;
     background: #fcfcfc;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text-body);
     outline: none;
     transition: border-color 0.2s;
     box-sizing: border-box;
@@ -51,28 +52,30 @@
     align-items: center;
 }
 
-.input:focus, .select:focus {
-    border-color: #E9315D;
+.input:focus,
+.select:focus {
+    border-color: var(--color-primary);
 }
 
 .poNumberHeader {
     font-size: 20px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
     margin-bottom: 24px;
 }
 
 .poId {
-    color: #E9315D;
+    color: var(--color-primary);
 }
 
 .tableWrapper {
     margin-top: 24px;
     overflow-x: auto;
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--color-border-lighter);
     border-radius: 12px;
-    background: #fff;
-    padding-bottom: 200px; /* Buffer for dropdowns to show */
+    background: var(--color-white);
+    padding-bottom: 200px;
+    /* Buffer for dropdowns to show */
     margin-bottom: -200px;
 }
 
@@ -82,15 +85,15 @@
 }
 
 .table th {
-    background: #f9fafb;
+    background: var(--color-bg-light);
     padding: 14px 16px;
     font-size: 11px;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--color-text-gray-muted);
     text-transform: uppercase;
     text-align: left;
-    border-right: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
+    border-right: 1px solid var(--color-border-dark);
+    border-bottom: 1px solid var(--color-border-dark);
 }
 
 .table th:last-child {
@@ -102,7 +105,7 @@
     border-right: 1px solid #e0e0e0;
     border-bottom: 1px solid #e0e0e0;
     font-size: 13px;
-    color: #333;
+    color: var(--color-text-body);
     position: relative;
 }
 
@@ -110,26 +113,29 @@
     border-right: none;
 }
 
-.qtyInput, .tableInput {
+.qtyInput,
+.tableInput {
     width: 100%;
     padding: 0;
     border: none;
     background: transparent;
     font-size: 13px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
     outline: none;
     text-align: center;
 }
 
-.tableInput { text-align: left; }
+.tableInput {
+    text-align: left;
+}
 
 .tableInput::placeholder {
-    color: #ccc;
+    color: var(--color-border-dark);
 }
 
 .addItemBtn {
-    color: #E9315D;
+    color: var(--color-primary);
     background: none;
     border: none;
     font-weight: 700;
@@ -146,37 +152,37 @@
     gap: 16px;
     margin-top: 40px;
     padding-bottom: 40px;
-    padding-right:10px;
+    padding-right: 10px;
 }
 
 .draftBtn {
     padding: 12px 36px;
-    border: 1px solid #333;
-    background: #fff;
+    border: 1px solid var(--color-text-body);
+    background: var(--color-white);
     border-radius: 10px;
     font-weight: 700;
     cursor: pointer;
-    color: #333;
+    color: var(--color-text-body);
     font-size: 14px;
 }
 
 .placeOrderBtn {
     padding: 12px 36px;
-    background: #bbb;
+    background: var(--color-text-body);
     border: none;
     border-radius: 10px;
-    color: #fff;
+    color: var(--color-white);
     font-weight: 700;
     cursor: pointer;
     font-size: 14px;
 }
 
 .placeOrderBtnActive {
-    background: #E9315D;
+    background: var(--color-primary);
 }
 
 .placeOrderBtnActive {
-    background: #E9315D;
+    background: var(--color-primary);
 }
 
 /* Product Search Styles */
@@ -190,9 +196,10 @@
     left: 0;
     width: 100%;
     min-width: 300px;
-    background: #fff;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Lighter shadow for cleaner look */
+    background: var(--color-white);
+    border: 1px solid var(--color-border-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    /* Lighter shadow for cleaner look */
     z-index: 5000;
     max-height: 300px;
     overflow-y: auto;
@@ -203,8 +210,8 @@
     padding: 14px 16px;
     cursor: pointer;
     transition: background 0.2s;
-    border-bottom: 1px solid #eee;
-    background: #fff;
+    border-bottom: 1px solid var(--color-border-light);
+    background: var(--color-white);
 }
 
 .productOption:last-child {
@@ -219,11 +226,12 @@
     display: block;
     font-weight: 500;
     font-size: 15px;
-    color: #000;
+    color: var(--color-black);
 }
 
 .productOptionCode {
-    display: none; /* Hide code as per the clean reference image style */
+    display: none;
+    /* Hide code as per the clean reference image style */
 }
 
 /* Responsiveness */
@@ -246,7 +254,8 @@
         overflow-x: auto;
     }
 
-    .table th, .table td {
+    .table th,
+    .table td {
         padding: 10px 12px;
         font-size: 13px;
         white-space: nowrap;
@@ -258,7 +267,8 @@
         margin-top: 20px;
     }
 
-    .draftBtn, .placeOrderBtn {
+    .draftBtn,
+    .placeOrderBtn {
         width: 100%;
         padding: 14px;
     }
@@ -266,12 +276,12 @@
 
 /* Summary View Styles */
 .summaryCard {
-    background: #fff;
-    border: 1px solid #f1f1f1;
+    background: var(--color-white);
+    border: 1px solid var(--color-bg-gray);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .summaryHeader {
@@ -279,14 +289,14 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 30px;
-    border-bottom: 1px solid #f9f9f9;
+    border-bottom: 1px solid var(--color-bg-gray-light);
     padding-bottom: 20px;
 }
 
 .poNumberLarge {
     font-size: 18px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .summaryStatusBadge {
@@ -307,7 +317,7 @@
 
 .statusBadgeCancelled {
     background: #FFE9EE;
-    color: #E9315D;
+    color: var(--color-primary);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -316,7 +326,7 @@
 
 .statusBadgeReceived {
     background: #EAF9F2;
-    color: #27AE60;
+    color: var(--color-success);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -325,7 +335,7 @@
 
 .summaryDate {
     font-size: 13px;
-    color: #666;
+    color: var(--color-text-muted);
     font-weight: 500;
 }
 
@@ -344,40 +354,40 @@
 .addressLabel {
     font-size: 12px;
     font-weight: 500;
-    color: #999;
+    color: var(--color-text-lighter);
 }
 
 .addressName {
     font-size: 15px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-body);
 }
 
 .addressText {
     font-size: 13px;
-    color: #777;
+    color: var(--color-text-gray-light);
     line-height: 1.5;
 }
 
 .cancelBtn {
     padding: 10px 24px;
-    border: 1px solid #ddd;
-    background: #fff;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-white);
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    color: #333;
+    color: var(--color-text-body);
     font-size: 13px;
 }
 
 .printBtn {
     padding: 10px 24px;
-    border: 1px solid #333;
-    background: #fff;
+    border: 1px solid var(--color-text-body);
+    background: var(--color-white);
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    color: #333;
+    color: var(--color-text-body);
     font-size: 13px;
 }
 
@@ -386,12 +396,12 @@
 }
 
 .errorField {
-    border-color: #E9315D !important;
+    border-color: var(--color-primary) !important;
     background-color: #FFF5F7 !important;
 }
 
 .errorMessage {
-    color: #E9315D;
+    color: var(--color-primary);
     font-size: 11px;
     font-weight: 600;
     margin-top: 4px;
@@ -400,13 +410,23 @@
 .supplierSearchWrapper {
     position: relative;
     cursor: pointer;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border-dark);
     border-radius: 8px;
     background: #fcfcfc;
     display: flex;
     align-items: center;
     height: 44px;
     box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.supplierSearchWrapper:hover,
+.supplierSearchWrapper:focus-within {
+    border-color: var(--color-primary);
+}
+
+.supplierSearchWrapper input {
+    padding-right: 36px;
 }
 
 .dropdownIcon {

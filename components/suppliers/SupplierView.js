@@ -5,8 +5,13 @@ import useStore from "../state/useStore";
 import { toast } from "sonner";
 import PayNowModal from "../purchase-bill/PayNowModal";
 import PurchaseOrderManager from "../purchase-bill/purchase-order-manager";
+import { parseApiToLocal } from "../../utilities/date-time-utils";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { useRouter } from "next/router";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
+    const router = useRouter();
+    const branchId = router.query.branchId || "";
     const { jwtToken } = useStore();
     const [loading, setLoading] = useState(false);
     const [supplier, setSupplier] = useState(data);
@@ -17,6 +22,62 @@ const SupplierView = ({ data, onBack, isSplit }) => {
     const [selectedBillIdForPayment, setSelectedBillIdForPayment] = useState(null);
     const [selectedBillData, setSelectedBillData] = useState(null);
     const [managerConfig, setManagerConfig] = useState(null); // { mode, id, initialData }
+    const [expandedRows, setExpandedRows] = useState({});
+    const toggleRowExpand = (id) => {
+        setExpandedRows(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const getDisplayPaymentType = (t) => {
+        const types = [t.paymentType, ...(t.splitTransactions || []).map(st => st.paymentType)]
+            .map(type => {
+                if (typeof type === 'object' && type !== null) {
+                    return type.paymentType || type.type || JSON.stringify(type);
+                }
+                return type || "Cash";
+            })
+            .filter((value, index, self) => self.indexOf(value) === index);
+        return types.join(" + ");
+    };
+
+    const getDisplayReferenceNumber = (t) => {
+        const refs = [];
+        if (Array.isArray(t.paymentTypes)) {
+            t.paymentTypes.forEach(p => {
+                const ref = p.referenceNumber || p.refNo;
+                if (ref) refs.push(ref);
+            });
+        }
+        const mainRef = t.referenceNumber || t.refNo;
+        if (mainRef && !refs.includes(mainRef)) {
+            refs.push(mainRef);
+        }
+        if (Array.isArray(t.splitTransactions)) {
+            t.splitTransactions.forEach(st => {
+                const ref = st.referenceNumber || st.refNo;
+                if (ref && !refs.includes(ref)) {
+                    refs.push(ref);
+                }
+            });
+        }
+        return refs.length > 0 ? refs.join(", ") : "--";
+    };
+
+    const getDisplayTotalAmount = (t) => {
+        const mainAmount = parseFloat(t["paid amount"] || t.amount || 0);
+        const splitSum = (t.splitTransactions || []).reduce((sum, st) => sum + parseFloat(st["paid amount"] || st.amount || 0), 0);
+        return mainAmount + splitSum;
+    };
+
+    const getDisplayBalanceAmount = (t) => {
+        if (t.splitTransactions && t.splitTransactions.length > 0) {
+            const lastSplit = t.splitTransactions[t.splitTransactions.length - 1];
+            return lastSplit.totalBalanceAmount || lastSplit["balance amount"] || lastSplit.balance || "0.00";
+        }
+        return t.totalBalanceAmount || t["balance amount"] || t.balance || "0.00";
+    };
 
     const supplierId = data?.supplierId;
 
@@ -24,12 +85,12 @@ const SupplierView = ({ data, onBack, isSplit }) => {
         if (supplierId) {
             fetchData();
         }
-    }, [supplierId]);
+    }, [supplierId, branchId]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const sRes = await purchaseService.getSupplierById(jwtToken, supplierId);
+            const sRes = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
 
             if (sRes && (sRes.status === "success" || sRes.status === 200 || sRes.data?.status === "success")) {
                 const supplierData = sRes.data || sRes;
@@ -78,9 +139,9 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 </td>
                                 <td className={`${styles.td} ${styles.tdBold}`}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
                                 <td className={styles.td}>{t.branchname || "Main Branch"}</td>
-                                <td className={styles.td}>{t.totalvalue || "0.00"}</td>
+                                <td className={styles.td}>{t.overallBillAmount !== null && t.overallBillAmount !== undefined ? Number(t.overallBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}</td>
                                 <td className={styles.td}>
-                                    <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{t.orderStatus || "Order Placed"}</div>
+                                    <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{typeof t.orderStatus === 'object' && t.orderStatus !== null ? (t.orderStatus.type || JSON.stringify(t.orderStatus)) : (t.orderStatus || "Order Placed")}</div>
                                     <div className={styles.subText}>
                                         {(() => {
                                             const dateValue = t.orderStatus === 'received' ? t.orderrecivedDate : (t.orderStatus === 'cancelled' ? (t.modifiedDate || t.createdDate) : (t.createdDate || t.orderDate));
@@ -107,29 +168,94 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                 <thead className={styles.thead}>
                     <tr>
                         <th className={styles.th}>Order Number</th>
+                        <th className={styles.th}>PO Number</th>
                         <th className={styles.th}>Payment Date</th>
                         <th className={styles.th}>Total amount</th>
                         <th className={styles.th}>Previous Paid amount</th>
+                        <th className={styles.th}>Payment Type</th>
+                        <th className={styles.th}>Reference Number</th>
                         <th className={styles.th}>Paid amount</th>
                         <th className={styles.th}>Balance amount</th>
+                        <th className={styles.th} style={{ width: '40px' }}></th>
                     </tr>
                 </thead>
                 <tbody>
                     {paymentHistory.length === 0 ? (
-                        <tr><td colSpan="6" className={styles.noData}>No data available</td></tr>
+                        <tr><td colSpan="10" className={styles.noData}>No data available</td></tr>
                     ) : (
-                        paymentHistory.map((t, idx) => (
-                            <tr key={idx} className={styles.trHistory}>
-                                <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
-                                <td className={styles.td}>
-                                    {new Date(t.modifiedDate || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
-                                </td>
-                                <td className={styles.td}>₹ {t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["previouspaid amount"] || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["paid amount"] || t.received || t.amount || "0.00"}</td>
-                                <td className={styles.td}>₹ {t["balance amount"] || t.balance || t.totalBalanceAmount || "0.00"}</td>
-                            </tr>
-                        ))
+                        paymentHistory.map((t, idx) => {
+                            const splitsList = Array.isArray(t.paymentTypes) && t.paymentTypes.length > 0
+                                ? t.paymentTypes.map(p => ({
+                                    paymentType: p.paymentType || "Cash",
+                                    amount: p.amount || 0,
+                                    referenceNumber: p.referenceNumber || p.refNo || ""
+                                }))
+                                : [
+                                    {
+                                        paymentType: t.paymentType || "Cash",
+                                        amount: t["paid amount"] || t.amount || 0,
+                                        referenceNumber: t.referenceNumber || t.refNo || ""
+                                    },
+                                    ...(t.splitTransactions || []).map(st => ({
+                                        paymentType: st.paymentType || "Cash",
+                                        amount: st["paid amount"] || st.amount || st.amountPaidToSupplier || 0,
+                                        referenceNumber: st.referenceNumber || st.refNo || ""
+                                    }))
+                                ];
+                            return (
+                                <React.Fragment key={t.suppliersTransactionId || idx}>
+                                    <tr className={styles.trHistory}>
+                                        <td className={styles.td}>{String(t.productsBillId || t.returnProductsId || idx).padStart(7, '0')}</td>
+                                        <td className={styles.td}>
+                                            {(() => {
+                                                const poId = t.productsPurchaseRqstId || t.productsPurchaseRqstID || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstId || t.relatedBill?.billItems?.[0]?.productsPurchaseRqstID;
+                                                return poId ? `PO-${String(poId).padStart(5, '0')}` : "--";
+                                            })()}
+                                        </td>
+                                        <td className={styles.td}>
+                                            {(() => {
+                                                const d = parseApiToLocal(t.userTransactionDate || t.modifiedDate || t.createdDate);
+                                                return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
+                                            })()}
+                                        </td>
+                                        <td className={styles.td}>₹ {Number(t.relatedBill?.overallBillAmount || t.relatedBill?.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>₹ {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>{getDisplayPaymentType(t)}</td>
+                                        <td className={styles.td}>{getDisplayReferenceNumber(t)}</td>
+                                        <td className={styles.td}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className={styles.td}>₹ {getDisplayBalanceAmount(t)}</td>
+                                        <td className={styles.td}>
+                                            {t.splitTransactions && t.splitTransactions.length > 0 && (
+                                                <div
+                                                    onClick={() => toggleRowExpand(t.suppliersTransactionId)}
+                                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}
+                                                >
+                                                    {expandedRows[t.suppliersTransactionId] ? <FiChevronUp /> : <FiChevronDown />}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    {expandedRows[t.suppliersTransactionId] && splitsList.map((split, sIdx) => (
+                                        <tr key={`split-${sIdx}`} className={styles.trHistory} style={{ borderBottom: '1px solid #eee' }}>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}>
+                                                {typeof split.paymentType === 'object' && split.paymentType !== null 
+                                                    ? (split.paymentType.paymentType || split.paymentType.type || JSON.stringify(split.paymentType))
+                                                    : split.paymentType}
+                                            </td>
+                                            <td className={styles.td}>{split.referenceNumber || "--"}</td>
+                                            <td className={styles.td}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className={styles.td}></td>
+                                            <td className={styles.td}></td>
+                                        </tr>
+                                    ))}
+                                </React.Fragment>
+                            );
+                        })
                     )}
                 </tbody>
             </table>
@@ -175,15 +301,18 @@ const SupplierView = ({ data, onBack, isSplit }) => {
 
                         {/* Right Section: Statistics Card */}
                         <div className={`${styles.statsCard} ${isSplit ? styles.statsCardSplit : ""}`}>
-                            <h4 className={styles.statsTitle}>Statistics</h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h4 className={styles.statsTitle} style={{ margin: 0 }}>Statistics</h4>
+                                <span style={{ fontSize: '13px', color: '#666' }}>Total order : <strong style={{ color: '#000', fontWeight: '500' }}>{supplier?.purchaseOrders?.length || supplier?.totalOrders || 0}</strong></span>
+                            </div>
                             <div className={styles.statsGrid}>
                                 <div>
-                                    <p className={styles.infoValue}>{supplier?.purchaseOrders?.length || 0}</p>
-                                    <p className={styles.infoLabel}>Total order </p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.overallBillAmount || supplier?.totals?.[0]?.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalBillAmount || "0.00"}</p>
-                                    <p className={styles.infoLabel}>Total Amount</p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className={styles.infoLabel}>Paid Amount</p>
                                 </div>
                                 <div>
                                     <p className={styles.infoValue} style={{
@@ -195,8 +324,8 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>₹ {supplier?.totals?.[0]?.totalPaidAmount || "0.00"}</p>
-                                    <p className={styles.infoLabel}>Paid Amount</p>
+                                    <p className={styles.infoValue}>₹ {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 408).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className={styles.infoLabel}>Return Amount</p>
                                 </div>
                             </div>
                         </div>
@@ -217,23 +346,21 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     <div className={`${styles.contentArea} ${isSplit ? styles.contentAreaSplit : ""}`}>
                         <div className={styles.contentHeader}>
                             <h3 className={styles.statsTitle}>{activeTab}</h3>
-                            {(activeTab === "Purchase Orders" ? purchaseOrders.length > 0 : paymentHistory.length > 0) && (
-                                <button
-                                    onClick={() => {
-                                        const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
-                                        if (pendingBill) {
-                                            setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
-                                            setSelectedBillData(pendingBill);
-                                            setIsPayNowModalOpen(true);
-                                        } else {
-                                            toast.info("No pending payments found");
-                                        }
-                                    }}
-                                    className={styles.payNowBtn}
-                                >
-                                    PAY NOW
-                                </button>
-                            )}
+                            <button
+                                onClick={() => {
+                                    const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
+                                    if (pendingBill) {
+                                        setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
+                                        setSelectedBillData(pendingBill);
+                                        setIsPayNowModalOpen(true);
+                                    } else {
+                                        toast.info("No pending payments found");
+                                    }
+                                }}
+                                className={styles.payNowBtn}
+                            >
+                                PAY NOW
+                            </button>
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
                     </div>

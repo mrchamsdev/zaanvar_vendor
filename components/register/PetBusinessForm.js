@@ -1,3 +1,4 @@
+import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from "../../styles/register/petBusinessForm.module.css";
 import { Tik } from "@/public/images/SVG";
@@ -219,7 +220,7 @@ const PetBusinessForm = () => {
       const d = new Date();
       d.setFullYear(now.getFullYear() - (years || 0));
       d.setMonth(now.getMonth() - (months || 0));
-      return d.toISOString().split("T")[0];
+      return toApiDateOnly(d);
     }
 
     const num = parseInt(value);
@@ -228,13 +229,13 @@ const PetBusinessForm = () => {
     if (num <= 12) {
       const d = new Date();
       d.setMonth(now.getMonth() - num);
-      return d.toISOString().split("T")[0];
+      return toApiDateOnly(d);
     }
 
     // Else → years
     const d = new Date();
     d.setFullYear(now.getFullYear() - num);
-    return d.toISOString().split("T")[0];
+    return toApiDateOnly(d);
   };
   const formatDurationText = (value) => {
     if (!value) return "";
@@ -789,7 +790,7 @@ const PetBusinessForm = () => {
 
                             setBranchInput(""); // reset manual input
                           }}
-                          max={new Date().toISOString().split("T")[0]}
+                          max={toApiDateOnly(new Date())}
                         />
                       </div>
                     </div>
@@ -971,7 +972,7 @@ const PetBusinessForm = () => {
 
                             setCompanyInput(""); // reset manual input
                           }}
-                          max={new Date().toISOString().split("T")[0]}
+                          max={toApiDateOnly(new Date())}
                         />
                       </div>
                     </div>
@@ -1131,7 +1132,7 @@ const PetBusinessForm = () => {
 
                             setBranchOpeningInput(""); // reset manual input
                           }}
-                          max={new Date().toISOString().split("T")[0]}
+                          max={toApiDateOnly(new Date())}
                         />
                       </div>
                     </div>
