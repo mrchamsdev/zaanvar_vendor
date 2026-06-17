@@ -1103,22 +1103,34 @@ const handleInputChange = (field, value) => {
           }
         }
 
-        if (isPhoto) {
-          setImageFiles((prev) => prev.filter((_, i) => i !== index));
-          setImagePreviews((prev) => {
-            const url = prev[index];
-            if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
-            return prev.filter((_, i) => i !== index);
-          });
-        } else {
-          setVideoFiles((prev) => prev.filter((_, i) => i !== index));
-          setVideoPreviews((prev) => {
-            const url = prev[index];
-            if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
-            return prev.filter((_, i) => i !== index);
-          });
-        }
-      };
+    setErrors({});
+    setErrorMessage("");
+
+    const payload = {
+      petName: formData.petName,
+      petType: formData.petType,
+      breed: formData.breed,
+      additionalInfo: formData.additionalInfo,
+      weight: `${formData.weight} ${formData.petWeightIn}`,
+      vaccinated: formData.vaccinated,
+      petGender: formData.petGender,
+      kci: formData.kci,
+      color: formData.color,
+      championship: formData.championship,
+      Events: formData.Events,
+      skills: formData.skills,
+      instagramLink: formData.instagramLink,
+      ...(formData.dob
+        ? dateOnlyWithTimeZone("birthday", parseWallClockDate(formData.dob) || new Date(formData.dob))
+        : { birthday: null }),
+      spayedOrNeutered: formData.spayedOrNeutered,
+      medication: formData.medication,
+      doesYourPetHasAnyHealthIssues: formData.healthCondition,
+      size: formData.size,
+      howManyVaccinationsDone: formData.howManyVaccinationsDone || [],
+      microchipNo: formData.microchipNo || "",
+      howmanyTimesBreedingDone: formData.howmanyTimesBreedingDone || ""
+    };
 
       const handleVideoFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -1345,7 +1357,7 @@ const handleInputChange = (field, value) => {
       }
     };
 
-    const maxDate = useMemo(() => toApiDateOnly(new Date()), []);
+  const maxDate = useMemo(() => toApiDateOnly(new Date()), []);
 
     const sizeOptions = useMemo(() => {
       if (petData && formData.size && formData.size !== "select size" && formData.size !== "") {
@@ -2213,5 +2225,4 @@ const handleInputChange = (field, value) => {
             );
 };
 
-
-            export default AddNewPetPopup;
+export default AddNewPetPopup;
