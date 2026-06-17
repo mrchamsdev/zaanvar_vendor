@@ -970,6 +970,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                             <tr>
                                                                 <th>PRODUCT NAME</th>
                                                                 <th>VARIANT</th>
+                                                                <th>BATCH NUMBER</th>
                                                                 <th>ORDER QTY</th>
                                                                 <th>RECEIVED QTY</th>
                                                                 <th>TOTAL QTY</th>
@@ -985,6 +986,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                                 >
                                                                     <td style={{ fontWeight: '600' }}>{bi.productDetails?.productName}</td>
                                                                     <td>{getVariantSizeDisplay(bi.variant)}</td>
+                                                                    <td>{bi.batchNumber || "N/A"}</td>
                                                                     <td>{bi.qty}</td>
                                                                     <td>{bi.receivedQuantity}</td>
                                                                     <td>{bi.totalQuantity || 0}</td>

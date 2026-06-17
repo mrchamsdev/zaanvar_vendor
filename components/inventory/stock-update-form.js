@@ -127,6 +127,80 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error, disabled = 
     );
 };
 
+const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedBatch = (batches || []).find(b => b.batchNumber === value);
+
+    useEffect(() => {
+        if (selectedBatch && !isOpen) {
+            setSearchTerm(selectedBatch.batchNumber);
+        } else if (!selectedBatch && !isOpen) {
+            setSearchTerm("");
+        }
+    }, [selectedBatch, isOpen]);
+
+    const filtered = (batches || []).filter(b =>
+        b.batchNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className={`${styles.customDropdownContainer} ${disabled ? styles.disabledDropdown : ""}`} ref={containerRef}>
+            <div className={`${styles.dropdownTrigger} ${error ? styles.errorField : ""} ${styles.dropdownTriggerReset}`}>
+                <input
+                    type="text"
+                    className={`${styles.tableInput} ${styles.leftAlignInput}`}
+                    placeholder="SELECT BATCH"
+                    value={searchTerm}
+                    onChange={(e) => {
+                        if (disabled) return;
+                        setSearchTerm(e.target.value);
+                        setIsOpen(true);
+                    }}
+                    onFocus={() => !disabled && setIsOpen(true)}
+                    readOnly={disabled}
+                />
+                <div className={styles.chevronContainer} onClick={() => !disabled && setIsOpen(!isOpen)}>
+                    <IconChevronDown />
+                </div>
+            </div>
+            {isOpen && !disabled && (
+                <div className={styles.dropdownMenu}>
+                    {filtered.length === 0 ? (
+                        <div className={`${styles.dropdownOption} ${styles.mutedText}`}>No batches found</div>
+                    ) : (
+                        filtered.map(b => (
+                            <div
+                                key={b.batchNumber}
+                                className={styles.dropdownOption}
+                                onClick={() => {
+                                    onChange(b.batchNumber);
+                                    setSearchTerm(b.batchNumber);
+                                    setIsOpen(false);
+                                }}
+                            >
+                                {b.batchNumber}
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", initialId = null, initialData = null }) => {
     const { jwtToken, userInfo } = useStore();
     const { branches, branchId: globalBranchId } = useDashboardData({ skipReviews: true });
@@ -281,23 +355,35 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 return;
             }
 
-            if (!runningQuantities[variantId]) {
-                const stockData = variant.stockUpdates || {};
-                runningQuantities[variantId] = {
+            const key = row.batchNumber ? `${variantId}-${row.batchNumber}` : `${variantId}`;
+
+            if (!runningQuantities[key]) {
+                let stockData = variant.stockUpdates || {};
+                let totalStock = variant.currentQty ?? variant.stockQty ?? 0;
+
+                if (row.batchNumber && variant.batchNumbers) {
+                    const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
+                    if (batch) {
+                        stockData = batch.stockUpdates || {};
+                        totalStock = batch.quantity ?? 0;
+                    }
+                }
+
+                runningQuantities[key] = {
                     openStock: stockData.openStockQuantity || 0,
-                    holdQty: stockData.onHoldQuantity || 0
+                    holdQty: stockData.onHoldQuantity || 0,
+                    totalQty: stockData.totalQuantity ?? totalStock
                 };
             }
 
             // Determine current quantity based on source status
             let currentVal = 0;
             if (row.sourceStatus === "Open Stock") {
-                currentVal = runningQuantities[variantId].openStock;
+                currentVal = runningQuantities[key].openStock;
             } else if (row.sourceStatus === "Hold Qty") {
-                currentVal = runningQuantities[variantId].holdQty;
+                currentVal = runningQuantities[key].holdQty;
             } else {
-                const stockData = variant.stockUpdates || {};
-                currentVal = stockData.totalQuantity ?? variant.currentQty ?? variant.stockQty ?? 0;
+                currentVal = runningQuantities[key].totalQty;
             }
 
             row.currentQty = currentVal;
@@ -311,14 +397,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
             // Update running quantities for subsequent rows
             if (row.sourceStatus === "Open Stock") {
-                runningQuantities[variantId].openStock = currentVal + add - remove;
+                runningQuantities[key].openStock = currentVal + add - remove;
                 if (row.reason === "OnHold") {
-                    runningQuantities[variantId].holdQty += remove;
+                    runningQuantities[key].holdQty += remove;
                 }
             } else if (row.sourceStatus === "Hold Qty") {
-                runningQuantities[variantId].holdQty = currentVal + add - remove;
+                runningQuantities[key].holdQty = currentVal + add - remove;
                 if (row.reason === "Open Stock") {
-                    runningQuantities[variantId].openStock += remove;
+                    runningQuantities[key].openStock += remove;
                 }
             }
         });
@@ -585,17 +671,25 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 const product = products.find(p => p.productId === row.productId);
                 const variantId = parseInt(row.variantId);
                 const variant = product?.variants?.find(v => v.variantId === variantId);
-                const stockData = variant?.stockUpdates || {};
+                const batchKey = row.batchNumber ? `${variantId}-${row.batchNumber}` : `${variantId}`;
+                let stockData = variant?.stockUpdates || {};
 
-                if (!runningQuantities[variantId]) {
-                    runningQuantities[variantId] = {
+                if (!runningQuantities[batchKey]) {
+                    if (row.batchNumber && variant?.batchNumbers) {
+                        const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
+                        if (batch && batch.stockUpdates) {
+                            stockData = batch.stockUpdates;
+                        }
+                    }
+
+                    runningQuantities[batchKey] = {
                         openStock: stockData.openStockQuantity || 0,
                         holdQty: stockData.onHoldQuantity || 0
                     };
                 }
 
-                const baseOpenStock = runningQuantities[variantId].openStock;
-                const baseHoldQty = runningQuantities[variantId].holdQty;
+                const baseOpenStock = runningQuantities[batchKey].openStock;
+                const baseHoldQty = runningQuantities[batchKey].holdQty;
 
                 let finalOpenQty = baseOpenStock;
                 let finalHoldQty = baseHoldQty;
@@ -608,15 +702,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     if (row.reason === "OnHold") {
                         finalHoldQty = baseHoldQty + remove;
                     }
-                    runningQuantities[variantId].openStock = finalOpenQty;
-                    runningQuantities[variantId].holdQty = finalHoldQty;
+                    runningQuantities[batchKey].openStock = finalOpenQty;
+                    runningQuantities[batchKey].holdQty = finalHoldQty;
                 } else if (row.sourceStatus === "Hold Qty") {
                     finalHoldQty = baseHoldQty + add - remove;
                     if (row.reason === "Open Stock") {
                         finalOpenQty = baseOpenStock + remove;
                     }
-                    runningQuantities[variantId].openStock = finalOpenQty;
-                    runningQuantities[variantId].holdQty = finalHoldQty;
+                    runningQuantities[batchKey].openStock = finalOpenQty;
+                    runningQuantities[batchKey].holdQty = finalHoldQty;
                 }
 
                 const payload = {
@@ -738,7 +832,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                     <thead>
                                         <tr>
                                             <th className={styles.colProd}>Product Name</th>
-                                            <th className={`${styles.colCode} ${styles.centerAlign}`}>Product Code</th>
+                                            <th className={`${styles.colCode} ${styles.centerAlign}`}>Batch Number</th>
                                             <th className={`${styles.colVar} ${styles.centerAlign}`}>Variants</th>
                                             <th className={`${styles.colSource} ${styles.centerAlign}`}>Source Status</th>
                                             <th className={`${styles.colQty} ${styles.centerAlign}`}>Quantity</th>
@@ -771,7 +865,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <input className={styles.tableInput} readOnly value={row.productCode} placeholder="ENTER CODE" />
+                                                        {(() => {
+                                                            const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
+                                                            return (
+                                                                <BatchSelect
+                                                                    batches={variant?.batchNumbers || []}
+                                                                    value={row.batchNumber}
+                                                                    onChange={(val) => updateRowField(index, 'batchNumber', val)}
+                                                                    error={errors[`${index}_batchNumber`]}
+                                                                    disabled={mode === "View"}
+                                                                />
+                                                            );
+                                                        })()}
+                                                        {errors[`${index}_batchNumber`] && <span className={styles.errorText}>{errors[`${index}_batchNumber`]}</span>}
                                                     </td>
                                                     <td>
                                                         <select
@@ -802,7 +908,14 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                     <option value="Open Stock">Open Stock</option>
                                                                     {(() => {
                                                                         const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
-                                                                        if (row.sourceStatus === "Hold Qty" || variant?.stockUpdates?.onHoldQuantity > 0) {
+                                                                        let onHoldQty = variant?.stockUpdates?.onHoldQuantity || 0;
+                                                                        if (row.batchNumber && variant?.batchNumbers) {
+                                                                            const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
+                                                                            if (batch && batch.stockUpdates) {
+                                                                                onHoldQty = batch.stockUpdates.onHoldQuantity || 0;
+                                                                            }
+                                                                        }
+                                                                        if (row.sourceStatus === "Hold Qty" || onHoldQty > 0) {
                                                                             return <option value="Hold Qty">Hold Qty</option>;
                                                                         }
                                                                         return null;
