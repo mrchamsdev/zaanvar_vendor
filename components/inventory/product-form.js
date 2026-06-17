@@ -220,6 +220,7 @@ const ProductForm = ({
     return str;
   });
   const [hsnCode, setHsnCode] = useState(initialData?.hsnCode || "");
+  const [rack, setRack] = useState(initialData?.rack || "");
   const [showVariantDeleteConfirm, setShowVariantDeleteConfirm] =
     useState(false);
   const [variantToDeleteIndex, setVariantToDeleteIndex] = useState(null);
@@ -573,6 +574,7 @@ const ProductForm = ({
         productPetType: { petType: selectedPetTypes.join(" and ") },
         taxGroupId: parseFloat(gst) || 0,
         hsnCode: hsnCode,
+        rack: rack,
         extraAttributes: {
           prescriptionRequired: true,
           storageCondition: "Store below 25°C",
@@ -1257,6 +1259,17 @@ const ProductForm = ({
             <div className={styles.errorMessage}>{formErrors.hsnCode}</div>
           )}
         </div>
+        {productType === "Medical" && (
+          <div className={styles.inputField}>
+            <label>Rack</label>
+            <input
+              type="text"
+              placeholder="Enter Rack (e.g., A-12-Top)"
+              value={rack}
+              onChange={(e) => setRack(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <div

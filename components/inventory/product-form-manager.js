@@ -25,7 +25,7 @@ const IconX = () => (
   </svg>
 );
 
-const ProductFormManager = ({ onClose, mode = "Add", initialData, trigger }) => {
+const ProductFormManager = ({ onClose, mode = "Add", initialData, trigger, productType }) => {
   const [tabs, setTabs] = useState([]);
 
   const [activeTabId, setActiveTabId] = useState(null);
@@ -285,6 +285,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData, trigger }) => 
                 ) : (
                   <ProductForm 
                     initialData={tab.data} 
+                    productType={productType}
                     onSave={() => closeTab(tab.id)}
                     onBack={() => {
                       if (splitMode) {
@@ -316,6 +317,7 @@ const ProductFormManager = ({ onClose, mode = "Add", initialData, trigger }) => 
                 ) : (
                   <ProductForm 
                     initialData={tab.data}
+                    productType={productType}
                     onSave={() => closeTab(tab.id)}
                     onBack={() => setSplitTabIds([splitTabIds[0], null])}
                   />

@@ -154,6 +154,7 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
     drugType: "",
     strength: "",
     composition: "",
+    rack: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -564,6 +565,16 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
                     <option value="injection">Injection</option>
                     <option value="syrup">Syrup</option>
                   </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Rack</label>
+                  <input 
+                    type="text" 
+                    name="rack"
+                    placeholder="Enter rack (e.g., A-12-Top)" 
+                    value={formData.rack}
+                    onChange={handleInputChange}
+                  />
                 </div>
               </>
             )}

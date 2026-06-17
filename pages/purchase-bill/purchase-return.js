@@ -54,7 +54,7 @@ const PurchaseReturnPage = () => {
                 value={currentBranchId}
                 onChange={handleBranchChange}
             >
-                {branches?.length > 1 && <option value="">All Firms</option>}
+                {branches?.length > 1 && <option value="">Select Branch</option>}
                 {branches?.map(b => (
                     <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
                 ))}

@@ -298,6 +298,7 @@ const ProductsPage = () => {
             mode={formMode}
             initialData={formMode === "Add" ? null : editProductData}
             trigger={triggerAddProduct}
+            productType={productType}
             onClose={() => {
               setIsAddingProduct(false);
               fetchProducts();
