@@ -474,6 +474,7 @@ const PetBusinessForm = () => {
             services: formData.selectedTypes,
             socialMediaLinks: formData.socialLinks,
             businessType: "single",
+            registrationType: "Contacted",
           }
           : {
             firstName: formData.firstName,
@@ -493,6 +494,7 @@ const PetBusinessForm = () => {
             services: formData.companySelectedTypes,
             socialMediaLinks: formData.companySocialLinks,
             businessType: "company",
+            registrationType: "Contacted",
             branchDetails: {
               branchName: formData.cbBranchName,
               branchLocation: formData.cbBranchLocation,
