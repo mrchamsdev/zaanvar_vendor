@@ -9,8 +9,7 @@ export const productService = {
     try {
       // Construction query params
       const params = {
-        branchId,
-        productType: type
+        branchId
       };
       if (search) params.search = search;
 

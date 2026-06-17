@@ -42,7 +42,7 @@ const MultiSelectDropdown = ({
 
   // Search filter
   const filteredList = listItems.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (item?.name || "").toLowerCase().includes((searchTerm || "").toLowerCase())
   );
 
   const allSelected = selectedIds.length === listItems.length && listItems.length > 0;

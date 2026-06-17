@@ -458,7 +458,7 @@ const DashboardLayout = ({
                   value={selectedBranchId || ""}
                   onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
                 >
-                  {branches.length > 1 && <option value="">All Firms</option>}
+                  {branches.length > 1 && <option value="">Select Branch</option>}
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
                   ))}

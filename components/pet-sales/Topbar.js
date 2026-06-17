@@ -3,20 +3,13 @@ import styles from "../../styles/pet-sales/topbar.module.css";
 import Image from "next/image";
 import { Search } from "@/public/images/SVG";
 import { useRouter } from "next/router"; 
+import useDashboardData from "../dashboard/useDashboardData";
 
 const Topbar = ({ buttons = [], onButtonClick }) => {
   const router = useRouter(); 
 
-  const [selectedBranch, setSelectedBranch] = useState("");
+  const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData();
   const [selectedService, setSelectedService] = useState("");
-
-  // List of branches
-  const branches = [
-    { label: "First Branch", value: "Option1" },
-    { label: "Second Branch", value: "Option2" },
-    { label: "Third Branch", value: "Option3" },
-    { label: "Fourth Branch", value: "Option4" },
-  ];
 
   // List of services with their respective paths
   const services = [
@@ -33,7 +26,7 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
 
   const handleChangeBranch = (e) => {
     const value = e.target.value;
-    setSelectedBranch(value); 
+    setSelectedBranchId(value ? parseInt(value) : "");
   };
 
   const handleChangeService = (e) => {
@@ -61,10 +54,11 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
 
         {/* Branch dropdown */}
         <div className={styles["select-bar"]}>
-          <select value={selectedBranch} onChange={handleChangeBranch}>
-            <option value="">Select Branch</option>
-            {branches.map(branch => (
-              <option key={branch.value} value={branch.value}>{branch.label}</option>
+          <select value={selectedBranchId || ""} onChange={handleChangeBranch}>
+            {branches.length > 1 && <option value="">Select Branch</option>}
+            {branches.length <= 1 && <option value="">Select Branch</option>}
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
             ))}
           </select>
         </div>

@@ -812,8 +812,13 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                                             return !search || (p.productName || "").toLowerCase().includes(search);
                                                         })
                                                         .map((p) => (
-                                                            <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
+                                                            <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                                                 <span style={{ fontWeight: "600" }}>{p.productName}</span>
+                                                                {p.productType === "Medical" && p.rack && (
+                                                                    <span style={{ fontSize: "11px", color: "#666", background: "#f0f0f0", padding: "2px 6px", borderRadius: "4px" }}>
+                                                                        Rack: {p.rack}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         ))}
                                                 </div>
