@@ -57,6 +57,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     const [items, setItems] = useState([{
         productId: "",
         variantId: "",
+        batchNumber: "",
         productName: "",
         unit: "Unit Type",
         qty: 1,
@@ -66,7 +67,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         taxAmount: 0,
         amount: 0,
         availableQty: 0,
-        availableVariants: []
+        availableVariants: [],
+        availableBatches: []
     }]);
 
     const [payments, setPayments] = useState([{ method: "Cash", amount: 0, referenceNumber: "" }]);
@@ -112,6 +114,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         setItems([{
             productId: "",
             variantId: "",
+            batchNumber: "",
             productName: "",
             unit: "Unit Type",
             qty: 1,
@@ -121,7 +124,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             taxAmount: 0,
             amount: 0,
             availableQty: 0,
-            availableVariants: []
+            availableVariants: [],
+            availableBatches: []
         }]);
         setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
         setErrors({});
@@ -179,6 +183,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     return {
                         productId: it.productId,
                         variantId: it.variantId,
+                        batchNumber: it.batchNumber || "",
                         productName: it.productName || it.product?.productName || variant.SKU || "Product",
                         unit: unitLabel,
                         qty: it.quantity || 0,
@@ -188,11 +193,12 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         taxAmount: parseFloat(it.taxAmount || 0),
                         amount: parseFloat(it.itemTotal || 0),
                         availableQty: variant.currentQty || 0,
-                        availableVariants: variant.variantId ? [variant] : []
+                        availableVariants: variant.variantId ? [variant] : [],
+                        availableBatches: variant.batchNumbers || []
                     };
                 });
                 setItems(mappedItems.length > 0 ? mappedItems : [{
-                    productId: "", variantId: "", productName: "", unit: "Unit Type", qty: 1, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: []
+                    productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: []
                 }]);
 
                 // Map payments if available, otherwise construct from paidAmount
@@ -244,10 +250,14 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const variants = prod.variants || [];
         const selectedVariant = variants.length > 0 ? variants[0] : null;
 
+        const batches = selectedVariant?.batchNumbers || [];
+
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
         const tax = parseFloat(prod.taxGroupId || 0);
-        const qty = 1;
-        const taxAmount = (price * qty * tax) / 100;
+        const qty = ""; // Leave blank so placeholder 0 shows
+        const calcQty = getActiveQty(qty);
+        const discount = 0;
+        const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, tax);
 
         const vType = selectedVariant?.variantType || {};
         const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
@@ -258,17 +268,21 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         newItems[index] = {
             productId: prod.productId,
             variantId: selectedVariant?.variantId || "",
+            batchNumber: "",
             productName: prod.productName,
             unit: unitVal,
             qty: qty,
             price: price,
+            discount: discount,
+            discountAmount: discountAmount,
             taxPercent: tax,
             taxAmount: taxAmount,
-            amount: (price * qty) + taxAmount,
+            amount: amount,
             availableQty: availableQty,
-            availableVariants: variants, // Store for the unit dropdown
+            availableVariants: variants,
+            availableBatches: batches,
             productError: null,
-            error: qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+            error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -277,27 +291,87 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     const handleVariantChange = (index, variantId) => {
         const newItems = [...items];
         const it = newItems[index];
-        const v = it.availableVariants.find(varnt => String(varnt.variantId) === String(variantId));
+        const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(variantId));
 
         if (v) {
+            const batches = v.batchNumbers || [];
+
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
-            const taxAmount = (price * it.qty * it.taxPercent) / 100;
+            const calcQty = getActiveQty(it.qty);
+            const discount = parseFloat(it.discount || 0);
+            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+
             const vType = v.variantType || {};
             const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
             const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
 
             const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
+
             newItems[index] = {
                 ...it,
                 variantId: v.variantId,
+                batchNumber: "",
                 unit: unitVal,
                 price: price,
+                discount: discount,
+                discountAmount: discountAmount,
                 taxAmount: taxAmount,
-                amount: (price * it.qty) + taxAmount,
+                amount: amount,
                 availableQty: availableQty,
-                error: it.qty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+                availableBatches: batches,
+                error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
             };
             setItems(newItems);
+        }
+    };
+
+    const handleBatchChange = (index, batchNum) => {
+        const newItems = [...items];
+        const it = newItems[index];
+        const batch = it.availableBatches.find(b => b.batchNumber === batchNum);
+
+        if (batch) {
+            const price = parseFloat(batch.mrp || 0);
+            const calcQty = getActiveQty(it.qty);
+            const discount = parseFloat(it.discount || 0);
+            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+
+            const availableQty = batch.stockUpdates?.qtyForSale !== undefined ? batch.stockUpdates.qtyForSale : (batch.quantity || 0);
+
+            newItems[index] = {
+                ...it,
+                batchNumber: batch.batchNumber,
+                price: price,
+                discount: discount,
+                discountAmount: discountAmount,
+                taxAmount: taxAmount,
+                amount: amount,
+                availableQty: availableQty,
+                error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+            };
+            setItems(newItems);
+        } else if (batchNum === "") {
+            const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
+            if (v) {
+                const price = parseFloat(v.sellingPrice || v.mrp || 0);
+                const calcQty = getActiveQty(it.qty);
+                const discount = parseFloat(it.discount || 0);
+                const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+                const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
+
+                newItems[index] = {
+                    ...it,
+                    batchNumber: "",
+                    price: price,
+                    discount: discount,
+                    discountAmount: discountAmount,
+                    taxAmount: taxAmount,
+                    amount: amount,
+                    availableQty: availableQty,
+                    error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+                };
+                setItems(newItems);
+            }
         }
     };
 
@@ -306,12 +380,13 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const newItems = [...items];
         const it = newItems[index];
 
-        const taxAmount = (it.price * qty * it.taxPercent) / 100;
+        const { discountAmount, taxAmount, amount } = calculateItemValues(it.price, qty, it.discount, it.taxPercent);
         newItems[index] = {
             ...it,
             qty: val === "" ? "" : qty,
-            taxAmount: taxAmount,
-            amount: (it.price * qty) + taxAmount,
+            discountAmount,
+            taxAmount,
+            amount,
             qtyError: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null),
             error: qty <= 0 ? "Quantity must be greater than 0" : (qty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null)
         };
@@ -319,12 +394,12 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     };
 
     const handleAddRow = () => {
-        setItems([...items, { productId: "", productName: "", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0 }]);
+        setItems([...items, { productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleRemoveRow = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ productId: "", productName: "", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0 }]);
+        setItems(newItems.length > 0 ? newItems : [{ productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleAddPayment = () => {
@@ -414,6 +489,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             items: validItems.map(it => ({
                 productId: it.productId,
                 variantId: it.variantId,
+                batchNumber: it.batchNumber || null,
                 quantity: it.qty,
                 discountForItem: parseFloat(it.discount || 0),
                 sellingPrice: it.price,
@@ -544,6 +620,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <th rowSpan="2">S NO.</th>
                                     <th rowSpan="2">ENTER ITEM</th>
                                     <th rowSpan="2" style={{ minWidth: "120px" }}>UNIT</th>
+                                    <th rowSpan="2" style={{ minWidth: "140px" }}>BATCH</th>
+                                    <th rowSpan="2" style={{ minWidth: "90px" }}>OPEN QTY</th>
                                     <th rowSpan="2">QTY</th>
                                     <th colSpan="1">PRICE</th>
                                     <th colSpan="2" style={{ textAlign: 'center' }}>TAX</th>
@@ -560,7 +638,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                 {items.map((it, idx) => (
                                     <tr key={idx}>
                                         <td>{String(idx + 1).padStart(2, '0')}</td>
-                                        <td style={{ position: 'relative', width: '28%' }}>
+                                        <td style={{ position: 'relative', width: '22%' }}>
                                             <div className={styles.searchableDropdown} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
                                                 <input
                                                     type="text"
@@ -653,6 +731,52 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                 )
                                             )}
                                         </td>
+                                        <td style={{ minWidth: "140px" }}>
+                                            {isViewOnly ? (
+                                                <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
+                                                    <span>{it.batchNumber || "N/A"}</span>
+                                                </div>
+                                            ) : (
+                                                it.availableBatches && it.availableBatches.length > 0 ? (
+                                                    <div className={styles.unitSelector}>
+                                                        <select
+                                                            className={styles.unitSelect}
+                                                            value={it.batchNumber || ""}
+                                                            onChange={(e) => handleBatchChange(idx, e.target.value)}
+                                                            style={{
+                                                                appearance: "none",
+                                                                WebkitAppearance: "none",
+                                                                MozAppearance: "none",
+                                                                paddingRight: "16px",
+                                                                width: "100%",
+                                                                cursor: "pointer",
+                                                                fontWeight: "600",
+                                                                color: "#333",
+                                                                background: "transparent",
+                                                                border: "none",
+                                                                outline: "none",
+                                                                fontSize: "12px"
+                                                            }}
+                                                        >
+                                                            <option value="">Select Batch No</option>
+                                                            {it.availableBatches.map(b => (
+                                                                <option key={b.batchNumber} value={b.batchNumber}>
+                                                                    {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
+                                                    </div>
+                                                ) : (
+                                                    <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
+                                                        <span style={{ color: "#999" }}>N/A</span>
+                                                    </div>
+                                                )
+                                            )}
+                                        </td>
+                                        <td style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: '#333' }}>
+                                            {it.availableQty}
+                                        </td>
                                         <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
                                             <input
                                                 type="number"
@@ -673,12 +797,18 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                         <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxAmount.toLocaleString()}</td>
                                         <td style={{ fontWeight: '700', textAlign: 'right' }}>{it.amount.toLocaleString()}</td>
                                         {!isViewOnly && (
-                                            <td><FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: 'pointer', color: '#E93E64' }} /></td>
+                                            <td>
+                                                {idx !== 0 && (
+                                                    <FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: 'pointer', color: '#E93E64' }} />
+                                                )}
+                                            </td>
                                         )}
                                     </tr>
                                 ))}
                                 <tr className={styles.totalRowSummary}>
                                     <td colSpan="2" style={{ fontWeight: '700', paddingLeft: '40px' }}>TOTAL</td>
+                                    <td></td>
+                                    <td></td>
                                     <td></td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)}</td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
