@@ -859,17 +859,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         </div>
                     </div>
 
-                    <div className={styles.infoGroup}>
-                        <label className={styles.infoLabel}>Previous Credit Amount</label>
-                        <div className={styles.inputWrapper}>
-                            <span className={styles.currencySymbol}>₹</span>
-                            <input type="number" className={`${styles.input} ${styles.inputWithSymbol}`} placeholder="Enter Credit Amount" value={previousCredit} onChange={(e) => {
-                                let val = e.target.value;
-                                if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
-                                setPreviousCredit(val);
-                            }} />
-                        </div>
-                    </div>
+
 
                     <div className={styles.breakdownContainer}>
                         <div className={styles.breakdownHeader} onClick={() => setShowBreakdown(!showBreakdown)}>

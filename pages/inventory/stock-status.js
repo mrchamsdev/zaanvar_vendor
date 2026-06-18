@@ -291,6 +291,7 @@ const StockStatusPage = () => {
         return (
           <tr>
             <th rowSpan="2">Product Name</th>
+            <th rowSpan="2">Batch No</th>
             <th rowSpan="2">Expiry Date</th>
             {activeTab === "shortExpiry" && <th rowSpan="2">Remaining Days</th>}
             <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
@@ -302,6 +303,7 @@ const StockStatusPage = () => {
         return (
           <tr>
             <th rowSpan="2">Product Name</th>
+            <th rowSpan="2">Batch No</th>
             <th rowSpan="2">Date</th>
             <th colSpan="2" style={{ textAlign: 'center' }}>Variant</th>
             <th rowSpan="2">Status</th>
@@ -348,6 +350,10 @@ const StockStatusPage = () => {
       return (
         <tr key={idx}>
           <td className={styles.productName}>{pName}</td>
+
+          {(activeTab === "damaged" || activeTab === "expired" || activeTab === "shortExpiry") && (
+            <td>{item.batchNumber || "-"}</td>
+          )}
 
           {activeTab === "damaged" && (
             <td>{formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}</td>
@@ -507,10 +513,10 @@ const StockStatusPage = () => {
               if (activeTab === "outOfStock") headers = ["Product Name", "Category", "Unit", "Quantity", "Last Stock Date"];
               else if (activeTab === "lowStock") headers = ["Product Name", "Unit", "Quantity", "Threshold Level"];
               else if (activeTab === "expired" || activeTab === "shortExpiry") {
-                headers = ["Product Name", "Expiry Date", "Unit", "Quantity", "Status"];
-                if (activeTab === "shortExpiry") headers.splice(2, 0, "Remaining Days");
+                headers = ["Product Name", "Batch No", "Expiry Date", "Unit", "Quantity", "Status"];
+                if (activeTab === "shortExpiry") headers.splice(3, 0, "Remaining Days");
               }
-              else if (activeTab === "damaged") headers = ["Product Name", "Date", "Unit", "Damaged Quantity", "Status"];
+              else if (activeTab === "damaged") headers = ["Product Name", "Batch No", "Date", "Unit", "Damaged Quantity", "Status"];
 
               csvRows.push(headers.join(","));
 
@@ -541,14 +547,14 @@ const StockStatusPage = () => {
                   row = [pName, unit, qty, item.minStockAlert || 10];
                 } else if (activeTab === "expired" || activeTab === "shortExpiry") {
                   const status = activeTab === "expired" ? (item.updatedFrom || "-") : "Approaching";
-                  row = [pName, `="${formatDate(item.expiryDate)}"`, unit, qty, `"${status}"`];
+                  row = [pName, `"${item.batchNumber || "-"}"`, `="${formatDate(item.expiryDate)}"`, unit, qty, `"${status}"`];
                   if (activeTab === "shortExpiry") {
                     const days = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
-                    row.splice(2, 0, `"${days} DAYS"`);
+                    row.splice(3, 0, `"${days} DAYS"`);
                   }
                 } else if (activeTab === "damaged") {
                   const statusVal = item.updatedFrom || "-";
-                  row = [pName, `="${formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}"`, unit, qty, `"${statusVal}"`];
+                  row = [pName, `"${item.batchNumber || "-"}"`, `="${formatDate(item.returnedDate || item.expiryDate || item.lastStockDate)}"`, unit, qty, `"${statusVal}"`];
                 }
                 csvRows.push(row.join(","));
               });
