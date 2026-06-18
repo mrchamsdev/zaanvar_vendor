@@ -78,6 +78,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             variantId: "",
             productName: "",
             unit: "Unit Type",
+            batchNumber: "",
             qty: "",
             price: 0,
             discount: 0,
@@ -86,7 +87,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             taxAmount: 0,
             amount: 0,
             availableQty: 0,
-            availableVariants: []
+            availableVariants: [],
+            availableBatches: []
         }
     ]);
 
@@ -114,6 +116,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 variantId: "",
                 productName: "",
                 unit: "Unit Type",
+                batchNumber: "",
                 qty: "",
                 price: 0,
                 discount: 0,
@@ -122,7 +125,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 taxAmount: 0,
                 amount: 0,
                 availableQty: 0,
-                availableVariants: []
+                availableVariants: [],
+                availableBatches: []
             }
         ]);
         setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
@@ -162,6 +166,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             return {
                 productId: it.productId,
                 variantId: it.variantId,
+                batchNumber: it.batchNumber || "",
                 productName: it.productName || it.product?.productName || variant.SKU || "Product",
                 unit: unitLabel,
                 qty: qty,
@@ -172,7 +177,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 taxAmount: taxAmount,
                 amount: amount,
                 availableQty: variant.currentQty || 0,
-                availableVariants: variant.variantId ? [variant] : []
+                availableVariants: variant.variantId ? [variant] : [],
+                availableBatches: variant.batchNumbers || []
             };
         });
         setItems(
@@ -182,6 +188,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     {
                         productId: "",
                         variantId: "",
+                        batchNumber: "",
                         productName: "",
                         unit: "Unit Type",
                         qty: 1,
@@ -191,7 +198,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         taxAmount: 0,
                         amount: 0,
                         availableQty: 0,
-                        availableVariants: []
+                        availableVariants: [],
+                        availableBatches: []
                     }
                 ]
         );
@@ -310,6 +318,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const variants = prod.variants || [];
         const selectedVariant = variants.length > 0 ? variants[0] : null;
 
+        const batches = selectedVariant?.batchNumbers || [];
+
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
         const tax = parseFloat(prod.taxGroupId || 0);
         const qty = ""; // Leave blank so placeholder 0 shows
@@ -326,6 +336,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         newItems[index] = {
             productId: prod.productId,
             variantId: selectedVariant?.variantId || "",
+            batchNumber: "",
             productName: prod.productName,
             unit: unitVal,
             qty: qty,
@@ -337,6 +348,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             amount: amount,
             availableQty: availableQty,
             availableVariants: variants,
+            availableBatches: batches,
             productError: null,
             error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
@@ -350,6 +362,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(variantId));
 
         if (v) {
+            const batches = v.batchNumbers || [];
+
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
@@ -360,10 +374,41 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             const unitVal = unitParts.length > 0 ? unitParts.join(" ") : "Unit";
 
             const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
+
             newItems[index] = {
                 ...it,
                 variantId: v.variantId,
+                batchNumber: "",
                 unit: unitVal,
+                price: price,
+                discount: discount,
+                discountAmount: discountAmount,
+                taxAmount: taxAmount,
+                amount: amount,
+                availableQty: availableQty,
+                availableBatches: batches,
+                error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+            };
+            setItems(newItems);
+        }
+    };
+
+    const handleBatchChange = (index, batchNum) => {
+        const newItems = [...items];
+        const it = newItems[index];
+        const batch = it.availableBatches.find(b => b.batchNumber === batchNum);
+
+        if (batch) {
+            const price = parseFloat(batch.mrp || 0);
+            const calcQty = getActiveQty(it.qty);
+            const discount = parseFloat(it.discount || 0);
+            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+
+            const availableQty = batch.stockUpdates?.qtyForSale !== undefined ? batch.stockUpdates.qtyForSale : (batch.quantity || 0);
+
+            newItems[index] = {
+                ...it,
+                batchNumber: batch.batchNumber,
                 price: price,
                 discount: discount,
                 discountAmount: discountAmount,
@@ -373,6 +418,28 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
             };
             setItems(newItems);
+        } else if (batchNum === "") {
+            const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
+            if (v) {
+                const price = parseFloat(v.sellingPrice || v.mrp || 0);
+                const calcQty = getActiveQty(it.qty);
+                const discount = parseFloat(it.discount || 0);
+                const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+                const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
+
+                newItems[index] = {
+                    ...it,
+                    batchNumber: "",
+                    price: price,
+                    discount: discount,
+                    discountAmount: discountAmount,
+                    taxAmount: taxAmount,
+                    amount: amount,
+                    availableQty: availableQty,
+                    error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
+                };
+                setItems(newItems);
+            }
         }
     };
 
@@ -401,12 +468,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     };
 
     const handleAddRow = () => {
-        setItems([...items, { productId: "", productName: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0 }]);
+        setItems([...items, { productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleRemoveRow = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ productId: "", productName: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0 }]);
+        setItems(newItems.length > 0 ? newItems : [{ productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleDiscountChange = (index, val) => {
@@ -553,6 +620,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             items: validItems.map((it) => ({
                 productId: it.productId,
                 variantId: it.variantId,
+                batchNumber: it.batchNumber || null,
                 quantity: getActiveQty(it.qty),
                 discountForItem: parseFloat(it.discount || 0),
                 sellingPrice: it.price,
@@ -750,6 +818,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <th rowSpan="2">S NO.</th>
                                 <th rowSpan="2">Product Name</th>
                                 <th rowSpan="2" style={{ minWidth: "120px" }}>UNIT</th>
+                                <th rowSpan="2" style={{ minWidth: "140px" }}>BATCH</th>
+                                <th rowSpan="2" style={{ minWidth: "90px" }}>OPEN QTY</th>
                                 <th rowSpan="2">QTY</th>
                                 <th colSpan="1">PRICE</th>
                                 <th colSpan="2" style={{ textAlign: "center" }}>
@@ -775,7 +845,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             {items.map((it, idx) => (
                                 <tr key={idx}>
                                     <td>{String(idx + 1).padStart(2, "0")}</td>
-                                    <td style={{ position: "relative", width: "28%" }}>
+                                    <td style={{ position: "relative", width: "22%" }}>
                                         <div className={styles.searchableDropdown} style={{ display: "flex", alignItems: "center", position: "relative" }}>
                                             <input
                                                 type="text"
@@ -872,6 +942,52 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             )
                                         )}
                                     </td>
+                                    <td style={{ minWidth: "140px" }}>
+                                        {isViewOnly ? (
+                                            <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
+                                                <span>{it.batchNumber || "N/A"}</span>
+                                            </div>
+                                        ) : (
+                                            it.availableBatches && it.availableBatches.length > 0 ? (
+                                                <div className={styles.unitSelector}>
+                                                    <select
+                                                        className={styles.unitSelect}
+                                                        value={it.batchNumber || ""}
+                                                        onChange={(e) => handleBatchChange(idx, e.target.value)}
+                                                        style={{
+                                                            appearance: "none",
+                                                            WebkitAppearance: "none",
+                                                            MozAppearance: "none",
+                                                            paddingRight: "16px",
+                                                            width: "100%",
+                                                            cursor: "pointer",
+                                                            fontWeight: "600",
+                                                            color: "#333",
+                                                            background: "transparent",
+                                                            border: "none",
+                                                            outline: "none",
+                                                            fontSize: "12px"
+                                                        }}
+                                                    >
+                                                        <option value="">Select Batch No</option>
+                                                        {it.availableBatches.map(b => (
+                                                            <option key={b.batchNumber} value={b.batchNumber}>
+                                                                {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
+                                                </div>
+                                            ) : (
+                                                <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
+                                                    <span style={{ color: "#999" }}>N/A</span>
+                                                </div>
+                                            )
+                                        )}
+                                    </td>
+                                    <td style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: '#333' }}>
+                                        {it.availableQty}
+                                    </td>
                                     <td style={{ verticalAlign: "top", paddingTop: "12px" }}>
                                         <input
                                             type="number"
@@ -905,7 +1021,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                     <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(it.amount || 0).toFixed(2)}</td>
                                     {!isViewOnly && (
                                         <td>
-                                            <FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: "pointer", color: "#E93E64" }} />
+                                            {idx !== 0 && (
+                                                <FiTrash2 onClick={() => handleRemoveRow(idx)} style={{ cursor: "pointer", color: "#E93E64" }} />
+                                            )}
                                         </td>
                                     )}
                                 </tr>
@@ -914,6 +1032,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <td colSpan="2" style={{ fontWeight: "700", paddingLeft: "40px" }}>
                                     TOTAL
                                 </td>
+                                <td></td>
+                                <td></td>
                                 <td></td>
                                 <td style={{ fontWeight: "600", textAlign: "center" }}>
                                     {items.reduce((acc, it) => acc + getActiveQty(it.qty), 0)}
