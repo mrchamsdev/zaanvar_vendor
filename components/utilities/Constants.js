@@ -9,7 +9,7 @@ const WordpresSlug_URL = "https://zaanvars3.b-cdn.net/";
 // const BACKEND_URL = "https://dev.zaanvar.com/api/";
 // const IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
 let BACKEND_URL;
-  
+
 
 if (typeof window !== "undefined") {
   const hostname = window.location.hostname;
@@ -26,7 +26,7 @@ if (typeof window !== "undefined") {
     BACKEND_URL = "https://prod.zaanvar.com/api/";
   } else {
     BACKEND_URL = "https://dev.zaanvar.com/api/";
-    
+
     // BACKEND_URL = "https://prod.zaanvar.com/api/";
 
   }
@@ -36,23 +36,23 @@ let IMAGE_URL;
 // const IMAGE_URL ="https://zaanvaerwebstories.b-cdn.net/";
 
 if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname === "business.zaanvar.com") {
-        IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
-    } else {
-        IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
-        // IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
-
-    }
+  const hostname = window.location.hostname;
+  if (hostname === "business.zaanvar.com") {
+    IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
   } else {
-    // Server-side environment
-    if (process.env.NODE_ENV === 'production') {
-        IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
-    } else {
-      IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
-  
-    }
+    IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
+    // IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
+
   }
+} else {
+  // Server-side environment
+  if (process.env.NODE_ENV === 'production') {
+    IMAGE_URL = "https://zaanvarprods3.b-cdn.net/";
+  } else {
+    IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/";
+
+  }
+}
 
 // const BACKEND_URL = "https://dev.zaanvar.com/api/";
 // const IMAGE_URL = "https://zaanvaerwebstories.b-cdn.net/"
@@ -68,7 +68,7 @@ if (typeof window !== "undefined") {
 
 
 let SOCKET_SERVER_URL;
-  
+
 
 if (typeof window !== "undefined") {
   const hostname = window.location.hostname;

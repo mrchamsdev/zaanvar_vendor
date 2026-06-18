@@ -156,7 +156,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 finalValue = value.replace(/^0+/, '') || "";
             }
         }
-        
+
         setItems(prevItems => {
             const newItems = [...prevItems];
             const newItem = { ...newItems[itemIndex] };
@@ -225,7 +225,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
                 const cost = parseFloat(batch.costPrice) || 0;
                 if (bIdx === 0 || firstCost === 0) firstCost = cost;
-                
+
                 const received = parseFloat(batch.receivedQty) || 0;
                 const damaged = parseFloat(batch.damagedQty) || 0;
                 const discountPercent = parseFloat(batch.discount) || 0;
@@ -340,11 +340,11 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                         (batch.damagedQty !== "" && batch.damagedQty !== undefined && batch.damagedQty !== null && Number(batch.damagedQty) < 0) ||
                         (Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) ||
                         Number(batch.damagedQty) > Number(batch.receivedQty);
-                    
+
                     if (batchHasError) hasItemError = true;
                     totalReceived += Number(batch.receivedQty) || 0;
                 });
-                
+
                 if (totalReceived > Number(item.qty)) hasItemError = true;
 
                 if (hasItemError) {
@@ -425,7 +425,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                 bill: {
                     ...receivedDateFields,
                 },
-                billItems: items.flatMap(item => 
+                billItems: items.flatMap(item =>
                     item.batches.map((batch) => ({
                         productId: item.productId,
                         variantId: item.variantId,
@@ -551,7 +551,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 <div key={bIdx} style={{ position: 'relative', marginBottom: bIdx < item.batches.length - 1 ? '32px' : '0', paddingBottom: bIdx < item.batches.length - 1 ? '32px' : '0', borderBottom: bIdx < item.batches.length - 1 ? '1px dashed #e5e7eb' : 'none' }}>
                                                     {bIdx > 0 && (
                                                         <div style={{ position: 'absolute', top: '-16px', right: '0', zIndex: 10 }}>
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 onClick={() => removeBatch(index, bIdx)}
                                                                 style={{ color: '#ef4444', background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
@@ -718,10 +718,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                                 </div>
                                             );
                                         })}
-                                        
+
                                         <div style={{ marginTop: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={() => addBatch(index)}
                                                 style={{ background: 'transparent', border: 'none', color: '#E93E64', padding: '8px 16px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
                                             >
