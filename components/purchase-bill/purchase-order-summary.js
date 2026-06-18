@@ -132,6 +132,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             return {
                 sno: String(idx + 1).padStart(2, '0'),
                 productName: item.productName,
+                batchNumber: item.batchNumber || "N/A",
                 variant: [formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--",
                 receivedQty: item.receivedQty || ordered,
                 costPrice: `₹ ${cost.toLocaleString()}`,
@@ -218,6 +219,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
         const columns = [
             { header: "S.NO", accessor: "sno" },
             { header: "PRODUCT NAME", accessor: "productName" },
+            { header: "BATCH NO", accessor: "batchNumber" },
             { header: "UNIT", accessor: "variant" },
             { header: "QTY", accessor: "receivedQty" },
             { header: "PRICE", accessor: "costPrice" },

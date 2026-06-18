@@ -177,6 +177,7 @@ const StockUpdatesPage = () => {
               <colgroup>
                 <col className={styles.dateCol} />
                 <col />
+                <col className={styles.batchCol} />
                 <col className={styles.unitCol} />
                 <col className={styles.qtyCol} />
                 <col className={styles.totalValCol} />
@@ -185,6 +186,7 @@ const StockUpdatesPage = () => {
                 <tr>
                   <th rowSpan="2">UP-DATED DATE</th>
                   <th rowSpan="2">PRODUCT NAME</th>
+                  <th rowSpan="2">BATCH NO</th>
                   <th colSpan="2" className={styles.variantHeader}>VARIANT</th>
                   <th rowSpan="2">REASON</th>
                   <th rowSpan="2" className={styles.rightAlign}>TOTAL VALUE (₹)</th>
@@ -236,6 +238,7 @@ const StockUpdatesPage = () => {
                     }} className={styles.clickableRow}>
                       <td>{formatDate(update.createdDate)}</td>
                       <td>{update.itemName || update.product?.productName}</td>
+                      <td>{update.batchNumber || update.billItem?.batchNumber || "--"}</td>
                       <td>{unit}</td>
                       <td>{quantity}</td>
                       <td>{update.reason || "--"}</td>

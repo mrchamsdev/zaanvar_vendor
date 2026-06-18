@@ -303,6 +303,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       <th>Product Bill ID</th>
                       <th>Supplier Name</th>
                       <th>Variant Type</th>
+                      <th>Batch No</th>
                       <th>MRP</th>
                       <th>Cost Price</th>
                       <th>ORDERED</th>
@@ -319,6 +320,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                         <td>{bill.productsBillId || "-"}</td>
                         <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
                         <td>{getVariantTypeDisplay(bill)}</td>
+                        <td>{bill.batchNumber || "-"}</td>
                         <td>₹{bill.mrp}</td>
                         <td>₹{bill.costPrice}</td>
                         <td>{bill.qty}</td>
@@ -343,6 +345,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <thead>
                     <tr>
                       <th>UPDATED DATE</th>
+                      <th>Batch No</th>
                       <th>CURRENT QTY</th>
                       <th>ADD</th>
                       <th>REMOVE</th>
@@ -364,6 +367,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       return (
                         <tr key={idx}>
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>
+                          <td>{stock.batchNumber || stock.billItem?.batchNumber || "-"}</td>
                           <td>
                             {(() => {
                               if (stock.stock !== undefined && stock.stock !== null) {

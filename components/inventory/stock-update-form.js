@@ -581,6 +581,21 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             }
         }
 
+        // Handle batchNumber change
+        if (field === 'batchNumber') {
+            const product = products.find(p => p.productId === newRows[index].productId);
+            const variant = product?.variants?.find(v => v.variantId === newRows[index].variantId);
+            const batch = variant?.batchNumbers?.find(b => b.batchNumber === value);
+            if (batch) {
+                newRows[index].costPrice = batch.costPrice || variant?.costPrice || 0;
+                if (batch.expiryDate && batch.expiryDate !== "0000-00-00") {
+                    newRows[index].expiryDate = batch.expiryDate.split('T')[0];
+                }
+            } else {
+                newRows[index].costPrice = variant?.costPrice || 0;
+            }
+        }
+
         recalculateAllRows(newRows);
 
         // Clear error for this field
@@ -618,6 +633,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             }
             if (row.reason === "Expired" && !row.expiryDate) {
                 newErrors[`${index}_expiryDate`] = "Expiry Date is required";
+            }
+            if (!row.batchNumber) {
+                newErrors[`${index}_batchNumber`] = "Batch number is required";
             }
 
             const removeQty = parseInt(row.remove) || 0;

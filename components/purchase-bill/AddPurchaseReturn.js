@@ -903,6 +903,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <tr>
                                     <th className={styles.snoCol}>S NO.</th>
                                     <th className={styles.productCol}>Product Name</th>
+                                    <th>BATCH NUMBER</th>
                                     <th>VARIANT TYPE</th>
                                     <th>SOURCE STATUS</th>
                                     <th style={{ textAlign: 'center', fontSize: '11px' }}>
@@ -999,7 +1000,10 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ verticalAlign: 'middle', minWidth: '100px', fontWeight: '500' }}>
+                                        <td style={{ verticalAlign: 'middle', minWidth: '100px', fontWeight: '500', textAlign: 'center' }}>
+                                            {item.batchNumber || "-"}
+                                        </td>
+                                        <td style={{ verticalAlign: 'middle', minWidth: '100px', fontWeight: '500', textAlign: 'center' }}>
                                             {item.variantSize || "-"}
                                         </td>
                                         <td style={{ minWidth: '120px', verticalAlign: 'middle' }}>
