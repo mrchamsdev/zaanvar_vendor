@@ -124,6 +124,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             quantity: item.quantity, // original order qty
                             returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                             unit: unitVal,
+                            batchNumber: item.batchNumber || "N/A",
                             price: parseFloat(item.sellingPrice) || 0,
                             taxPercentage: parseFloat(item.taxPercentage) || 0,
                             discountPercentage: parseFloat(item.discountPercentage) || 0,
@@ -215,6 +216,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     quantity: item.quantity,
                     returnableQty: item.returnableqty !== undefined ? item.returnableqty : (item.returnableQty !== undefined ? item.returnableQty : item.quantity),
                     unit: unitVal,
+                    batchNumber: item.batchNumber || "N/A",
                     price: parseFloat(item.sellingPrice) || 0,
                     taxPercentage: parseFloat(item.taxPercentage) || 0,
                     discountPercentage: parseFloat(item.discountPercentage) || 0,
@@ -676,7 +678,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                         borderBottom: '1px solid #edf2f7',
                                                         textTransform: 'uppercase'
                                                     }}>
-                                                        <span style={{ width: '60%' }}>PRODUCT NAME</span>
+                                                        <span style={{ width: '40%' }}>PRODUCT NAME</span>
+                                                        <span style={{ width: '20%', textAlign: 'center' }}>BATCH NO</span>
                                                         <span style={{ width: '20%', textAlign: 'center' }}>RETURNABLE QTY</span>
                                                         <span style={{ width: '20%', textAlign: 'right' }}>UNIT TYPE</span>
                                                     </div>
@@ -688,7 +691,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                                 onClick={() => handleProductSelect(idx, p)}
                                                                 style={{ display: 'flex', padding: '12px 20px', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}
                                                             >
-                                                                <span style={{ width: '60%', fontWeight: '500' }}>{p.productName}</span>
+                                                                <span style={{ width: '40%', fontWeight: '500' }}>{p.productName}</span>
+                                                                <span style={{ width: '20%', textAlign: 'center' }}>{p.batchNumber}</span>
                                                                 <span style={{ width: '20%', textAlign: 'center' }}>{p.returnableQty}</span>
                                                                 <span style={{ width: '20%', textAlign: 'right' }}>{p.unit}</span>
                                                             </div>

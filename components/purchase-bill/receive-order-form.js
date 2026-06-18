@@ -723,9 +723,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => addBatch(index)}
-                                                style={{ background: 'transparent', border: 'none', color: '#1890ff', padding: '8px 16px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
+                                                style={{ background: 'transparent', border: 'none', color: '#E93E64', padding: '8px 16px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
                                             >
-                                                + Add Another Batch
+                                                + ADD BATCH
                                             </button>
                                         </div>
 
