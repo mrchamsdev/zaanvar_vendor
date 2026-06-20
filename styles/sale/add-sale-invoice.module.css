@@ -150,7 +150,7 @@
 
 .premiumTable th {
     background: var(--color-bg-light);
-    padding: 14px 16px;
+    padding: 10px 8px;
     text-align: left;
     font-size: 11px;
     font-weight: 700;
@@ -169,14 +169,14 @@
     background: var(--color-bg-light) !important;
     font-size: 9px !important;
     color: var(--color-text-gray-muted) !important;
-    padding: 8px 12px !important;
+    padding: 8px 8px !important;
     font-weight: 700 !important;
     border-right: 1px solid var(--color-border) !important;
     white-space: nowrap;
 }
 
 .premiumTable td {
-    padding: 12px 16px;
+    padding: 10px 8px;
     border-bottom: 1px solid #f3f4f6;
     border-right: 1px solid #f3f4f6;
     font-size: 13px;
@@ -383,6 +383,7 @@
 }
 
 @media print {
+
     /* Hide the sidebar, header/topbars, cancel/print buttons, and the close button */
     :global(aside),
     :global(header),
@@ -396,12 +397,12 @@
     .footer {
         display: none !important;
     }
-    
+
     /* Hide the background list container behind the modal */
-    :global(.pageContent) > :global(div:first-child) {
+    :global(.pageContent)> :global(div:first-child) {
         display: none !important;
     }
-    
+
     /* Reset layout wrapper properties for print flow */
     :global(.dashWrap),
     :global(.mainArea),
@@ -416,7 +417,7 @@
         padding: 0 !important;
         background: var(--color-white) !important;
     }
-    
+
     .overlay {
         position: absolute !important;
         top: 0 !important;
@@ -430,7 +431,7 @@
         z-index: 9999 !important;
         box-shadow: none !important;
     }
-    
+
     .modal {
         display: block !important;
         width: 100% !important;
@@ -441,16 +442,16 @@
         border: none !important;
         box-shadow: none !important;
     }
-    
+
     .modalHeader {
         padding: 10px 0 !important;
         border-bottom: 1px solid var(--color-border) !important;
     }
-    
+
     .modalHeader h3 {
         font-size: 16px !important;
     }
-    
+
     .modalContent {
         display: block !important;
         overflow: visible !important;
@@ -458,7 +459,7 @@
         padding: 15px 0 !important;
         margin: 0 !important;
     }
-    
+
     .topGrid {
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
@@ -466,15 +467,15 @@
         row-gap: 12px !important;
         margin-bottom: 20px !important;
     }
-    
+
     .field {
         gap: 6px !important;
     }
-    
+
     .field label {
         font-size: 11px !important;
     }
-    
+
     .input,
     .select {
         padding: 8px 12px !important;
@@ -485,7 +486,7 @@
         box-shadow: none !important;
         height: auto !important;
     }
-    
+
     .tableInput,
     .tableInputCenter {
         border: none !important;
@@ -498,11 +499,11 @@
         height: auto !important;
         width: 100% !important;
     }
-    
+
     .tableInputCenter {
         text-align: center !important;
     }
-    
+
     /* Force disabled/readonly inputs/selects to display text with full contrast in print mode */
     :global(input:disabled),
     :global(select:disabled),
@@ -515,7 +516,7 @@
         background: var(--color-white) !important;
         border: 1px solid var(--color-border-dark) !important;
     }
-    
+
     .tableInput:disabled,
     .tableInputCenter:disabled {
         color: var(--color-black) !important;
@@ -525,17 +526,17 @@
         border: none !important;
         padding: 0 !important;
     }
-    
+
     .tableContainer {
         margin-top: 15px !important;
         margin-bottom: 20px !important;
     }
-    
+
     .premiumTable {
         width: 100% !important;
         page-break-inside: avoid !important;
     }
-    
+
     .premiumTable th {
         background: var(--color-bg-light) !important;
         color: var(--color-text-dark) !important;
@@ -544,34 +545,34 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
-    
+
     .premiumTable td {
         padding: 8px 10px !important;
         font-size: 11px !important;
     }
-    
+
     .paymentSection {
         display: grid !important;
         grid-template-columns: 1.5fr 0.5fr 1.2fr !important;
         gap: 15px !important;
         margin-top: 15px !important;
     }
-    
+
     .totalSection {
         gap: 8px !important;
     }
-    
+
     .totalRow {
         font-size: 12px !important;
         width: 100% !important;
         max-width: 250px !important;
     }
-    
+
     .totalRow.main {
         font-size: 14px !important;
         margin-top: 6px !important;
     }
-    
+
     @page {
         margin: 0.4cm !important;
     }
@@ -585,7 +586,8 @@
     right: 0 !important;
     bottom: 0 !important;
     height: 100vh !important;
-    background: #525659 !important; /* Adobe dark grey */
+    background: #525659 !important;
+    /* Adobe dark grey */
     padding-top: 68px !important;
     padding-bottom: 40px !important;
     display: block !important;
@@ -613,7 +615,8 @@
     height: auto !important;
     overflow: visible !important;
     max-height: none !important;
-    padding: 24px !important; /* Compact padding to prevent table overflow */
+    padding: 24px !important;
+    /* Compact padding to prevent table overflow */
 }
 
 /* Hide action buttons and close button inside the PDF page itself */
@@ -629,7 +632,8 @@
     left: 0 !important;
     right: 0 !important;
     height: 48px !important;
-    background: #323639 !important; /* Chrome PDF dark */
+    background: #323639 !important;
+    /* Chrome PDF dark */
     color: var(--color-white) !important;
     display: flex !important;
     justify-content: space-between !important;

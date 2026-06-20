@@ -353,6 +353,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            toast.error("Please fill all required fields correctly");
             return;
         }
 

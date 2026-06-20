@@ -306,6 +306,9 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         if (!formData.vendorCustomerId) {
             newErrors.vendorCustomerId = "Customer name is required";
         }
+        if (!formData.date) {
+            newErrors.date = "Date is required";
+        }
 
         const paidAmountNum = parseFloat(formData.paidAmount);
         if (!formData.paidAmount || isNaN(paidAmountNum) || paidAmountNum <= 0) {
@@ -326,6 +329,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
+            toast.error("Please fill all required fields correctly");
             return;
         }
 
@@ -574,14 +578,24 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                         </div>
 
                         <div className={styles.field}>
-                            <label>Date</label>
+                            <label>Date <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
                                 type="date"
-                                className={styles.input}
+                                className={`${styles.input} ${errors.date ? styles.inputError : ''}`}
                                 value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, date: e.target.value });
+                                    if (e.target.value) {
+                                        setErrors(prev => {
+                                            const next = { ...prev };
+                                            delete next.date;
+                                            return next;
+                                        });
+                                    }
+                                }}
                                 disabled={isViewOnly}
                             />
+                            {errors.date && <span className={styles.errorMsg}>{errors.date}</span>}
                         </div>
 
                         <div className={styles.field}>

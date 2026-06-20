@@ -179,6 +179,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     productId: it.productId,
                                     productName: it.productName || "Product",
                                     variantSize: billItem ? getVariantSizeDisplay(billItem.variant) : "-",
+                                    batchNumber: billItem ? billItem.batchNumber : (it.batchNumber || "-"),
                                     sourceStatus: it.sourceStatus === "openStock" ? "Open Stock" : (it.sourceStatus === "hold" ? "Hold Stock" : (it.sourceStatus === "damaged" ? "Damaged" : (it.sourceStatus || ""))),
                                     receivedQty: billItem ? parseInt(billItem.receivedQuantity) || 0 : it.qty,
                                     included: billItem ? parseInt(billItem.included) || 0 : 0,
@@ -215,6 +216,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 productId: it.productId,
                                 productName: it.productName || "Product",
                                 variantSize: "-",
+                                batchNumber: it.batchNumber || "-",
                                 sourceStatus: it.sourceStatus === "openStock" ? "Open Stock" : (it.sourceStatus === "hold" ? "Hold Stock" : (it.sourceStatus === "damaged" ? "Damaged" : (it.sourceStatus || ""))),
                                 receivedQty: it.qty,
                                 included: 0,
@@ -348,6 +350,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                         productId: "",
                         productName: "",
                         variantSize: "",
+                        batchNumber: "",
                         sourceStatus: "",
                         receivedQty: 0,
                         included: 0,
@@ -414,6 +417,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             productId: "",
             productName: "",
             variantSize: "",
+            batchNumber: "",
             sourceStatus: "",
             receivedQty: 0,
             included: 0,
@@ -632,6 +636,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         if (hasError) {
             setErrors(newErrors);
             setItems(updatedItems);
+            toast.error("Please fill all required fields correctly");
             return;
         }
 
@@ -1111,7 +1116,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             </div>
                                         </td>
                                         <td className={styles.amountCol}>
-                                            <div style={{ fontWeight: '600' }}>{Number((item.returnQty || 0) * (item.costPrice || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                            <div style={{ fontWeight: '600' }}>{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                         </td>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {!isViewOnly && items.length > 1 && (
@@ -1149,7 +1154,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     </tr>
                                 )}
                                 <tr className={styles.totalRow}>
-                                    <td className={styles.totalLabel} colSpan="5" style={{ textAlign: 'left', paddingLeft: '24px' }}>TOTAL</td>
+                                    <td className={styles.totalLabel} colSpan="6" style={{ textAlign: 'left', paddingLeft: '24px' }}>TOTAL</td>
                                     <td className={styles.qtyCol}>{totalQty.toString().padStart(3, '0')}</td>
                                     <td className={styles.priceCol}>{Number(totalPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                                     <td className={styles.taxCol}>
@@ -1164,7 +1169,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalDiscount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </td>
-                                    <td className={styles.amountCol}>{Number(items.reduce((acc, it) => acc + ((parseFloat(it.returnQty) || 0) * (parseFloat(it.costPrice) || 0)), 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td className={styles.amountCol}>{Number(totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td></td>
                                 </tr>
                             </tbody>

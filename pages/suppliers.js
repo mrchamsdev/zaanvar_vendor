@@ -62,6 +62,11 @@ const SuppliersPage = () => {
     }
   }, [router.isReady, currentBranchId, jwtToken]);
 
+  // Clear selections when changing branch
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentBranchId]);
+
   const handleBranchChange = (e) => {
     router.push({
       pathname: router.pathname,

@@ -6,10 +6,12 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 
 const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initialBillData, allOrders }) => {
     const { jwtToken, userInfo } = useStore();
-    const branchId = userInfo?.branchId || 91;
+    const { branchId: selectedBranchId } = useDashboardData({ skipReviews: true });
+    const branchId = selectedBranchId || userInfo?.branchId || 1;
     const [loading, setLoading] = useState(false);
 
     // Header Data

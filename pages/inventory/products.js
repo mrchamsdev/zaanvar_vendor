@@ -101,6 +101,11 @@ const ProductsPage = () => {
     }
   }, [router.isReady, branchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage]);
 
+  // Clear selections when changing branch or product type
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [branchId, productType]);
+
   const fetchStats = async () => {
     try {
       const bid = branchId || 91;

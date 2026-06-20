@@ -275,9 +275,21 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
                   <td>{v.mrp || "-"}</td>
                   <td>{v.sellingPrice || "-"}</td>
-                  <td>{v.stockUpdates?.totalQuantity || v.stockQty || 0}</td>
-                  <td>{v.stockUpdates?.openStockQuantity || v.openingStock || 0}</td>
-                  <td>{v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0}</td>
+                  <td>{
+                    v.batchNumbers?.length > 0
+                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.totalQuantity || b.quantity || 0), 0)
+                      : (v.stockUpdates?.totalQuantity || v.stockQty || 0)
+                  }</td>
+                  <td>{
+                    v.batchNumbers?.length > 0
+                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.openStockQuantity || b.quantity || 0), 0)
+                      : (v.stockUpdates?.openStockQuantity || v.openingStock || 0)
+                  }</td>
+                  <td>{
+                    v.batchNumbers?.length > 0
+                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.onHoldQuantity || 0), 0)
+                      : (v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0)
+                  }</td>
                   <td>{v.soldQty ?? 0}</td>
                   <td>{v.damagedQty ?? 0}</td>
                 </tr>
@@ -357,7 +369,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.stockHistory.map((stock, idx) => {
+                    {[...data.stockHistory].sort((a, b) => {
+                      const dateA = new Date(a.modifiedDate || a.createdDate || 0).getTime();
+                      const dateB = new Date(b.modifiedDate || b.createdDate || 0).getTime();
+                      if (dateB !== dateA) return dateB - dateA;
+                      return (b.stockUpdateId || 0) - (a.stockUpdateId || 0);
+                    }).map((stock, idx) => {
                       const isOS = stock.sourceStatus === "openStock" || stock.sourceStatus === "Open Stock";
                       const isHold = stock.sourceStatus === "onHold" || stock.sourceStatus === "hold" || stock.sourceStatus === "Hold Qty";
                       const isNegative = stock.remove > 0 || (stock.reason?.toLowerCase().includes('damaged') || stock.reason?.toLowerCase().includes('expired') || stock.reason?.toLowerCase().includes('theft') || stock.reason?.toLowerCase().includes('internal purpose') || stock.reason?.toLowerCase().includes('onhold'));
