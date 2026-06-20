@@ -100,8 +100,8 @@ const StockUpdateView = ({ stockId, onClose }) => {
     }
   }
 
-  const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || data.reason === "Open Stock" || data.reason === "openStock" || !data.sourceStatus);
-  const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold");
+  const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || (!data.sourceStatus && (data.reason === "Open Stock" || data.reason === "openStock")));
+  const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || (!data.sourceStatus && (data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold")));
 
   const openStockQuantity = data.variant?.stockUpdates?.openStockQuantity ?? data.stockUpdates?.openStockQuantity;
   const qtyForSale = data.variant?.stockUpdates?.qtyForSale ?? data.stockUpdates?.qtyForSale;

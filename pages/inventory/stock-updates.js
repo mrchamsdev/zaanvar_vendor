@@ -61,17 +61,16 @@ const StockUpdatesPage = () => {
     try {
       const data = await productService.getStockUpdates(jwtToken, currentBranchId);
       const updates = Array.isArray(data) ? data : (data?.data || []);
-      // Sort by stockUpdateId descending to show newly added records at the top
+      // Sort by modified/created date descending to show newly updated records at the top
       updates.sort((a, b) => {
+        const dateB = new Date(b.modifiedDate || b.createdDate || 0).getTime();
+        const dateA = new Date(a.modifiedDate || a.createdDate || 0).getTime();
+        if (dateB !== dateA) {
+          return dateB - dateA;
+        }
         const idB = parseInt(b.stockUpdateId) || 0;
         const idA = parseInt(a.stockUpdateId) || 0;
-        if (idB !== idA) {
-          return idB - idA;
-        }
-        // Fallback to date sorting if IDs are equal or missing
-        const dateB = new Date(b.createdDate || b.modifiedDate || 0).getTime();
-        const dateA = new Date(a.createdDate || a.modifiedDate || 0).getTime();
-        return dateB - dateA;
+        return idB - idA;
       });
       setStockUpdates(updates);
     } catch (error) {
@@ -236,7 +235,7 @@ const StockUpdatesPage = () => {
                         setManagerMode("View");
                         setShowUpdateForm(true);
                     }} className={styles.clickableRow}>
-                      <td>{formatDate(update.createdDate)}</td>
+                      <td>{formatDate(update.modifiedDate || update.createdDate)}</td>
                       <td>{update.itemName || update.product?.productName}</td>
                       <td>{update.batchNumber || update.billItem?.batchNumber || "--"}</td>
                       <td>{unit}</td>

@@ -298,6 +298,21 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
+            
+            // Show toast based on error type
+            if (errors.branchId || errors.supplierId || errors.orderDate === "Order date is required") {
+                toast.error("Please fill all required fields correctly.");
+            } else if (errors.orderDate === "Future dates are not allowed") {
+                toast.error("Order date cannot be in the future.");
+            } else if (errors.items) {
+                const hasCostError = errors.items.some(e => e && e.costPrice);
+                if (hasCostError) {
+                    toast.error("Cost Price cannot be greater than MRP.");
+                } else {
+                    toast.error("Please fill all required item details.");
+                }
+            }
+            
             return;
         }
         setFormErrors({});

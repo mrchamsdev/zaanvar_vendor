@@ -249,7 +249,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             setPinCodeError("");
         }
 
-        if (hasError) return;
+        if (hasError) {
+            toast.error("Please fill all required fields correctly.");
+            return;
+        }
 
         const payload = {
             supplierName,

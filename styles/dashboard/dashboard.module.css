@@ -1747,3 +1747,155 @@
   font-weight: 600;
   color: #111;
 }
+
+/* ── Notifications ── */
+.notificationWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bellBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  color: #555;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.bellBtn:hover {
+  background: #f0f0f0;
+}
+
+.bellBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+.notificationDropdown {
+  position: absolute;
+  top: 45px;
+  right: -10px;
+  width: 340px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  border: 1px solid #eee;
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notifHeader {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+}
+
+.notifHeader h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+}
+
+.notifCount {
+  font-size: 11px;
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.notifBody {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.notifEmpty {
+  padding: 30px;
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+}
+
+.notifItem {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notifItem:last-child {
+  border-bottom: none;
+}
+
+.notifItem:hover {
+  background: #fafafa;
+}
+
+.notifItem.unread {
+  background: #fef8f8;
+}
+
+.notifItem.unread:hover {
+  background: #feefef;
+}
+
+.notifContent {
+  flex: 1;
+}
+
+.notifItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.notifSubject {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+}
+
+.notifTime {
+  font-size: 11px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.notifMessage {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}

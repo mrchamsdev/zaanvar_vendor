@@ -173,9 +173,12 @@ const ProductForm = ({
   const [category, setCategory] = useState(() => {
     const raw = initialData?.categoryId;
     let name = "";
-    if (typeof raw === "object" && raw?.category) name = raw.category;
-    else if (Array.isArray(raw)) name = raw[0];
-    else name = raw || "";
+    if (typeof raw === "object" && raw !== null) {
+      if (Array.isArray(raw)) name = raw[0] || "";
+      else name = raw.category || raw.name || "";
+    } else if (typeof raw === "string") {
+      name = raw;
+    }
 
     // Match against RETAIL_CATEGORIES case-insensitively
     const match = RETAIL_CATEGORIES.find(
@@ -185,9 +188,11 @@ const ProductForm = ({
   });
   const [subCategory, setSubCategory] = useState(() => {
     const raw = initialData?.subCategoryId;
-    if (typeof raw === "object" && raw?.subCategory) return raw.subCategory;
-    if (Array.isArray(raw)) return raw[0];
-    return raw || "";
+    if (typeof raw === "object" && raw !== null) {
+      if (Array.isArray(raw)) return raw[0] || "";
+      return raw.subCategory || raw.name || "";
+    }
+    return typeof raw === "string" ? raw : "";
   });
   const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
     const reverseMap = {

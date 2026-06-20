@@ -105,6 +105,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
             newErrors.supplierId = "Supplier is required";
         }
 
+        if (!transactionDate) {
+            newErrors.transactionDate = "Amount paid date is required";
+        }
+
         const totalAmountToBePaid = Number(editablePaidAmount);
         if (!editablePaidAmount || isNaN(totalAmountToBePaid) || totalAmountToBePaid <= 0) {
             newErrors.totalAmountPaid = "Total amount paid is required";
@@ -223,14 +227,26 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                     {/* Row 1: Date and Total Amount Paid */}
                     <div className={styles.gridRow}>
                         <div className={styles.field}>
-                            <label>Amount paid date</label>
+                            <label>Amount paid date <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
                                 type="date"
-                                className={styles.input}
+                                className={`${styles.input} ${errors.transactionDate ? styles.inputError : ""}`}
                                 value={transactionDate}
                                 max={toApiDateOnly(new Date())}
-                                onChange={(e) => setTransactionDate(e.target.value)}
+                                onChange={(e) => {
+                                    setTransactionDate(e.target.value);
+                                    if (e.target.value) {
+                                        setErrors(prev => {
+                                            const newErr = { ...prev };
+                                            delete newErr.transactionDate;
+                                            return newErr;
+                                        });
+                                    }
+                                }}
                             />
+                            {errors.transactionDate && (
+                                <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.transactionDate}</span>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>

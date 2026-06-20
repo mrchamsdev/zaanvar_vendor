@@ -380,12 +380,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
             if (hasEmptyFields || hasInvalidPrices || hasInvalidReceived || hasInvalidDamaged) {
                 setLoading(false);
+                if (hasEmptyFields) toast.error("Please fill all required fields correctly.");
+                else if (hasInvalidPrices) toast.error("Cost Price cannot be greater than MRP.");
+                else if (hasInvalidReceived) toast.error("Total received quantity cannot exceed ordered quantity.");
+                else if (hasInvalidDamaged) toast.error("Damaged quantity cannot exceed received quantity.");
                 scrollToFirstError();
                 return;
             }
 
             if (paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0)) {
                 setLoading(false);
+                toast.error("Please enter a valid paid amount for Partial payment.");
                 scrollToFirstError();
                 return;
             }
@@ -393,6 +398,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
             const todayStr = toApiDateOnly(new Date());
             if (paymentStatus !== "Full" && (!duedate || duedate < todayStr)) {
                 setLoading(false);
+                toast.error("Please enter a valid due date for pending/partial payments.");
                 scrollToFirstError();
                 return;
             }

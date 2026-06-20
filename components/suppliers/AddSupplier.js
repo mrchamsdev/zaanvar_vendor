@@ -76,8 +76,8 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     };
 
     const handleSave = async () => {
-        if (!supplierName || !phone || selectedBranchIds.length === 0) {
-            toast.error("Please fill required fields (Name, Phone, Branch)");
+        if (!supplierName || !phone || selectedBranchIds.length === 0 || supplierType.length === 0) {
+            toast.error("Please fill all required fields correctly.");
             return;
         }
 

@@ -97,6 +97,10 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const handleSave = async () => {
         setIsSubmitted(true);
 
+        if (!amountPaidDate) {
+            return;
+        }
+
         if (!masterTarget || Number(masterTarget) <= 0) {
             return;
         }
@@ -196,7 +200,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     {/* Row 1: Date (Global) and first payment amount */}
                     <div className={styles.row}>
                         <div className={styles.field}>
-                            <label>Amount paid date</label>
+                            <label>Amount paid date *</label>
                             <div className={styles.inputWrapper}>
                                 <input
                                     type="date"
@@ -205,6 +209,11 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     onChange={(e) => setAmountPaidDate(e.target.value)}
                                 />
                             </div>
+                            {isSubmitted && !amountPaidDate && (
+                                <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
+                                    Amount paid date is required
+                                </div>
+                            )}
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount Paid *</label>

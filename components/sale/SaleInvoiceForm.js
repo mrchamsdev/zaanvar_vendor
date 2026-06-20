@@ -399,7 +399,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const batch = it.availableBatches.find(b => b.batchNumber === batchNum);
 
         if (batch) {
-            const price = parseFloat(batch.mrp || 0);
+            const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
+            const price = parseFloat(batch.sellingPrice || v?.sellingPrice || batch.mrp || v?.mrp || 0);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
             const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
@@ -463,6 +464,29 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             amount: amount,
             qtyError: calcQty <= 0 ? "Quantity must be greater than 0" : (calcQty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null),
             error: calcQty <= 0 ? "Quantity must be greater than 0" : (calcQty > it.availableQty ? `Cannot exceed quantity (${it.availableQty})` : null)
+        };
+        setItems(newItems);
+    };
+
+    const handlePriceChange = (index, val) => {
+        let formattedVal = val;
+        if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
+            formattedVal = String(Number(val));
+        }
+        const price = formattedVal === "" ? "" : parseFloat(formattedVal || 0);
+
+        const newItems = [...items];
+        const it = newItems[index];
+        const calcQty = getActiveQty(it.qty);
+        const discount = parseFloat(it.discount || 0);
+        const { discountAmount, taxAmount, amount } = calculateItemValues(price === "" ? 0 : price, calcQty, discount, it.taxPercent);
+
+        newItems[index] = {
+            ...it,
+            price: formattedVal,
+            discountAmount: discountAmount,
+            taxAmount: taxAmount,
+            amount: amount
         };
         setItems(newItems);
     };
@@ -816,12 +840,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         <thead>
                             <tr>
                                 <th rowSpan="2">S NO.</th>
-                                <th rowSpan="2">Product Name</th>
-                                <th rowSpan="2" style={{ minWidth: "120px" }}>UNIT</th>
-                                <th rowSpan="2" style={{ minWidth: "140px" }}>BATCH</th>
-                                <th rowSpan="2" style={{ minWidth: "90px" }}>OPEN QTY</th>
-                                <th rowSpan="2">QTY</th>
-                                <th colSpan="1">PRICE</th>
+                                <th rowSpan="2" style={{ minWidth: "160px", width: "20%" }}>Product Name</th>
+                                <th rowSpan="2" style={{ minWidth: "90px" }}>UNIT</th>
+                                <th rowSpan="2" style={{ minWidth: "110px" }}>BATCH</th>
+                                <th rowSpan="2" style={{ minWidth: "70px" }}>OPEN QTY</th>
+                                <th rowSpan="2" style={{ minWidth: "70px" }}>QTY</th>
+                                <th colSpan="1" style={{ minWidth: "60px", width: "60px", maxWidth: "70px" }}>PRICE</th>
                                 <th colSpan="2" style={{ textAlign: "center" }}>
                                     TAX
                                 </th>
@@ -837,7 +861,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <th className={styles.subHeader}></th>
                                 <th className={styles.subHeader}>%</th>
                                 <th className={styles.subHeader}>AMOUNT</th>
-                                <th className={styles.subHeader}>%</th>
+                                <th className={styles.subHeader} style={{ minWidth: "45px", width: "45px", maxWidth: "45px" }}>%</th>
                                 <th className={styles.subHeader}>AMOUNT</th>
                             </tr>
                         </thead>
@@ -845,7 +869,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             {items.map((it, idx) => (
                                 <tr key={idx}>
                                     <td>{String(idx + 1).padStart(2, "0")}</td>
-                                    <td style={{ position: "relative", width: "22%" }}>
+                                    <td style={{ position: "relative", width: "20%", minWidth: "160px" }}>
                                         <div className={styles.searchableDropdown} style={{ display: "flex", alignItems: "center", position: "relative" }}>
                                             <input
                                                 type="text"
@@ -989,33 +1013,57 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                         {it.availableQty}
                                     </td>
                                     <td style={{ verticalAlign: "top", paddingTop: "12px" }}>
-                                        <input
-                                            type="number"
-                                            className={styles.tableInputCenter}
-                                            style={it.error || it.qtyError ? { border: "1px solid #ff4d4f", background: "#fffcfc" } : {}}
-                                            placeholder="0"
-                                            value={it.qty === "" || it.qty === 0 || it.qty === "0" ? "" : it.qty}
-                                            onChange={(e) => handleQtyChange(idx, e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
+                                        {isViewOnly ? (
+                                            <div style={{ textAlign: "center", fontWeight: "600" }}>
+                                                {it.qty || "0"}
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="number"
+                                                className={styles.tableInputCenter}
+                                                style={it.error || it.qtyError ? { border: "1px solid #ff4d4f", background: "#fffcfc" } : {}}
+                                                placeholder="0"
+                                                value={it.qty === "" || it.qty === 0 || it.qty === "0" ? "" : it.qty}
+                                                onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                            />
+                                        )}
                                         {(it.error || it.qtyError) && (
                                             <div style={{ color: "#ff4d4f", fontSize: "10px", marginTop: "4px", textAlign: "center", fontWeight: "500", whiteSpace: "nowrap" }}>
                                                 {it.qtyError || it.error}
                                             </div>
                                         )}
                                     </td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.price || 0).toFixed(2)}</td>
+                                    <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "60px", width: "60px", maxWidth: "60px" }}>
+                                        {isViewOnly ? (
+                                            <div style={{ textAlign: "center", fontWeight: "700" }}>
+                                                {Number(it.price || 0).toFixed(2)}
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="number"
+                                                className={styles.tableInputCenter}
+                                                placeholder="0.00"
+                                                value={it.price === "" ? "" : it.price}
+                                                onChange={(e) => handlePriceChange(idx, e.target.value)}
+                                            />
+                                        )}
+                                    </td>
                                     <td style={{ fontWeight: "700", textAlign: "center" }}>{it.taxPercent}%</td>
                                     <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.taxAmount || 0).toFixed(2)}</td>
-                                    <td style={{ verticalAlign: "top", paddingTop: "12px" }}>
-                                        <input
-                                            type="number"
-                                            className={styles.tableInputCenter}
-                                            placeholder="0"
-                                            value={it.discount === 0 || it.discount === "0" ? "" : it.discount}
-                                            onChange={(e) => handleDiscountChange(idx, e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
+                                    <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "45px", width: "45px", maxWidth: "45px" }}>
+                                        {isViewOnly ? (
+                                            <div style={{ textAlign: "center", fontWeight: "600" }}>
+                                                {it.discount || "0"}
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="number"
+                                                className={styles.tableInputCenter}
+                                                placeholder="0"
+                                                value={it.discount === 0 || it.discount === "0" ? "" : it.discount}
+                                                onChange={(e) => handleDiscountChange(idx, e.target.value)}
+                                            />
+                                        )}
                                     </td>
                                     <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.discountAmount || 0).toFixed(2)}</td>
                                     <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(it.amount || 0).toFixed(2)}</td>

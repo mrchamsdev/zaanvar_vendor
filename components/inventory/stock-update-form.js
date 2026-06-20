@@ -129,7 +129,7 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error, disabled = 
 
 const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState(value || "");
     const containerRef = useRef(null);
 
     useEffect(() => {
@@ -142,15 +142,11 @@ const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const selectedBatch = (batches || []).find(b => b.batchNumber === value);
-
     useEffect(() => {
-        if (selectedBatch && !isOpen) {
-            setSearchTerm(selectedBatch.batchNumber);
-        } else if (!selectedBatch && !isOpen) {
-            setSearchTerm("");
+        if (!isOpen) {
+            setSearchTerm(value || "");
         }
-    }, [selectedBatch, isOpen]);
+    }, [value, isOpen]);
 
     const filtered = (batches || []).filter(b =>
         b.batchNumber?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -162,11 +158,12 @@ const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
                 <input
                     type="text"
                     className={`${styles.tableInput} ${styles.leftAlignInput}`}
-                    placeholder="SELECT BATCH"
+                    placeholder="SELECT OR ENTER BATCH"
                     value={searchTerm}
                     onChange={(e) => {
                         if (disabled) return;
                         setSearchTerm(e.target.value);
+                        onChange(e.target.value);
                         setIsOpen(true);
                     }}
                     onFocus={() => !disabled && setIsOpen(true)}
@@ -236,8 +233,45 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     const loadProducts = async () => {
         setIsProductsLoaded(false);
         try {
-            const data = await productService.getAllProductsBrief(jwtToken, branchId);
-            setProducts(Array.isArray(data) ? data : []);
+            const [data, historyData] = await Promise.all([
+                productService.getAllProductsBrief(jwtToken, branchId),
+                productService.getStockUpdates(jwtToken, branchId)
+            ]);
+            
+            const productsList = Array.isArray(data) ? data : [];
+            const historyList = Array.isArray(historyData) ? historyData : [];
+
+            // Merge missing batches from history to ensure batches with 0 open qty still appear
+            if (historyList.length > 0 && productsList.length > 0) {
+                historyList.forEach(update => {
+                    if (update.batchNumber && update.variantId) {
+                        const product = productsList.find(p => p.productId === parseInt(update.productId));
+                        if (product && product.variants) {
+                            const variant = product.variants.find(v => v.variantId === parseInt(update.variantId));
+                            if (variant) {
+                                if (!variant.batchNumbers) variant.batchNumbers = [];
+                                const existingBatch = variant.batchNumbers.find(b => b.batchNumber === update.batchNumber);
+                                if (!existingBatch) {
+                                    variant.batchNumbers.push({
+                                        batchNumber: update.batchNumber,
+                                        expiryDate: update.expDate || update.expiryDate || "0000-00-00",
+                                        costPrice: update.billItem?.costPrice || update.costPrice || variant.costPrice || 0,
+                                        mrp: variant.mrp || 0,
+                                        quantity: 0,
+                                        stockUpdates: {
+                                            openStockQuantity: 0,
+                                            onHoldQuantity: update.holdQty || 0,
+                                            totalQuantity: update.stock || 0
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            setProducts(productsList);
         } finally {
             setIsProductsLoaded(true);
         }
@@ -255,8 +289,8 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             const response = await productService.getStockUpdateById(jwtToken, initialId);
             const data = response?.data?.data || response?.data || response;
             if (data) {
-                const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || data.reason === "Open Stock" || data.reason === "openStock");
-                const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold");
+                const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || (!data.sourceStatus && (data.reason === "Open Stock" || data.reason === "openStock")));
+                const isHold = (data.sourceStatus === "holdQty" || data.sourceStatus === "onHold" || data.sourceStatus === "Hold Qty" || (!data.sourceStatus && (data.reason === "Hold Qty" || data.reason === "holdQty" || data.reason === "onHold")));
 
                 const openStockQuantity = data.variant?.stockUpdates?.openStockQuantity ?? data.stockUpdates?.openStockQuantity;
                 const qtyForSale = data.variant?.stockUpdates?.qtyForSale ?? data.stockUpdates?.qtyForSale;
