@@ -8,8 +8,9 @@ import PurchaseOrderForm from "./purchase-order-form";
 import ReceiveOrderForm from "./receive-order-form";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import { parseWallClockDate } from "../../utilities/date-time-utils";
 
-const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
+const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialData }) => {
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -119,11 +120,19 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
     }
 
     if (orderData.orderStatus === "received") {
-        return <ReceiveOrderForm requestId={requestId} onClose={onClose} mode="view" />;
+        return <ReceiveOrderForm requestId={requestId} onClose={onClose} mode="view" initialData={initialData} />;
     }
 
     if (isPdf) {
-        const columns = [
+        const isOrderPlaced = orderData.orderStatus === "order placed" || orderData.orderStatus === "cancel order";
+        const columns = isOrderPlaced ? [
+            { header: "S.NO", accessor: "sno" },
+            { header: "PRODUCT NAME", accessor: "productName", align: "left" },
+            { header: "QTY", accessor: "orderQty" },
+            { header: "UNIT", accessor: "variant" },
+            { header: "PRICE", accessor: "costPrice" },
+            { header: "AMOUNT", accessor: "amount", align: "right" }
+        ] : [
             { header: "S.NO", accessor: "sno" },
             { header: "PRODUCT NAME", accessor: "productName" },
             { header: "UNIT", accessor: "variant" },
@@ -134,16 +143,26 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
             { header: "AMOUNT", accessor: "amount" }
         ];
 
-        const pdfItems = orderData.items.map((item, idx) => ({
-            sno: String(idx + 1).padStart(2, '0'),
-            productName: item.productName,
-            variant: [item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--",
-            costPrice: item.costPrice ? `₹ ${item.costPrice}` : "-",
-            orderQty: item.qty,
-            tax: "-",
-            discount: "-",
-            amount: "-"
-        }));
+        const pdfItems = orderData.items.map((item, idx) => {
+            const cost = item.costPrice || 0;
+            const qty = item.qty || 0;
+            const amountVal = qty * cost;
+            return {
+                sno: String(idx + 1).padStart(2, '0'),
+                productName: item.productName,
+                variant: [item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--",
+                costPrice: item.costPrice ? `₹ ${item.costPrice}` : "-",
+                orderQty: item.qty,
+                tax: "-",
+                discount: "-",
+                amount: `₹ ${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            };
+        });
+
+        const totalAmount = orderData.items.reduce((acc, item) => acc + (item.qty * (item.costPrice || 0)), 0);
+        const summary = [
+            { label: "Total Amount", value: `₹ ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+        ];
 
         const formattedAddress = orderData.branchAddress?.addressText || [orderData.branchAddress?.flatNo, orderData.branchAddress?.area, orderData.branchAddress?.city, [orderData.branchAddress?.state, orderData.branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
         const formattedCountry = orderData.branchAddress?.country || "";
@@ -151,8 +170,9 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
         
         const customerAddress = [orderData.supplier?.street, orderData.supplier?.city, orderData.supplier?.state, orderData.supplier?.areaPinCode].filter(Boolean).join(", ") + (orderData.supplier?.country ? `, ${orderData.supplier?.country}` : "");
 
-        const orderDateFormatted = (orderData.modifiedDate || orderData.orderDate || orderData.createdDate) ?
-            new Date(orderData.modifiedDate || orderData.orderDate || orderData.createdDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "--";
+        const orderDateObj = orderData.orderDate ? parseWallClockDate(orderData.orderDate) : new Date(orderData.createdDate || orderData.modifiedDate || Date.now());
+        const orderDateFormatted = orderDateObj ?
+            new Intl.DateTimeFormat("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).format(orderDateObj) : "--";
 
         return (
             <PrintInvoiceTemplate
@@ -174,6 +194,8 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                 }}
                 columns={columns}
                 items={pdfItems}
+                summary={summary}
+                useDynamicColumns={isOrderPlaced}
                 onClose={() => setIsPdf(false)}
             />
         );
@@ -195,9 +217,9 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive }) => {
                             {orderData.orderStatus.toUpperCase()}
                         </span>
                         <div className={styles.summaryDate}>
-                            On {(orderData.modifiedDate || orderData.orderDate || orderData.createdDate) ?
-                                new Date(orderData.modifiedDate || orderData.orderDate || orderData.createdDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'long', year: 'numeric' }) :
-                                "--"
+                            On {orderData.orderDate ?
+                                new Intl.DateTimeFormat("en-GB", { day: '2-digit', month: 'long', year: 'numeric' }).format(parseWallClockDate(orderData.orderDate)) :
+                                (orderData.createdDate || orderData.modifiedDate ? new Date(orderData.createdDate || orderData.modifiedDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'long', year: 'numeric' }) : "--")
                             }
                         </div>
                     </div>

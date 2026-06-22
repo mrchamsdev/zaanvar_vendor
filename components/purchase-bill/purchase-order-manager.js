@@ -173,6 +173,7 @@ const PurchaseOrderManager = ({ onClose, onSave, mode = "Add", initialId, initia
                 <PurchaseOrderDetails
                     key={tab.id}
                     requestId={tab.id}
+                    initialData={tab.data}
                     onSave={onSave}
                     onClose={onBack}
                     onReceive={() => {

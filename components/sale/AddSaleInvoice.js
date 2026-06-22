@@ -282,6 +282,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             availableVariants: variants,
             availableBatches: batches,
             productError: null,
+            batchError: null,
             error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
         };
         setItems(newItems);
@@ -319,6 +320,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 amount: amount,
                 availableQty: availableQty,
                 availableBatches: batches,
+                batchError: null,
                 error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
             };
             setItems(newItems);
@@ -347,6 +349,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 taxAmount: taxAmount,
                 amount: amount,
                 availableQty: availableQty,
+                batchError: null,
                 error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
             };
             setItems(newItems);
@@ -368,6 +371,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     taxAmount: taxAmount,
                     amount: amount,
                     availableQty: availableQty,
+                    batchError: "Batch number is required",
                     error: calcQty > availableQty ? `Cannot exceed quantity (${availableQty})` : null
                 };
                 setItems(newItems);
@@ -445,15 +449,19 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             } else if (qtyVal > it.availableQty) {
                 itemErrors.qty = `Cannot exceed quantity (${it.availableQty})`;
             }
+            if (it.productId && it.availableBatches && it.availableBatches.length > 0 && !it.batchNumber) {
+                itemErrors.batch = "Batch number is required";
+            }
             return {
                 ...it,
                 productError: itemErrors.product || null,
                 qtyError: itemErrors.qty || null,
+                batchError: itemErrors.batch || null,
                 error: itemErrors.qty || null
             };
         });
 
-        const hasItemErrors = updatedItems.some(it => it.productError || it.qtyError);
+        const hasItemErrors = updatedItems.some(it => it.productError || it.qtyError || it.batchError);
         const hasFormErrors = Object.keys(validationErrors).length > 0;
 
         if (hasFormErrors || hasItemErrors) {
@@ -560,6 +568,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                     const fullName = `${c.firstName} ${c.lastName}`.trim();
                                                     setFormData(prev => ({ ...prev, partyName: fullName, phone: c.phoneNumber, vendorCustomerId: c.vendorCustomerId }));
                                                     setShowCustomerDropdown(false);
+                                                    setErrors(prev => ({ ...prev, partyName: null, phone: null }));
                                                 }}>
                                                     {c.firstName} {c.lastName} ({c.phoneNumber})
                                                 </div>
@@ -675,7 +684,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                                 return !search || (p.productName || "").toLowerCase().includes(search);
                                                             })
                                                             .map((p) => (
-                                                                 <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
+                                                                <div key={p.productId} className={styles.dropdownItem} onClick={() => handleProductSelect(idx, p)}>
                                                                     <span style={{ fontWeight: '600' }}>{p.productName}</span>
                                                                 </div>
                                                             ))
@@ -737,41 +746,48 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                     <span>{it.batchNumber || "N/A"}</span>
                                                 </div>
                                             ) : (
-                                                it.availableBatches && it.availableBatches.length > 0 ? (
-                                                    <div className={styles.unitSelector}>
-                                                        <select
-                                                            className={styles.unitSelect}
-                                                            value={it.batchNumber || ""}
-                                                            onChange={(e) => handleBatchChange(idx, e.target.value)}
-                                                            style={{
-                                                                appearance: "none",
-                                                                WebkitAppearance: "none",
-                                                                MozAppearance: "none",
-                                                                paddingRight: "16px",
-                                                                width: "100%",
-                                                                cursor: "pointer",
-                                                                fontWeight: "600",
-                                                                color: "#333",
-                                                                background: "transparent",
-                                                                border: "none",
-                                                                outline: "none",
-                                                                fontSize: "12px"
-                                                            }}
-                                                        >
-                                                            <option value="">Select Batch No</option>
-                                                            {it.availableBatches.map(b => (
-                                                                <option key={b.batchNumber} value={b.batchNumber}>
-                                                                    {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                        <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
-                                                    </div>
-                                                ) : (
-                                                    <div className={styles.unitSelector} style={{ justifyContent: "center" }}>
-                                                        <span style={{ color: "#999" }}>N/A</span>
-                                                    </div>
-                                                )
+                                                <>
+                                                    {it.availableBatches && it.availableBatches.length > 0 ? (
+                                                        <div className={styles.unitSelector} style={it.batchError ? { border: "1px solid #ff4d4f", background: "#fffcfc" } : {}}>
+                                                            <select
+                                                                className={styles.unitSelect}
+                                                                value={it.batchNumber || ""}
+                                                                onChange={(e) => handleBatchChange(idx, e.target.value)}
+                                                                style={{
+                                                                    appearance: "none",
+                                                                    WebkitAppearance: "none",
+                                                                    MozAppearance: "none",
+                                                                    paddingRight: "16px",
+                                                                    width: "100%",
+                                                                    cursor: "pointer",
+                                                                    fontWeight: "600",
+                                                                    color: "#333",
+                                                                    background: "transparent",
+                                                                    border: "none",
+                                                                    outline: "none",
+                                                                    fontSize: "12px"
+                                                                }}
+                                                            >
+                                                                <option value="">Select Batch No</option>
+                                                                {it.availableBatches.map(b => (
+                                                                    <option key={b.batchNumber} value={b.batchNumber}>
+                                                                        {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.unitSelector} style={it.batchError ? { border: "1px solid #ff4d4f", background: "#fffcfc", justifyContent: "center" } : { justifyContent: "center" }}>
+                                                            <span style={{ color: "#999" }}>N/A</span>
+                                                        </div>
+                                                    )}
+                                                    {it.batchError && (
+                                                        <div style={{ color: "#ff4d4f", fontSize: "10px", marginTop: "4px", fontWeight: "500", textAlign: "center" }}>
+                                                            {it.batchError}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </td>
                                         <td style={{ verticalAlign: 'middle', textAlign: 'center', fontWeight: '600', color: '#333' }}>

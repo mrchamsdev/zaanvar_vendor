@@ -4,7 +4,7 @@ import { FiChevronDown, FiPrinter } from "react-icons/fi";
 import PaymentDetailsPopup from "./payment-details-popup";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
-const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
+const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -65,6 +65,12 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
 
     const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
     const [isPdf, setIsPdf] = React.useState(false);
+
+    React.useEffect(() => {
+        if (initialData?.openPaymentPopup) {
+            setShowPaymentPopup(true);
+        }
+    }, [initialData?.openPaymentPopup]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return "-";
@@ -203,7 +209,16 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             summaryData.push({ label: "Damaged Amount", value: `- ₹ ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         summaryData.push(
-            { label: "Subtotal", value: `₹ ${(subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Discountable Amount", value: `₹ ${discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+        );
+        if (itemDiscountTotal > 0) {
+            summaryData.push({ label: "Item Discount", value: `- ₹ ${itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        if (itemTaxTotal > 0) {
+            summaryData.push({ label: "Item Tax", value: `₹ ${itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+        }
+        summaryData.push(
+            { label: "Subtotal", value: `₹ ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
         );
         if (overallDiscountVal > 0) {
             summaryData.push({ label: "Overall Discount", value: `- ₹ ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
@@ -248,6 +263,19 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             summaryData
         };
     }, [items, data, finalOverallTax, finalOverallDiscount, finalPreviousCredit, receivedDetails]);
+
+    const displayedBalanceAmount = (() => {
+        const val = data?.balanceAmount !== undefined && data?.balanceAmount !== null ? data.balanceAmount :
+                    data?.outstandingAmount !== undefined && data?.outstandingAmount !== null ? data.outstandingAmount :
+                    data?.receivedDetails?.balanceAmount !== undefined && data?.receivedDetails?.balanceAmount !== null ? data.receivedDetails.balanceAmount :
+                    data?.receivedDetails?.outstandingAmount !== undefined && data?.receivedDetails?.outstandingAmount !== null ? data.receivedDetails.outstandingAmount :
+                    null;
+        if (val !== null && !isNaN(Number(val))) return Number(val);
+        if (paymentStatus === "Full" || paymentStatus === "Paid") return 0;
+        const paid = Number(receivedDetails?.paidAmount || data?.amountPaidTosupplier || 0);
+        const diff = breakdown.finalAmount - paid;
+        return isNaN(diff) ? 0 : Math.max(0, diff);
+    })();
 
     if (isPdf) {
         const formattedAddress = branchAddress?.addressText || [branchAddress?.flatNo, branchAddress?.area, branchAddress?.city, [branchAddress?.state, branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -414,6 +442,17 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
                                 </div>
                             </td>
                         </tr>
+                        {displayedBalanceAmount !== null && (
+                            <tr className={styles.tableFooter}>
+                                <td colSpan={returnsApplicable ? 14 : 15} className={styles.totalLabelCell} style={{ borderTop: 'none', paddingTop: '8px', paddingBottom: '16px' }}>Balance Amount</td>
+                                <td className={styles.totalValueCell} style={{ borderTop: 'none', paddingTop: '8px', paddingBottom: '16px' }}>
+                                    <div className={styles.totalValueWrapper}>
+                                        <span>₹</span>
+                                        <span>{displayedBalanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
                     </tfoot>
                 </table>
             </div>
@@ -499,8 +538,20 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh }) => {
             {showPaymentPopup && (
                 <PaymentDetailsPopup
                     isOpen={showPaymentPopup}
-                    onClose={() => setShowPaymentPopup(false)}
-                    onRefresh={onRefresh || (() => window.location.reload())}
+                    onClose={() => {
+                        setShowPaymentPopup(false);
+                        if (initialData?.openPaymentPopup) {
+                            onClose();
+                        }
+                    }}
+                    onRefresh={() => {
+                        if (onRefresh) onRefresh();
+                        if (initialData?.openPaymentPopup) {
+                            onClose();
+                        } else {
+                            window.location.reload();
+                        }
+                    }}
                     data={{
                         purchaseRequestId: purchaseRequestId,
                         totalAmount: breakdown.finalAmount,

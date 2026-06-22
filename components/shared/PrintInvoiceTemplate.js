@@ -124,30 +124,73 @@ const PrintInvoiceTemplate = ({
             </tr>
           </thead>
           <tbody>
-            {items.map((item, rowIdx) => (
-              <tr key={rowIdx}>
-                <td>{sNoCol ? getVal(sNoCol, item, rowIdx) : String(rowIdx + 1).padStart(2, '0')}</td>
-                <td className={styles.left}>
-                  {productCol ? getVal(productCol, item, rowIdx) : item.productName || item.name || '-'}
-                </td>
-                <td>{qtyCol ? getVal(qtyCol, item, rowIdx) : item.quantity || item.qty || '1'}</td>
-                <td>{unitCol ? getVal(unitCol, item, rowIdx) : item.unit || '-'}</td>
-                <td>{priceCol ? getVal(priceCol, item, rowIdx) : '-'}</td>
-                <td style={{ padding: 0 }}>
-                  <div className={styles.nestedCell}>
-                    <span>{taxCol ? '0%' : '0%'}</span>
-                    <span>{taxCol ? getVal(taxCol, item, rowIdx) : '00'}</span>
-                  </div>
-                </td>
-                <td style={{ padding: 0 }}>
-                  <div className={styles.nestedCell}>
-                    <span>{discCol ? '0%' : '0%'}</span>
-                    <span>{discCol ? getVal(discCol, item, rowIdx) : '00'}</span>
-                  </div>
-                </td>
-                <td className={styles.right}>{amtCol ? getVal(amtCol, item, rowIdx) : '-'}</td>
-              </tr>
-            ))}
+            {items.map((item, rowIdx) => {
+              const getNumericVal = (val) => {
+                if (val === undefined || val === null || val === '-') return 0;
+                if (typeof val === 'string') {
+                  return parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
+                }
+                return parseFloat(val) || 0;
+              };
+
+              const qtyVal = qtyCol ? getNumericVal(getVal(qtyCol, item, rowIdx)) : (parseFloat(item.quantity || item.qty || item.returnQty || item.receivedQty || 1) || 0);
+              const priceVal = priceCol ? getNumericVal(getVal(priceCol, item, rowIdx)) : (parseFloat(item.price || item.costPrice || item.cost || item.rate || item.sellingPrice || 0) || 0);
+
+              const taxPercentVal = taxCol ? getNumericVal(getVal(taxCol, item, rowIdx)) : 0;
+              const discPercentVal = discCol ? getNumericVal(getVal(discCol, item, rowIdx)) : 0;
+
+              const subtotal = qtyVal * priceVal;
+
+              let discAmt = 0;
+              if (item.discountAmount !== undefined) {
+                discAmt = parseFloat(item.discountAmount) || 0;
+              } else if (item.discountAmt !== undefined) {
+                discAmt = parseFloat(item.discountAmt) || 0;
+              } else {
+                discAmt = subtotal * (discPercentVal / 100);
+              }
+
+              let taxAmt = 0;
+              if (item.taxAmount !== undefined) {
+                taxAmt = parseFloat(item.taxAmount) || 0;
+              } else if (item.taxAmt !== undefined) {
+                taxAmt = parseFloat(item.taxAmt) || 0;
+              } else {
+                const amtAfterDiscount = subtotal - discAmt;
+                taxAmt = amtAfterDiscount * (taxPercentVal / 100);
+              }
+
+              discAmt = Math.round(discAmt * 100) / 100;
+              taxAmt = Math.round(taxAmt * 100) / 100;
+
+              const formattedTaxAmt = taxAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const formattedDiscAmt = discAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+              return (
+                <tr key={rowIdx}>
+                  <td>{sNoCol ? getVal(sNoCol, item, rowIdx) : String(rowIdx + 1).padStart(2, '0')}</td>
+                  <td className={styles.left}>
+                    {productCol ? getVal(productCol, item, rowIdx) : item.productName || item.name || '-'}
+                  </td>
+                  <td>{qtyCol ? getVal(qtyCol, item, rowIdx) : item.quantity || item.qty || '1'}</td>
+                  <td>{unitCol ? getVal(unitCol, item, rowIdx) : item.unit || '-'}</td>
+                  <td>{priceCol ? getVal(priceCol, item, rowIdx) : '-'}</td>
+                  <td style={{ padding: 0 }}>
+                    <div className={styles.nestedCell}>
+                      <span>{taxPercentVal}%</span>
+                      <span>{formattedTaxAmt}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: 0 }}>
+                    <div className={styles.nestedCell}>
+                      <span>{discPercentVal}%</span>
+                      <span>{formattedDiscAmt}</span>
+                    </div>
+                  </td>
+                  <td className={styles.right}>{amtCol ? getVal(amtCol, item, rowIdx) : '-'}</td>
+                </tr>
+              );
+            })}
             <tr className={styles.tableTotalRow}>
               <td colSpan={2} className={styles.left}>TOTAL</td>
               <td>{items.reduce((acc, item) => acc + parseFloat(item.quantity || item.qty || item.orderQty || item.receivedQty || 0), 0).toString().padStart(2, '0')}</td>
