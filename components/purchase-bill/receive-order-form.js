@@ -8,7 +8,7 @@ import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi
 import PurchaseOrderSummary from "./purchase-order-summary";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
-const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
+const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialData }) => {
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -473,7 +473,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit" }) => {
 
     // IF ORDER IS RECEIVED, SHOW SUMMARY VIEW
     if (orderData.orderStatus === 'received' || isView) {
-        return <PurchaseOrderSummary data={orderData} onClose={onClose} onRefresh={fetchOrderDetails} />;
+        return <PurchaseOrderSummary data={orderData} onClose={onClose} onRefresh={fetchOrderDetails} initialData={initialData} />;
     }
 
     return (

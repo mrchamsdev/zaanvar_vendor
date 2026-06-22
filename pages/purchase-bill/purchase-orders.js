@@ -372,6 +372,18 @@ const PurchaseOrdersPage = () => {
         }
     }, [router.isReady, router.query.openAdd]);
 
+    useEffect(() => {
+        if (router.isReady && router.query.viewOrderId) {
+            const orderId = parseInt(router.query.viewOrderId, 10);
+            if (!isNaN(orderId)) {
+                openOrder(orderId, "View", { openPaymentPopup: router.query.openPaymentPopup === 'true' });
+            }
+            // Clear query params
+            const { viewOrderId, openPaymentPopup, ...restQuery } = router.query;
+            router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+        }
+    }, [router.isReady, router.query.viewOrderId]);
+
     const handleBranchChange = (e) => {
         router.push({
             pathname: router.pathname,
@@ -580,9 +592,11 @@ const PurchaseOrdersPage = () => {
                         initialData={managerConfig.initialData}
                         trigger={managerTrigger}
                         totalOrders={stats.total}
-                        onSave={() => {
+                         onSave={() => {
                             if (managerConfig.initialData?.returnTab) {
                                 router.push(`/inventory/stock-status?tab=${managerConfig.initialData.returnTab}`);
+                            } else if (managerConfig.initialData?.openPaymentPopup) {
+                                router.push(`/notifications?tab=Payments`);
                             } else {
                                 setManagerConfig(null);
                                 fetchOrders();
@@ -591,6 +605,8 @@ const PurchaseOrdersPage = () => {
                         onClose={() => {
                             if (managerConfig.initialData?.returnTab) {
                                 router.push(`/inventory/stock-status?tab=${managerConfig.initialData.returnTab}`);
+                            } else if (managerConfig.initialData?.openPaymentPopup) {
+                                router.push(`/notifications?tab=Payments`);
                             } else {
                                 setManagerConfig(null);
                                 fetchOrders();
@@ -733,9 +749,9 @@ const PurchaseOrdersPage = () => {
                                             />
                                         )}
                                     </th>
-                                    <th>Purchase Order</th>
-                                    <th>Invoice</th>
-                                    <th>ACTIONS</th>
+                                     <th>Purchase Order</th>
+                                     <th>Payment Status</th>
+                                     <th>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -772,7 +788,53 @@ const PurchaseOrdersPage = () => {
                                                         }>
                                                             {(item.paymentStatus === "Full" || item.paymentStatus === "Paid") ? "Paid" : (item.paymentStatus || "Pending")}
                                                         </span>
-                                                        <span className={styles.statusSecondary}>{formatDate(item.createdDate)}</span>
+                                                        {(() => {
+                                                            const isPaid = item.paymentStatus === "Full" || item.paymentStatus === "Paid";
+                                                            if (isPaid) {
+                                                                return (
+                                                                    <span className={styles.statusSecondary}>
+                                                                        {formatDate(item.fullPaymentDate || item.createdDate)}
+                                                                    </span>
+                                                                );
+                                                            } else {
+                                                                const dueDateVal = item.dueDate || item.duedate;
+                                                                const overdueDays = (() => {
+                                                                    if (!dueDateVal) return null;
+                                                                    const today = new Date();
+                                                                    today.setHours(0, 0, 0, 0);
+                                                                    const due = new Date(dueDateVal);
+                                                                    due.setHours(0, 0, 0, 0);
+                                                                    const diffTime = today - due;
+                                                                    if (diffTime <= 0) return null;
+                                                                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                                })();
+
+                                                                if (overdueDays) {
+                                                                    return (
+                                                                        <>
+                                                                            <span className={styles.statusSecondary} style={{ color: '#E9315D', fontWeight: 'bold' }}>
+                                                                                Overdue by {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
+                                                                            </span>
+                                                                            <span className={styles.statusSecondary}>
+                                                                                Due: {formatDate(dueDateVal)}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                } else if (dueDateVal) {
+                                                                    return (
+                                                                        <span className={styles.statusSecondary}>
+                                                                            Due: {formatDate(dueDateVal)}
+                                                                        </span>
+                                                                    );
+                                                                } else {
+                                                                    return (
+                                                                        <span className={styles.statusSecondary}>
+                                                                            {formatDate(item.createdDate)}
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                            }
+                                                        })()}
                                                     </div>
                                                 )}
                                             </td>

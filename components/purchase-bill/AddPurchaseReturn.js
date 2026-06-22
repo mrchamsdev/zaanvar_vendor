@@ -54,6 +54,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     const [returnDate, setReturnDate] = useState(toApiDateOnly(new Date()));
     const [returnReason, setReturnReason] = useState("");
     const [allReturns, setAllReturns] = useState([]);
+    const [returnAmount, setReturnAmount] = useState("");
 
     const [items, setItems] = useState([]); // [{ productsBillItemsId, productId, productName, receivedQty, returnQty, costPrice, taxGroupId, amount }]
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index of the row showing dropdown
@@ -96,6 +97,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             setItems([]);
             setShowProductDropdown(null);
             setErrors({});
+            setReturnAmount("");
 
             init();
             if ((mode === 'view' || mode === 'edit') && returnId) {
@@ -126,6 +128,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 setSelectedBillId(data.productsBillId?.toString() || "");
                 setReturnNo(data.returnProductsId);
                 setReturnReason(data.returnReason || "");
+                setReturnAmount(data.returnAmount || data.totalAmount || "");
 
                 const isAutomatedReturn = data.returnReason === "Automated return for damaged goods at receipt";
 
@@ -172,7 +175,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 const amtAfterDiscount = subtotal - discountAmount;
                                 const taxPercent = isAutomatedReturn ? 0 : (billItem ? parseFloat(billItem.taxGroupId || 0) : 0);
                                 const taxAmount = isAutomatedReturn ? 0 : ((amtAfterDiscount * taxPercent) / 100);
-                                const finalAmount = isAutomatedReturn ? parseFloat(it.amount || 0) : (amtAfterDiscount + taxAmount);
+                                const finalAmount = amtAfterDiscount + taxAmount;
 
                                 return {
                                     productsBillItemsId: it.productsBillItemsId,
@@ -210,7 +213,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             const subtotal = returnQty * costPrice;
                             const discountAmount = isAutomatedReturn ? 0 : ((subtotal * discountPercent) / 100);
                             const amtAfterDiscount = subtotal - discountAmount;
-                            const finalAmount = isAutomatedReturn ? parseFloat(it.amount || 0) : amtAfterDiscount;
+                            const finalAmount = amtAfterDiscount;
                             return {
                                 productsBillItemsId: it.productsBillItemsId,
                                 productId: it.productId,
@@ -549,7 +552,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     const totalPrice = items.reduce((acc, it) => acc + (parseFloat(it.costPrice) || 0), 0);
     const totalTax = items.reduce((acc, it) => acc + (parseFloat(it.taxAmount) || 0), 0);
     const totalDiscount = items.reduce((acc, it) => acc + (parseFloat(it.discountAmount) || 0), 0);
-    const totalAmount = items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0);
+    const totalAmount = (isViewOnly && returnAmount) ? parseFloat(returnAmount) : items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0);
 
     const handleSave = async () => {
         let hasError = false;
@@ -900,6 +903,17 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 </div>
                             )}
                         </div>
+                        {isViewOnly && (
+                            <div className={styles.field}>
+                                <label>Return Amount</label>
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={returnAmount ? `₹ ${Number(returnAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
+                                    disabled
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.tableContainer}>

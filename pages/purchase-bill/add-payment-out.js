@@ -82,7 +82,9 @@ const PaymentOutFormPage = () => {
 
                 // Supplier lookup
                 const supplier = suppliersList.find(s => s.supplierId === t.supplierId);
-                setSupplierName(supplier ? `${supplier.supplierName} (${supplier.phone || ""})` : (t.transactionInfo || "Supplier"));
+                const sName = supplier?.supplierName || t.supplierName || "";
+                const sPhone = supplier?.phone || "";
+                setSupplierName(sName ? `${sName}${sPhone ? ` (${sPhone})` : ""}` : (t.transactionInfo || "Supplier"));
 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(t.overallBillAmount || totals.supplierTotalAmount || "000");
