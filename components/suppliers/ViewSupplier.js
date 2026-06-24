@@ -214,7 +214,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                             return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
                                         })()}
                                     </td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t.totalAmount || t.amount || t.totalAmount || t.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayPaymentType(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayReferenceNumber(t)}</td>
