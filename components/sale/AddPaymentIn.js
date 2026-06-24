@@ -38,6 +38,47 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         userOrderId: ""
     });
 
+    const [payments, setPayments] = useState([
+        { method: "Cash", amount: "", referenceNumber: "" }
+    ]);
+
+    const [useWallet, setUseWallet] = useState(false);
+    const [savedWalletAmount, setSavedWalletAmount] = useState(0);
+
+    const selectedCustomerObj = useMemo(() => {
+        if (formData.vendorCustomerId) {
+            return customers.find(c => c.vendorCustomerId === formData.vendorCustomerId) || null;
+        }
+        return null;
+    }, [customers, formData.vendorCustomerId]);
+
+    const walletAmount = useMemo(() => {
+        if (mode !== 'add' && useWallet && savedWalletAmount > 0) {
+            return savedWalletAmount;
+        }
+        return selectedCustomerObj?.overallTotals?.walletAmount || selectedCustomerObj?.walletAmount || 0;
+    }, [mode, useWallet, savedWalletAmount, selectedCustomerObj]);
+
+    const appliedWalletAmount = useMemo(() => {
+        if (!useWallet || walletAmount <= 0) return 0;
+        if (mode !== 'add') {
+            return walletAmount;
+        }
+        const paidAmountNum = parseFloat(formData.paidAmount) || 0;
+        return Math.min(walletAmount, paidAmountNum);
+    }, [useWallet, walletAmount, formData.paidAmount, mode]);
+
+    useEffect(() => {
+        if (payments.length === 1) {
+            const paidNum = parseFloat(formData.paidAmount) || 0;
+            const remaining = Math.max(0, paidNum - appliedWalletAmount);
+            setPayments([{
+                ...payments[0],
+                amount: remaining > 0 ? remaining.toString() : ""
+            }]);
+        }
+    }, [appliedWalletAmount]);
+
     const imagePreviewUrl = useMemo(() => {
         if (selectedImage) {
             try {
@@ -55,13 +96,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         return null;
     }, [selectedImage, formData.image]);
 
-    const [payments, setPayments] = useState([
-        { method: "Cash", amount: "", referenceNumber: "" }
-    ]);
-
     useEffect(() => {
         if (isOpen) {
-            fetchCustomers();
             if (prefill && Object.keys(prefill).length > 0) {
                 const customer = prefill.customer || {};
                 const custName = customer.firstName ? `${customer.firstName} ${customer.lastName}`.trim() : (prefill.partyName || "");
@@ -93,6 +129,12 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             }
         }
     }, [isOpen, mode, paymentId, prefill]);
+
+    useEffect(() => {
+        if (isOpen && jwtToken && branchId) {
+            fetchCustomers();
+        }
+    }, [isOpen, jwtToken, branchId]);
 
     useEffect(() => {
         if (!loading && isOpen && mode === "view" && router.query.print === "true") {
@@ -176,19 +218,37 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     userOrderId: data.userOrderId || (isPayment ? data.order?.userOrderId : "") || ""
                 });
 
+                let hasWalletPayment = false;
+                let walletPaidAmt = 0;
+
                 if (data.paymentMethods && data.paymentMethods.length > 0) {
-                    setPayments(data.paymentMethods.map(pm => ({
-                        method: pm.paymentMethod || "Cash",
-                        amount: pm.amount || "",
-                        referenceNumber: pm.referenceNumber || pm.transactionRef || ""
-                    })));
-                } else {
-                    setPayments([{
-                        method: data.paymentMethod || "Cash",
-                        amount: isPayment ? (data.amount || "") : (data.paidAmount || ""),
-                        referenceNumber: isPayment ? (data.referenceNumber || data.transactionRef || "") : ""
-                    }]);
+                    const nonWallet = [];
+                    data.paymentMethods.forEach(pm => {
+                        const m = pm.paymentMethod || pm.method || "Cash";
+                        if (m === "Wallet") {
+                            hasWalletPayment = true;
+                            walletPaidAmt = parseFloat(pm.amount || 0);
+                        } else {
+                            nonWallet.push({
+                                method: m,
+                                amount: pm.amount || "",
+                                referenceNumber: pm.referenceNumber || pm.transactionRef || ""
+                            });
+                        }
+                    });
+                    setPayments(nonWallet.length > 0 ? nonWallet : [{ method: "Cash", amount: "", referenceNumber: "" }]);
+                } else if (data.amount || data.paidAmount) {
+                    const amt = isPayment ? (data.amount || 0) : (data.paidAmount || 0);
+                    if (data.paymentMethod === "Wallet") {
+                        hasWalletPayment = true;
+                        walletPaidAmt = parseFloat(amt);
+                        setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
+                    } else {
+                        setPayments([{ method: data.paymentMethod || "Cash", amount: amt, referenceNumber: data.referenceNumber || data.transactionRef || "" }]);
+                    }
                 }
+                setUseWallet(hasWalletPayment);
+                setSavedWalletAmount(walletPaidAmt);
                 setSearchTerm(data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`);
             }
         } catch (error) {
@@ -214,6 +274,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setSearchTerm("");
         setSelectedImage(null);
         setErrors({});
+        setUseWallet(false);
+        setSavedWalletAmount(0);
     };
 
     const filteredCustomers = useMemo(() => {
@@ -234,6 +296,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setSearchTerm(`${customer.firstName} ${customer.lastName}`);
         setShowCustomerDropdown(false);
         setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
+        setUseWallet(false);
+        setSavedWalletAmount(0);
     };
 
     const handleAddPaymentRow = () => {
@@ -244,7 +308,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         const newPayments = payments.filter((_, i) => i !== index);
         setPayments(newPayments.length > 0 ? newPayments : [{ method: "Cash", amount: "", referenceNumber: "" }]);
 
-        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
         const paidAmountNum = parseFloat(formData.paidAmount);
 
         setErrors(prev => {
@@ -284,7 +348,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         newPayments[index][field] = sanitizedVal;
         setPayments(newPayments);
 
-        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+        const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
         const paidAmountNum = parseFloat(formData.paidAmount);
 
         setErrors(prev => {
@@ -315,14 +379,17 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             newErrors.paidAmount = "Paid amount is required";
         }
 
-        payments.forEach((p, idx) => {
-            const pAmountNum = parseFloat(p.amount);
-            if (!p.amount || isNaN(pAmountNum) || pAmountNum <= 0) {
-                newErrors[`paymentAmount_${idx}`] = "Amount paid is required";
-            }
-        });
+        const remainingToPay = paidAmountNum - appliedWalletAmount;
+        if (remainingToPay > 0) {
+            payments.forEach((p, idx) => {
+                const pAmountNum = parseFloat(p.amount);
+                if (!p.amount || isNaN(pAmountNum) || pAmountNum <= 0) {
+                    newErrors[`paymentAmount_${idx}`] = "Amount paid is required";
+                }
+            });
+        }
 
-        const totalPaid = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+        const totalPaid = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
         if (!newErrors.paidAmount && totalPaid > paidAmountNum) {
             newErrors.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
         }
@@ -345,6 +412,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     referenceNumber: p.referenceNumber || ""
                 }));
 
+                if (useWallet && appliedWalletAmount > 0) {
+                    paymentMethods.push({
+                        paymentMethod: "Wallet",
+                        amount: appliedWalletAmount,
+                        transactionRef: "Wallet Deduction",
+                        referenceNumber: "Wallet Deduction"
+                    });
+                }
+
                 const updatePayload = {
                     branchId,
                     vendorCustomerId: formData.vendorCustomerId,
@@ -365,6 +441,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     transactionRef: p.referenceNumber || "",
                     referenceNumber: p.referenceNumber || ""
                 }));
+
+                if (useWallet && appliedWalletAmount > 0) {
+                    paymentMethods.push({
+                        paymentMethod: "Wallet",
+                        amount: appliedWalletAmount,
+                        transactionRef: "Wallet Deduction",
+                        referenceNumber: "Wallet Deduction"
+                    });
+                }
 
                 const payload = {
                     branchId,
@@ -466,10 +551,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     "Paid Amount": `₹${formData.paidAmount || "0"}`
                 }}
                 columns={columns}
-                items={payments.length > 0 ? payments.map(p => ({
-                    ...p,
-                    referenceNumber: p.referenceNumber || formData.userOrderId || formData.referenceNumber || "-"
-                })) : [{ method: 'Cash', referenceNumber: formData.referenceNumber || formData.userOrderId || '-', amount: formData.paidAmount || 0 }]}
+                items={[
+                    ...(useWallet && appliedWalletAmount > 0 ? [{ method: 'Wallet', referenceNumber: 'Wallet Deduction', amount: appliedWalletAmount }] : []),
+                    ...payments.filter(p => parseFloat(p.amount) > 0).map(p => ({
+                        ...p,
+                        referenceNumber: p.referenceNumber || formData.userOrderId || formData.referenceNumber || "-"
+                    }))
+                ]}
                 summary={summary}
                 notes={formData.description}
                 onClose={() => window.close()}
@@ -626,12 +714,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     let newPayments = payments;
                                     if (payments.length === 1) {
                                         newPayments = [...payments];
-                                        newPayments[0].amount = cleanVal;
+                                        const remaining = Math.max(0, parseFloat(cleanVal || 0) - appliedWalletAmount);
+                                        newPayments[0].amount = remaining > 0 ? remaining.toString() : "";
                                         setPayments(newPayments);
                                         setErrors(prev => ({ ...prev, paymentAmount_0: undefined }));
                                     }
 
-                                    const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+                                    const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
                                     const num = parseFloat(cleanVal);
                                     setErrors(prev => {
                                         const updated = { ...prev, paidAmount: undefined };
@@ -656,6 +745,27 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#888', textTransform: 'uppercase' }}>Amount Paid</label>
                                 <div></div>
                             </div>
+                            {walletAmount > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '16px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={useWallet}
+                                        onChange={(e) => setUseWallet(e.target.checked)}
+                                        disabled={isViewOnly}
+                                        style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
+                                    />
+                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString()})</span>
+                                </div>
+                            )}
+                            {useWallet && appliedWalletAmount > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', marginBottom: '16px', alignItems: 'start' }}>
+                                    <select className={styles.select} value="Wallet" disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed', marginTop: '2px' }}>
+                                        <option value="Wallet">Wallet</option>
+                                    </select>
+                                    <input type="number" className={styles.input} value={appliedWalletAmount} disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed', fontWeight: '700' }} />
+                                    <div></div>
+                                </div>
+                            )}
                             {payments.map((p, idx) => (
                                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', marginBottom: '16px', alignItems: 'start' }}>
                                     <select
