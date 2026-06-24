@@ -182,7 +182,7 @@
 
 .sidebarNav li.active a,
 .sidebarNav li.active div.navGroupHeader {
-  background: #111;
+  background: #000;
   color: #fff;
   border-radius: 8px;
   margin: 0 8px;
