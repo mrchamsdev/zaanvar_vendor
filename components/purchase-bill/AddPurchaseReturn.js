@@ -199,7 +199,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     tax: taxPercent,
                                     taxAmount: taxAmount,
                                     amount: finalAmount,
-                                    damageQty: it.damageQty || 0
+                                    damageQty: it.damageQty || 0,
+                                    openStockWithoutDamage: it.openStockWithoutDamage || 0,
+                                    onHoldWithoutDamage: it.onHoldWithoutDamage || 0
                                 };
                             });
                             setItems(mappedItems);
@@ -235,7 +237,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 tax: 0,
                                 taxAmount: 0,
                                 amount: finalAmount,
-                                damageQty: it.damageQty || 0
+                                damageQty: it.damageQty || 0,
+                                openStockWithoutDamage: it.openStockWithoutDamage || 0,
+                                onHoldWithoutDamage: it.onHoldWithoutDamage || 0
                             };
                         });
                         setItems(mappedItems);
@@ -496,12 +500,20 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             return (item.included || 0) + (item.excluded || 0);
         }
         if (item.sourceStatus === "Open Stock") {
+            if ((mode === "view" || mode === "edit") && item.openStockWithoutDamage !== undefined) {
+                return item.openStockWithoutDamage;
+            }
             const openStock = (item.openStockQuantity !== undefined && item.openStockQuantity !== null)
                 ? item.openStockQuantity
                 : ((item.totalQuantity || 0) - (item.excluded || 0));
             return openStock - (item.included || 0);
         }
-        if (item.sourceStatus === "Hold Stock") return item.onHoldQuantity || 0;
+        if (item.sourceStatus === "Hold Stock") {
+            if ((mode === "view" || mode === "edit") && item.onHoldWithoutDamage !== undefined) {
+                return item.onHoldWithoutDamage;
+            }
+            return item.onHoldQuantity || 0;
+        }
         return item.receivedQty || 0;
     };
 
