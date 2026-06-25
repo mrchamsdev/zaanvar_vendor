@@ -126,7 +126,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             unit: unitVal,
                             batchNumber: item.batchNumber || "N/A",
                             price: parseFloat(item.sellingPrice) || 0,
-                            taxPercentage: parseFloat(item.taxPercentage) || 0,
+                            taxPercentage: parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId || 0)) || 0,
                             discountPercentage: parseFloat(item.discountPercentage) || 0,
                         };
                     });
@@ -141,7 +141,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
                 });
 
-                setItems((data.items || []).map(item => {
+                setItems((data.items || data.cartItems || []).map(item => {
                     const original = availableItemsList.find(ai => ai.userOrderItemsID === item.userOrderItemsID);
                     return {
                         userOrderItemsID: item.userOrderItemsID,
@@ -151,8 +151,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         returnableQty: original?.returnableQty || item.quantity,
                         unit: original?.unit || "Unit",
                         price: parseFloat(item.sellingPrice || item.returnAmount) || 0,
-                        taxPercentage: parseFloat(item.taxAmount || 0),
-                        discountPercentage: parseFloat(item.discount || 0),
+                        taxPercentage: original?.taxPercentage !== undefined ? original.taxPercentage : parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId !== undefined && item.taxGroupId !== null ? item.taxGroupId : (item.taxAmount || 0))),
+                        discountPercentage: original?.discountPercentage !== undefined ? original.discountPercentage : parseFloat(item.discountPercentage !== undefined && item.discountPercentage !== null ? item.discountPercentage : (item.discount || item.discountForItem || 0)),
                         returnCondition: item.returnCondition || "Resellable",
                         itemTotal: parseFloat(item.returnAmount) || 0,
                         batchNumber: original?.batchNumber || item.batchNumber || "N/A"
@@ -218,7 +218,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     unit: unitVal,
                     batchNumber: item.batchNumber || "N/A",
                     price: parseFloat(item.sellingPrice) || 0,
-                    taxPercentage: parseFloat(item.taxPercentage) || 0,
+                    taxPercentage: parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId || 0)) || 0,
                     discountPercentage: parseFloat(item.discountPercentage) || 0,
                 };
             }));
@@ -786,8 +786,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 <tr style={{ fontWeight: '700', borderTop: '2px solid #eee' }}>
                                     <td colSpan="2" style={{ paddingTop: '20px' }}>TOTAL</td>
                                     <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0)}</td>
-                                    <td colSpan="2" style={{ paddingTop: '20px' }}></td>
                                     <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px' }}></td>
                                     <td style={{ paddingTop: '20px' }}></td>
                                     <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
                                     <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
