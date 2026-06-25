@@ -197,7 +197,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 taxPercent: parseFloat(it.taxPercentage || 0),
                 taxAmount: taxAmount,
                 amount: amount,
-                availableQty: variant.currentQty || 0,
+                availableQty: it.openQty !== undefined ? it.openQty : (variant.currentQty || 0),
                 availableVariants: variant.variantId ? [variant] : [],
                 availableBatches: variant.batchNumbers || []
             };
@@ -728,7 +728,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 sellingPrice: it.price,
                 taxPercentage: it.taxPercent,
                 taxAmount: it.taxAmount,
-                itemTotal: it.amount
+                itemTotal: it.amount,
+                openQty: parseInt(it.availableQty) || 0
             })),
             createdBy: userInfo?.id || 1,
             modifiedBy: mode === "edit" ? userInfo?.id || 1 : null
