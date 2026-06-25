@@ -496,7 +496,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             return (item.included || 0) + (item.excluded || 0);
         }
         if (item.sourceStatus === "Open Stock") {
-            const openStock = item.openStockQuantity || ((item.totalQuantity || 0) - (item.excluded || 0));
+            const openStock = (item.openStockQuantity !== undefined && item.openStockQuantity !== null)
+                ? item.openStockQuantity
+                : ((item.totalQuantity || 0) - (item.excluded || 0));
             return openStock - (item.included || 0);
         }
         if (item.sourceStatus === "Hold Stock") return item.onHoldQuantity || 0;
@@ -669,7 +671,9 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 batchNumber: it.batchNumber,
                 qty: it.returnQty,
                 sourceStatus: it.sourceStatus === "Open Stock" ? "openStock" : (it.sourceStatus === "Hold Stock" ? "hold" : (it.sourceStatus === "Damaged" ? "damaged" : it.sourceStatus)),
-                damageQty: it.sourceStatus === "Damaged" ? (getMaxQty(it) || 0) : 0
+                damageQty: it.sourceStatus === "Damaged" ? (getMaxQty(it) || 0) : 0,
+                openStockWithoutDamage: it.sourceStatus === "Open Stock" ? (getMaxQty(it) || 0) : 0,
+                onHoldWithoutDamage: it.sourceStatus === "Hold Stock" ? (getMaxQty(it) || 0) : 0
             }))
         };
 

@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "../../styles/customers/customers.module.css";
 import EmptyState from "../utilities/EmptyState";
+import { FiMoreVertical } from "react-icons/fi";
 
 const formatDate = (dateString) => {
   if (!dateString) return "-";
@@ -163,28 +164,32 @@ const CustomerList = ({
                   <td>0</td>
                   <td>{formatDate(c.createdAt)}</td>
                   <td className={styles.actionCell}>
-                    <button
-                      className={styles.threeDotsBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuId(activeMenuId === c.vendorCustomerId ? null : c.vendorCustomerId);
-                      }}
-                    >
-                      <IconThreeDots />
-                    </button>
-                    {activeMenuId === c.vendorCustomerId && (
-                      <div className={styles.dropdownMenu}>
-                        <div className={styles.dropdownItem} onClick={() => { onView(c.vendorCustomerId); setActiveMenuId(null); }}>
-                          <IconEye /> View
-                        </div>
-                        <div className={styles.dropdownItem} onClick={() => { onEdit(c.vendorCustomerId); setActiveMenuId(null); }}>
-                          <IconEdit /> Edit
-                        </div>
-                        <div className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`} onClick={() => { onDelete(c.vendorCustomerId); setActiveMenuId(null); }}>
-                          <IconTrash /> Delete
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <button
+                          className={styles.threeDotsBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId(activeMenuId === c.vendorCustomerId ? null : c.vendorCustomerId);
+                          }}
+                        >
+                          <FiMoreVertical />
+                        </button>
+                        {activeMenuId === c.vendorCustomerId && (
+                          <div className={styles.dropdownMenu}>
+                            <div className={styles.dropdownItem} onClick={() => { onView(c.vendorCustomerId); setActiveMenuId(null); }}>
+                              View
+                            </div>
+                            <div className={styles.dropdownItem} onClick={() => { onEdit(c.vendorCustomerId); setActiveMenuId(null); }}>
+                              Edit
+                            </div>
+                            <div className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`} onClick={() => { onDelete(c.vendorCustomerId); setActiveMenuId(null); }}>
+                              Delete
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
