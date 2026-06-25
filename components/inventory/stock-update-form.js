@@ -243,7 +243,13 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
             // Merge missing batches from history to ensure batches with 0 open qty still appear
             if (historyList.length > 0 && productsList.length > 0) {
-                historyList.forEach(update => {
+                const sortedHistory = [...historyList].sort((a, b) => {
+                    const dateA = new Date(a.modifiedDate || a.createdDate || 0).getTime();
+                    const dateB = new Date(b.modifiedDate || b.createdDate || 0).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    return (b.stockUpdateId || 0) - (a.stockUpdateId || 0);
+                });
+                sortedHistory.forEach(update => {
                     if (update.batchNumber && update.variantId) {
                         const product = productsList.find(p => p.productId === parseInt(update.productId));
                         if (product && product.variants) {
@@ -258,10 +264,11 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                         costPrice: update.billItem?.costPrice || update.costPrice || variant.costPrice || 0,
                                         mrp: variant.mrp || 0,
                                         quantity: 0,
+                                        isFromHistory: true,
                                         stockUpdates: {
                                             openStockQuantity: 0,
-                                            onHoldQuantity: update.holdQty || 0,
-                                            totalQuantity: update.stock || 0
+                                            onHoldQuantity: 0,
+                                            totalQuantity: 0
                                         }
                                     });
                                 }
@@ -310,8 +317,11 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 let updatedQtyVal = baseQty;
                 let currentQtyVal = updatedQtyVal - (data.add || 0) + (data.remove || 0);
 
-                let displayCurrentQty = isOS ? ((data.openQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (isHold ? ((data.holdQty ?? updatedQtyVal) - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal));
-                let displayUpdatedQty = isOS ? (data.openQty ?? updatedQtyVal) : (isHold ? (data.holdQty ?? updatedQtyVal) : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal));
+                const openQtyVal = (openStockQuantity !== undefined && openStockQuantity !== null) ? openStockQuantity : (data.openQty ?? updatedQtyVal);
+                const holdQtyVal = (onHoldQuantity !== undefined && onHoldQuantity !== null) ? onHoldQuantity : (data.holdQty ?? updatedQtyVal);
+
+                let displayCurrentQty = isOS ? (openQtyVal - (data.add || 0) + (data.remove || 0)) : (isHold ? (holdQtyVal - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal));
+                let displayUpdatedQty = isOS ? openQtyVal : (isHold ? holdQtyVal : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal));
 
                 const reasonLower = (data.reason || "").trim().toLowerCase();
                 if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {
@@ -394,18 +404,28 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             if (!runningQuantities[key]) {
                 let stockData = variant.stockUpdates || {};
                 let totalStock = variant.currentQty ?? variant.stockQty ?? 0;
+                let openStockVal = stockData.openStockQuantity || variant.openStockQuantity || variant.openingStock || 0;
+                let holdQtyVal = stockData.onHoldQuantity || variant.onHoldQuantity || variant.holdQty || variant.holdQuantity || 0;
 
                 if (row.batchNumber && variant.batchNumbers) {
                     const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
                     if (batch) {
-                        stockData = batch.stockUpdates || {};
-                        totalStock = batch.quantity ?? 0;
+                        if (batch.isFromHistory) {
+                            totalStock = variant.currentQty ?? variant.stockQty ?? 0;
+                            openStockVal = variant.stockUpdates?.openStockQuantity || variant.openStockQuantity || variant.openingStock || 0;
+                            holdQtyVal = variant.stockUpdates?.onHoldQuantity || variant.onHoldQuantity || variant.holdQty || variant.holdQuantity || 0;
+                        } else {
+                            stockData = batch.stockUpdates || {};
+                            totalStock = batch.quantity ?? 0;
+                            openStockVal = (stockData.openStockQuantity || batch.openStockQuantity || batch.openQty || batch.openingStock || batch.quantity || 0) || (variant.stockUpdates?.openStockQuantity || variant.openStockQuantity || variant.openingStock || 0);
+                            holdQtyVal = (stockData.onHoldQuantity || batch.onHoldQuantity || batch.holdQty || batch.holdQuantity || 0) || (variant.stockUpdates?.onHoldQuantity || variant.onHoldQuantity || variant.holdQty || variant.holdQuantity || 0);
+                        }
                     }
                 }
 
                 runningQuantities[key] = {
-                    openStock: stockData.openStockQuantity || 0,
-                    holdQty: stockData.onHoldQuantity || 0,
+                    openStock: openStockVal,
+                    holdQty: holdQtyVal,
                     totalQty: stockData.totalQuantity ?? totalStock
                 };
             }
@@ -708,7 +728,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             return;
         }
 
-        setSubmitting(true);
+setSubmitting(true);
         try {
             const runningQuantities = {};
 
@@ -719,24 +739,38 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                         parseWallClockDate(updateDate) || new Date(updateDate),
                     )
                     : {};
+                const stockUpdatedDateFields = updateDate
+                    ? dateOnlyWithTimeZone(
+                        "stockUpdatedDate",
+                        parseWallClockDate(updateDate) || new Date(updateDate),
+                    )
+                    : {};
 
                 const product = products.find(p => p.productId === row.productId);
                 const variantId = parseInt(row.variantId);
                 const variant = product?.variants?.find(v => v.variantId === variantId);
                 const batchKey = row.batchNumber ? `${variantId}-${row.batchNumber}` : `${variantId}`;
-                let stockData = variant?.stockUpdates || {};
+                let openStockVal = variant?.stockUpdates?.openStockQuantity || variant?.openStockQuantity || variant?.openingStock || 0;
+                let holdQtyVal = variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0;
 
                 if (!runningQuantities[batchKey]) {
                     if (row.batchNumber && variant?.batchNumbers) {
                         const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
-                        if (batch && batch.stockUpdates) {
-                            stockData = batch.stockUpdates;
+                        if (batch) {
+                            if (batch.isFromHistory) {
+                                openStockVal = variant?.stockUpdates?.openStockQuantity || variant?.openStockQuantity || variant?.openingStock || 0;
+                                holdQtyVal = variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0;
+                            } else {
+                                const stockData = batch.stockUpdates || {};
+                                openStockVal = (stockData.openStockQuantity || batch.openStockQuantity || batch.openQty || batch.openingStock || batch.quantity || 0) || (variant?.stockUpdates?.openStockQuantity || variant?.openStockQuantity || variant?.openingStock || 0);
+                                holdQtyVal = (stockData.onHoldQuantity || batch.onHoldQuantity || batch.holdQty || batch.holdQuantity || 0) || (variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0);
+                            }
                         }
                     }
 
                     runningQuantities[batchKey] = {
-                        openStock: stockData.openStockQuantity || 0,
-                        holdQty: stockData.onHoldQuantity || 0
+                        openStock: openStockVal,
+                        holdQty: holdQtyVal
                     };
                 }
 
@@ -776,6 +810,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                     batchNumber: row.batchNumber,
                     createdBy: userInfo?.userId || 123,
                     ...createdDateFields,
+                    ...stockUpdatedDateFields,
                     productsBillItemsId: null,
                     consumptionId: null,
                     addItem: null,
@@ -958,20 +993,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                                 >
                                                                     <option value="">SELECT SOURCE</option>
                                                                     <option value="Open Stock">Open Stock</option>
-                                                                    {(() => {
-                                                                        const variant = currentProduct?.variants?.find(v => v.variantId === parseInt(row.variantId));
-                                                                        let onHoldQty = variant?.stockUpdates?.onHoldQuantity || 0;
-                                                                        if (row.batchNumber && variant?.batchNumbers) {
-                                                                            const batch = variant.batchNumbers.find(b => b.batchNumber === row.batchNumber);
-                                                                            if (batch && batch.stockUpdates) {
-                                                                                onHoldQty = batch.stockUpdates.onHoldQuantity || 0;
-                                                                            }
-                                                                        }
-                                                                        if (row.sourceStatus === "Hold Qty" || onHoldQty > 0) {
-                                                                            return <option value="Hold Qty">Hold Qty</option>;
-                                                                        }
-                                                                        return null;
-                                                                    })()}
+                                                                    <option value="Hold Qty">Hold Qty</option>
                                                                 </select>
                                                                 <span style={{ position: 'absolute', right: '6px', pointerEvents: 'none', display: 'flex', alignItems: 'center', color: '#999' }}>
                                                                     <IconChevronDown />
@@ -997,7 +1019,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                     </td>
                                                     {showAddColumn && (
                                                         <td>
-                                                            {(row.reason === "Miscount" || !row.reason) ? (
+                                                            {(row.reason === "Miscount" || !row.reason || mode === "View") ? (
                                                                 <input
                                                                     id={`field_${index}_add`}
                                                                     className={`${styles.tableInput} ${errors[`${index}_add`] ? styles.errorField : ""}`}

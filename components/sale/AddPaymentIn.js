@@ -367,7 +367,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
     const handleSave = async () => {
         const newErrors = {};
-        if (!formData.vendorCustomerId) {
+        if (!formData.vendorCustomerId || !searchTerm || !searchTerm.trim()) {
             newErrors.vendorCustomerId = "Customer name is required";
         }
         if (!formData.date) {
@@ -628,7 +628,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
 
                         <div className={styles.field} style={{ position: 'relative' }}>
-                            <label>Select Customer</label>
+                            <label>Select Customer <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
@@ -638,8 +638,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     onFocus={() => { if (!prefill) setShowCustomerDropdown(true); }}
                                     onChange={(e) => {
                                         if (!prefill) {
-                                            setSearchTerm(e.target.value);
+                                            const val = e.target.value;
+                                            setSearchTerm(val);
                                             setShowCustomerDropdown(true);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                vendorCustomerId: "",
+                                                partyName: "",
+                                                totalBalance: ""
+                                            }));
                                             setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
                                         }
                                     }}
@@ -698,7 +705,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                         </div>
 
                         <div className={styles.field}>
-                            <label>Paid Amount</label>
+                            <label>Paid Amount <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
                                 type="text"
                                 className={`${styles.input} ${errors.paidAmount ? styles.inputError : ''}`}

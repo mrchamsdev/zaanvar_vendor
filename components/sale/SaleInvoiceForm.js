@@ -18,9 +18,6 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const isViewOnly = mode === "view";
 
     const getActiveQty = (qty) => {
-        if (qty === "" || qty === null || qty === undefined || parseFloat(qty) === 0) {
-            return 1;
-        }
         return parseFloat(qty) || 0;
     };
 

@@ -163,9 +163,13 @@ const ProductForm = ({
   // console.log("ProductForm component rendering", { initialData, propType });
 
   // Main Form State
-  const [productType, setProductType] = useState(
-    initialData?.productType || propType || "Retail",
-  );
+  const [productType, setProductType] = useState(() => {
+    const raw = initialData?.productType || propType || "Retail";
+    if (typeof raw === "string") {
+      return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    }
+    return "Retail";
+  });
   const [productName, setProductName] = useState(
     initialData?.productName || "",
   );
@@ -501,6 +505,13 @@ const ProductForm = ({
 
       if (SIZE_TYPES.includes(v.packType) && !v.size) {
         validationErrors[`${index}_size`] = "Size is required";
+      }
+
+      if (
+        (PACKAGING_TYPES.includes(v.packType) || SIZE_TYPES.includes(v.packType)) &&
+        (!v.packCount || Number(v.packCount) <= 0)
+      ) {
+        validationErrors[`${index}_packCount`] = "Pack Count is required";
       }
 
       if (v.minStock === "" || v.minStock === undefined) {
@@ -971,14 +982,35 @@ const ProductForm = ({
   const updateVariant = (index, field, value) => {
     const newVariants = [...variants];
     newVariants[index][field] = value;
-    setVariants(newVariants);
+
+    let newErrors = { ...formErrors };
+
+    if (field === "packType") {
+      newVariants[index].size = "";
+      newVariants[index].unitMeasure = "";
+      newVariants[index].unitType = "";
+      newVariants[index].height = "";
+      newVariants[index].width = "";
+      newVariants[index].length = "";
+      newVariants[index].radius = "";
+
+      const isPackaged = PACKAGING_TYPES.includes(value);
+      const isSizeBased = SIZE_TYPES.includes(value);
+      if (!isPackaged && !isSizeBased) {
+        newVariants[index].packCount = "";
+        delete newErrors[`${index}_packCount`];
+      }
+
+      delete newErrors[`${index}_size`];
+      delete newErrors[`${index}_unitMeasure`];
+    }
 
     // Clear error for this field
-    if (formErrors[`${index}_${field}`]) {
-      const newErrors = { ...formErrors };
+    if (newErrors[`${index}_${field}`]) {
       delete newErrors[`${index}_${field}`];
-      setFormErrors(newErrors);
     }
+    setFormErrors(newErrors);
+    setVariants(newVariants);
   };
 
   const InfoIcon = ({ text }) => (
@@ -1229,7 +1261,6 @@ const ProductForm = ({
             type="text"
             placeholder="Enter GST(%)"
             value={gst}
-            disabled={isEdit && hasPurchaseOrder}
             onChange={(e) => {
               let val = e.target.value;
               // Allow digits and at most one decimal point
@@ -1239,8 +1270,10 @@ const ProductForm = ({
                 val = parts[0] + "." + parts.slice(1).join("");
               }
               const cleanParts = val.split(".");
-              if (cleanParts.length === 2 && cleanParts[1].length > 2) {
-                val = cleanParts[0] + "." + cleanParts[1].substring(0, 2);
+              if (cleanParts.length === 2) {
+                val = cleanParts[0].substring(0, 2) + "." + cleanParts[1].substring(0, 2);
+              } else if (cleanParts.length === 1) {
+                val = cleanParts[0].substring(0, 2);
               }
               setGst(val);
             }}
@@ -1321,15 +1354,13 @@ const ProductForm = ({
                 Variant {index + 1}
               </div>
               <div className={styles.variantActions}>
-                {(!isEdit || !variant.variantId || !hasPurchaseOrder) && (
-                  <span
-                    className={styles.windowActionIcon}
-                    onClick={() => console.log("Scan triggered")}
-                    title="Scan Barcode"
-                  >
-                    <IconScan />
-                  </span>
-                )}
+                <span
+                  className={styles.windowActionIcon}
+                  onClick={() => console.log("Scan triggered")}
+                  title="Scan Barcode"
+                >
+                  <IconScan />
+                </span>
                 {!hasPurchaseOrder && (
                   <span
                     className={styles.windowActionIcon}
@@ -1419,18 +1450,24 @@ const ProductForm = ({
                     <>
                       <div className={styles.inputField}>
                         <label>
-                          Pack Count{" "}
+                          Pack Count <span>*</span>{" "}
                           <InfoIcon text="How many pieces/items are inside that pack." />
                         </label>
                         <input
                           type="text"
                           placeholder="Enter count"
+                          className={formErrors[`${index}_packCount`] ? styles.errorField : ""}
                           value={variant.packCount || ""}
                           disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                           onChange={(e) =>
                             updateVariantNumeric(index, "packCount", e.target.value)
                           }
                         />
+                        {formErrors[`${index}_packCount`] && (
+                          <div className={styles.errorMessage}>
+                            {formErrors[`${index}_packCount`]}
+                          </div>
+                        )}
                       </div>
                     </>
                   )}
@@ -1441,17 +1478,23 @@ const ProductForm = ({
                 <>
                   <div className={styles.inputField}>
                     <label>
-                      Pack Count{" "}
+                      Pack Count <span>*</span>{" "}
                       <InfoIcon text="How many pieces/items are inside that pack." />
                     </label>
                     <input
                       type="text"
                       placeholder="Enter count"
+                      className={formErrors[`${index}_packCount`] ? styles.errorField : ""}
                       value={variant.packCount || ""}
                       onChange={(e) =>
                         updateVariantNumeric(index, "packCount", e.target.value)
                       }
                     />
+                    {formErrors[`${index}_packCount`] && (
+                      <div className={styles.errorMessage}>
+                        {formErrors[`${index}_packCount`]}
+                      </div>
+                    )}
                   </div>
                   <div className={styles.inputField}>
                     <label>
@@ -1660,7 +1703,6 @@ const ProductForm = ({
                     formErrors[`${index}_eanUpc`] ? styles.errorField : ""
                   }
                   value={variant.eanUpc || ""}
-                  disabled={isEdit && !!variant.variantId && hasPurchaseOrder}
                   onChange={(e) =>
                     updateVariantNumeric(index, "eanUpc", e.target.value, 13)
                   }

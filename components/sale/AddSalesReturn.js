@@ -141,7 +141,6 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     returnDate: data.returnDate?.split('T')[0] || data.createdDate?.split('T')[0] || ""
                 });
 
-                // Set items from return data
                 setItems((data.items || []).map(item => {
                     const original = availableItemsList.find(ai => ai.userOrderItemsID === item.userOrderItemsID);
                     return {
@@ -155,7 +154,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         taxPercentage: parseFloat(item.taxAmount || 0),
                         discountPercentage: parseFloat(item.discount || 0),
                         returnCondition: item.returnCondition || "Resellable",
-                        itemTotal: parseFloat(item.returnAmount) || 0
+                        itemTotal: parseFloat(item.returnAmount) || 0,
+                        batchNumber: original?.batchNumber || item.batchNumber || "N/A"
                     };
                 }));
             }
@@ -379,7 +379,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
                 quantity: i.returnQty,
-                returnCondition: i.returnCondition
+                returnCondition: i.returnCondition,
+                batchNumber: i.batchNumber || "N/A"
             }))
         };
 
@@ -577,15 +578,18 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                 className={styles.input}
                                 value={formData.billDate}
                                 onChange={(e) => setFormData({ ...formData, billDate: e.target.value })}
-                                readOnly={mode === "view"}
+                                readOnly={true}
+                                disabled={true}
                                 max={toApiDateOnly(new Date())}
                                 onFocus={() => setFocusedField('billDate')}
                                 onBlur={() => setFocusedField(null)}
                                 style={{
-                                    background: '#fff',
+                                    background: 'white',
                                     border: focusedField === 'billDate' ? '2px solid #E93E64' : '2px solid #ddd',
                                     width: '100%',
-                                    boxShadow: 'none'
+                                    boxShadow: 'none',
+                                    cursor: 'not-allowed',
+                                    color: '#666'
                                 }}
                             />
                         </div>

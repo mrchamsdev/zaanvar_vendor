@@ -103,9 +103,10 @@
 }
 
 .input:focus, .select:focus {
-    border-color: var(--color-border-light);
-    background-color: var(--color-white);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    border-color: var(--color-primary, #E93E64) !important;
+    background-color: var(--color-white) !important;
+    box-shadow: 0 0 0 2px rgba(233, 62, 100, 0.15) !important;
+    outline: none !important;
 }
 
 .dateWrapper {

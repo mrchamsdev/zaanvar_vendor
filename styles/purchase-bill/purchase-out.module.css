@@ -1512,3 +1512,16 @@
         white-space: nowrap;
     }
 }
+
+.inputError {
+    border: 1px solid #ff4d4f !important;
+    background: #FFF1F4 !important;
+}
+
+.errorLabel {
+    font-size: 12px;
+    color: #ff4d4f !important;
+    font-weight: 600;
+    margin-top: 4px;
+    display: block;
+}

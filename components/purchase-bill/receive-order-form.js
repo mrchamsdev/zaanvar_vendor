@@ -378,6 +378,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 if (totalReceived > Number(item.qty)) hasInvalidReceived = true;
             });
 
+            if (!receivedDate) {
+                setLoading(false);
+                toast.error("Received date is required.");
+                scrollToFirstError();
+                return;
+            }
+
             if (hasEmptyFields || hasInvalidPrices || hasInvalidReceived || hasInvalidDamaged) {
                 setLoading(false);
                 if (hasEmptyFields) toast.error("Please fill all required fields correctly.");
@@ -634,14 +641,16 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                             <input
                                                                 type="number"
                                                                 placeholder="0"
-                                                                className={`${styles.input} ${(Number(batch.receivedQty) > Number(item.qty)) || (batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null)) ? styles.inputError : ""}`}
+                                                                className={`${styles.input} ${(totalReceived > Number(item.qty)) || (batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null)) ? styles.inputError : ""}`}
                                                                 value={batch.receivedQty ?? ""}
                                                                 onFocus={(e) => e.target.select()}
                                                                 onChange={(e) => handleBatchChange(index, bIdx, "receivedQty", e.target.value)}
                                                             />
-                                                            {((batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null))) && (
+                                                            {((batch.receivedQty !== "" && batch.receivedQty !== undefined && batch.receivedQty !== null && Number(batch.receivedQty) <= 0) || (isSubmitted && (batch.receivedQty === "" || batch.receivedQty === undefined || batch.receivedQty === null))) ? (
                                                                 <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Received quantity is required and must be greater than 0</span>
-                                                            )}
+                                                            ) : totalReceived > Number(item.qty) ? (
+                                                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Total received quantity across all batches ({totalReceived}) cannot exceed ordered quantity ({item.qty}).</span>
+                                                            ) : null}
                                                         </div>
 
                                                         <div className={styles.fieldGroup}>
@@ -740,11 +749,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                             <textarea className={styles.textarea} placeholder="Enter Additional details here" value={item.notes || ""} onChange={(e) => handleItemChange(index, 'notes', e.target.value)} />
                                         </div>
 
-                                        {totalReceived > Number(item.qty) && (
-                                            <div style={{ color: '#ef4444', marginTop: '12px', fontSize: '14px' }}>
-                                                Total received quantity across all batches ({totalReceived}) cannot exceed ordered quantity ({item.qty}).
-                                            </div>
-                                        )}
+
 
                                         <div className={styles.itemSummary}>
                                             <div className={styles.summaryItem}>
@@ -790,16 +795,19 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             <span className={styles.infoValue}>{new Date(orderData.orderDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         </div>
                         <div className={styles.infoGroup}>
-                            <span className={styles.infoLabel}>Received date</span>
+                            <span className={styles.infoLabel}>Received date <span style={{ color: '#ff4d4f' }}>*</span></span>
                             <div className={styles.inputWrapper}>
                                 <input
                                     type="date"
-                                    className={styles.input}
+                                    className={`${styles.input} ${isSubmitted && !receivedDate ? styles.inputError : ""}`}
                                     value={receivedDate}
                                     max={toApiDateOnly(new Date())}
                                     onChange={(e) => setReceivedDate(e.target.value)}
                                 />
                             </div>
+                            {isSubmitted && !receivedDate && (
+                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Received date is required.</span>
+                            )}
                         </div>
                     </div>
 
@@ -925,7 +933,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 <span className={styles.currencySymbol}>₹</span>
                                 <input
                                     type="number"
-                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.errorInput : ""}`}
+                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.inputError : ""}`}
                                     placeholder="00000"
                                     value={paidAmount}
                                     readOnly={paymentStatus === "Full"}
@@ -942,7 +950,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 />
                             </div>
                             {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
-                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px' }}>Paid amount is required for partial payment</span>
+                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Paid amount is required for partial payment</span>
                             )}
                         </div>
                     )}
@@ -953,7 +961,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             <div className={styles.inputWrapper}>
                                 <input
                                     type="date"
-                                    className={`${styles.input} ${isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) ? styles.errorInput : ""}`}
+                                    className={`${styles.input} ${isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) ? styles.inputError : ""}`}
                                     value={duedate}
                                     min={toApiDateOnly(new Date())}
                                     max="9999-12-31"
@@ -968,7 +976,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 />
                             </div>
                             {isSubmitted && (!duedate || duedate < toApiDateOnly(new Date())) && (
-                                <span style={{ color: '#ff4d4f', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>
                                     {!duedate ? "Payment Due Date is required" : "Payment Due Date cannot be in the past"}
                                 </span>
                             )}

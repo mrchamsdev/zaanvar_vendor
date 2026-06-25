@@ -198,7 +198,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     discountAmount: discountAmount,
                                     tax: taxPercent,
                                     taxAmount: taxAmount,
-                                    amount: finalAmount
+                                    amount: finalAmount,
+                                    damageQty: it.damageQty || 0
                                 };
                             });
                             setItems(mappedItems);
@@ -233,7 +234,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 discountAmount: discountAmount,
                                 tax: 0,
                                 taxAmount: 0,
-                                amount: finalAmount
+                                amount: finalAmount,
+                                damageQty: it.damageQty || 0
                             };
                         });
                         setItems(mappedItems);
@@ -478,7 +480,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             tax: taxPercent,
             taxAmount: 0,
             amount: 0,
-            productError: null
+            productError: null,
+            damageQty: undefined
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -486,7 +489,12 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
     const getMaxQty = (item) => {
         if (!item) return 0;
-        if (item.sourceStatus === "Damaged") return (item.included || 0) + (item.excluded || 0);
+        if (item.sourceStatus === "Damaged") {
+            if ((mode === "view" || mode === "edit") && item.damageQty !== undefined) {
+                return item.damageQty;
+            }
+            return (item.included || 0) + (item.excluded || 0);
+        }
         if (item.sourceStatus === "Open Stock") {
             const openStock = item.openStockQuantity || ((item.totalQuantity || 0) - (item.excluded || 0));
             return openStock - (item.included || 0);
@@ -660,7 +668,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 productsBillItemsId: it.productsBillItemsId,
                 batchNumber: it.batchNumber,
                 qty: it.returnQty,
-                sourceStatus: it.sourceStatus === "Open Stock" ? "openStock" : (it.sourceStatus === "Hold Stock" ? "hold" : (it.sourceStatus === "Damaged" ? "damaged" : it.sourceStatus))
+                sourceStatus: it.sourceStatus === "Open Stock" ? "openStock" : (it.sourceStatus === "Hold Stock" ? "hold" : (it.sourceStatus === "Damaged" ? "damaged" : it.sourceStatus)),
+                damageQty: it.sourceStatus === "Damaged" ? (getMaxQty(it) || 0) : 0
             }))
         };
 
