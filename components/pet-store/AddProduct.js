@@ -216,8 +216,10 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
         val = parts[0] + "." + parts.slice(1).join("");
       }
       const cleanParts = val.split(".");
-      if (cleanParts.length === 2 && cleanParts[1].length > 2) {
-        val = cleanParts[0] + "." + cleanParts[1].substring(0, 2);
+      if (cleanParts.length === 2) {
+        val = cleanParts[0].substring(0, 2) + "." + cleanParts[1].substring(0, 2);
+      } else if (cleanParts.length === 1) {
+        val = cleanParts[0].substring(0, 2);
       }
       setFormData(prev => ({ ...prev, [name]: val }));
       if (errors[name]) {

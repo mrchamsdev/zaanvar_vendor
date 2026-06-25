@@ -44,12 +44,6 @@ const PaymentOutFormPage = () => {
         }
     }, [jwtToken, id]);
 
-    useEffect(() => {
-        if (!loading && !isView) {
-            const total = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
-            setPaidAmount(String(total));
-        }
-    }, [payments, loading, isView]);
 
     useEffect(() => {
         if (!loading && isView && router.query.print === "true") {
@@ -353,7 +347,7 @@ const PaymentOutFormPage = () => {
                                             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
                                             <input
                                                 type="number"
-                                                className={`${styles.input} ${isView ? styles.readOnly : ""}`}
+                                                className={`${styles.input} ${isView ? styles.readOnly : ""} ${!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0) ? styles.inputError : ""}`}
                                                 value={p.amountPaid}
                                                 onChange={(e) => {
                                                     const newPayments = [...payments];
@@ -374,6 +368,11 @@ const PaymentOutFormPage = () => {
                                             </button>
                                         )}
                                     </div>
+                                    {!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0) && (
+                                        <span className={styles.errorLabel}>
+                                            Amount paid cannot be more than paid amount.
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             {(p.paymentType === 'UPI' || p.paymentType === 'Cheque') && (

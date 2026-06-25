@@ -282,16 +282,16 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   }</td>
                   <td>{
                     v.batchNumbers?.length > 0
-                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.openStockQuantity || b.quantity || 0), 0)
-                      : (v.stockUpdates?.openStockQuantity || v.openingStock || 0)
+                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.openStockQuantity || b.openStockQuantity || b.openQty || b.openingStock || b.quantity || 0), 0)
+                      : (v.stockUpdates?.openStockQuantity || v.openingStock || v.openStockQuantity || 0)
                   }</td>
                   <td>{
                     v.batchNumbers?.length > 0
-                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.onHoldQuantity || 0), 0)
-                      : (v.stockUpdates?.onHoldQuantity || v.holdQuantity || 0)
+                      ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.onHoldQuantity || b.onHoldQuantity || b.holdQty || b.holdQuantity || 0), 0)
+                      : (v.stockUpdates?.onHoldQuantity || v.holdQuantity || v.holdQty || v.onHoldQuantity || 0)
                   }</td>
-                  <td>{v.soldQty ?? 0}</td>
-                  <td>{v.damagedQty ?? 0}</td>
+                  <td>{v.stockUpdates?.qtySold ?? v.soldQty ?? 0}</td>
+                  <td>{v.stockUpdates?.excludedDamageQty ?? v.damagedQty ?? 0}</td>
                 </tr>
               );
             })}
