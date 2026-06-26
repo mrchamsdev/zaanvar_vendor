@@ -601,7 +601,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
     const totalBillAmount = items.reduce((acc, it) => acc + (it.amount || 0), 0);
     const discountForCustomer = 0;
-    const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+    const totalPaidAmount = isViewOnly && saleInvoiceData?.paidAmount !== undefined
+        ? Number(saleInvoiceData.paidAmount || 0)
+        : payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
 
     const itemsSubtotal = items.reduce((acc, it) => acc + ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 0)), 0);
     const itemsDiscount = items.reduce((acc, it) => acc + (it.discountAmount || 0), 0);
@@ -616,7 +618,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         return Math.min(walletAmount, netBill);
     }, [useWallet, walletAmount, totalBillAmount, discountForCustomer, mode]);
 
-    const balanceAmount = totalBillAmount - discountForCustomer - totalPaidAmount - appliedWalletAmount;
+    const balanceAmount = isViewOnly && saleInvoiceData?.dueAmount !== undefined
+        ? Number(saleInvoiceData.dueAmount || 0)
+        : totalBillAmount - discountForCustomer - totalPaidAmount - appliedWalletAmount;
 
     const prefillData = useMemo(() => {
         if (!saleInvoiceData) return null;
@@ -1202,116 +1206,37 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     )}
                 </div>
 
-                <div className={styles.paymentSection} style={{ gridTemplateColumns: "1.5fr 0.5fr 1.2fr" }}>
-                    <div className={styles.paymentList}>
-                        <label style={{ fontWeight: "700" }}>Payment Details</label>
-                        {walletAmount > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '12px', marginTop: '-4px' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={useWallet}
-                                    onChange={(e) => setUseWallet(e.target.checked)}
-                                    disabled={isViewOnly}
-                                    style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
-                                />
-                                <span>Use Wallet (Available: Rs {walletAmount.toLocaleString()})</span>
-                            </div>
-                        )}
-                        {useWallet && appliedWalletAmount > 0 && (
-                            <div className={styles.paymentEntry} style={{ marginBottom: '12px' }}>
-                                <div className={styles.paymentRow} style={{ gridTemplateColumns: "1fr 1fr" }}>
-                                    <div className={styles.field}>
-                                        <label>payment type</label>
-                                        <select className={styles.select} value="Wallet" disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed' }}>
-                                            <option value="Wallet">Wallet</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label>amount paid</label>
-                                        <input type="number" className={styles.input} value={appliedWalletAmount} disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed', fontWeight: '700' }} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {payments.map((p, idx) => (
-                            <div key={idx} className={styles.paymentEntry}>
-                                <div className={styles.paymentRow} style={{ gridTemplateColumns: "1fr 1fr" }}>
-                                    <div className={styles.field}>
-                                        <label>payment type</label>
-                                        <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Card">Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Bank">Bank</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label>amount paid</label>
-                                        <input
-                                            type="number"
-                                            className={styles.input}
-                                            value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
-                                            placeholder="0"
-                                            onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
-                                    </div>
-                                </div>
-                                {(p.method === "UPI" || p.method === "Cheque") && (
-                                    <div className={styles.field} style={{ marginTop: "12px" }}>
-                                        <label>{p.method === "Cheque" ? "check no" : "reference number"}</label>
-                                        <input
-                                            type="text"
-                                            className={styles.input}
-                                            placeholder="****************"
-                                            value={p.referenceNumber || ""}
-                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        {!isViewOnly && (
-                            <span className={styles.addAnotherPayment} onClick={handleAddPayment}>
-                                + Add another payment
-                            </span>
-                        )}
+                <div className={styles.totalSection}>
+                    <div className={styles.totalRow} style={{ width: "250px" }}>
+                        <span>Sub Total</span>
+                        <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
                     </div>
-                    <div className={styles.spacer}></div>
-                    <div className={styles.totalSection}>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Sub Total</span>
-                            <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Discount</span>
-                            <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Tax</span>
-                            <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
-                            <span>Total</span>
-                            <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
-                        </div>
+                    <div className={styles.totalRow} style={{ width: "250px" }}>
+                        <span>Discount</span>
+                        <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
+                    </div>
+                    <div className={styles.totalRow} style={{ width: "250px" }}>
+                        <span>Tax</span>
+                        <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
+                    </div>
+                    <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
+                        <span>Total</span>
+                        <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
+                    </div>
 
-                        {useWallet && appliedWalletAmount > 0 && (
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Wallet Applied</span>
-                                <span style={{ color: '#D93025' }}>Rs -{Number(appliedWalletAmount).toFixed(2)}</span>
-                            </div>
-                        )}
+                    {useWallet && appliedWalletAmount > 0 && (
                         <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Total Paid</span>
-                            <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
+                            <span>Wallet Applied</span>
+                            <span style={{ color: '#D93025' }}>Rs -{Number(appliedWalletAmount).toFixed(2)}</span>
                         </div>
-                        <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
-                            <span>Balance</span>
-                            <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
-                        </div>
+                    )}
+                    <div className={styles.totalRow} style={{ width: "250px" }}>
+                        <span>Total Paid</span>
+                        <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
+                    </div>
+                    <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
+                        <span>Balance</span>
+                        <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -1374,7 +1299,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         balanceAmount: balanceAmount,
                         vendorCustomerId: formData.vendorCustomerId || (saleInvoiceData && saleInvoiceData.vendorCustomerId),
                         branchId: branchId,
-                        userOrderId: saleId || formData.userOrderId
+                        userOrderId: saleId || formData.userOrderId,
+                        walletAmount: walletAmount
                     }}
                 />
             )}

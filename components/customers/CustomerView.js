@@ -11,6 +11,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("Sales");
     const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [paymentHistoryModal, setPaymentHistoryModal] = useState(null); // { orderId, payments[] }
     const router = useRouter();
 
     useEffect(() => {
@@ -32,7 +33,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
         fetchFullData();
     }, [initialData?.vendorCustomerId, jwtToken]);
 
-    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Payments ", "Reviews"];
+    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Reviews"];
     const rightTabs = ["Clinic", "Boarding", "Daycare", "Grooming", "Ordered", "Return", "Payments "];
 
     const [activeRightTab, setActiveRightTab] = useState("Ordered");
@@ -145,9 +146,17 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                                         <button className={styles.dropdownItem} onClick={() => {
                                                             const returnUrl = `/customers?branchId=${router.query.branchId || ''}&action=view&id=${data.vendorCustomerId || initialData?.vendorCustomerId}`;
                                                             router.push(`/sale/sales-invoice?branchId=91&view=true&id=${item.userOrderId}&returnUrl=${encodeURIComponent(returnUrl)}`);
+                                                            setOpenDropdownId(null);
                                                         }}>View</button>
                                                         <button className={styles.dropdownItem}>Print</button>
                                                         <button className={styles.dropdownItem}>Open PDF</button>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            const relatedPayments = (data.payments || [])
+                                                                .filter(p => p.userOrderId === item.userOrderId)
+                                                                .sort((a, b) => new Date(b.paymentDate || b.createdDate) - new Date(a.paymentDate || a.createdDate));
+                                                            setPaymentHistoryModal({ orderId: item.userOrderId, payments: relatedPayments });
+                                                            setOpenDropdownId(null);
+                                                        }}>View History</button>
                                                     </div>
                                                 )}
                                             </td>
@@ -284,6 +293,34 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     };
 
     return (
+        <>
+        {/* Payment History Modal */}
+        {paymentHistoryModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPaymentHistoryModal(null)}>
+                <div style={{ background: '#fff', borderRadius: '12px', padding: '28px', minWidth: '420px', maxWidth: '520px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1a1a1a' }}>Payment History for Invoice #{paymentHistoryModal.orderId}</h3>
+                        <button onClick={() => setPaymentHistoryModal(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
+                    </div>
+                    {paymentHistoryModal.payments.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#888', padding: '24px 0' }}>No payment records found for this invoice.</div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {paymentHistoryModal.payments.map((p, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>₹ {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        <span style={{ fontSize: '12px', color: '#888' }}>{p.paymentMethod || 'Cash'}</span>
+                                    </div>
+                                    <span style={{ fontSize: '13px', color: '#555' }}>{formatDate(p.paymentDate || p.createdDate)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+
         <div className={styles.viewContainer}>
             <div className={styles.backButtonContainer} onClick={onBack}>
                 <button className={styles.backButton}><span className={styles.backIcon}>←</span></button>
@@ -371,6 +408,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

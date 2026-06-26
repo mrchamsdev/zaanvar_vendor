@@ -17,6 +17,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [useWallet, setUseWallet] = useState(false);
 
     // Multi-payment state
     const [masterTarget, setMasterTarget] = useState("");
@@ -28,8 +29,12 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     }]);
 
     const sessionTotal = payments.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0);
-    const isOverTarget = sessionTotal > (Number(masterTarget) || 0);
-    const hasMismatch = Number(masterTarget) > 0 && sessionTotal > 0 && Math.abs(sessionTotal - Number(masterTarget)) > 0.01;
+    const walletAmount = data?.walletAmount || 0;
+    const appliedWalletAmount = useWallet ? Math.min(walletAmount, Number(masterTarget) || 0) : 0;
+    const totalCurrentPayment = sessionTotal + appliedWalletAmount;
+    
+    const isOverTarget = totalCurrentPayment > (Number(masterTarget) || 0);
+    const hasMismatch = Number(masterTarget) > 0 && totalCurrentPayment > 0 && Math.abs(totalCurrentPayment - Number(masterTarget)) > 0.01;
 
     // Calculated / Read-only values from props
     const totalAmount = data?.totalAmount || 0;
@@ -53,6 +58,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             setDescription("");
             setSelectedImage(null);
             setImagePreview(null);
+            setUseWallet(false);
         }
     }, [isOpen, data]);
 
@@ -103,23 +109,33 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             return;
         }
 
+        const activePayments = payments.filter(p => p.amountPaid && Number(p.amountPaid) > 0);
         const hasEmptyPayment = payments.some(p => !p.amountPaid || Number(p.amountPaid) <= 0);
-        if (hasEmptyPayment) {
+        if (hasEmptyPayment && (activePayments.length > 0 || appliedWalletAmount !== Number(masterTarget))) {
             return;
         }
 
-        if (Math.abs(sessionTotal - Number(masterTarget)) > 0.01) {
+        if (Math.abs(totalCurrentPayment - Number(masterTarget)) > 0.01) {
             return;
         }
 
         setLoading(true);
         try {
-            const paymentMethods = payments.map(p => ({
+            const paymentMethods = activePayments.map(p => ({
                 paymentMethod: p.paymentType,
                 amount: parseFloat(p.amountPaid),
                 transactionRef: p.referenceNumber || "",
                 referenceNumber: p.referenceNumber || ""
             }));
+
+            if (useWallet && appliedWalletAmount > 0) {
+                paymentMethods.push({
+                    paymentMethod: "Wallet",
+                    amount: appliedWalletAmount,
+                    transactionRef: "Wallet Deduction",
+                    referenceNumber: "Wallet Deduction"
+                });
+            }
 
             const payload = {
                 branchId: data.branchId,
@@ -250,6 +266,32 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         </div>
                     </div>
 
+                    {walletAmount > 0 && (
+                        <div className={styles.row} style={{ marginBottom: '12px' }}>
+                            <div className={styles.field} style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    id="useWalletPopup"
+                                    checked={useWallet}
+                                    onChange={(e) => setUseWallet(e.target.checked)}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="useWalletPopup" style={{ cursor: 'pointer', marginBottom: 0, fontWeight: '600' }}>
+                                    Use Wallet Amount (Available: ₹ {walletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                </label>
+                            </div>
+                            {useWallet && appliedWalletAmount > 0 && (
+                                <div className={styles.field}>
+                                    <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
+                                        <span className={styles.prefix}>₹</span>
+                                        <input type="text" value={appliedWalletAmount.toFixed(2)} readOnly />
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Applied to Total Amount Paid</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Row 3: First Payment Type and Amount */}
                     <div className={styles.row}>
                         <div className={styles.field}>
@@ -285,7 +327,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             ) : (hasMismatch && payments.length === 1 && (
                                 <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                    The sum of payments (₹ {totalCurrentPayment}) does not match the Total Amount Paid (₹ {masterTarget || 0})
                                 </div>
                             ))}
                         </div>
@@ -350,7 +392,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </div>
                                     ) : (hasMismatch && idx === payments.length - 2 && (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                            The sum of payments (₹ {totalCurrentPayment}) does not match the Total Amount Paid (₹ {masterTarget || 0})
                                         </div>
                                     ))}
                                 </div>
