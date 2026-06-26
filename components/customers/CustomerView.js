@@ -63,6 +63,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                         >
                             <option value={10}>10</option>
                             <option value={20}>20</option>
+                            <option value={30}>30</option>
+                            <option value={40}>40</option>
                             <option value={50}>50</option>
                         </select>
                     </div>
@@ -98,7 +100,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
         }
 
         if (activeRightTab === "Ordered") {
-            const orders = data.orders || [];
+            const orders = [...(data.orders || [])].sort((a, b) => new Date(b.invoiceDate || b.createdDate) - new Date(a.invoiceDate || a.createdDate));
             return (
                 <div className={styles.tableCard}>
                     <div className={styles.tableHeader}>
@@ -129,7 +131,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                 <tbody>
                                     {orders.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item, i) => (
                                         <tr key={i} className={styles.dataTableRow}>
-                                            <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
+                                            <td className={styles.dataTableCell}>{formatDate(item.invoiceDate || item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
@@ -159,7 +161,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                 </div>
             );
         } else if (activeRightTab === "Return") {
-            const returns = data.returns || [];
+            const returns = [...(data.returns || [])].sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
             return (
                 <div className={styles.tableCard}>
                     <div className={styles.tableHeader}>
@@ -206,7 +208,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                 </div>
             );
         } else if (activeRightTab === "Payments " || activeRightTab === "Payment History") {
-            const payments = data.payments || [];
+            const payments = [...(data.payments || [])].sort((a, b) => new Date(b.paymentDate || b.createdDate) - new Date(a.paymentDate || a.createdDate));
             return (
                 <div className={styles.tableCard}>
                     <div className={styles.tableHeader}>
@@ -226,8 +228,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                             <table className={styles.dataTable}>
                                 <thead>
                                     <tr className={styles.dataTableHeaderRow}>
-                                        <th className={styles.dataTableHeader}>Invoice Number</th>
                                         <th className={styles.dataTableHeader}>Invoice Id</th>
+                                        <th className={styles.dataTableHeader}> Payment Id</th>
                                         <th className={styles.dataTableHeader}>Payment Date</th>
                                         <th className={styles.dataTableHeader}>Total amount</th>
                                         <th className={styles.dataTableHeader}>Payment Type</th>

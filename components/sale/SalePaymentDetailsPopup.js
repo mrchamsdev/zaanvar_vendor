@@ -103,8 +103,8 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             return;
         }
 
-        const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
-        if (validPayments.length === 0) {
+        const hasEmptyPayment = payments.some(p => !p.amountPaid || Number(p.amountPaid) <= 0);
+        if (hasEmptyPayment) {
             return;
         }
 
@@ -114,7 +114,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
 
         setLoading(true);
         try {
-            const paymentMethods = validPayments.map(p => ({
+            const paymentMethods = payments.map(p => ({
                 paymentMethod: p.paymentType,
                 amount: parseFloat(p.amountPaid),
                 transactionRef: p.referenceNumber || "",
@@ -274,7 +274,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
                                 />
                             </div>
-                            {isSubmitted && !payments.some(p => Number(p.amountPaid) > 0) && (
+                            {isSubmitted && (!payments[0].amountPaid || Number(payments[0].amountPaid) <= 0) && (
                                 <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
                                     Amount Paid is required
                                 </div>
@@ -339,6 +339,11 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
                                         />
                                     </div>
+                                    {isSubmitted && (!p.amountPaid || Number(p.amountPaid) <= 0) && (
+                                        <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
+                                            Amount Paid is required
+                                        </div>
+                                    )}
                                     {isOverTarget && idx === payments.length - 2 ? (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
                                             Amount paid can not exceeded total amount paid

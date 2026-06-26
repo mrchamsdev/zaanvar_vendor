@@ -592,6 +592,10 @@ const SalesInvoiceList = ({ onAddClick }) => {
         });
 
         return matchesDate && matchesSearch && matchesColFilters;
+    }).sort((a, b) => {
+        const dateA = new Date(a.invoiceDate || a.createdDate).getTime();
+        const dateB = new Date(b.invoiceDate || b.createdDate).getTime();
+        return dateB - dateA;
     });
 
     const renderAppliedFilters = () => {
@@ -841,7 +845,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 </th>
                                 <th>
                                     <div className={styles.thContent}>
-                                        <span>INVOICE NO</span>
+                                        <span>INVOICE ID</span>
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.invoiceNo.value !== undefined && columnFilters.invoiceNo.value !== null && columnFilters.invoiceNo.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'invoiceNo' ? null : 'invoiceNo'); setIsDateFilterOpen(false); }}
