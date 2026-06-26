@@ -143,18 +143,28 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
                 setItems((data.items || data.cartItems || []).map(item => {
                     const original = availableItemsList.find(ai => ai.userOrderItemsID === item.userOrderItemsID);
+                    const itemPrice = original?.price !== undefined ? original.price : (parseFloat(item.sellingPrice) || 0);
+                    const itemTaxPercent = original?.taxPercentage !== undefined ? original.taxPercentage : parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId !== undefined && item.taxGroupId !== null ? item.taxGroupId : (item.taxAmount || 0)));
+                    const itemDiscPercent = original?.discountPercentage !== undefined ? original.discountPercentage : parseFloat(item.discountPercentage !== undefined && item.discountPercentage !== null ? item.discountPercentage : (item.discount || item.discountForItem || 0));
+
+                    const qty = parseFloat(item.quantity) || 0;
+                    const discountAmount = (itemPrice * itemDiscPercent) / 100;
+                    const taxablePrice = itemPrice - discountAmount;
+                    const taxAmount = (taxablePrice * itemTaxPercent) / 100;
+                    const calculatedItemTotal = qty * (taxablePrice + taxAmount);
+
                     return {
                         userOrderItemsID: item.userOrderItemsID,
                         productName: original?.productName || "Product",
-                        returnQty: item.quantity,
-                        quantity: original?.quantity || item.quantity, // original order qty
-                        returnableQty: original?.returnableQty || item.quantity,
+                        returnQty: qty,
+                        quantity: original?.quantity || qty, // original order qty
+                        returnableQty: original?.returnableQty || qty,
                         unit: original?.unit || "Unit",
-                        price: parseFloat(item.sellingPrice || item.returnAmount) || 0,
-                        taxPercentage: original?.taxPercentage !== undefined ? original.taxPercentage : parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId !== undefined && item.taxGroupId !== null ? item.taxGroupId : (item.taxAmount || 0))),
-                        discountPercentage: original?.discountPercentage !== undefined ? original.discountPercentage : parseFloat(item.discountPercentage !== undefined && item.discountPercentage !== null ? item.discountPercentage : (item.discount || item.discountForItem || 0)),
+                        price: itemPrice,
+                        taxPercentage: itemTaxPercent,
+                        discountPercentage: itemDiscPercent,
                         returnCondition: item.returnCondition || "Resellable",
-                        itemTotal: parseFloat(item.returnAmount) || 0,
+                        itemTotal: calculatedItemTotal,
                         batchNumber: original?.batchNumber || item.batchNumber || "N/A"
                     };
                 }));
@@ -269,7 +279,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             ...p,
             returnQty: 1,
             returnCondition: "Resellable",
-            itemTotal: p.price + (p.price * p.taxPercentage / 100) - (p.price * p.discountPercentage / 100)
+            itemTotal: (p.price - (p.price * p.discountPercentage / 100)) * (1 + p.taxPercentage / 100)
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -288,9 +298,10 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         newItems[index].returnQty = qty;
 
         const price = newItems[index].price || 0;
-        const tax = (price * (newItems[index].taxPercentage || 0)) / 100;
         const disc = (price * (newItems[index].discountPercentage || 0)) / 100;
-        newItems[index].itemTotal = qty * (price + tax - disc);
+        const taxablePrice = price - disc;
+        const tax = (taxablePrice * (newItems[index].taxPercentage || 0)) / 100;
+        newItems[index].itemTotal = qty * (taxablePrice + tax);
 
         setItems(newItems);
 
@@ -427,14 +438,25 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
             { header: "AMOUNT", accessor: "itemTotal", align: "right" }
         ];
 
-        const totalQty = items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0);
-        const subtotal = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0);
-        const totalDiscount = items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0);
+        const totalQty = items.reduce((acc, i) => acc + (parseFloat(i.returnQty) || 0), 0);
+        const subtotal = items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0)), 0);
+        const totalDiscount = items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0);
+        const totalTax = items.reduce((acc, i) => {
+            const qty = parseFloat(i.returnQty) || 0;
+            const price = i.price || 0;
+            const discountPercentage = i.discountPercentage || 0;
+            const taxPercentage = i.taxPercentage || 0;
+            const discountAmount = (price * qty * discountPercentage) / 100;
+            const taxableAmount = (price * qty) - discountAmount;
+            const taxAmount = (taxableAmount * taxPercentage) / 100;
+            return acc + taxAmount;
+        }, 0);
         const grandTotal = items.reduce((acc, i) => acc + (i.itemTotal || 0), 0);
 
         const summary = [
             { label: "Total Quantity", value: totalQty },
             { label: "Subtotal", value: subtotal.toFixed(2) },
+            { label: "Total Tax", value: totalTax.toFixed(2) },
             { label: "Total Discount", value: totalDiscount.toFixed(2) },
             { label: "Grand Total", value: grandTotal.toFixed(2), isTotal: true }
         ];
@@ -728,7 +750,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                         }}
                                                         placeholder="0"
                                                         value={item.returnQty || ""}
-                                                        onChange={(e) => updateItemQty(idx, parseInt(e.target.value) || 0)}
+                                                        onChange={(e) => updateItemQty(idx, parseFloat(e.target.value) || 0)}
                                                         disabled={!item.userOrderItemsID}
                                                     />
                                                 )}
@@ -785,11 +807,20 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
                                 <tr style={{ fontWeight: '700', borderTop: '2px solid #eee' }}>
                                     <td colSpan="2" style={{ paddingTop: '20px' }}>TOTAL</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseInt(i.returnQty) || 0), 0)}</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0)), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseFloat(i.returnQty) || 0), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0)), 0).toFixed(2)}</td>
                                     <td style={{ paddingTop: '20px' }}></td>
-                                    <td style={{ paddingTop: '20px' }}></td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseInt(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => {
+                                        const qty = parseFloat(i.returnQty) || 0;
+                                        const price = i.price || 0;
+                                        const discountPercentage = i.discountPercentage || 0;
+                                        const taxPercentage = i.taxPercentage || 0;
+                                        const discountAmount = (price * qty * discountPercentage) / 100;
+                                        const taxableAmount = (price * qty) - discountAmount;
+                                        const taxAmount = (taxableAmount * taxPercentage) / 100;
+                                        return acc + taxAmount;
+                                    }, 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
                                     <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
                                     {mode === "add" && <td></td>}
                                 </tr>
@@ -809,7 +840,21 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
                     {mode === "view" && (
-                        <button className={styles.saveBtn} onClick={() => window.print()} >Print</button>
+                        <button className={styles.saveBtn} onClick={() => {
+                            const printUrl = `${window.location.pathname}?view=true&id=${returnId}&print=true&pdf=true`;
+                            const iframe = document.createElement('iframe');
+                            iframe.style.position = 'fixed';
+                            iframe.style.width = '0';
+                            iframe.style.height = '0';
+                            iframe.style.border = '0';
+                            iframe.src = printUrl;
+                            document.body.appendChild(iframe);
+                            const cleanup = () => {
+                                window.removeEventListener('focus', cleanup);
+                                setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                            };
+                            window.addEventListener('focus', cleanup);
+                        }}>Print</button>
                     )}
                     {mode !== "view" && (
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>

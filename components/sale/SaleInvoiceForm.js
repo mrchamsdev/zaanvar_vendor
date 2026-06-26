@@ -600,8 +600,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     };
 
     const totalBillAmount = items.reduce((acc, it) => acc + (it.amount || 0), 0);
-    const discountForCustomer = parseFloat(formData.discountForCustomer || 0);
+    const discountForCustomer = 0;
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+
+    const itemsSubtotal = items.reduce((acc, it) => acc + ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 0)), 0);
+    const itemsDiscount = items.reduce((acc, it) => acc + (it.discountAmount || 0), 0);
+    const itemsTax = items.reduce((acc, it) => acc + (it.taxAmount || 0), 0);
 
     const appliedWalletAmount = useMemo(() => {
         if (!useWallet || walletAmount <= 0) return 0;
@@ -706,7 +710,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             branchId,
             invoiceNumber: formData.invoiceNumber,
             vendorCustomerId: formData.vendorCustomerId,
-            discountForCustomer: parseFloat(formData.discountForCustomer || 0),
+            discountForCustomer: 0,
             amountPaid: totalPaidAmount + appliedWalletAmount,
             paymentMethod: activePayments[0]?.paymentMethod || "Cash",
             referenceNumber: activePayments[0]?.referenceNumber || "",
@@ -792,8 +796,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             { label: "Total Quantity", value: totalQty },
             { label: "Subtotal", value: subtotal.toFixed(2) },
             { label: "Total Discount", value: totalDiscount.toFixed(2) },
-            { label: "Total Tax", value: totalTax.toFixed(2) },
-            { label: "Customer Discount", value: parseFloat(formData.discountForCustomer || 0).toFixed(2) }
+            { label: "Total Tax", value: totalTax.toFixed(2) }
         ];
 
         if (useWallet && appliedWalletAmount > 0) {
@@ -1280,46 +1283,21 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     <div className={styles.totalSection}>
                         <div className={styles.totalRow} style={{ width: "250px" }}>
                             <span>Sub Total</span>
-                            <span>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
+                            <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
                         </div>
-                        {mode !== "add" && (
-                            <div className={styles.totalRow} style={{ width: "250px", alignItems: "center" }}>
-                                <span>Discount (After Tax)</span>
-                                {isViewOnly ? (
-                                    <span>Rs {Number(formData.discountForCustomer || 0).toFixed(2)}</span>
-                                ) : (
-                                    <input
-                                        type="number"
-                                        className={styles.input}
-                                        style={{
-                                            width: "100px",
-                                            padding: "6px 8px",
-                                            border: "1px solid #e5e7eb",
-                                            borderRadius: "6px",
-                                            textAlign: "right",
-                                            fontWeight: "600",
-                                            background: "#fcfcfc",
-                                            outline: "none"
-                                        }}
-                                        value={formData.discountForCustomer === "" || formData.discountForCustomer === 0 || formData.discountForCustomer === "0" ? "" : formData.discountForCustomer}
-                                        placeholder="0"
-                                        onChange={(e) => {
-                                            let val = e.target.value;
-                                            if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
-                                                val = String(Number(val));
-                                            }
-                                            if (val.includes(".")) {
-                                                const parts = val.split(".");
-                                                if (parts[1].length > 2) {
-                                                    val = `${parts[0]}.${parts[1].slice(0, 2)}`;
-                                                }
-                                            }
-                                            setFormData({ ...formData, discountForCustomer: val === "" ? "" : val });
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        )}
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Discount</span>
+                            <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Tax</span>
+                            <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
+                            <span>Total</span>
+                            <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
+                        </div>
+
                         {useWallet && appliedWalletAmount > 0 && (
                             <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Wallet Applied</span>

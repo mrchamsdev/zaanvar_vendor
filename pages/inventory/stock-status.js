@@ -45,6 +45,18 @@ const TABS = [
   { id: "damaged", label: "Damaged" }
 ];
 
+const isItemCompleted = (item) => {
+  if (!item) return false;
+  return (
+    item.status?.toLowerCase() === 'completed' ||
+    item.status?.toLowerCase() === 'waste' ||
+    item.isWaste ||
+    item.action === 'waste' ||
+    item.notes?.toLowerCase().includes('waste') ||
+    item.reason?.toLowerCase().includes('waste')
+  );
+};
+
 const StockStatusPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
@@ -257,7 +269,17 @@ const StockStatusPage = () => {
   };
 
   const currentList = data[activeTab] || [];
-  const filteredList = currentList.filter(item => {
+  const sortedList = (activeTab === "expired" || activeTab === "damaged")
+    ? [...currentList].sort((a, b) => {
+        const aComp = isItemCompleted(a);
+        const bComp = isItemCompleted(b);
+        if (aComp && !bComp) return 1;
+        if (!aComp && bComp) return -1;
+        return 0;
+      })
+    : currentList;
+
+  const filteredList = sortedList.filter(item => {
     const name = item.productDetails?.productName || item.productName || "";
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
@@ -409,7 +431,7 @@ const StockStatusPage = () => {
                     <IconRefresh /> Restock
                   </button>
                 ) : activeTab === "expired" ? (
-                  (item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste') || item.reason?.toLowerCase().includes('waste')) ? (
+                  isItemCompleted(item) ? (
                     <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <IconRefresh /> Completed
                     </span>
@@ -423,7 +445,7 @@ const StockStatusPage = () => {
                   )
                 ) : (
                   <>
-                    {(item.status?.toLowerCase() === 'completed' || item.status?.toLowerCase() === 'waste' || item.isWaste || item.action === 'waste' || item.notes?.toLowerCase().includes('waste') || item.reason?.toLowerCase().includes('waste')) ? (
+                    {isItemCompleted(item) ? (
                       <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <IconRefresh /> Completed
                       </span>

@@ -63,7 +63,7 @@
   font-family: 'Inter', sans-serif;
   max-width: 900px;
   margin: 0 auto 40px auto;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
 }
@@ -226,19 +226,23 @@
   display: flex;
   flex-direction: column;
 }
+
 .nestedTop {
   padding-bottom: 4px;
   border-bottom: 1px solid #fff;
 }
+
 .nestedBottom {
   display: flex;
   justify-content: space-between;
   padding-top: 4px;
 }
+
 .nestedBottom span {
   flex: 1;
   text-align: center;
 }
+
 .nestedBottom span:first-child {
   border-right: 1px solid #fff;
 }
@@ -249,10 +253,12 @@
   padding: 0;
   height: 100%;
 }
+
 .nestedCell span {
   flex: 1;
   padding: 8px 4px;
 }
+
 .nestedCell span:first-child {
   border-right: 1px solid #ddd;
 }
@@ -387,11 +393,12 @@
     visibility: hidden;
   }
 
-  body.is-printing-pdf > :not(#print-invoice-wrapper) {
+  :global(body.is-printing-pdf)> :global(*:not(#print-invoice-wrapper)) {
     display: none !important;
   }
 
-  .printWrapper, .printWrapper * {
+  .printWrapper,
+  .printWrapper * {
     visibility: visible;
   }
 
@@ -420,12 +427,30 @@
   }
 
   /* Force background colors to print */
-  .topGreyBar { background-color: #bcbcbc !important; }
-  .imagePlaceholder { background-color: #d8d8d8 !important; }
-  .amountPaidBar, .itemsTable th, .paymentTotalRow td, .amountInWordsSplitHeader, .amountsSplitHeader, .signatureHeader, .bottomBranding {
+  .topGreyBar {
+    background-color: #bcbcbc !important;
+  }
+
+  .imagePlaceholder {
+    background-color: #d8d8d8 !important;
+  }
+
+  .amountPaidBar,
+  .itemsTable th,
+  .paymentTotalRow td,
+  .amountInWordsSplitHeader,
+  .amountsSplitHeader,
+  .signatureHeader,
+  .bottomBranding {
     background-color: #e93e64 !important;
     color: white !important;
   }
-  .amountInWordsHeader { background-color: #eee !important; }
-  .tableTotalRow td { background-color: #f9f9f9 !important; }
+
+  .amountInWordsHeader {
+    background-color: #eee !important;
+  }
+
+  .tableTotalRow td {
+    background-color: #f9f9f9 !important;
+  }
 }

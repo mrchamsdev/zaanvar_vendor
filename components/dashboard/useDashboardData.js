@@ -82,18 +82,21 @@ export default function useDashboardData(options = {}) {
 
   const branches = apiBranches || company?.branches || [];
 
-  // Set default branch if none selected
+  // Set default branch if none selected or if the selected one is no longer in the fetched branches (e.g., deleted)
   useEffect(() => {
-    if (branches.length > 0 && !selectedBranchId) {
-      setSelectedBranchId(branches[0].id || branches[0]._id);
+    if (branches.length > 0) {
+      const isValidSelected = branches.find(b => String(b.id) === String(selectedBranchId));
+      if (!selectedBranchId || !isValidSelected) {
+        setSelectedBranchId(branches[0].id || branches[0]._id);
+      }
     }
   }, [branches, selectedBranchId, setSelectedBranchId]);
 
-  const currentBranchId = selectedBranchId || branches[0]?.id || vendor?.branchId || null;
-  const branch = branches.find(b => b.id === currentBranchId) || branches[0] || null;
+  const currentBranchId = selectedBranchId || vendor?.branchId || null;
+  const branch = branches.find(b => String(b.id) === String(currentBranchId)) || branches[0] || null;
   const timings = normaliseTiming(branch?.timings);
 
-  const branchId = currentBranchId;
+  const branchId = branch?.id || branch?._id || null;
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {

@@ -118,14 +118,35 @@ const StockUpdateView = ({ stockId, onClose }) => {
     baseQty = data.updatedQty || 0;
   }
 
-  let displayUpdatedQty = data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : baseQty;
+  // Updated Qty: openStock → openQty, onHold/holdQty → holdQty, otherwise → updatedQty
+  let displayUpdatedQty;
   if (isOS && data.openQty !== undefined && data.openQty !== null) {
     displayUpdatedQty = data.openQty;
   } else if (isHold && data.holdQty !== undefined && data.holdQty !== null) {
     displayUpdatedQty = data.holdQty;
+  } else {
+    displayUpdatedQty = data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : baseQty;
   }
 
-  let displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
+  // Current Qty: for Hold Qty, show qtyForSale (total available stock) which represents
+  // the stock pool before hold was applied. For Open Stock, show openStockQuantity.
+  // Falls back to data.stock → data.currentQty → computed.
+  let displayCurrentQty;
+  if (isHold) {
+    // qtyForSale = total stock available for sale (e.g. 100)
+    const holdCurrentQty = qtyForSale ?? openStockQuantity ?? data.stock ?? data.currentQty ?? null;
+    displayCurrentQty = holdCurrentQty !== null ? holdCurrentQty : (displayUpdatedQty - (data.add || 0) + (data.remove || 0));
+  } else if (isOS) {
+    const osCurrentQty = openStockQuantity ?? data.stock ?? data.currentQty ?? null;
+    displayCurrentQty = osCurrentQty !== null ? osCurrentQty : (displayUpdatedQty - (data.add || 0) + (data.remove || 0));
+  } else if (data.currentQty !== undefined && data.currentQty !== null) {
+    displayCurrentQty = data.currentQty;
+  } else if (data.stock !== undefined && data.stock !== null) {
+    // For all other reasons (Internal purpose, Damage, Theft, etc.) use data.stock
+    displayCurrentQty = data.stock;
+  } else {
+    displayCurrentQty = displayUpdatedQty - (data.add || 0) + (data.remove || 0);
+  }
 
   const reasonLower = (data.reason || "").trim().toLowerCase();
   if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {

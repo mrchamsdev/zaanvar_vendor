@@ -266,10 +266,10 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
 
     const displayedBalanceAmount = (() => {
         const val = data?.balanceAmount !== undefined && data?.balanceAmount !== null ? data.balanceAmount :
-                    data?.outstandingAmount !== undefined && data?.outstandingAmount !== null ? data.outstandingAmount :
-                    data?.receivedDetails?.balanceAmount !== undefined && data?.receivedDetails?.balanceAmount !== null ? data.receivedDetails.balanceAmount :
+            data?.outstandingAmount !== undefined && data?.outstandingAmount !== null ? data.outstandingAmount :
+                data?.receivedDetails?.balanceAmount !== undefined && data?.receivedDetails?.balanceAmount !== null ? data.receivedDetails.balanceAmount :
                     data?.receivedDetails?.outstandingAmount !== undefined && data?.receivedDetails?.outstandingAmount !== null ? data.receivedDetails.outstandingAmount :
-                    null;
+                        null;
         if (val !== null && !isNaN(Number(val))) return Number(val);
         if (paymentStatus === "Full" || paymentStatus === "Paid") return 0;
         const paid = Number(receivedDetails?.paidAmount || data?.amountPaidTosupplier || 0);

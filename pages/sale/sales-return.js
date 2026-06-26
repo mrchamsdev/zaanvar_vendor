@@ -49,7 +49,7 @@ const SalesReturnPage = () => {
 
     const customLeft = (
         <div className={dashboardStyles.branchSwitcherContainer}>
-            <select 
+            <select
                 className={dashboardStyles.branchSwitcher}
                 value={currentBranchId}
                 onChange={handleBranchChange}
@@ -64,7 +64,7 @@ const SalesReturnPage = () => {
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button 
+            <button
                 onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
                 style={{
                     background: '#E93E64',
@@ -96,26 +96,26 @@ const SalesReturnPage = () => {
     if (isPdf) {
         const pdfId = router.query.id || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : '');
         return (
-            <AddSalesReturn 
+            <AddSalesReturn
                 isOpen={true}
                 mode="view"
                 returnId={pdfId}
                 onClose={() => window.close()}
-                onRefresh={() => {}}
+                onRefresh={() => { }}
             />
         );
     }
 
     return (
-        <DashboardLayout 
+        <DashboardLayout
             customTopbarLeft={customLeft}
             customTopbarRight={customRight}
         >
-            <SalesReturnList 
+            <SalesReturnList
                 onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
             />
 
-            <AddSalesReturn 
+            <AddSalesReturn
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 returnId={router.query.id}

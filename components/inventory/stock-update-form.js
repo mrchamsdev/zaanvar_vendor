@@ -320,8 +320,36 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 const openQtyVal = (openStockQuantity !== undefined && openStockQuantity !== null) ? openStockQuantity : (data.openQty ?? updatedQtyVal);
                 const holdQtyVal = (onHoldQuantity !== undefined && onHoldQuantity !== null) ? onHoldQuantity : (data.holdQty ?? updatedQtyVal);
 
-                let displayCurrentQty = isOS ? (openQtyVal - (data.add || 0) + (data.remove || 0)) : (isHold ? (holdQtyVal - (data.add || 0) + (data.remove || 0)) : (data.currentQty !== undefined && data.currentQty !== null ? data.currentQty : currentQtyVal));
-                let displayUpdatedQty = isOS ? openQtyVal : (isHold ? holdQtyVal : (data.updatedQty !== undefined && data.updatedQty !== null ? data.updatedQty : updatedQtyVal));
+                // Current Qty: use data.stock (total stock before update) if available, else compute
+                let displayCurrentQty;
+                if (data.stock !== undefined && data.stock !== null) {
+                    displayCurrentQty = data.stock;
+                } else if (isOS) {
+                    displayCurrentQty = openQtyVal - (data.add || 0) + (data.remove || 0);
+                } else if (isHold) {
+                    displayCurrentQty = holdQtyVal - (data.add || 0) + (data.remove || 0);
+                } else if (data.currentQty !== undefined && data.currentQty !== null) {
+                    displayCurrentQty = data.currentQty;
+                } else {
+                    displayCurrentQty = currentQtyVal;
+                }
+
+                // Updated Qty: openStock → openQty, onHold/holdQty → holdQty, otherwise → updatedQty
+                let displayUpdatedQty;
+                if (isOS && data.openQty !== undefined && data.openQty !== null) {
+                    displayUpdatedQty = data.openQty;
+                } else if (isHold && data.holdQty !== undefined && data.holdQty !== null) {
+                    displayUpdatedQty = data.holdQty;
+                } else if (data.updatedQty !== undefined && data.updatedQty !== null) {
+                    displayUpdatedQty = data.updatedQty;
+                } else if (isOS) {
+                    displayUpdatedQty = openQtyVal;
+                } else if (isHold) {
+                    displayUpdatedQty = holdQtyVal;
+                } else {
+                    displayUpdatedQty = updatedQtyVal;
+                }
+
 
                 const reasonLower = (data.reason || "").trim().toLowerCase();
                 if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {

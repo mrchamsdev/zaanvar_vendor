@@ -305,3 +305,7 @@
         grid-template-columns: 1fr;
     }
 }
+
+.inputError {
+    border-color: #E9315D !important;
+}
