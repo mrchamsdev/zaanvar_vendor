@@ -316,6 +316,9 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       <th>Supplier Name</th>
                       <th>Variant Type</th>
                       <th>Batch No</th>
+                      <th>Total Qty</th>
+                      <th>Open Qty</th>
+                      <th>Hold Qty</th>
                       <th>MRP</th>
                       <th>Cost Price</th>
                       <th>ORDERED</th>
@@ -326,22 +329,34 @@ const ProductView = ({ data, onBack, isSplit }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.productsBillItems.map((bill, idx) => (
-                      <tr key={idx}>
-                        <td>{bill.productsPurchaseRqstId || bill.productsBillId}</td>
-                        <td>{bill.productsBillId || "-"}</td>
-                        <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
-                        <td>{getVariantTypeDisplay(bill)}</td>
-                        <td>{bill.batchNumber || "-"}</td>
-                        <td>₹{bill.mrp}</td>
-                        <td>₹{bill.costPrice}</td>
-                        <td>{bill.qty}</td>
-                        <td>{bill.receivedQuantity}</td>
-                        <td>{bill.damagedQuantity}</td>
-                        <td>{bill.bill?.receivedDate || "-"}</td>
-                        <td>{formatExpiryDate(bill.expiryDate)}</td>
-                      </tr>
-                    ))}
+                    {data.productsBillItems.map((bill, idx) => {
+                      const batchObj = allVariants
+                        .flatMap(v => v.batchNumbers || [])
+                        .find(b => b.batchNumber === bill.batchNumber);
+                      const totalQty = batchObj?.stockUpdates?.totalQuantity ?? batchObj?.quantity ?? "-";
+                      const openQty = batchObj?.stockUpdates?.openStockQuantity ?? batchObj?.openStockQuantity ?? "-";
+                      const holdQty = batchObj?.stockUpdates?.onHoldQuantity ?? batchObj?.onHoldQuantity ?? "-";
+
+                      return (
+                        <tr key={idx}>
+                          <td>{bill.productsPurchaseRqstId || bill.productsBillId}</td>
+                          <td>{bill.productsBillId || "-"}</td>
+                          <td>{bill.bill?.vendor?.supplierName || "Global Pet Supplies"}</td>
+                          <td>{getVariantTypeDisplay(bill)}</td>
+                          <td>{bill.batchNumber || "-"}</td>
+                          <td style={{ fontWeight: 600 }}>{totalQty}</td>
+                          <td style={{ fontWeight: 600 }}>{openQty}</td>
+                          <td style={{ fontWeight: 600, color: holdQty > 0 ? '#ff4d4f' : 'inherit' }}>{holdQty}</td>
+                          <td>₹{bill.mrp}</td>
+                          <td>₹{bill.costPrice}</td>
+                          <td>{bill.qty}</td>
+                          <td>{bill.receivedQuantity}</td>
+                          <td>{bill.damagedQuantity}</td>
+                          <td>{bill.bill?.receivedDate || "-"}</td>
+                          <td>{formatExpiryDate(bill.expiryDate)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
