@@ -12,7 +12,7 @@ import PrintInvoiceTemplate from "../../components/shared/PrintInvoiceTemplate";
 
 const PaymentOutFormPage = () => {
     const router = useRouter();
-    const { id, mode } = router.query;
+    const { id, mode, branchId: queryBranchId } = router.query;
     const isView = mode === "view";
     const isEdit = mode === "edit";
     const { jwtToken, userInfo } = useStore();
@@ -37,6 +37,10 @@ const PaymentOutFormPage = () => {
         refNo: "",
         id: Date.now()
     }]);
+    const [errors, setErrors] = useState({});
+
+    const currentTotalAllocated = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+    const isUnbalanced = Number(paidAmount) > 0 && Math.abs(currentTotalAllocated - Number(paidAmount)) > 0.01;
 
     useEffect(() => {
         if (jwtToken && id) {
@@ -62,7 +66,7 @@ const PaymentOutFormPage = () => {
         setLoading(true);
         try {
             // Fetch suppliers first for lookup
-            const suppliersRes = await purchaseService.getSuppliers(jwtToken, userInfo?.branchId || 91);
+            const suppliersRes = await purchaseService.getSuppliers(jwtToken, queryBranchId || userInfo?.branchId || 91);
             let suppliersList = [];
             if (suppliersRes.status === "success") {
                 suppliersList = suppliersRes.data || [];
@@ -118,6 +122,31 @@ const PaymentOutFormPage = () => {
 
     const handleSave = async () => {
         if (isView) return;
+
+        const newErrors = {};
+        const totalAmountToBePaid = Number(paidAmount);
+        if (!paidAmount || isNaN(totalAmountToBePaid) || totalAmountToBePaid <= 0) {
+            newErrors.paidAmount = "Paid amount is required";
+        }
+
+        const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
+        if (totalAmountToBePaid > 0 && Math.abs(currentTotalPaid - totalAmountToBePaid) > 0.01) {
+            newErrors.unbalanced = `The sum of payments (₹ ${currentTotalPaid}) does not match the Paid Amount (₹ ${totalAmountToBePaid})`;
+        }
+
+        payments.forEach(p => {
+            const amt = Number(p.amountPaid || 0);
+            if (!p.amountPaid || isNaN(amt) || amt <= 0) {
+                newErrors[`payment_${p.id}`] = "Amount paid is required";
+            }
+        });
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            toast.error("Please fill all required fields correctly");
+            return;
+        }
+
         setSaving(true);
         try {
             const paymentTypes = payments.map(p => {
@@ -154,8 +183,8 @@ const PaymentOutFormPage = () => {
             if (res.status === 200 || res.data?.status === "success" || res.data?.status === "ok" || res.data?.suppliersTransactionId) {
                 toast.success("Transaction updated successfully");
                 setTimeout(() => {
-                    const branchId = userInfo?.branchId || router.query.branchId || 91;
-                    const redirectUrl = `/purchase-bill/purchase-out?branchId=${branchId}`;
+                    const branchIdVal = queryBranchId || router.query.branchId || userInfo?.branchId || 91;
+                    const redirectUrl = `/purchase-bill/purchase-out?branchId=${branchIdVal}`;
                     router.push(redirectUrl).catch(() => {
                         window.location.href = redirectUrl;
                     });
@@ -305,15 +334,29 @@ const PaymentOutFormPage = () => {
                     <div className={styles.gridRow}>
 
                         <div className={styles.field}>
-                            <label>Paid Amount</label>
+                            <label>Paid Amount <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
                                 type="text"
-                                className={`${styles.input} ${isView ? styles.readOnly : ""}`}
+                                className={`${styles.input} ${isView ? styles.readOnly : ""} ${errors.paidAmount ? styles.inputError : ""}`}
                                 value={paidAmount}
-                                onChange={(e) => setPaidAmount(e.target.value)}
+                                onChange={(e) => {
+                                    setPaidAmount(e.target.value);
+                                    setErrors(prev => {
+                                        const newErr = { ...prev };
+                                        delete newErr.paidAmount;
+                                        delete newErr.unbalanced;
+                                        return newErr;
+                                    });
+                                }}
                                 readOnly={isView}
                                 placeholder="000"
                             />
+                            {errors.paidAmount && (
+                                <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.paidAmount}</span>
+                            )}
+                            {errors.unbalanced && (
+                                <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.unbalanced}</span>
+                            )}
                         </div>
                     </div>
 
@@ -341,33 +384,50 @@ const PaymentOutFormPage = () => {
                                     )}
                                 </div>
                                 <div className={styles.field}>
-                                    <label>Amount Paid</label>
+                                    <label>Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>
                                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                         <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                                             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
                                             <input
                                                 type="number"
-                                                className={`${styles.input} ${isView ? styles.readOnly : ""} ${!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0) ? styles.inputError : ""}`}
+                                                className={`${styles.input} ${isView ? styles.readOnly : ""} ${(!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0)) || errors[`payment_${p.id}`] ? styles.inputError : ""}`}
                                                 value={p.amountPaid}
                                                 onChange={(e) => {
                                                     const newPayments = [...payments];
                                                     newPayments[idx].amountPaid = e.target.value;
                                                     setPayments(newPayments);
+                                                    setErrors(prev => {
+                                                        const newErr = { ...prev };
+                                                        delete newErr[`payment_${p.id}`];
+                                                        delete newErr.unbalanced;
+                                                        return newErr;
+                                                    });
                                                 }}
                                                 readOnly={isView}
                                                 style={{ paddingLeft: '32px', width: '100%' }}
-                                                placeholder="25000"
+                                                placeholder="0"
                                             />
                                         </div>
                                         {!isView && (
                                             <button
                                                 className={styles.miniRemove}
-                                                onClick={() => setPayments(payments.filter(pay => pay.id !== p.id))}
+                                                onClick={() => {
+                                                    setPayments(payments.filter(pay => pay.id !== p.id));
+                                                    setErrors(prev => {
+                                                        const newErr = { ...prev };
+                                                        delete newErr[`payment_${p.id}`];
+                                                        delete newErr.unbalanced;
+                                                        return newErr;
+                                                    });
+                                                }}
                                             >
                                                 <FiTrash2 />
                                             </button>
                                         )}
                                     </div>
+                                    {errors[`payment_${p.id}`] && (
+                                        <span style={{ color: '#FF4D4F', fontSize: '12px', display: 'block', marginTop: '4px' }}>{errors[`payment_${p.id}`]}</span>
+                                    )}
                                     {!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0) && (
                                         <span className={styles.errorLabel}>
                                             Amount paid cannot be more than paid amount.
@@ -395,12 +455,46 @@ const PaymentOutFormPage = () => {
                         </div>
                     ))}
 
-                    <div
-                        className={styles.addPaymentLink}
-                        style={{ display: isView ? 'none' : 'block' }}
-                        onClick={() => setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }])}
-                    >
-                        +ADD ANOTHER PAYMENT
+                    <div style={{
+                        display: isView ? 'none' : 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '32px'
+                    }}>
+                        <div
+                            className={styles.addPaymentLink}
+                            onClick={() => {
+                                setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }]);
+                                setErrors(prev => {
+                                    const newErr = { ...prev };
+                                    delete newErr.unbalanced;
+                                    return newErr;
+                                });
+                            }}
+                            style={{ margin: 0 }}
+                        >
+                            +ADD ANOTHER PAYMENT
+                        </div>
+                        {Number(paidAmount) > 0 && (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: '4px'
+                            }}>
+                                <div style={{
+                                    fontSize: '14px',
+                                    fontWeight: '700',
+                                    color: !isUnbalanced ? '#22c55e' : '#E93E64'
+                                }}>
+                                    {(Number(paidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ '}
+                                    {Math.abs(Number(paidAmount) - currentTotalAllocated).toFixed(2)}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#999' }}>
+                                    Total Allocated: ₹ {currentTotalAllocated.toFixed(2)} / ₹ {Number(paidAmount).toFixed(2)}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.field} style={{ marginBottom: '24px' }}>

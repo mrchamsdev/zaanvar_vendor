@@ -197,7 +197,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             if (!res || res.status === "error" || !res.data) {
                 try {
                     res = await saleService.getSaleInvoiceById(jwtToken, paymentId);
-                } catch(err) {
+                } catch (err) {
                     res = { status: "error" };
                 }
             }

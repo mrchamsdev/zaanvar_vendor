@@ -87,16 +87,16 @@ button {
   /* Global System Colors */
   --color-primary: #E9315D;
   --color-primary-light: #FFF1F0;
-  
+
   --color-white: #ffffff;
   --color-black: #000000;
-  
+
   --color-text-main: #111111;
   --color-text-body: #333333;
   --color-text-muted: #666666;
   --color-text-light: #888888;
   --color-text-lighter: #999999;
-  
+
   --color-text-darkest: #374151;
   --color-text-dark: #4B5563;
   --color-text-gray: #555555;
@@ -105,7 +105,7 @@ button {
   --color-text-slate-light: #64748b;
   --color-text-gray-muted: #6B7280;
   --color-text-gray-lighter: #9CA3AF;
-  
+
   --color-bg-light: #F9FAFB;
   --color-bg-subtle: #f8f9fa;
   --color-bg-lightest: #f1f5f9;
@@ -113,14 +113,14 @@ button {
   --color-bg-gray: #f1f1f1;
   --color-bg-gray-light: #f9f9f9;
   --color-bg-danger-light: #fcecf0;
-  
+
   --color-border: #E5E7EB;
   --color-border-dark: #dddddd;
   --color-border-light: #eeeeee;
   --color-border-lighter: #f0f0f0;
   --color-border-gray: #e2e8f0;
   --color-border-darker: #D1D5DB;
-  
+
   --color-danger: #FF4D4F;
   --color-danger-dark: #e11d48;
   --color-danger-light: #fff1f2;

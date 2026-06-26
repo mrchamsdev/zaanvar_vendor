@@ -527,7 +527,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             setItems(newItems);
             return;
         }
-        const qty = parseInt(val) || 0;
+        const qty = parseFloat(val) || 0;
         const item = items[index];
 
         const newItems = [...items];
@@ -570,7 +570,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         return billDetails.billItems.filter(bi => !selectedIds.includes(bi.productsBillItemsId));
     };
 
-    const totalQty = items.reduce((acc, it) => acc + (parseInt(it.returnQty) || 0), 0);
+    const totalQty = items.reduce((acc, it) => acc + (parseFloat(it.returnQty) || 0), 0);
     const totalPrice = items.reduce((acc, it) => acc + (parseFloat(it.costPrice) || 0), 0);
     const totalTax = items.reduce((acc, it) => acc + (parseFloat(it.taxAmount) || 0), 0);
     const totalDiscount = items.reduce((acc, it) => acc + (parseFloat(it.discountAmount) || 0), 0);
@@ -632,7 +632,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 updatedItem.error = "Required";
                 itemHasError = true;
             } else {
-                const qty = parseInt(it.returnQty) || 0;
+                const qty = parseFloat(it.returnQty) || 0;
                 if (qty <= 0) {
                     updatedItem.error = "Must be greater than 0";
                     itemHasError = true;
@@ -1067,7 +1067,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
                                                         const returnable = newItems[idx].returnableQty || 0;
                                                         const sourceMax = getMaxQty(newItems[idx]);
-                                                        const currentQty = parseInt(newItems[idx].returnQty) || 0;
+                                                        const currentQty = parseFloat(newItems[idx].returnQty) || 0;
 
                                                         if (currentQty > returnable) {
                                                             newItems[idx].error = `Cannot exceed returnable quantity (${returnable})`;

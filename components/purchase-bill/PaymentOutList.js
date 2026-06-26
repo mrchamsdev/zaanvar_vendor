@@ -793,7 +793,7 @@ const PaymentOutList = ({ onAddClick }) => {
                         </div>
                     )}
                 </div>
-        </div>
+            </div>
 
 
             <div style={{ position: 'relative', width: '350px', marginBottom: '24px' }}>
@@ -1048,23 +1048,23 @@ const PaymentOutList = ({ onAddClick }) => {
                                                             {activeDropdown === idx && (
                                                                 <div className={styles.dropdownMenu}>
                                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view`);
+                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&branchId=${selectedBranchId || defaultBranchId}`);
                                                                         setActiveDropdown(null);
                                                                     }}>View</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
-                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit`);
+                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit&branchId=${selectedBranchId || defaultBranchId}`);
                                                                         setActiveDropdown(null);
                                                                     }}>Edit</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toFixed(2);
-                                                                        const pdfUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}`;
+                                                                        const pdfUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}&branchId=${selectedBranchId || defaultBranchId}`;
                                                                         window.open(pdfUrl, '_blank');
                                                                         setActiveDropdown(null);
                                                                     }}>Open PDF</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
                                                                         const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toFixed(2);
-                                                                        const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}`;
+                                                                        const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}&branchId=${selectedBranchId || defaultBranchId}`;
                                                                         const iframe = document.createElement('iframe');
                                                                         iframe.style.position = 'fixed';
                                                                         iframe.style.width = '0';

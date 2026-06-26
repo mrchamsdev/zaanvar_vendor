@@ -105,8 +105,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             return;
         }
 
-        const validPayments = payments.filter(p => Number(p.amountPaid) > 0);
-        if (validPayments.length === 0) {
+        const hasInvalidPayment = payments.some(p => !p.amountPaid || Number(p.amountPaid) <= 0);
+        if (hasInvalidPayment) {
             return;
         }
 
@@ -222,6 +222,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 <input
                                     type="text"
                                     placeholder="0"
+                                    className={isSubmitted && (!masterTarget || Number(masterTarget) <= 0) ? styles.inputError : ""}
                                     value={masterTarget}
                                     onChange={(e) => {
                                         const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -277,11 +278,12 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 <input
                                     type="text"
                                     placeholder="0"
+                                    className={isSubmitted && (!payments[0].amountPaid || Number(payments[0].amountPaid) <= 0) ? styles.inputError : ""}
                                     value={payments[0].amountPaid}
                                     onChange={(e) => handlePaymentChange(payments[0].id, "amountPaid", e.target.value)}
                                 />
                             </div>
-                            {isSubmitted && !payments.some(p => Number(p.amountPaid) > 0) && (
+                            {isSubmitted && (!payments[0].amountPaid || Number(payments[0].amountPaid) <= 0) && (
                                 <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
                                     Amount Paid is required
                                 </div>
@@ -342,10 +344,16 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         <input
                                             type="text"
                                             placeholder="0"
+                                            className={isSubmitted && (!p.amountPaid || Number(p.amountPaid) <= 0) ? styles.inputError : ""}
                                             value={p.amountPaid}
                                             onChange={(e) => handlePaymentChange(p.id, "amountPaid", e.target.value)}
                                         />
                                     </div>
+                                    {isSubmitted && (!p.amountPaid || Number(p.amountPaid) <= 0) && (
+                                        <div style={{ color: '#E9315D', fontSize: '11px', marginTop: '4px' }}>
+                                            Amount Paid is required
+                                        </div>
+                                    )}
                                     {isOverTarget && idx === payments.length - 2 ? (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
                                             Amount paid can not exceeded total amount paid

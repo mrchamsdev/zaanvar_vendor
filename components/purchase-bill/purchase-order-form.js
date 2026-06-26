@@ -298,7 +298,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
-            
+
             // Show toast based on error type
             if (errors.branchId || errors.supplierId || errors.orderDate === "Order date is required") {
                 toast.error("Please fill all required fields correctly.");
@@ -312,7 +312,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     toast.error("Please fill all required item details.");
                 }
             }
-            
+
             return;
         }
         setFormErrors({});
@@ -336,7 +336,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     productId: i.productId,
                     variantId: i.variantId,
                     taxGroupId: i.taxGroupId || 1,
-                    orderQuantity: parseInt(i.orderQty),
+                    orderQuantity: parseFloat(i.orderQty),
                     costPrice: parseFloat(i.costPrice) || 0
                 }))
             };
