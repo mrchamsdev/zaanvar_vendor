@@ -167,7 +167,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             userOrderId: data.userOrderId || "",
             invoiceNumber: data.invoiceNumber || "",
             invoiceDate: (data.invoiceDate || data.createdDate) ? (data.invoiceDate || data.createdDate).split("T")[0] : "",
-            status: data.status || "Pending"
+            status: data.billStatus === "Full" ? "Completed" : (data.status || "Pending")
         });
 
         // Mapping cartItems based on the latest API response
@@ -1321,14 +1321,30 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     </button>
                     {isViewOnly && (
                         <>
-                            <button
-                                className={styles.saveBtn}
-                                onClick={() => setPaymentModalOpen(true)}
-                                style={{ marginRight: '12px', background: '#000' }}
-                            >
-                                Make Payment
-                            </button>
-                            <button className={styles.saveBtn} onClick={() => window.print()} >
+                            {saleInvoiceData?.billStatus !== "Full" && balanceAmount > 0 && (
+                                <button
+                                    className={styles.saveBtn}
+                                    onClick={() => setPaymentModalOpen(true)}
+                                    style={{ marginRight: '12px', background: '#000' }}
+                                >
+                                    Make Payment
+                                </button>
+                            )}
+                            <button className={styles.saveBtn} onClick={() => {
+                                const printUrl = `${window.location.pathname}?view=true&id=${saleId || formData.userOrderId}&print=true&pdf=true`;
+                                const iframe = document.createElement('iframe');
+                                iframe.style.position = 'fixed';
+                                iframe.style.width = '0';
+                                iframe.style.height = '0';
+                                iframe.style.border = '0';
+                                iframe.src = printUrl;
+                                document.body.appendChild(iframe);
+                                const cleanup = () => {
+                                    window.removeEventListener('focus', cleanup);
+                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                };
+                                window.addEventListener('focus', cleanup);
+                            }} >
                                 Print Invoice
                             </button>
                         </>

@@ -589,6 +589,10 @@ const SalesReturnList = ({ onAddClick }) => {
         });
 
         return matchesDate && matchesSearch && matchesColFilters;
+    }).sort((a, b) => {
+        const dateA = new Date(a.returnDate || a.createdDate).getTime();
+        const dateB = new Date(b.returnDate || b.createdDate).getTime();
+        return dateB - dateA;
     });
 
     const computedTotals = useMemo(() => {

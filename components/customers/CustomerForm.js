@@ -236,6 +236,8 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (!firstName) newErrors.firstName = "First name is required";
         if (!phone) newErrors.phone = "Phone number is required";
         else if (phone.length !== 10) newErrors.phone = "Phone number must be exactly 10 digits";
+        if (!email) newErrors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email format";
         if (selectedBranchIds.length === 0) newErrors.branch = "Branch is required";
 
         pets.forEach((p, idx) => {
@@ -380,8 +382,9 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                         </div>
                         <div>
-                            <label className={styles.labelStyle}>Email (Optional)</label>
-                            <input type="email" className={styles.inputStyle} placeholder="Enter mail id" value={email} onChange={e => setEmail(e.target.value)} />
+                            <label className={styles.labelStyle}>Email <span className={styles.asterisk}>*</span></label>
+                            <input type="email" className={styles.inputStyle} placeholder="Enter mail id" value={email} onChange={e => { setEmail(e.target.value); setErrors({ ...errors, email: null }); }} />
+                            {errors.email && <span className={styles.errorText}>{errors.email}</span>}
                         </div>
                         <div>
                             <label className={styles.labelStyle}>Veterinarian Name (Optional)</label>
@@ -421,25 +424,25 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 <FiChevronDown className={styles.selectChevron} />
                             </div>
                         </div>
-                    <div>
-                        <label className={styles.labelStyle}>ID Proof (optional)</label>
-                        <div className={styles.fileInputContainer}>
-                            <label className={styles.fileInputBtn}>
-                                Choose file
-                                <input type="file" className={styles.hidden} onChange={(e) => {
-                                    if (e.target.files && e.target.files[0]) {
-                                        setIdProof(e.target.files[0]);
-                                    }
-                                }} accept="image/*,.pdf" />
-                            </label>
-                            <span className={styles.fileName}>
-                                {idProof ? (idProof.name || (typeof idProof === 'string' ? idProof.split('/').pop() : "File Selected")) : "No file Choosen"}
-                            </span>
-                            {idProof && (
-                                <button type="button" onClick={() => setIdProof("")} className={styles.removeBtn}>Remove</button>
-                            )}
+                        <div>
+                            <label className={styles.labelStyle}>ID Proof (optional)</label>
+                            <div className={styles.fileInputContainer}>
+                                <label className={styles.fileInputBtn}>
+                                    Choose file
+                                    <input type="file" className={styles.hidden} onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            setIdProof(e.target.files[0]);
+                                        }
+                                    }} accept="image/*,.pdf" />
+                                </label>
+                                <span className={styles.fileName}>
+                                    {idProof ? (idProof.name || (typeof idProof === 'string' ? idProof.split('/').pop() : "File Selected")) : "No file Choosen"}
+                                </span>
+                                {idProof && (
+                                    <button type="button" onClick={() => setIdProof("")} className={styles.removeBtn}>Remove</button>
+                                )}
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
 
