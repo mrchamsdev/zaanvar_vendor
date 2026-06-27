@@ -575,7 +575,12 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                     )}
                                                     <div className={styles.fieldGrid}>
                                                         <div className={styles.fieldGroup}>
-                                                            <label className={styles.fieldLabel}>Batch Number</label>
+                                                            <div className={styles.labelWithInfo}>
+                                                                <label className={styles.fieldLabel}>Batch Number</label>
+                                                                <div className={styles.infoTooltip} data-tooltip="If not entered, a batch number will be automatically assigned">
+                                                                    <FiInfo className={styles.infoIcon} style={{ color: '#6B7280' }} />
+                                                                </div>
+                                                            </div>
                                                             <input
                                                                 type="text"
                                                                 className={styles.input}
@@ -656,8 +661,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                         <div className={styles.fieldGroup}>
                                                             <div className={styles.labelWithInfo}>
                                                                 <label className={styles.fieldLabel}>Damaged Items</label>
-                                                                <div className={styles.infoTooltip}>
-                                                                    <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} title="damage quanty will count from recived quantity" />
+                                                                <div className={styles.infoTooltip} data-tooltip="damage quanty will count from recived quantity">
+                                                                    <FiInfo className={styles.infoIcon} style={{ color: '#EF4444' }} />
                                                                 </div>
                                                             </div>
                                                             <input

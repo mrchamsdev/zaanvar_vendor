@@ -275,12 +275,14 @@ const PrintInvoiceTemplate = ({
           </thead>
           <tbody>
             {items.map((item, rowIdx) => {
-              const mode = item.paymentMethod || item.method || '-';
-              const ref = item.transactionRef || item.referenceNumber || '---------';
-              const amt = item.amount || '0';
+              const rawMode = item.paymentMethod || item.method || item.paymentType || '-';
+              const mode = String(rawMode).toUpperCase();
+              let ref = item.transactionRef || item.referenceNumber || item.refNo || '---------';
+              if (mode === 'CASH') ref = '-';
+              const amt = item.amount || item.amountPaid || '0';
               return (
                 <tr key={rowIdx}>
-                  <td className={styles.left}>{String(mode).toUpperCase()}</td>
+                  <td className={styles.left}>{mode}</td>
                   <td className={styles.left}>{ref}</td>
                   <td className={styles.right}>₹ {parseFloat(amt).toLocaleString()}</td>
                 </tr>

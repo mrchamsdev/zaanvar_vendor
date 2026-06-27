@@ -793,7 +793,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 <div className={styles.modalContent}>
                     <div className={styles.topGrid}>
                         <div className={styles.field}>
-                            <label>Supplier Name</label>
+                            <label>Supplier Name <span style={{ color: 'red' }}>*</span></label>
                             {isViewOnly ? (
                                 <input
                                     type="text"
@@ -832,7 +832,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Receipt No</label>
+                            <label>Receipt No <span style={{ color: 'red' }}>*</span></label>
                             {isViewOnly ? (
                                 <input
                                     type="text"
@@ -897,7 +897,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                             </div>
                         </div>
                         <div className={styles.field}>
-                            <label>Return Date</label>
+                            <label>Return Date <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.dateWrapper}>
                                 <input
                                     type="date"

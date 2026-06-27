@@ -200,7 +200,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                     {/* Row 1: Date (Global) and first payment amount */}
                     <div className={styles.row}>
                         <div className={styles.field}>
-                            <label>Amount paid date *</label>
+                            <label>Amount paid date <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
                                 <input
                                     type="date"
@@ -216,7 +216,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             )}
                         </div>
                         <div className={styles.field}>
-                            <label>Total Amount Paid *</label>
+                            <label>Total Amount Paid <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input
@@ -272,7 +272,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             </select>
                         </div>
                         <div className={styles.field}>
-                            <label>Amount Paid *</label>
+                            <label>Amount Paid <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
                                 <span className={styles.prefix}>₹</span>
                                 <input
@@ -334,7 +334,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                                 <div className={styles.field}>
                                     <div className={styles.labelWithAction}>
-                                        <label>Amount Paid *</label>
+                                        <label>Amount Paid <span style={{ color: 'red' }}>*</span></label>
                                         <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
                                             <FiTrash2 />
                                         </button>
