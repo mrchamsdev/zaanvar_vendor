@@ -932,7 +932,20 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 <div className={styles.footer}>
                     <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
                     {isViewOnly && (
-                        <button className={styles.saveBtn} onClick={() => window.print()} >Print</button>
+                        <button className={styles.saveBtn} onClick={() => {
+                            const printUrl = `${window.location.pathname}?view=true&id=${paymentId}&print=true&pdf=true`;
+                            const iframe = document.createElement('iframe');
+                            iframe.style.position = 'fixed';
+                            iframe.style.width = '0';
+                            iframe.style.height = '0';
+                            iframe.style.border = '0';
+                            iframe.src = printUrl;
+                            document.body.appendChild(iframe);
+                            const cleanup = () => {
+                                window.removeEventListener('focus', cleanup);
+                            };
+                            window.addEventListener('focus', cleanup);
+                        }}>Print</button>
                     )}
                     {!isViewOnly && (
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>

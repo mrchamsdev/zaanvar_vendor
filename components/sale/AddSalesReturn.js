@@ -616,7 +616,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Return Date</label>
+                            <label>Return Date <span style={{ color: '#ff4d4f' }}>*</span></label>
                             <input
                                 type="date"
                                 className={styles.input}
