@@ -328,7 +328,7 @@ const PrintInvoiceTemplate = ({
             <h2>{companyName}</h2>
             <p>Ph no. {companyPhone}</p>
           </div>
-          <div className={styles.imagePlaceholder} style={clinicProfileImage ? { background: 'transparent' } : {}}>
+          <div className={`${styles.imagePlaceholder} ${clinicProfileImage ? styles.imagePlaceholderTransparent : ''}`}>
             {clinicProfileImage ? (
               <img src={clinicProfileImage} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (

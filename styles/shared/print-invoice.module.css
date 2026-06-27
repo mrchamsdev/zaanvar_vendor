@@ -110,6 +110,10 @@
   font-size: 0.9rem;
 }
 
+.imagePlaceholderTransparent {
+  background-color: transparent !important;
+}
+
 /* Sub Header Details */
 .subHeader {
   display: flex;
@@ -433,6 +437,10 @@
 
   .imagePlaceholder {
     background-color: #d8d8d8 !important;
+  }
+  
+  .imagePlaceholderTransparent {
+    background-color: transparent !important;
   }
 
   .amountPaidBar,
