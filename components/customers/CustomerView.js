@@ -80,16 +80,14 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                 </div>
                 <div className={styles.paginationRight}>
                     <button
-                        className={`${styles.pageButton} ${styles.pageButtonPrev}`}
+                        className={`${styles.pageButton} ${styles.pageButtonPrev} ${currentPage === 1 ? styles.paginationDisabled : styles.paginationEnabled}`}
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
                     >Previous</button>
                     <button
-                        className={`${styles.pageButton} ${styles.pageButtonNext}`}
+                        className={`${styles.pageButton} ${styles.pageButtonNext} ${currentPage === totalPages || totalPages === 0 ? styles.paginationDisabled : styles.paginationEnabled}`}
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages || totalPages === 0}
-                        style={{ opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1, cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer' }}
                     >Next</button>
                 </div>
             </div>
@@ -151,7 +149,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.dueAmount, '0.00')}</td>
-                                            <td className={styles.dataTableCellCenter} style={{ position: 'relative' }}>
+                                            <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.userOrderId ? null : item.userOrderId)}>
                                                     <FiMoreVertical />
                                                 </button>
@@ -271,7 +269,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.amount, '0.00')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
-                                            <td className={styles.dataTableCellCenter} style={{ position: 'relative' }}>
+                                            <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.paymentId ? null : item.paymentId)}>
                                                     <FiMoreVertical />
                                                 </button>
@@ -343,23 +341,23 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
         <>
             {/* Payment History Modal */}
             {paymentHistoryModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPaymentHistoryModal(null)}>
-                    <div style={{ background: '#fff', borderRadius: '12px', padding: '28px', minWidth: '420px', maxWidth: '520px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1a1a1a' }}>Payment History for Invoice {paymentHistoryModal.orderId}</h3>
-                            <button onClick={() => setPaymentHistoryModal(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
+                <div className={styles.modalOverlay} onClick={() => setPaymentHistoryModal(null)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>Payment History for Invoice {paymentHistoryModal.orderId}</h3>
+                            <button onClick={() => setPaymentHistoryModal(null)} className={styles.closeButton}>×</button>
                         </div>
                         {paymentHistoryModal.payments.length === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#888', padding: '24px 0' }}>No payment records found for this invoice.</div>
+                            <div className={styles.emptyRecords}>No payment records found for this invoice.</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className={styles.paymentsList}>
                                 {paymentHistoryModal.payments.map((p, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>₹ {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                            <span style={{ fontSize: '12px', color: '#888' }}>{p.paymentMethod || 'Cash'}</span>
+                                    <div key={i} className={styles.paymentItem}>
+                                        <div className={styles.paymentInfo}>
+                                            <span className={styles.paymentAmount}>₹ {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className={styles.paymentMethod}>{p.paymentMethod || 'Cash'}</span>
                                         </div>
-                                        <span style={{ fontSize: '13px', color: '#555' }}>{formatDate(p.paymentDate || p.createdDate)}</span>
+                                        <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -448,8 +446,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                 {renderRightContent()}
                             </>
                         ) : (
-                            <div className={styles.tableCard} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-                                <h2 style={{ color: '#555', fontWeight: '500' }}>{activeTab} and it is under development</h2>
+                            <div className={`${styles.tableCard} ${styles.developmentCard}`}>
+                                <h2 className={styles.developmentText}>{activeTab} and it is under development</h2>
                             </div>
                         )}
                     </div>

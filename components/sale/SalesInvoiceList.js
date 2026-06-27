@@ -116,7 +116,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
     };
 
     return (
-        <div className={styles.dateFilterModal} style={{ textTransform: 'none' }}>
+        <div className={`${styles.dateFilterModal} ${styles.textTransformNone}`}>
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
@@ -138,7 +138,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
+                        <FiChevronRight className={styles.chevronRotated90} />
                     </div>
                     <span className={styles.modalLabel}>{label}</span>
                     <input
@@ -187,7 +187,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
     };
 
     return (
-        <div className={styles.dateFilterModal} style={{ textTransform: 'none' }}>
+        <div className={`${styles.dateFilterModal} ${styles.textTransformNone}`}>
             {showOptions ? (
                 <div className={styles.optionsList}>
                     {options.map(opt => (
@@ -209,7 +209,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
                     <span className={styles.modalLabel}>Select Category</span>
                     <div className={styles.categorySelect} onClick={() => setShowOptions(true)}>
                         <span>{mode}</span>
-                        <FiChevronRight style={{ transform: 'rotate(90deg)', color: '#666' }} />
+                        <FiChevronRight className={styles.chevronRotated90} />
                     </div>
 
                     {mode === 'Range' ? (
@@ -732,23 +732,23 @@ const SalesInvoiceList = ({ onAddClick }) => {
     return (
         <>
             {paymentHistoryModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPaymentHistoryModal(null)}>
-                    <div style={{ background: '#fff', borderRadius: '12px', padding: '28px', minWidth: '420px', maxWidth: '520px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1a1a1a' }}>Payment History for Invoice {paymentHistoryModal.orderId}</h3>
-                            <button onClick={() => setPaymentHistoryModal(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
+                <div className={styles.modalOverlay} onClick={() => setPaymentHistoryModal(null)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>Payment History for Invoice {paymentHistoryModal.orderId}</h3>
+                            <button onClick={() => setPaymentHistoryModal(null)} className={styles.closeButton}>×</button>
                         </div>
                         {paymentHistoryModal.payments.length === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#888', padding: '24px 0' }}>No payment records found for this invoice.</div>
+                            <div className={styles.emptyRecords}>No payment records found for this invoice.</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className={styles.paymentsList}>
                                 {paymentHistoryModal.payments.map((p, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>₹ {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                            <span style={{ fontSize: '12px', color: '#888' }}>{p.paymentMethod || p.paymentType || 'Cash'}</span>
+                                    <div key={i} className={styles.paymentItem}>
+                                        <div className={styles.paymentInfo}>
+                                            <span className={styles.paymentAmount}>₹ {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className={styles.paymentMethod}>{p.paymentMethod || p.paymentType || 'Cash'}</span>
                                         </div>
-                                        <span style={{ fontSize: '13px', color: '#555' }}>{formatDate(p.paymentDate || p.createdDate)}</span>
+                                        <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -777,9 +777,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
                             )}
                         </div>
                     </div>
-                    <div className={styles.filterGroup} style={{ position: 'relative' }}>
+                    <div className={`${styles.filterGroup} ${styles.relativePosition}`}>
                         <div className={styles.dateDisplay} onClick={() => setShowCustomPicker(!showCustomPicker)}>
-                            <FiCalendar style={{ marginRight: '8px', color: '#666' }} />
+                            <FiCalendar className={styles.calendarIconMargin} />
                             {new Date(dateRange.startDate).toLocaleDateString('en-GB')} To {new Date(dateRange.endDate).toLocaleDateString('en-GB')}
                         </div>
                         {showCustomPicker && (
@@ -837,7 +837,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <h2 className={styles.transactionsTitle}>Transactions</h2>
                     <div className={styles.headerActions}>
                         <button className={styles.iconBtn} onClick={exportToExcel} title="Export to Excel">
-                            <FaFileExcel style={{ color: '#217346' }} />
+                            <FaFileExcel className={styles.iconGreen} />
                         </button>
                         <button className={styles.iconBtn} onClick={handlePrint} title="Print">
                             <FiPrinter />
@@ -988,14 +988,14 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                         return (
                                             <tr key={inv.userOrderId || idx}>
                                                 <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
-                                                <td style={{ fontWeight: '600' }}>{inv.userOrderId}</td>
+                                                <td className={styles.textBold}>{inv.userOrderId}</td>
                                                 <td>{partyName}</td>
-                                                <td style={{ fontWeight: '600' }}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
+                                                <td className={styles.textBold}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
                                                 <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
                                                 <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
                                                 <td>
                                                     <div className={styles.actions}>
-                                                        <div style={{ position: 'relative' }}>
+                                                        <div className={styles.relativePosition}>
                                                             <FiShare2
                                                                 className={styles.actionIcon}
                                                                 onClick={() => {
@@ -1012,7 +1012,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                                                 />
                                                             )}
                                                         </div>
-                                                        <div style={{ position: 'relative' }}>
+                                                        <div className={styles.relativePosition}>
                                                             <FiMoreVertical className={styles.actionIcon} onClick={() => setActiveDropdown(activeDropdown === idx ? null : idx)} />
                                                             {activeDropdown === idx && (
                                                                 <div className={styles.dropdownMenu}>
