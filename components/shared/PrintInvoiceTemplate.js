@@ -192,9 +192,13 @@ const PrintInvoiceTemplate = ({
               });
 
               const totalQty = processedItems.reduce((acc, pi) => acc + pi.qtyVal, 0);
+              const totalPrice = processedItems.reduce((acc, pi) => acc + pi.priceVal, 0);
               const totalTaxAmt = processedItems.reduce((acc, pi) => acc + pi.taxAmt, 0);
               const totalDiscAmt = processedItems.reduce((acc, pi) => acc + pi.discAmt, 0);
               const totalAmt = processedItems.reduce((acc, pi) => acc + pi.amtVal, 0);
+              
+              // Get unit from the first item to show in total row, if applicable
+              const firstItemUnit = processedItems.length > 0 ? (unitCol ? getVal(unitCol, processedItems[0].item, 0) : processedItems[0].item.unit || '-') : '';
 
               return (
                 <>
@@ -232,7 +236,7 @@ const PrintInvoiceTemplate = ({
                     <td colSpan={2} className={styles.left}>TOTAL</td>
                     <td>{totalQty % 1 !== 0 ? totalQty.toFixed(2) : totalQty.toString().padStart(2, '0')}</td>
                     <td></td>
-                    <td></td>
+                    <td>{totalPrice ? totalPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : ''}</td>
                     <td style={{ padding: 0 }}>
                       <div className={styles.nestedCell}>
                         <span></span>
