@@ -375,7 +375,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 <div className={styles.sectionTitle}>Shipment Details</div>
                 <div className={styles.grid}>
                     <div className={styles.fieldGroup}>
-                        <label className={styles.label}>Selected Branch</label>
+                        <label className={styles.label}>Selected Branch <span style={{ color: '#FF4D4F' }}>*</span></label>
                         <div style={{ position: 'relative' }}>
                             <select
                                 className={`${styles.select} ${styles.input} ${formErrors.branchId ? styles.errorField : ""}`}
@@ -402,7 +402,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                         {formErrors.branchId && <div className={styles.errorMessage}>{formErrors.branchId}</div>}
                     </div>
                     <div className={styles.fieldGroup} ref={supplierRef} style={{ position: 'relative' }}>
-                        <label className={styles.label}>Select Supplier</label>
+                        <label className={styles.label}>Select Supplier <span style={{ color: '#FF4D4F' }}>*</span></label>
                         <div
                             className={`${styles.supplierSearchWrapper} ${formErrors.supplierId ? styles.errorField : ""}`}
                             onClick={() => setIsSupplierDropdownOpen(true)}
@@ -464,7 +464,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                         <input className={styles.input} type="text" placeholder="Phone Number" value={supplierPhone} readOnly />
                     </div>
                     <div className={styles.fieldGroup}>
-                        <label className={styles.label}>Date of Order</label>
+                        <label className={styles.label}>Date of Order <span style={{ color: '#FF4D4F' }}>*</span></label>
                         <input
                             className={`${styles.input} ${formErrors.orderDate ? styles.errorField : ""}`}
                             type="date"
