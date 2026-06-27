@@ -111,12 +111,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         return null;
     }, [customers, formData.vendorCustomerId, formData.phone, formData.partyName]);
 
-    const walletAmount = useMemo(() => {
-        if (mode !== 'add' && useWallet && savedWalletAmount > 0) {
-            return savedWalletAmount;
-        }
+    const availableWalletAmount = useMemo(() => {
         return selectedCustomerObj?.overallTotals?.walletAmount || selectedCustomerObj?.walletAmount || 0;
-    }, [mode, useWallet, savedWalletAmount, selectedCustomerObj]);
+    }, [selectedCustomerObj]);
 
     const resetForm = () => {
         setFormData({
@@ -610,13 +607,15 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const itemsTax = items.reduce((acc, it) => acc + (it.taxAmount || 0), 0);
 
     const appliedWalletAmount = useMemo(() => {
-        if (!useWallet || walletAmount <= 0) return 0;
-        if (mode !== 'add') {
-            return walletAmount;
+        if (!useWallet) return 0;
+        if (mode !== 'add' && savedWalletAmount > 0) {
+            return savedWalletAmount;
         }
+        if (availableWalletAmount <= 0) return 0;
+
         const netBill = Math.max(0, totalBillAmount - discountForCustomer);
-        return Math.min(walletAmount, netBill);
-    }, [useWallet, walletAmount, totalBillAmount, discountForCustomer, mode]);
+        return Math.min(availableWalletAmount, netBill);
+    }, [useWallet, availableWalletAmount, savedWalletAmount, totalBillAmount, discountForCustomer, mode]);
 
     const balanceAmount = isViewOnly && saleInvoiceData?.dueAmount !== undefined
         ? Number(saleInvoiceData.dueAmount || 0)
@@ -1206,37 +1205,120 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     )}
                 </div>
 
-                <div className={styles.totalSection}>
-                    <div className={styles.totalRow} style={{ width: "250px" }}>
-                        <span>Sub Total</span>
-                        <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
-                    </div>
-                    <div className={styles.totalRow} style={{ width: "250px" }}>
-                        <span>Discount</span>
-                        <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
-                    </div>
-                    <div className={styles.totalRow} style={{ width: "250px" }}>
-                        <span>Tax</span>
-                        <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
-                    </div>
-                    <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
-                        <span>Total</span>
-                        <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
-                    </div>
-
-                    {useWallet && appliedWalletAmount > 0 && (
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Wallet Applied</span>
-                            <span style={{ color: '#D93025' }}>Rs -{Number(appliedWalletAmount).toFixed(2)}</span>
+                <div className={styles.paymentSection}>
+                    {!isViewOnly ? (
+                        <div className={styles.paymentList}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
+                            {availableWalletAmount > 0 && (
+                                <div className={styles.walletToggle} onClick={() => setUseWallet(!useWallet)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={useWallet} 
+                                        readOnly 
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }} 
+                                    />
+                                    <span style={{ fontWeight: '600', marginLeft: '8px' }}>
+                                        Use Wallet Amount (Available: ₹ {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                    </span>
+                                    {useWallet && appliedWalletAmount > 0 && (
+                                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
+                                            Applied: ₹ {appliedWalletAmount.toFixed(2)}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {payments.map((p, idx) => (
+                                <div key={idx} className={styles.paymentEntry} style={{ position: 'relative' }}>
+                                    <div className={styles.paymentRow} style={{ gridTemplateColumns: payments.length > 1 ? "1fr 1fr 24px" : "1fr 1fr", display: 'grid', gap: '12px', }}>
+                                        <div className={styles.field}>
+                                            {idx === 0 && <label>payment type</label>}
+                                            <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)}>
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Bank">Bank</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.field}>
+                                            {idx === 0 && <label>amount paid</label>}
+                                            <input
+                                                type="number"
+                                                className={styles.input}
+                                                value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
+                                                placeholder="0"
+                                                onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
+                                            />
+                                        </div>
+                                        {payments.length > 1 && (
+                                            <div
+                                                style={{ marginTop: idx === 0 ? '24px' : '0', color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                onClick={() => {
+                                                    const newPayments = [...payments];
+                                                    newPayments.splice(idx, 1);
+                                                    setPayments(newPayments);
+                                                }}
+                                            >
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {(p.method === "UPI" || p.method === "Cheque") && (
+                                        <div className={styles.field} style={{ marginTop: "12px" }}>
+                                            <label>{p.method === "Cheque" ? "check no" : "reference number"}</label>
+                                            <input
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="****************"
+                                                value={p.referenceNumber || ""}
+                                                onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            <span className={styles.addAnotherPayment} onClick={handleAddPayment}>
+                                + Add another payment
+                            </span>
                         </div>
+                    ) : (
+                        <div></div>
                     )}
-                    <div className={styles.totalRow} style={{ width: "250px" }}>
-                        <span>Total Paid</span>
-                        <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
-                    </div>
-                    <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
-                        <span>Balance</span>
-                        <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
+
+                    <div className={styles.spacer}></div>
+
+                    <div className={styles.totalSection}>
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Sub Total</span>
+                            <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Discount</span>
+                            <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Tax</span>
+                            <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
+                            <span>Total</span>
+                            <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
+                        </div>
+
+                        {useWallet && appliedWalletAmount > 0 && (
+                            <div className={styles.totalRow} style={{ width: "250px" }}>
+                                <span>Wallet Applied</span>
+                                <span style={{ color: '#D93025' }}>Rs -{Number(appliedWalletAmount).toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className={styles.totalRow} style={{ width: "250px" }}>
+                            <span>Total Paid</span>
+                            <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
+                        </div>
+                        <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
+                            <span>Balance</span>
+                            <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1292,6 +1374,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         } else if (formData.userOrderId) {
                             fetchSaleDetails(formData.userOrderId);
                         }
+                        fetchInitialData();
                     }}
                     data={{
                         totalAmount: totalBillAmount,
@@ -1300,7 +1383,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         vendorCustomerId: formData.vendorCustomerId || (saleInvoiceData && saleInvoiceData.vendorCustomerId),
                         branchId: branchId,
                         userOrderId: saleId || formData.userOrderId,
-                        walletAmount: walletAmount
+                        walletAmount: availableWalletAmount
                     }}
                 />
             )}
