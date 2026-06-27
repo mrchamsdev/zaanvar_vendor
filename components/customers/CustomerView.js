@@ -7,12 +7,12 @@ import useStore from "../state/useStore";
 
 const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     const { jwtToken } = useStore();
+    const router = useRouter();
     const [data, setData] = useState(initialData || {});
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("Sales");
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [paymentHistoryModal, setPaymentHistoryModal] = useState(null); // { orderId, payments[] }
-    const router = useRouter();
 
     useEffect(() => {
         const fetchFullData = async () => {
@@ -39,6 +39,13 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     const [activeRightTab, setActiveRightTab] = useState("Ordered");
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    useEffect(() => {
+        if (router.isReady) {
+            if (router.query.tab) setActiveTab(router.query.tab);
+            if (router.query.rightTab) setActiveRightTab(router.query.rightTab);
+        }
+    }, [router.isReady, router.query.tab, router.query.rightTab]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -101,7 +108,14 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
         }
 
         if (activeRightTab === "Ordered") {
-            const orders = [...(data.orders || [])].sort((a, b) => new Date(b.invoiceDate || b.createdDate) - new Date(a.invoiceDate || a.createdDate));
+            const orders = [...(data.orders || [])].sort((a, b) => {
+                const dateA = new Date(a.createdDate || a.invoiceDate || 0);
+                const dateB = new Date(b.createdDate || b.invoiceDate || 0);
+                if (dateB.getTime() === dateA.getTime()) {
+                    return (b.userOrderId || 0) - (a.userOrderId || 0);
+                }
+                return dateB - dateA;
+            });
             return (
                 <div className={styles.tableCard}>
                     <div className={styles.tableHeader}>
@@ -257,7 +271,40 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.amount, '0.00')}</td>
                                             <td className={styles.dataTableCell}>₹ {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
-                                            <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
+                                            <td className={styles.dataTableCellCenter} style={{ position: 'relative' }}>
+                                                <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.paymentId ? null : item.paymentId)}>
+                                                    <FiMoreVertical />
+                                                </button>
+                                                {openDropdownId === item.paymentId && (
+                                                    <div className={styles.dropdownMenu}>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            const returnUrl = `/customers?branchId=${router.query.branchId || ''}&action=view&id=${data.vendorCustomerId || initialData?.vendorCustomerId}&tab=${encodeURIComponent(activeTab)}&rightTab=${encodeURIComponent(activeRightTab)}`;
+                                                            router.push(`/sale/payment-in?branchId=${router.query.branchId || ''}&view=true&id=${item.paymentId}&returnUrl=${encodeURIComponent(returnUrl)}`);
+                                                            setOpenDropdownId(null);
+                                                        }}>View</button>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            setOpenDropdownId(null);
+                                                            const printUrl = `/sale/payment-in?branchId=${router.query.branchId || ''}&pdf=true&print=true&id=${item.paymentId}&view=true`;
+                                                            const iframe = document.createElement('iframe');
+                                                            iframe.style.position = 'fixed';
+                                                            iframe.style.width = '0';
+                                                            iframe.style.height = '0';
+                                                            iframe.style.border = '0';
+                                                            iframe.src = printUrl;
+                                                            document.body.appendChild(iframe);
+                                                            const cleanup = () => {
+                                                                window.removeEventListener('focus', cleanup);
+                                                                setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                            };
+                                                            window.addEventListener('focus', cleanup);
+                                                        }}>Print</button>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            window.open(`/sale/payment-in?branchId=${router.query.branchId || ''}&pdf=true&id=${item.paymentId}`, '_blank');
+                                                            setOpenDropdownId(null);
+                                                        }}>Open PDF</button>
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

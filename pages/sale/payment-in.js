@@ -119,7 +119,11 @@ const PaymentInPage = () => {
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 paymentId={router.query.id}
                 onClose={() => {
-                    const { add, view, edit, id, print, ...restQuery } = router.query;
+                    if (router.query.returnUrl) {
+                        router.push(router.query.returnUrl);
+                        return;
+                    }
+                    const { add, view, edit, id, print, returnUrl, ...restQuery } = router.query;
                     router.push({ 
                         pathname: router.pathname, 
                         query: restQuery 
