@@ -11,6 +11,7 @@ export const productService = {
       const params = {
         branchId
       };
+      if (type) params.productType = type;
       if (search) params.search = search;
 
       const response = await webApi.get(`vendor/products`, params);
