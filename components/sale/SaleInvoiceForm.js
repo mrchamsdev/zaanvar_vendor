@@ -1211,11 +1211,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
                             {availableWalletAmount > 0 && (
                                 <div className={styles.walletToggle} onClick={() => setUseWallet(!useWallet)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={useWallet} 
-                                        readOnly 
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }} 
+                                    <input
+                                        type="checkbox"
+                                        checked={useWallet}
+                                        readOnly
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
                                     />
                                     <span style={{ fontWeight: '600', marginLeft: '8px' }}>
                                         Use Wallet Amount (Available: ₹ {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})

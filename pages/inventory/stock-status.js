@@ -175,15 +175,15 @@ const StockStatusPage = () => {
     }
   };
 
-  const handleRestore = async (id, useStockUpdateId = false) => {
-    if (id === undefined || id === null) {
+  const handleRestore = async (item) => {
+    if (!item || (!item.consumptionId && !item.stockUpdateId && !item.id)) {
       toast.error("Unable to restore: No ID found for this item");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await productService.restoreDamagedItem(jwtToken, id, useStockUpdateId);
+      const res = await productService.restoreDamagedItem(jwtToken, item);
       const body = res?.data || res;
 
       if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
@@ -199,15 +199,15 @@ const StockStatusPage = () => {
     }
   };
 
-  const handleMarkWaste = async (id, isExpired = false, useStockUpdateId = false) => {
-    if (!id) {
-      toast.error(`Unable to mark as waste: No ${isExpired || useStockUpdateId ? 'ID' : 'consumption ID'} found`);
+  const handleMarkWaste = async (item, isExpired = false) => {
+    if (!item || (!item.consumptionId && !item.stockUpdateId && !item.id)) {
+      toast.error(`Unable to mark as waste: No ID found`);
       return;
     }
 
     try {
       setLoading(true);
-      const res = await productService.markAsWaste(jwtToken, id, isExpired, useStockUpdateId);
+      const res = await productService.markAsWaste(jwtToken, item, isExpired);
       const body = res?.data || res;
 
       if (body?.status === "success" || body?.status === 200 || res?.status === 200) {
@@ -438,7 +438,7 @@ const StockStatusPage = () => {
                   ) : (
                     <button
                       className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                      onClick={() => handleMarkWaste(item.stockUpdateId || item.id, true)}
+                      onClick={() => handleMarkWaste(item, true)}
                     >
                       🏷 Mark Waste
                     </button>
@@ -453,21 +453,14 @@ const StockStatusPage = () => {
                       <>
                         <button
                           className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                          onClick={() => handleMarkWaste(
-                            item.consumptionId || item.stockUpdateId || item.id,
-                            false,
-                            !item.consumptionId
-                          )}
+                          onClick={() => handleMarkWaste(item, false)}
                         >
                           🏷 Mark Waste
                         </button>
                         {(item.consumptionId || item.stockUpdateId || item.id) && (
                           <button
                             className={`${styles.actionBtn} ${styles.restockBtn}`}
-                            onClick={() => handleRestore(
-                              item.consumptionId || item.stockUpdateId || item.id,
-                              !item.consumptionId
-                            )}
+                            onClick={() => handleRestore(item)}
                           >
                             <IconRefresh /> Restore
                           </button>

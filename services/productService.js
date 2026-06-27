@@ -160,19 +160,20 @@ export const productService = {
     }
   },
 
-  restoreDamagedItem: async (jwt, id, useStockUpdateId = false) => {
+  restoreDamagedItem: async (jwt, item) => {
     const webApi = new WebApimanager(jwt);
-    const payload = useStockUpdateId
-      ? { stockUpdateId: id, action: "restore" }
-      : { consumptionId: id, action: "restore" };
+    const payload = { action: "restore" };
+    if (item.consumptionId) payload.consumptionId = item.consumptionId;
+    if (item.stockUpdateId || item.id) payload.stockUpdateId = item.stockUpdateId || item.id;
     return await webApi.put(`vendor/products/stock-reports`, payload);
   },
 
-  markAsWaste: async (jwt, id, isExpired = false, useStockUpdateId = false) => {
+  markAsWaste: async (jwt, item, isExpired = false) => {
     const webApi = new WebApimanager(jwt);
-    const payload = (isExpired || useStockUpdateId)
-      ? { stockUpdateId: id, action: "waste", ...(isExpired ? { type: "expired" } : {}) }
-      : { consumptionId: id, action: "waste" };
+    const payload = { action: "waste" };
+    if (item.consumptionId) payload.consumptionId = item.consumptionId;
+    if (item.stockUpdateId || item.id) payload.stockUpdateId = item.stockUpdateId || item.id;
+    if (isExpired) payload.type = "expired";
     return await webApi.put(`vendor/products/stock-reports`, payload);
   }
 };
