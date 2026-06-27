@@ -741,7 +741,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         const columns = [
             { header: "S NO.", align: "left", render: (item, idx) => String(idx + 1).padStart(2, '0') },
             { header: "PRODUCT NAME", accessor: "productName", align: "left" },
-            { header: "VARIANT", accessor: "variantSize", align: "left" },
+            { header: "UNIT", accessor: "variantSize", align: "left" },
             { header: "SOURCE", accessor: "sourceStatus", align: "center" },
             { header: "QTY", accessor: "returnQty", align: "center" },
             { header: "PRICE", accessor: "costPrice", align: "right" },

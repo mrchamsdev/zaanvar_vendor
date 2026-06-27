@@ -133,7 +133,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 transactionImg: "",
                 totalAmount: Number(totalAmount),
                 balanceAmount: balanceAmount,
-                paymentTypes: validPayments.map(p => {
+                paymentTypes: payments.map(p => {
                     const typeObj = {
                         paymentType: p.paymentType,
                         amount: Number(p.amountPaid)
