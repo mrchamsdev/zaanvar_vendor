@@ -612,6 +612,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
         return (
             <PrintInvoiceTemplate
                 title="Purchase Return History"
+                useDynamicColumns={true}
+                isListPrint={true}
                 columns={[
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.returnDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'RETURN ID', accessor: 'returnProductsId', align: 'left' },

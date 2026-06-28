@@ -822,6 +822,8 @@ const PaymentInList = ({ onAddClick }) => {
         return (
             <PrintInvoiceTemplate
                 title="Payment In History"
+                useDynamicColumns={true}
+                isListPrint={true}
                 columns={[
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.paymentDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.paymentId || "" },
@@ -832,6 +834,26 @@ const PaymentInList = ({ onAddClick }) => {
                     { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAtTime !== undefined && item.dueAtTime !== null ? item.dueAtTime : getCustomerBalanceAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
                 ]}
                 items={filteredPayments}
+                renderExpandedRow={(p, idx) => {
+                    const splitsList = p.paymentMethods && p.paymentMethods.length > 0
+                        ? p.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                        : [
+                            { paymentType: p.paymentMethod || p.paymentType || "Cash", amount: p.paidAmount || p.amount || 0 },
+                            ...(p.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                        ];
+                    if (splitsList.length <= 1) return null;
+                    return splitsList.map((split, sIdx) => (
+                        <tr key={`split-${idx}-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td style={{ textAlign: 'left' }}>{split.paymentType}</td>
+                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td></td>
+                        </tr>
+                    ));
+                }}
                 summary={[
                     { label: 'Total Amount', value: `₹${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                     { label: 'Paid', value: `₹${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },

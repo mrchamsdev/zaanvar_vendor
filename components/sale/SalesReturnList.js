@@ -714,6 +714,8 @@ const SalesReturnList = ({ onAddClick }) => {
         return (
             <PrintInvoiceTemplate
                 title="Sales Return History"
+                useDynamicColumns={true}
+                isListPrint={true}
                 columns={[
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.returnDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'BILL NO', accessor: 'userOrderId', align: 'left' },

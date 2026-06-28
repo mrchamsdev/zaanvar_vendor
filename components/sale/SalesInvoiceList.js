@@ -706,6 +706,8 @@ const SalesInvoiceList = ({ onAddClick }) => {
         return (
             <PrintInvoiceTemplate
                 title="Sales Invoice History"
+                useDynamicColumns={true}
+                isListPrint={true}
                 columns={[
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.invoiceDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'INVOICE NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.invoiceNumber || '' },

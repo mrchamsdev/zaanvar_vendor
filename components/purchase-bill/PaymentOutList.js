@@ -1,4 +1,4 @@
-import { toApiDateOnly, parseWallClockDate } from "@/utilities/date-time-utils";
+import { toApiDateOnly, parseWallClockDate, parseApiToLocal } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiPrinter, FiShare2, FiMoreVertical, FiFilter, FiArrowUpRight, FiChevronLeft, FiChevronRight, FiCalendar, FiCheck, FiChevronDown, FiChevronUp, FiSearch } from "react-icons/fi";
@@ -718,16 +718,38 @@ const PaymentOutList = ({ onAddClick }) => {
         return (
             <PrintInvoiceTemplate
                 title="Payment Out History"
+                useDynamicColumns={true}
+                isListPrint={true}
                 columns={[
-                    { header: 'DATE', align: 'left', render: (item) => new Date(item.userTransactionDate).toLocaleDateString('en-GB') },
+                    { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.userTransactionDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'suppliersTransactionId', align: 'left' },
                     { header: 'SUPPLIER NAME', render: (item) => item.supplierName || item.transactionInfo || 'N/A', align: 'left' },
                     { header: 'TOTAL', align: 'right', render: (item) => Number(item.overallBillAmount || getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                     { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
-                    { header: 'BALANCE AMOUNT', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                    { header: 'BALANCE', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
                 ]}
                 items={filteredTransactions}
+                renderExpandedRow={(t, idx) => {
+                    const splitsList = t.paymentMethods && t.paymentMethods.length > 0
+                        ? t.paymentMethods.map(pm => ({ paymentType: pm.paymentMethod || "Cash", amount: pm.amount || 0 }))
+                        : [
+                            { paymentType: t.paymentMethod || t.paymentType || "Cash", amount: t.paidAmount || t.amount || 0 },
+                            ...(t.splitTransactions || []).map(st => ({ paymentType: st.paymentMethod || st.paymentType || "Cash", amount: st.paidAmount || st.amount || 0 }))
+                        ];
+                    if (splitsList.length <= 1) return null;
+                    return splitsList.map((split, sIdx) => (
+                        <tr key={`split-${idx}-${sIdx}`} style={{ borderBottom: '1px solid #eee' }}>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style={{ textAlign: 'left' }}>{split.paymentType}</td>
+                            <td></td>
+                        </tr>
+                    ));
+                }}
                 summary={[
                     { label: 'Total Amount', value: `₹${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                     { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
