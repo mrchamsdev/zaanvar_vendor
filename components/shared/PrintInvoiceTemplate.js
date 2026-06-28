@@ -15,7 +15,9 @@ const PrintInvoiceTemplate = ({
   notes,
   onClose,
   useDynamicColumns,
-  headerDetails
+  isListPrint,
+  headerDetails,
+  renderExpandedRow
 }) => {
   const { branch, company, vendor } = useDashboardData({ skipReviews: true });
 
@@ -88,13 +90,16 @@ const PrintInvoiceTemplate = ({
             </thead>
             <tbody>
               {items.map((item, rowIdx) => (
-                <tr key={rowIdx}>
-                  {columns.map((col, colIdx) => (
-                    <td key={colIdx} style={{ textAlign: col.align || 'center' }}>
-                      {getVal(col, item, rowIdx)}
-                    </td>
-                  ))}
-                </tr>
+                <React.Fragment key={rowIdx}>
+                  <tr>
+                    {columns.map((col, colIdx) => (
+                      <td key={colIdx} style={{ textAlign: col.align || 'center' }}>
+                        {getVal(col, item, rowIdx)}
+                      </td>
+                    ))}
+                  </tr>
+                  {renderExpandedRow && renderExpandedRow(item, rowIdx)}
+                </React.Fragment>
               ))}
               {summary && summary.filter(s => s.isTotal).length > 0 && (
                 <tr className={styles.tableTotalRow}>
@@ -337,53 +342,55 @@ const PrintInvoiceTemplate = ({
           </div>
         </div>
 
-        <div className={styles.subHeader}>
-          <div className={styles.billTo}>
-            <h4>{isPayment ? 'Paid To:' : 'Bill To:'}</h4>
-            {customerDetails && (
-              <>
-                <h3>{customerDetails.name}</h3>
-                {customerDetails.address && <p>{customerDetails.address}</p>}
-                {(customerDetails.phone || customerDetails.contact) && (
-                  <p>Contact No : {customerDetails.phone || customerDetails.contact}</p>
-                )}
-              </>
-            )}
-            {!customerDetails && <h3>Classic enterprises</h3>}
+        {!isListPrint && (
+          <div className={styles.subHeader}>
+            <div className={styles.billTo}>
+              <h4>{isPayment ? 'Paid To:' : 'Bill To:'}</h4>
+              {customerDetails && (
+                <>
+                  <h3>{customerDetails.name}</h3>
+                  {customerDetails.address && <p>{customerDetails.address}</p>}
+                  {(customerDetails.phone || customerDetails.contact) && (
+                    <p>Contact No : {customerDetails.phone || customerDetails.contact}</p>
+                  )}
+                </>
+              )}
+              {!customerDetails && <h3>Classic enterprises</h3>}
+            </div>
+            <div className={styles.invoiceDetails}>
+              <h4>{isPayment ? (title.toLowerCase().includes('out') ? 'Supplier Payment Details' : 'Customer Payment Details') : (title.toLowerCase().includes('return') ? 'Return Details' : 'Invoice Details')}</h4>
+              {invoiceDetails ? (
+                Object.entries(invoiceDetails).map(([k, v]) => {
+                  if (k.toLowerCase().includes('total') || k.toLowerCase().includes('paid')) return null; // Hide totals from details header
+                  return <p key={k}>{k} : {v}</p>;
+                })
+              ) : (
+                <>
+                  <p>Invoice No : Inv. 101</p>
+                  <p>Date : {new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}</p>
+                </>
+              )}
+            </div>
           </div>
-          <div className={styles.invoiceDetails}>
-            <h4>{isPayment ? (title.toLowerCase().includes('out') ? 'Supplier Payment Details' : 'Customer Payment Details') : (title.toLowerCase().includes('return') ? 'Return Details' : 'Invoice Details')}</h4>
-            {invoiceDetails ? (
-              Object.entries(invoiceDetails).map(([k, v]) => {
-                if (k.toLowerCase().includes('total') || k.toLowerCase().includes('paid')) return null; // Hide totals from details header
-                return <p key={k}>{k} : {v}</p>;
-              })
-            ) : (
-              <>
-                <p>Invoice No : Inv. 101</p>
-                <p>Date : {new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}</p>
-              </>
-            )}
-          </div>
-        </div>
+        )}
 
-        {isPayment && (
+        {isPayment && !isListPrint && (
           <div className={styles.amountPaidBar}>
             <span>AMOUNT PAID</span>
             <span>{paidAmountStr}</span>
           </div>
         )}
 
-        {isPayment && (
+        {isPayment && !isListPrint && (
           <div className={styles.amountInWordsBox}>
             <div className={styles.amountInWordsHeader}>AMOUNT IN WORDS</div>
             <div className={styles.amountInWordsText}>{numberToWords(numericPaidAmount)}</div>
           </div>
         )}
 
-        {!isPayment ? renderInvoiceTable() : renderPaymentTable()}
+        {(!isPayment || isListPrint) ? renderInvoiceTable() : renderPaymentTable()}
 
-        {!isPayment && (
+        {!isPayment && !isListPrint && (
           <div className={styles.bottomSection}>
             <div className={styles.amountInWordsSplit}>
               <div className={styles.amountInWordsSplitHeader}>AMOUNT IN WORDS</div>

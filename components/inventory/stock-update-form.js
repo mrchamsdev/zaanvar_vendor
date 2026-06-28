@@ -237,7 +237,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                 productService.getAllProductsBrief(jwtToken, branchId),
                 productService.getStockUpdates(jwtToken, branchId)
             ]);
-            
+
             const productsList = Array.isArray(data) ? data : [];
             const historyList = Array.isArray(historyData) ? historyData : [];
 
@@ -756,7 +756,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             return;
         }
 
-setSubmitting(true);
+        setSubmitting(true);
         try {
             const runningQuantities = {};
 

@@ -122,7 +122,7 @@ const StockStatusPage = () => {
 
   const customLeft = (
     <div className={dashboardStyles.branchSwitcherContainer}>
-      <select 
+      <select
         className={dashboardStyles.branchSwitcher}
         value={currentBranchId}
         onChange={handleBranchChange}
@@ -271,12 +271,12 @@ const StockStatusPage = () => {
   const currentList = data[activeTab] || [];
   const sortedList = (activeTab === "expired" || activeTab === "damaged")
     ? [...currentList].sort((a, b) => {
-        const aComp = isItemCompleted(a);
-        const bComp = isItemCompleted(b);
-        if (aComp && !bComp) return 1;
-        if (!aComp && bComp) return -1;
-        return 0;
-      })
+      const aComp = isItemCompleted(a);
+      const bComp = isItemCompleted(b);
+      if (aComp && !bComp) return 1;
+      if (!aComp && bComp) return -1;
+      return 0;
+    })
     : currentList;
 
   const filteredList = sortedList.filter(item => {
