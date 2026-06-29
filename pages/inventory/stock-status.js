@@ -53,7 +53,9 @@ const isItemCompleted = (item) => {
     item.isWaste ||
     item.action === 'waste' ||
     item.notes?.toLowerCase().includes('waste') ||
-    item.reason?.toLowerCase().includes('waste')
+    item.reason?.toLowerCase().includes('waste') ||
+    item.notes?.toLowerCase().includes('restored') ||
+    item.reason?.toLowerCase().includes('restored')
   );
 };
 

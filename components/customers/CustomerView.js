@@ -218,7 +218,40 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{item.customerReturnId}</td>
                                             <td className={styles.dataTableCell}>₹ {Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className={styles.dataTableCell}>₹ {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className={styles.dataTableCellCenter}><button className={styles.actionButton}><FiMoreVertical /></button></td>
+                                            <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
+                                                <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.customerReturnId ? null : item.customerReturnId)}>
+                                                    <FiMoreVertical />
+                                                </button>
+                                                {openDropdownId === item.customerReturnId && (
+                                                    <div className={styles.dropdownMenu}>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            const returnUrl = `/customers?branchId=${router.query.branchId || ''}&action=view&id=${data.vendorCustomerId || initialData?.vendorCustomerId}&tab=${encodeURIComponent(activeTab)}&rightTab=${encodeURIComponent(activeRightTab)}`;
+                                                            router.push(`/sale/sales-return?branchId=${router.query.branchId || ''}&view=true&id=${item.customerReturnId}&returnUrl=${encodeURIComponent(returnUrl)}`);
+                                                            setOpenDropdownId(null);
+                                                        }}>View</button>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            setOpenDropdownId(null);
+                                                            const printUrl = `/sale/sales-return?branchId=${router.query.branchId || ''}&pdf=true&print=true&id=${item.customerReturnId}&view=true`;
+                                                            const iframe = document.createElement('iframe');
+                                                            iframe.style.position = 'fixed';
+                                                            iframe.style.width = '0';
+                                                            iframe.style.height = '0';
+                                                            iframe.style.border = '0';
+                                                            iframe.src = printUrl;
+                                                            document.body.appendChild(iframe);
+                                                            const cleanup = () => {
+                                                                window.removeEventListener('focus', cleanup);
+                                                                setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                                            };
+                                                            window.addEventListener('focus', cleanup);
+                                                        }}>Print</button>
+                                                        <button className={styles.dropdownItem} onClick={() => {
+                                                            window.open(`/sale/sales-return?branchId=${router.query.branchId || ''}&pdf=true&id=${item.customerReturnId}`, '_blank');
+                                                            setOpenDropdownId(null);
+                                                        }}>Open PDF</button>
+                                                    </div>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
