@@ -1,7 +1,7 @@
 import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
-import { FiCalendar, FiChevronDown, FiTrash2, FiPrinter } from "react-icons/fi";
+import { FiCalendar, FiChevronDown, FiTrash2, FiPrinter, FiPlus } from "react-icons/fi";
 import { saleService } from "../../services/saleService";
 import SalePaymentDetailsPopup from "./SalePaymentDetailsPopup";
 import { productService } from "../../services/productService";
@@ -872,6 +872,27 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                     {customers.filter((c) => !formData.partyName || `${c.firstName} ${c.lastName}`.toLowerCase().includes(formData.partyName.toLowerCase())).length === 0 && (
                                         <div className={styles.noResults}>No customers found</div>
                                     )}
+                                    <div
+                                        className={styles.dropdownItem}
+                                        style={{
+                                            color: '#E93E64',
+                                            fontWeight: 'bold',
+                                            borderTop: '1px solid #e2e8f0',
+                                            marginTop: '4px',
+                                            paddingTop: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                        onClick={() => {
+                                            router.push({
+                                                pathname: "/customers",
+                                                query: { action: "add", returnUrl: router.asPath }
+                                            });
+                                        }}
+                                    >
+                                        <FiPlus /> Add Customer
+                                    </div>
                                 </div>
                             )}
                         </div>
