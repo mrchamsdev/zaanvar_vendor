@@ -109,6 +109,12 @@ const IconMenu = () => (
     <line x1="3" y1="18" x2="21" y2="18" />
   </svg>
 );
+const IconSettings = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
 const IconLogout = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -212,6 +218,20 @@ function buildMenuFromVendor(userInfo) {
     },
     { label: "Customers", path: "/customers", icon: <IconUser /> },
     { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
+    {
+      label: "Settings",
+      path: "/vendor-settings",
+      icon: <IconSettings />,
+      subItems: [
+        { label: "General Settings", path: "/vendor-settings?tab=General" },
+        { label: "Transactions", path: "/vendor-settings?tab=Transactions" },
+        { label: "Taxes & GST", path: "/vendor-settings?tab=TaxesGST" },
+        { label: "Transaction Message", path: "/vendor-settings?tab=TransactionMessage" },
+        { label: "Supplier & Customer", path: "/vendor-settings?tab=SupplierCustomer" },
+        { label: "Item Settings", path: "/vendor-settings?tab=ItemSettings" },
+        { label: "Profile Settings", path: "/vendor-settings?tab=ProfileSettings" },
+      ],
+    },
   ];
 
   const serviceSet = new Set();
@@ -403,20 +423,27 @@ const DashboardLayout = ({
                     {isExpanded && !sidebarCollapsed && (
                       <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
                         {item.subItems.map((sub, i) => {
-                          // Clean up paths for comparison since router.asPath includes queries
-                          const isSubActive = router.asPath.split('?')[0] === sub.path.split('?')[0] || (router.asPath === "/pet-sales" && i === 0);
+                          // Match full path including query params (for settings tabs) or just pathname
+                          const subPathname = sub.path.split('?')[0];
+                          const subQuery = sub.path.includes('?') ? sub.path.split('?')[1] : '';
+                          const routerPathname = router.asPath.split('?')[0];
+                          const routerQuery = router.asPath.includes('?') ? router.asPath.split('?')[1] : '';
+                          const isSubActive =
+                            (routerPathname === subPathname && (!subQuery || routerQuery === subQuery)) ||
+                            (router.asPath === "/pet-sales" && i === 0);
                           return (
                             <Link
                               key={sub.path}
                               href={sub.path}
                               style={{
-                                padding: "8px 16px 8px 45px",
+                                display: "block",
+                                padding: "8px 12px 8px 36px",
                                 borderRadius: "8px",
-                                color: isSubActive ? "#F5790C" : "#555",
-                                background: isSubActive ? "#F6FAFC" : "transparent",
+                                color: isSubActive ? "#e9315d" : "#555",
+                                background: isSubActive ? "#fdf0f3" : "transparent",
                                 fontWeight: isSubActive ? 600 : 400,
                                 textDecoration: "none",
-                                fontSize: "14px",
+                                fontSize: "13px",
                                 transition: "background 0.2s"
                               }}
                             >
