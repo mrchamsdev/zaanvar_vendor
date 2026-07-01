@@ -1,0 +1,619 @@
+/* ===================================================
+   Vendor Settings — Shared Styles
+   =================================================== */
+
+/* Full-width content area — no inner sidebar */
+.outerContentArea {
+  padding: 28px 32px;
+  /* background: #f5f6fa; */
+  background: white;
+  min-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+/* Save button row — top-right aligned */
+.saveBtnRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+/* (kept for backwards compat — unused) */
+.pageWrapper {
+  display: flex;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  background: #f5f6fa;
+}
+
+.innerSidebar {
+  display: none;
+}
+
+.contentArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+/* ── Section Card ── */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+  /* box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06); */
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  /* border-bottom: 1px solid #f0f0f0; */
+}
+
+/* ── Two-column grid ── */
+.twoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.threeColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+/* ── Checkbox Row ── */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.checkRow:last-child {
+  border-bottom: none;
+}
+
+.checkLabel {
+  font-size: 13.5px;
+  color: #333;
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkInput {
+  width: 16px;
+  height: 16px;
+  accent-color: #111;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Info tooltip icon ── */
+.infoIcon {
+  color: #bbb;
+  font-size: 13px;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+/* ── Dropdown / Select ── */
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  background: #fff;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='3' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #e9315d;
+}
+
+/* ── Number Stepper ── */
+.stepperWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepperInput {
+  width: 70px;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.stepperInput:focus {
+  outline: none;
+  border-color: #e9315d;
+}
+
+.stepperBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepperBtn {
+  width: 20px;
+  height: 16px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.stepperBtn:hover {
+  background: #e9315d;
+  border-color: #e9315d;
+  color: #fff;
+}
+
+/* ── Field Label ── */
+.fieldLabel {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fieldWrap {
+  margin-bottom: 16px;
+}
+
+/* ── Inline row for select + label ── */
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Save Button ── */
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  background: #e9315d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 8px;
+}
+
+.saveBtn:hover {
+  background: #c4234a;
+}
+
+.saveBtn:active {
+  transform: scale(0.98);
+}
+
+.saveBtn:disabled {
+  background: #f4a0b4;
+  cursor: not-allowed;
+}
+
+/* ── PIN Input ── */
+.pinWrap {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pinInput {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  transition: border-color 0.2s;
+}
+
+.pinInput:focus {
+  outline: none;
+  border-color: #e9315d;
+}
+
+/* ── Nested sub-field ── */
+.subField {
+  margin-left: 26px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+/* ── Badge / pill ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pillActive {
+  background: #fff4ec;
+  border-color: #e9315d;
+  color: #e9315d;
+}
+
+.pillInactive {
+  background: #f5f5f5;
+  border-color: #ddd;
+  color: #888;
+}
+
+/* ── Checkbox Grid (for autoMessageEvents) ── */
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+
+.checkGridItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #444;
+  cursor: pointer;
+}
+
+/* ── Tax / Rate List Row ── */
+.listRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+  color: #333;
+}
+
+.listRow:last-child {
+  border-bottom: none;
+}
+
+.listRowActions {
+  display: flex;
+  gap: 6px;
+  opacity: 0.5;
+}
+
+.listRowActions svg {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.listRowActions svg:hover {
+  opacity: 1;
+}
+
+.listRowSub {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* ── Toggle / switch ── */
+.toggleWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #555;
+}
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggleSlider::before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle input:checked+.toggleSlider {
+  background: #e9315d;
+}
+
+.toggle input:checked+.toggleSlider::before {
+  transform: translateX(16px);
+}
+
+/* ── Button link (Tax List >) ── */
+.btnLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.btnLink:hover {
+  border-color: #e9315d;
+  color: #e9315d;
+  background: #fdf0f3;
+}
+
+/* ── Message preview card ── */
+.previewCard {
+  border: 1.5px solid #e9315d;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fffaf7;
+  font-size: 12px;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.previewCardAttached {
+  background: #fff0f0;
+  border-color: #fca5a5;
+}
+
+.previewPlaceholder {
+  color: #e9315d;
+  font-weight: 600;
+}
+
+/* ── Additional Field input ── */
+.addFieldRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.addFieldCheck {
+  width: 16px;
+  height: 16px;
+  accent-color: #111;
+  cursor: pointer;
+}
+
+.addFieldInput {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+}
+
+.addFieldInput:focus {
+  outline: none;
+  border-color: #e9315d;
+}
+
+/* ── Reminder days input ── */
+.reminderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.reminderLabel {
+  font-size: 13px;
+  color: #555;
+}
+
+.reminderInput {
+  width: 60px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.reminderInput:focus {
+  outline: none;
+  border-color: #e9315d;
+}
+
+/* ── Page title row ── */
+.pageTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ── Section subtitle ── */
+.sectionSubtitle {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* ── Indent ── */
+.indent {
+  margin-left: 26px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+
+  .twoColGrid,
+  .threeColGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .innerSidebar {
+    width: 160px;
+    min-width: 160px;
+  }
+
+  .checkGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .pageWrapper {
+    flex-direction: column;
+  }
+
+  .innerSidebar {
+    width: 100%;
+    min-width: unset;
+    display: flex;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    padding: 8px 0;
+  }
+
+  .sidebarTitle {
+    display: none;
+  }
+
+  .sidebarItem {
+    white-space: nowrap;
+    padding: 8px 14px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .sidebarItemActive {
+    border-left: none;
+    border-bottom-color: #e9315d;
+  }
+
+  .contentArea {
+    padding: 16px;
+  }
+
+  .checkGrid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ── Preview Cards ── */
+.previewContainer {
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.previewCard {
+  border: 1px dashed #e9315d;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #222;
+}
+
+.previewPlaceholder {
+  color: #e9315d;
+}
+
+.previewCardAttached {
+  background: #fdf0f3;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #222;
+  margin-bottom: 16px;
+}
+
+.previewImageBanner {
+  background: #fad4dc;
+  color: #e9315d;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
