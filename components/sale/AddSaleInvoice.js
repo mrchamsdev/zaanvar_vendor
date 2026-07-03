@@ -10,6 +10,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) => {
   const currencySymbol = useCurrencySymbol();
@@ -984,19 +985,19 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         <div className={styles.totalSection}>
                             <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Sub Total</span>
-                                <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
+                                <span>Rs {Number(itemsSubtotal || 0).toDynamicFixed()}</span>
                             </div>
                             <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Discount</span>
-                                <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
+                                <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toDynamicFixed()}</span>
                             </div>
                             <div className={styles.totalRow} style={{ width: "250px" }}>
                                 <span>Tax</span>
-                                <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
+                                <span>Rs {Number(itemsTax || 0).toDynamicFixed()}</span>
                             </div>
                             <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
                                 <span>Total</span>
-                                <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
+                                <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toDynamicFixed()}</span>
                             </div>
 
                             {useWallet && appliedWalletAmount > 0 && (

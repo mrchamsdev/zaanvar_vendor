@@ -10,6 +10,7 @@ import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import { parseWallClockDate } from "../../utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialData }) => {
   const currencySymbol = useCurrencySymbol();
@@ -158,13 +159,13 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                 orderQty: item.qty,
                 tax: "-",
                 discount: "-",
-                amount: `${currencySymbol} ${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                amount: `${currencySymbol} ${amountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`
             };
         });
 
         const totalAmount = orderData.items.reduce((acc, item) => acc + (item.qty * (item.costPrice || 0)), 0);
         const summary = [
-            { label: "Total Amount", value: `${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+            { label: "Total Amount", value: `${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
         ];
 
         const formattedAddress = orderData.branchAddress?.addressText || [orderData.branchAddress?.flatNo, orderData.branchAddress?.area, orderData.branchAddress?.city, [orderData.branchAddress?.state, orderData.branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");

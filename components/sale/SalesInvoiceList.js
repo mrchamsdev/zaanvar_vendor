@@ -297,6 +297,7 @@ import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const SalesInvoiceList = ({ onAddClick }) => {
   const currencySymbol = useCurrencySymbol();
@@ -721,15 +722,15 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.invoiceDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'INVOICE NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.invoiceNumber || '' },
                     { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : (item.partyName || "Walk-in Customer"), align: 'left' },
-                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredInvoices}
                 summary={[
-                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );

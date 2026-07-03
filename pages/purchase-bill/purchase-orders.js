@@ -12,6 +12,7 @@ import EmptyState from "../../components/utilities/EmptyState";
 import Loader from "../../components/utilities/Loader";
 import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft, FiX, FiShare2 } from "react-icons/fi";
 import ShareModal from "../../components/purchase-bill/ShareModal";
+import { getAmountDecimalPlaces } from "../../components/utilities/formatAmount";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -557,10 +558,7 @@ const PurchaseOrdersPage = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }).format(amount || 0);
     };
 
     const hasFiltersApplied = useMemo(() => {

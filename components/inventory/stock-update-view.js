@@ -5,6 +5,7 @@ import useStore from "../state/useStore";
 import { toast } from "sonner";
 import { parseApiToLocal } from "@/utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const IconX = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -228,7 +229,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
                 fontWeight: 700,
                 color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
               }}>
-                {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
               </td>
             </tr>
           </tbody>
@@ -250,7 +251,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
           fontWeight: 700,
           color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
         }}>
-          {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
         </div>
       </div>
     </div>

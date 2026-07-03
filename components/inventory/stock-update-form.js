@@ -8,6 +8,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import ProductFormManager from "./product-form-manager";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const IconX = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1102,7 +1103,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                     </td>
                                                     <td><input className={styles.tableInput} readOnly value={`${currencySymbol}${row.costPrice}`} /></td>
                                                     <td className={`${styles.rightAlign} ${row.total >= 0 ? styles.positiveText : styles.negativeText} ${styles.boldText}`}>
-                                                        {row.total >= 0 ? `+ ${currencySymbol} ${row.total.toFixed(2)}` : `- ${currencySymbol} ${Math.abs(row.total).toFixed(2)}`}
+                                                        {row.total >= 0 ? `+ ${currencySymbol} ${row.total.toDynamicFixed()}` : `- ${currencySymbol} ${Math.abs(row.total).toDynamicFixed()}`}
                                                     </td>
                                                     <td>
                                                         {rows.length > 1 && mode !== "View" && (
@@ -1121,7 +1122,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                             <div className={styles.totalSection}>
                                 <div className={styles.totalLabel}>TOTAL</div>
                                 <div className={`${styles.totalAmount} ${grandTotal >= 0 ? styles.positiveText : styles.negativeText}`}>
-                                    {grandTotal >= 0 ? `+ ${currencySymbol} ${grandTotal.toFixed(2)}` : `- ${currencySymbol} ${Math.abs(grandTotal).toFixed(2)}`}
+                                    {grandTotal >= 0 ? `+ ${currencySymbol} ${grandTotal.toDynamicFixed()}` : `- ${currencySymbol} ${Math.abs(grandTotal).toDynamicFixed()}`}
                                 </div>
                             </div>
 

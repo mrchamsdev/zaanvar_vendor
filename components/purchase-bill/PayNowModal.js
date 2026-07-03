@@ -1,3 +1,4 @@
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/pay-now-modal.module.css";
@@ -5,14 +6,17 @@ import { FiX, FiCalendar, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
-import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import { dateOnlyWithTimeZone, withTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initialBillData, allOrders }) => {
   const currencySymbol = useCurrencySymbol();
 
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const { branchId: selectedBranchId } = useDashboardData({ skipReviews: true });
     const branchId = selectedBranchId || userInfo?.branchId || 1;
     const [loading, setLoading] = useState(false);
@@ -20,6 +24,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     // Header Data
     const [billDetails, setBillDetails] = useState(null);
     const [paymentDate, setPaymentDate] = useState(toApiDateOnly(new Date()));
+    const [paymentTime, setPaymentTime] = useState("");
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
 
@@ -29,7 +34,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
     // Multiple Payments
     const [paymentEntries, setPaymentEntries] = useState([
-        { id: Date.now(), type: "Cash", amount: "", refNo: "" }
+        { id: Date.now(), type: cashSaleByDefault ? "Cash" : "", amount: "", refNo: "" }
     ]);
     const [topPaidAmount, setTopPaidAmount] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -45,7 +50,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             setExceededError("");
             setTopPaidAmount("");
             setPaymentEntries([
-                { id: Date.now(), type: "Cash", amount: "", refNo: "" }
+                { id: Date.now(), type: cashSaleByDefault ? "Cash" : "", amount: "", refNo: "" }
             ]);
             if (initialBillData) {
                 console.log("PayNowModal: Using initialBillData", initialBillData);
@@ -62,7 +67,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                 fetchBillDetails();
             }
         }
-    }, [isOpen, billId, initialBillData]);
+    }, [isOpen, billId, initialBillData, cashSaleByDefault]);
 
     const handleOrderChange = (newBillId) => {
         setOrderError("");
@@ -163,7 +168,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     };
 
     const handleAddPayment = () => {
-        const newEntries = [...paymentEntries, { id: Date.now(), type: "Cash", amount: "", refNo: "" }];
+        const newEntries = [...paymentEntries, { id: Date.now(), type: cashSaleByDefault ? "Cash" : "", amount: "", refNo: "" }];
         setPaymentEntries(newEntries);
         const err = validateAmountsOnChange(newEntries, topPaidAmount);
         setExceededError(err);
@@ -204,9 +209,18 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const summaryPendingAmount = currentBalance - summaryTotal;
 
     useEffect(() => {
+        if (isOpen) {
+            if (addTimeOnTransactions) {
+                const now = new Date();
+                setPaymentTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+            }
+        }
+    }, [isOpen, cashSaleByDefault]);
+
+    useEffect(() => {
         if (isRoundOff) {
             const diff = Math.round(totalPaidInModal) - totalPaidInModal;
-            setRoundOffValue(diff.toFixed(2));
+            setRoundOffValue(diff.toDynamicFixed());
         } else {
             setRoundOffValue("0");
         }
@@ -275,10 +289,15 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
             const payload = {
                 debitOrCredit: "Debit",
                 paymentFrom: "payment out",
-                ...dateOnlyWithTimeZone(
-                    "userTransactionDate",
-                    parseWallClockDate(paymentDate) || new Date(paymentDate),
-                ),
+                ...(addTimeOnTransactions && paymentTime
+                    ? withTimeZone(
+                          "userTransactionDate",
+                          new Date(`${paymentDate}T${paymentTime}:00`)
+                      )
+                    : dateOnlyWithTimeZone(
+                          "userTransactionDate",
+                          parseWallClockDate(paymentDate) || new Date(paymentDate)
+                      )),
                 supplierId: supplierData?.supplierId || billDetails?.supplierId,
                 branchId: branchId,
                 createdBy: userInfo?.userId || 1,
@@ -367,6 +386,64 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                 />
                             </div>
                         </div>
+                        {addTimeOnTransactions && (
+                            <div className={styles.field}>
+                                <label>Payment Time</label>
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={paymentTime ? String(parseInt(paymentTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        onChange={(e) => {
+                                            const h = parseInt(e.target.value);
+                                            const m = paymentTime ? paymentTime.split(':')[1] : '00';
+                                            const isPm = paymentTime ? parseInt(paymentTime.split(':')[0]) >= 12 : false;
+                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                            setPaymentTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const val = String(i + 1).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={paymentTime ? paymentTime.split(':')[1] : '00'}
+                                        onChange={(e) => {
+                                            const currentH = paymentTime ? paymentTime.split(':')[0] : '00';
+                                            setPaymentTime(`${currentH}:${e.target.value}`);
+                                        }}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const val = String(i).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '35%', padding: '0 8px' }}
+                                        value={paymentTime && parseInt(paymentTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        onChange={(e) => {
+                                            const currentH = parseInt(paymentTime ? paymentTime.split(':')[0] : '00');
+                                            const m = paymentTime ? paymentTime.split(':')[1] : '00';
+                                            const isPm = e.target.value === 'PM';
+                                            let newH = currentH;
+                                            if (isPm && currentH < 12) newH = currentH + 12;
+                                            if (!isPm && currentH >= 12) newH = currentH - 12;
+                                            setPaymentTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Bill Stats */}
@@ -477,15 +554,15 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                 </div>
                                 <div className={styles.field}>
                                     <label>Total</label>
-                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryTotal.toFixed(2)} readOnly />
+                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryTotal.toDynamicFixed()} readOnly />
                                 </div>
                                 <div className={styles.field}>
                                     <label>Paid Amount</label>
-                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryPaidTotal.toFixed(2)} readOnly />
+                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryPaidTotal.toDynamicFixed()} readOnly />
                                 </div>
                                 <div className={styles.field}>
                                     <label>Pending amount</label>
-                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryPendingAmount.toFixed(2)} readOnly />
+                                    <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryPendingAmount.toDynamicFixed()} readOnly />
                                 </div>
                             </div>
                         </div>
@@ -509,6 +586,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                                 value={entry.type}
                                                 onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
                                             >
+                                                <option value="" disabled hidden>Select Payment Type</option>
                                                 <option value="Cash">Cash</option>
                                                 <option value="UPI">UPI</option>
                                                 <option value="Card">Card</option>

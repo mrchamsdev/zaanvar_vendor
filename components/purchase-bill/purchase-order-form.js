@@ -37,8 +37,11 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     };
 
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branches, branchId: currentBranchId } = useDashboardData();
+
+    const blockNewSupplierFromTxn = vendorSettings?.general?.blockNewSupplierFromTxn;
+    const blockNewItemsFromTxn = vendorSettings?.general?.blockNewItemsFromTxn;
 
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
@@ -449,13 +452,15 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                             <span className={styles.productOptionName}>{s.supplierName}</span>
                                         </div>
                                     ))}
-                                <div
-                                    className={styles.productOption}
-                                    style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
-                                    onClick={() => router.push(`/suppliers?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
-                                >
-                                    + ADD SUPPLIER
-                                </div>
+                                {!blockNewSupplierFromTxn && (
+                                    <div
+                                        className={styles.productOption}
+                                        style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
+                                        onClick={() => router.push(`/suppliers?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
+                                    >
+                                        + ADD SUPPLIER
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -531,13 +536,15 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                                         <span className={styles.productOptionCode}>{p.ProductCode}</span>
                                                     </div>
                                                 ))}
-                                            <div
-                                                className={styles.productOption}
-                                                style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
-                                                onClick={() => router.push(`/inventory/products?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
-                                            >
-                                                + ADD PRODUCT
-                                            </div>
+                                            {!blockNewItemsFromTxn && (
+                                                <div
+                                                    className={styles.productOption}
+                                                    style={{ borderTop: '1px solid #eee', color: '#E9315D', fontWeight: '700', textAlign: 'center', background: '#fefefe' }}
+                                                    onClick={() => router.push(`/inventory/products?action=add&returnUrl=${encodeURIComponent('/purchase-bill/purchase-orders?openAdd=true')}`)}
+                                                >
+                                                    + ADD PRODUCT
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </td>

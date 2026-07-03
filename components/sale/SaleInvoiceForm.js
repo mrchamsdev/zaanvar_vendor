@@ -1,3 +1,4 @@
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -16,8 +17,14 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
   const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
+    
+    const blockNewCustomerFromTxn = vendorSettings?.general?.blockNewCustomerFromTxn;
+    const invoiceBillNoEditable = getBoolSetting(vendorSettings, 'invoiceBillNoEditable', false);
+    const billingNameOfCustomer = getBoolSetting(vendorSettings, 'billingNameOfCustomer', false);
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const isViewOnly = mode === "view";
 
     const getActiveQty = (qty) => {
@@ -63,6 +70,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
     const [formData, setFormData] = useState({
         partyName: "",
+        billingName: "",
         phone: "",
         vendorCustomerId: null,
         discountForCustomer: 0,
@@ -92,7 +100,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         }
     ]);
 
-    const [payments, setPayments] = useState([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+    const [payments, setPayments] = useState([{ method: cashSaleByDefault ? "Cash" : "", amount: 0, referenceNumber: "" }]);
 
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
@@ -121,7 +129,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const resetForm = () => {
         setFormData({
             partyName: "",
-            phone: "",
+        billingName: "",
+        phone: "",
             vendorCustomerId: null,
             discountForCustomer: 0,
             userOrderId: "",
@@ -148,7 +157,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 availableBatches: []
             }
         ]);
-        setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+        setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: 0, referenceNumber: "" }]);
         setErrors({});
         setUseWallet(false);
         setSavedWalletAmount(0);
@@ -161,6 +170,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
         setFormData({
             partyName: customerName,
+            billingName: data.billingName || "",
             phone: customerPhone,
             vendorCustomerId: data.vendorCustomerId || null,
             discountForCustomer: data.discountForCustomer || 0,
@@ -249,7 +259,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             if (data.paymentMethod === "Wallet") {
                 hasWalletPayment = true;
                 walletPaidAmt = parseFloat(data.paidAmount);
-                setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+                setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: 0, referenceNumber: "" }]);
             } else {
                 setPayments([{ method: data.paymentMethod || "Cash", amount: parseFloat(data.paidAmount), referenceNumber: data.referenceNumber || "" }]);
             }
@@ -875,27 +885,29 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                     {customers.filter((c) => !formData.partyName || `${c.firstName} ${c.lastName}`.toLowerCase().includes(formData.partyName.toLowerCase())).length === 0 && (
                                         <div className={styles.noResults}>No customers found</div>
                                     )}
-                                    <div
-                                        className={styles.dropdownItem}
-                                        style={{
-                                            color: '#E93E64',
-                                            fontWeight: 'bold',
-                                            borderTop: '1px solid #e2e8f0',
-                                            marginTop: '4px',
-                                            paddingTop: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px'
-                                        }}
-                                        onClick={() => {
-                                            router.push({
-                                                pathname: "/customers",
-                                                query: { action: "add", returnUrl: router.asPath }
-                                            });
-                                        }}
-                                    >
-                                        <FiPlus /> Add Customer
-                                    </div>
+                                    {!blockNewCustomerFromTxn && (
+                                        <div
+                                            className={styles.dropdownItem}
+                                            style={{
+                                                color: '#E93E64',
+                                                fontWeight: 'bold',
+                                                borderTop: '1px solid #e2e8f0',
+                                                marginTop: '4px',
+                                                paddingTop: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                            onClick={() => {
+                                                router.push({
+                                                    pathname: "/customers",
+                                                    query: { action: "add", returnUrl: router.asPath }
+                                                });
+                                            }}
+                                        >
+                                            <FiPlus /> Add Customer
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -921,6 +933,19 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                             </div>
                         )}
                     </div>
+                    {billingNameOfCustomer && (
+                        <div className={styles.field}>
+                            <label>Billing Name</label>
+                            <input
+                                type="text"
+                                className={styles.input}
+                                placeholder="Enter Billing Name"
+                                value={formData.billingName}
+                                onChange={(e) => setFormData({ ...formData, billingName: e.target.value })}
+                                disabled={isViewOnly}
+                            />
+                        </div>
+                    )}
                     {mode !== "add" && (
                         <div className={styles.field}>
                             <label>Invoice Id</label>
@@ -929,7 +954,13 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     )}
                     <div className={styles.field}>
                         <label>Invoice Number</label>
-                        <input type="text" className={styles.input} value={formData.invoiceNumber} readOnly />
+                        <input 
+                            type="text" 
+                            className={styles.input} 
+                            value={formData.invoiceNumber} 
+                            readOnly={!invoiceBillNoEditable}
+                            onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                        />
                     </div>
                     <div className={styles.field}>
                         <label>Invoice Date</label>
@@ -1257,6 +1288,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                         <div className={styles.field}>
                                             {idx === 0 && <label>payment type</label>}
                                             <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)}>
+                                                <option value="" disabled hidden>Select Payment Type</option>
                                                 <option value="Cash">Cash</option>
                                                 <option value="UPI">UPI</option>
                                                 <option value="Card">Card</option>
