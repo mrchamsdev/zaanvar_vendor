@@ -5,9 +5,14 @@ import PaymentDetailsPopup from "./payment-details-popup";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import useStore from "../state/useStore";
+import { getBoolSetting } from "@/utilities/settings-utils";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
   const currencySymbol = useCurrencySymbol();
+  const { vendorSettings } = useStore();
+  const transactionWiseTax = getBoolSetting(vendorSettings, "transactionWiseTax", false);
+  const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
 
     const formatVariantSize = (size) => {
         if (!size) return "";
@@ -224,10 +229,10 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
         summaryData.push(
             { label: "Subtotal", value: `${currencySymbol} ${subtotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` }
         );
-        if (overallDiscountVal > 0) {
+        if (transactionWiseDiscount && overallDiscountVal > 0) {
             summaryData.push({ label: "Overall Discount", value: `- ${currencySymbol} ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
-        if (overallTaxVal > 0) {
+        if (transactionWiseTax && overallTaxVal > 0) {
             summaryData.push({ label: "Overall Tax", value: `${currencySymbol} ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         if (previousCredit > 0) {
@@ -503,14 +508,18 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                             <span>Subtotal</span>
                             <span>{currencySymbol} {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
-                        <div className={styles.breakdownRow}>
-                            <span> Overall Discount</span>
-                            <span>- {currencySymbol} {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
-                        </div>
-                        <div className={styles.breakdownRow}>
-                            <span> Overall Tax</span>
-                            <span>{currencySymbol} {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
-                        </div>
+                        {transactionWiseDiscount && (
+                            <div className={styles.breakdownRow}>
+                                <span> Overall Discount</span>
+                                <span>- {currencySymbol} {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                            </div>
+                        )}
+                        {transactionWiseTax && (
+                            <div className={styles.breakdownRow}>
+                                <span> Overall Tax</span>
+                                <span>{currencySymbol} {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                            </div>
+                        )}
 
                         {breakdown.previousCredit > 0 && (
                             <div className={styles.breakdownRow}>

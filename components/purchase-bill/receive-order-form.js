@@ -36,7 +36,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const isView = mode === "view";
     const { jwtToken, userId, vendorSettings } = useStore();
     const cashSaleByDefault = getBoolSetting(vendorSettings, "cashSaleByDefault", true);
-    const addTimeOnTransactions = getBoolSetting(vendorSettings, "addTimeOnTransactions", false);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, 'calculateTaxBasedOnMrp', false);
+    const transactionWiseTax = getBoolSetting(vendorSettings, "transactionWiseTax", false);
+    const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
 
@@ -106,7 +109,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             batchNumber: "",
                             expDate: "",
                             costPrice: item.costPrice || "",
-                            mrp: item.mrp || productInfo.mrp || "",
+                            mrp: item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice || "",
                             receivedQty: "",
                             damagedQty: "",
                             tax: item.taxGroupId ?? productInfo.taxGroupId ?? item.tax ?? productInfo.tax ?? 0,
@@ -261,7 +264,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 const amountAfterDiscount = billableSubtotal - discountAmount;
 
                 // 8. Tax Amount
-                const taxAmount = (amountAfterDiscount * taxPercent / 100);
+                const mrp = parseFloat(batch.mrp) || 0;
+                const taxBase = calculateTaxBasedOnMrp && mrp > 0 ? (mrp * billingQty) : amountAfterDiscount;
+                const taxAmount = (taxBase * taxPercent / 100);
                 itemTaxTotal += taxAmount;
 
                 // 9. Final Product Amount
@@ -285,7 +290,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
             grandTotal,
             discountableAmount: discountableAmountSum
         };
-    }, [items, payBasedOnOrdered, damagedReturnedGoods]);
+    }, [items, payBasedOnOrdered, damagedReturnedGoods, calculateTaxBasedOnMrp]);
 
     const breakdown = useMemo(() => {
         const { grandTotal } = totals;
@@ -872,34 +877,38 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     </div>
 
                     <div className={styles.globalInputs}>
-                        <div className={styles.inputGroup}>
-                            <label className={styles.infoLabel}>Overall TAX</label>
-                            <div className={styles.combinedInput}>
-                                <input type="number" className={styles.miniInput} value={overallTax.value} onChange={(e) => {
-                                    let val = e.target.value;
-                                    if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
-                                    setOverallTax({ ...overallTax, value: val });
-                                }} />
-                                <select className={styles.miniSelect} value={overallTax.type} onChange={(e) => setOverallTax({ ...overallTax, type: e.target.value })}>
-                                    <option>%</option>
-                                    <option>{currencySymbol}</option>
-                                </select>
+                        {transactionWiseTax && (
+                            <div className={styles.inputGroup}>
+                                <label className={styles.infoLabel}>Overall TAX</label>
+                                <div className={styles.combinedInput}>
+                                    <input type="number" className={styles.miniInput} value={overallTax.value} onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                        setOverallTax({ ...overallTax, value: val });
+                                    }} />
+                                    <select className={styles.miniSelect} value={overallTax.type} onChange={(e) => setOverallTax({ ...overallTax, type: e.target.value })}>
+                                        <option>%</option>
+                                        <option>{currencySymbol}</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.inputGroup}>
-                            <label className={styles.infoLabel}>Overall Discount</label>
-                            <div className={styles.combinedInput}>
-                                <input type="number" className={styles.miniInput} value={overallDiscount.value} onChange={(e) => {
-                                    let val = e.target.value;
-                                    if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
-                                    setOverallDiscount({ ...overallDiscount, value: val });
-                                }} />
-                                <select className={styles.miniSelect} value={overallDiscount.type} onChange={(e) => setOverallDiscount({ ...overallDiscount, type: e.target.value })}>
-                                    <option>{currencySymbol}</option>
-                                    <option>%</option>
-                                </select>
+                        )}
+                        {transactionWiseDiscount && (
+                            <div className={styles.inputGroup}>
+                                <label className={styles.infoLabel}>Overall Discount</label>
+                                <div className={styles.combinedInput}>
+                                    <input type="number" className={styles.miniInput} value={overallDiscount.value} onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                        setOverallDiscount({ ...overallDiscount, value: val });
+                                    }} />
+                                    <select className={styles.miniSelect} value={overallDiscount.type} onChange={(e) => setOverallDiscount({ ...overallDiscount, type: e.target.value })}>
+                                        <option>{currencySymbol}</option>
+                                        <option>%</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
 

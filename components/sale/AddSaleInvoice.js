@@ -65,6 +65,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         productName: "",
         unit: "Unit Type",
         qty: 1,
+        purchasePrice: 0,
         price: 0,
         discount: 0,
         taxPercent: 0,
@@ -151,6 +152,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             productName: "",
             unit: "Unit Type",
             qty: 1,
+            purchasePrice: 0,
             price: 0,
             discount: 0,
             taxPercent: 0,
@@ -222,6 +224,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         productName: it.productName || it.product?.productName || variant.SKU || "Product",
                         unit: unitLabel,
                         qty: it.quantity || 0,
+                        purchasePrice: parseFloat(it.purchasePrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
                         price: parseFloat(it.sellingPrice || 0),
                         discount: parseFloat(it.discountForItem || 0),
                         taxPercent: parseFloat(it.taxPercentage || 0),
@@ -233,7 +236,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     };
                 });
                 setItems(mappedItems.length > 0 ? mappedItems : [{
-                    productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: []
+                    productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, purchasePrice: 0, price: 0, discount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: []
                 }]);
 
                 // Map payments if available, otherwise construct from paidAmount
@@ -314,6 +317,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
 
         const batches = selectedVariant?.batchNumbers || [];
 
+        const purchasePrice = parseFloat(selectedVariant?.purchasePrice || selectedVariant?.costPrice || selectedVariant?.cost || prod.purchasePrice || prod.costPrice || prod.cost || 0);
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
         const tax = parseFloat(prod.taxGroupId || 0);
         const qty = ""; // Leave blank so placeholder 0 shows
@@ -334,6 +338,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             productName: prod.productName,
             unit: unitVal,
             qty: qty,
+            purchasePrice: purchasePrice,
             price: price,
             discount: discount,
             discountAmount: discountAmount,
@@ -359,6 +364,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         if (v) {
             const batches = v.batchNumbers || [];
 
+            const purchasePrice = parseFloat(v.purchasePrice || v.cost || 0);
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
@@ -375,6 +381,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 variantId: v.variantId,
                 batchNumber: "",
                 unit: unitVal,
+                purchasePrice: purchasePrice,
                 price: price,
                 discount: discount,
                 discountAmount: discountAmount,
@@ -395,6 +402,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const batch = it.availableBatches.find(b => b.batchNumber === batchNum);
 
         if (batch) {
+            const purchasePrice = parseFloat(batch.purchasePrice || batch.costPrice || batch.cost || it.purchasePrice || 0);
             const price = parseFloat(batch.mrp || 0);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
@@ -405,6 +413,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             newItems[index] = {
                 ...it,
                 batchNumber: batch.batchNumber,
+                purchasePrice: purchasePrice,
                 price: price,
                 discount: discount,
                 discountAmount: discountAmount,
@@ -418,6 +427,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         } else if (batchNum === "") {
             const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
             if (v) {
+                const purchasePrice = parseFloat(v.purchasePrice || v.cost || 0);
                 const price = parseFloat(v.sellingPrice || v.mrp || 0);
                 const calcQty = getActiveQty(it.qty);
                 const discount = parseFloat(it.discount || 0);
@@ -427,6 +437,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 newItems[index] = {
                     ...it,
                     batchNumber: "",
+                    purchasePrice: purchasePrice,
                     price: price,
                     discount: discount,
                     discountAmount: discountAmount,
@@ -460,12 +471,12 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     };
 
     const handleAddRow = () => {
-        setItems([...items, { productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
+        setItems([...items, { productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, purchasePrice: 0, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleRemoveRow = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
+        setItems(newItems.length > 0 ? newItems : [{ productId: "", variantId: "", batchNumber: "", productName: "", unit: "Unit Type", qty: 1, purchasePrice: 0, price: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleAddPayment = () => {
@@ -587,6 +598,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 variantId: it.variantId,
                 batchNumber: it.batchNumber || null,
                 quantity: it.qty,
+                purchasePrice: it.purchasePrice,
                 discountForItem: parseFloat(it.discount || 0),
                 sellingPrice: it.price,
                 taxPercentage: it.taxPercent,
@@ -723,6 +735,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <th rowSpan="2" style={{ minWidth: "140px" }}>BATCH</th>
                                     <th rowSpan="2" style={{ minWidth: "90px" }}>OPEN QTY</th>
                                     <th rowSpan="2">QTY</th>
+                                    <th rowSpan="2" style={{ minWidth: "100px", textAlign: 'center' }}>PURCHASE PRICE</th>
                                     <th colSpan="1">PRICE</th>
                                     <th colSpan="2" style={{ textAlign: 'center' }}>TAX</th>
                                     <th rowSpan="2" style={{ textAlign: 'right' }}>AMOUNT</th>
@@ -899,6 +912,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                 </div>
                                             )}
                                         </td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.purchasePrice.toLocaleString()}</td>
                                         <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.price.toLocaleString()}</td>
                                         <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxPercent}%</td>
                                         <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxAmount.toLocaleString()}</td>
@@ -918,6 +932,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <td></td>
                                     <td></td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0).toLocaleString()}</td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
                                     <td></td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString()}</td>

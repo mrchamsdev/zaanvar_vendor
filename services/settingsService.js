@@ -7,7 +7,13 @@ import { WebApimanager } from "@/components/utilities/WebApiManager";
 export const getSettings = async (jwtToken, branchId) => {
   const webApi = new WebApimanager(jwtToken);
   const res = await webApi.get(`vendor/settings/${branchId}`);
-  return res?.data || res;
+  const data = res?.data || res;
+  if (data?.settings?.transaction) {
+    data.settings.transaction.displayPurchasePriceOfItems = true;
+  } else if (data?.transaction) {
+    data.transaction.displayPurchasePriceOfItems = true;
+  }
+  return data;
 };
 
 /**
@@ -69,7 +75,7 @@ export const DEFAULT_SETTINGS = {
     showProfitWhileMakingInvoice: false,
     termsAndConditions: false,
     inclusiveExclusiveTaxOnRate: false,
-    displayPurchasePriceOfItems: false,
+    displayPurchasePriceOfItems: true,
     transactionWiseTax: false,
     transactionWiseDiscount: false,
     roundOffTotal: true,

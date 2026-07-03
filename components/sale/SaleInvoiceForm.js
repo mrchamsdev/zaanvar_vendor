@@ -14,28 +14,33 @@ import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
-    
+
     const blockNewCustomerFromTxn = vendorSettings?.general?.blockNewCustomerFromTxn;
     const invoiceBillNoEditable = getBoolSetting(vendorSettings, 'invoiceBillNoEditable', false);
     const billingNameOfCustomer = getBoolSetting(vendorSettings, 'billingNameOfCustomer', false);
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, 'calculateTaxBasedOnMrp', false);
     const isViewOnly = mode === "view";
 
     const getActiveQty = (qty) => {
         return parseFloat(qty) || 0;
     };
 
-    const calculateItemValues = (price, qty, discountPercent, taxPercent) => {
+    const calculateItemValues = (price, qty, discountPercent, taxPercent, itemMrp) => {
         const subtotal = price * qty;
         const discountAmount = Math.round(((subtotal * discountPercent) / 100) * 100) / 100;
         const amtAfterDiscount = subtotal - discountAmount;
-        const taxAmount = Math.round(((amtAfterDiscount * taxPercent) / 100) * 100) / 100;
+        
+        const taxableAmount = calculateTaxBasedOnMrp && itemMrp > 0 ? (itemMrp * qty) : amtAfterDiscount;
+        const taxAmount = Math.round(((taxableAmount * taxPercent) / 100) * 100) / 100;
+        
+        // Amount is selling price based, plus tax
         const amount = Math.round((amtAfterDiscount + taxAmount) * 100) / 100;
         return { discountAmount, taxAmount, amount };
     };
@@ -88,6 +93,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             unit: "Unit Type",
             batchNumber: "",
             qty: "",
+            purchasePrice: 0,
             price: 0,
             discount: 0,
             discountAmount: 0,
@@ -129,8 +135,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const resetForm = () => {
         setFormData({
             partyName: "",
-        billingName: "",
-        phone: "",
+            billingName: "",
+            phone: "",
             vendorCustomerId: null,
             discountForCustomer: 0,
             userOrderId: "",
@@ -146,6 +152,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 unit: "Unit Type",
                 batchNumber: "",
                 qty: "",
+                purchasePrice: 0,
                 price: 0,
                 discount: 0,
                 discountAmount: 0,
@@ -201,6 +208,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 productName: it.productName || it.product?.productName || variant.SKU || "Product",
                 unit: unitLabel,
                 qty: qty,
+                purchasePrice: parseFloat(it.purchasePrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
+                mrp: parseFloat(it.mrp || variant.mrp || variant.sellingPrice || it.sellingPrice || 0),
                 price: price,
                 discount: discountPercent,
                 discountAmount: discountAmount,
@@ -223,6 +232,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         productName: "",
                         unit: "Unit Type",
                         qty: 1,
+                        purchasePrice: 0,
+                        mrp: 0,
                         price: 0,
                         discount: 0,
                         taxPercent: 0,
@@ -378,12 +389,14 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
         const batches = selectedVariant?.batchNumbers || [];
 
+        const purchasePrice = parseFloat(selectedVariant?.purchasePrice || selectedVariant?.costPrice || selectedVariant?.cost || prod.purchasePrice || prod.costPrice || prod.cost || 0);
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
+        const mrp = parseFloat(selectedVariant?.mrp || prod.mrp || price);
         const tax = parseFloat(prod.taxGroupId || 0);
         const qty = ""; // Leave blank so placeholder 0 shows
         const calcQty = getActiveQty(qty);
         const discount = 0;
-        const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, tax);
+        const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, tax, mrp);
 
         const vType = selectedVariant?.variantType || {};
         const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
@@ -398,6 +411,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             productName: prod.productName,
             unit: unitVal,
             qty: qty,
+            purchasePrice: purchasePrice,
+            mrp: mrp,
             price: price,
             discount: discount,
             discountAmount: discountAmount,
@@ -423,10 +438,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         if (v) {
             const batches = v.batchNumbers || [];
 
+            const purchasePrice = parseFloat(v.purchasePrice || v.costPrice || v.cost || 0);
             const price = parseFloat(v.sellingPrice || v.mrp || 0);
+            const mrp = parseFloat(v.mrp || price);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
-            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent, mrp);
 
             const vType = v.variantType || {};
             const unitParts = [formatVariantSize(vType.size), vType.type, vType.packType].filter(Boolean);
@@ -439,6 +456,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 variantId: v.variantId,
                 batchNumber: "",
                 unit: unitVal,
+                purchasePrice: purchasePrice,
+                mrp: mrp,
                 price: price,
                 discount: discount,
                 discountAmount: discountAmount,
@@ -460,16 +479,18 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
         if (batch) {
             const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
+            const purchasePrice = parseFloat(batch.purchasePrice || batch.costPrice || batch.cost || it.purchasePrice || 0);
             const price = parseFloat(batch.sellingPrice || v?.sellingPrice || batch.mrp || v?.mrp || 0);
             const calcQty = getActiveQty(it.qty);
             const discount = parseFloat(it.discount || 0);
-            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+            const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent, it.mrp);
 
             const availableQty = batch.stockUpdates?.qtyForSale !== undefined ? batch.stockUpdates.qtyForSale : (batch.quantity || 0);
 
             newItems[index] = {
                 ...it,
                 batchNumber: batch.batchNumber,
+                purchasePrice: purchasePrice,
                 price: price,
                 discount: discount,
                 discountAmount: discountAmount,
@@ -483,15 +504,17 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         } else if (batchNum === "") {
             const v = it.availableVariants.find((varnt) => String(varnt.variantId) === String(it.variantId));
             if (v) {
+                const purchasePrice = parseFloat(v.purchasePrice || v.costPrice || v.cost || 0);
                 const price = parseFloat(v.sellingPrice || v.mrp || 0);
                 const calcQty = getActiveQty(it.qty);
                 const discount = parseFloat(it.discount || 0);
-                const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent);
+                const { discountAmount, taxAmount, amount } = calculateItemValues(price, calcQty, discount, it.taxPercent, it.mrp);
                 const availableQty = v.stockUpdates?.qtyForSale !== undefined ? v.stockUpdates.qtyForSale : (v.currentQty || 0);
 
                 newItems[index] = {
                     ...it,
                     batchNumber: "",
+                    purchasePrice: purchasePrice,
                     price: price,
                     discount: discount,
                     discountAmount: discountAmount,
@@ -516,7 +539,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const it = newItems[index];
 
         const discount = parseFloat(it.discount || 0);
-        const { discountAmount, taxAmount, amount } = calculateItemValues(it.price, calcQty, discount, it.taxPercent);
+        const { discountAmount, taxAmount, amount } = calculateItemValues(it.price, calcQty, discount, it.taxPercent, it.mrp);
 
         newItems[index] = {
             ...it,
@@ -535,13 +558,13 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         if (val.startsWith("0") && val.length > 1 && val[1] !== ".") {
             formattedVal = String(Number(val));
         }
-        const price = formattedVal === "" ? "" : parseFloat(formattedVal || 0);
+        const priceNum = parseFloat(formattedVal || 0);
 
         const newItems = [...items];
         const it = newItems[index];
         const calcQty = getActiveQty(it.qty);
         const discount = parseFloat(it.discount || 0);
-        const { discountAmount, taxAmount, amount } = calculateItemValues(price === "" ? 0 : price, calcQty, discount, it.taxPercent);
+        const { discountAmount, taxAmount, amount } = calculateItemValues(priceNum, calcQty, discount, it.taxPercent, it.mrp);
 
         newItems[index] = {
             ...it,
@@ -554,12 +577,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     };
 
     const handleAddRow = () => {
-        setItems([...items, { productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
+        setItems([...items, { productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", purchasePrice: 0, price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleRemoveRow = (index) => {
         const newItems = items.filter((_, i) => i !== index);
-        setItems(newItems.length > 0 ? newItems : [{ productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
+        setItems(newItems.length > 0 ? newItems : [{ productId: "", productName: "", unit: "Unit Type", batchNumber: "", qty: "", purchasePrice: 0, price: 0, discount: 0, discountAmount: 0, taxPercent: 0, taxAmount: 0, amount: 0, availableQty: 0, availableVariants: [], availableBatches: [] }]);
     };
 
     const handleDiscountChange = (index, val) => {
@@ -744,6 +767,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 variantId: it.variantId,
                 batchNumber: it.batchNumber || null,
                 quantity: getActiveQty(it.qty),
+                purchasePrice: it.purchasePrice,
                 discountForItem: parseFloat(it.discount || 0),
                 sellingPrice: it.price,
                 taxPercentage: it.taxPercent,
@@ -954,10 +978,10 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     )}
                     <div className={styles.field}>
                         <label>Invoice Number</label>
-                        <input 
-                            type="text" 
-                            className={styles.input} 
-                            value={formData.invoiceNumber} 
+                        <input
+                            type="text"
+                            className={styles.input}
+                            value={formData.invoiceNumber}
                             readOnly={!invoiceBillNoEditable}
                             onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
                         />
@@ -995,6 +1019,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <th rowSpan="2" style={{ minWidth: "110px" }}>BATCH</th>
                                 <th rowSpan="2" style={{ minWidth: "70px" }}>OPEN QTY</th>
                                 <th rowSpan="2" style={{ minWidth: "70px" }}>QTY</th>
+                                {vendorSettings?.transaction?.displayPurchasePriceOfItems && (
+                                    <th rowSpan="2" style={{ minWidth: "90px", textAlign: "center" }}>PURCHASE PRICE</th>
+                                )}
                                 <th colSpan="1" style={{ minWidth: "60px", width: "60px", maxWidth: "70px" }}>PRICE</th>
                                 <th colSpan="2" style={{ textAlign: "center" }}>
                                     TAX
@@ -1190,6 +1217,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             </div>
                                         )}
                                     </td>
+                                    {vendorSettings?.transaction?.displayPurchasePriceOfItems && (
+                                        <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "90px", textAlign: "center", fontWeight: "700", color: "#666" }}>
+                                            {Number(it.purchasePrice || 0).toFixed(2)}
+                                        </td>
+                                    )}
                                     <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "60px", width: "60px", maxWidth: "60px" }}>
                                         {isViewOnly ? (
                                             <div style={{ textAlign: "center", fontWeight: "700" }}>
@@ -1243,6 +1275,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <td style={{ fontWeight: "600", textAlign: "center" }}>
                                     {items.reduce((acc, it) => acc + getActiveQty(it.qty), 0)}
                                 </td>
+                                {vendorSettings?.transaction?.displayPurchasePriceOfItems && (
+                                    <td style={{ fontWeight: "600", textAlign: "center" }}>
+                                        {Number(items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0)).toFixed(2)}
+                                    </td>
+                                )}
                                 <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.price || 0), 0)).toFixed(2)}</td>
                                 <td></td>
                                 <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.taxAmount || 0), 0)).toFixed(2)}</td>
