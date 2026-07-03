@@ -15,7 +15,7 @@ const VendorSettingsLayout = ({ activeTab, onTabChange, children, onSave, saving
   return (
     <div className={styles.outerContentArea}>
       {/* Save button row — hidden on ProfileSettings (has own per-section saves) */}
-      {activeTab !== "ProfileSettings" && (
+      {activeTab !== "ProfileSettings" && activeTab !== "RolesAndPermissions" && (
         <div className={styles.saveBtnRow}>
         <button
           className={styles.saveBtn}

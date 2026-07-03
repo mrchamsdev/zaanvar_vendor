@@ -9,6 +9,7 @@ import TaxesGSTSettings from "../../components/vendor-settings/TaxesGSTSettings"
 import TransactionMessageSettings from "../../components/vendor-settings/TransactionMessageSettings";
 import SupplierCustomerSettings from "../../components/vendor-settings/SupplierCustomerSettings";
 import ItemSettings from "../../components/vendor-settings/ItemSettings";
+import RolesAndPermissionsTab from "../../components/vendor-settings/RolesAndPermissionsTab";
 import ProfileSettings from "../../components/vendor-settings/ProfileSettings";
 import {
   getSettings,
@@ -185,6 +186,8 @@ export default function VendorSettingsPage() {
             onChange={updateSection("item")}
           />
         );
+      case "RolesAndPermissions":
+        return <RolesAndPermissionsTab />;
       case "ProfileSettings":
         return <ProfileSettings />;
 
