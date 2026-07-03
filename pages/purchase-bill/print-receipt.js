@@ -3,8 +3,11 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import { purchaseService } from "../../services/purchaseService";
 import styles from "../../styles/purchase-bill/print-receipt.module.css";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PrintReceipt = () => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { id, autoPrint } = router.query;
     const { jwtToken, userInfo } = useStore();
@@ -110,7 +113,7 @@ const PrintReceipt = () => {
             <div className={styles.amountRow}>
                 <span>Paid</span>
                 <span>:</span>
-                <span className={styles.amountValue}>₹ {Number(totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className={styles.amountValue}>{currencySymbol} {Number(totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <div className={styles.wordsBox}>

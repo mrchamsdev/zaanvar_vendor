@@ -4,6 +4,7 @@ import styles from '../../styles/shared/print-invoice.module.css';
 import useDashboardData from '../../components/dashboard/useDashboardData';
 import { numberToWords } from '../utilities/numberToWords';
 import { IMAGE_URL } from '../utilities/Constants';
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PrintInvoiceTemplate = ({
   title,
@@ -19,6 +20,7 @@ const PrintInvoiceTemplate = ({
   headerDetails,
   renderExpandedRow
 }) => {
+  const currencySymbol = useCurrencySymbol();
   const { branch, company, vendor } = useDashboardData({ skipReviews: true });
 
   const companyName = headerDetails?.companyName || branch?.branchName || branch?.name || company?.name || vendor?.businessName || 'My Company';
@@ -59,7 +61,7 @@ const PrintInvoiceTemplate = ({
       <div className={styles.nestedTop}>{headerName}</div>
       <div className={styles.nestedBottom}>
         <span>%</span>
-        <span>₹</span>
+        <span>{currencySymbol}</span>
       </div>
     </div>
   );
@@ -255,7 +257,7 @@ const PrintInvoiceTemplate = ({
                       </div>
                     </td>
                     <td className={styles.right}>
-                      {`₹ ${totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      {`${currencySymbol} ${totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     </td>
                   </tr>
                 </>
@@ -289,7 +291,7 @@ const PrintInvoiceTemplate = ({
                 <tr key={rowIdx}>
                   <td className={styles.left}>{mode}</td>
                   <td className={styles.left}>{ref}</td>
-                  <td className={styles.right}>₹ {parseFloat(amt).toLocaleString()}</td>
+                  <td className={styles.right}>{currencySymbol} {parseFloat(amt).toLocaleString()}</td>
                 </tr>
               );
             })}

@@ -8,6 +8,7 @@ import AddNewAddressPopup from "./addNewAddressPopup";
 import { WebApimanager } from "../utilities/WebApiManager";
 import useStore from "../state/useStore";
 import AddressDropdown from "./addAddressDropDown";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PetForm = ({
   pets = [],
@@ -16,6 +17,8 @@ const PetForm = ({
   currentUser,
   addresses = [],
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const { getJwtToken, getUserInfo } = useStore();
   const userInfo = getUserInfo();
   const jwt = getJwtToken();
@@ -263,7 +266,7 @@ const PetForm = ({
         petName: formData.petName,
         petGender: formData.gender,
         petVariety: formData.petsVariety,
-        price: `₹ ${formData.price}`,
+        price: `${currencySymbol} ${formData.price}`,
         stutus: formData.status,
         sireMother: formData.sireMother,
         // address: formData.address,

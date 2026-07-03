@@ -4,6 +4,7 @@ import { productService } from "../../services/productService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import { parseApiToLocal } from "@/utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const IconX = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -12,6 +13,8 @@ const IconX = () => (
 );
 
 const StockUpdateView = ({ stockId, onClose }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const formatVariantSize = (size) => {
     if (!size) return "";
     if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -201,7 +204,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <th>Reason</th>
               <th>Exp. Date</th>
               <th>Cost Price</th>
-              <th style={{ textAlign: 'right' }}>Total (₹)</th>
+              <th style={{ textAlign: 'right' }}>Total (${currencySymbol})</th>
             </tr>
           </thead>
           <tbody>
@@ -219,13 +222,13 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <td style={{ fontWeight: 700 }}>{displayUpdatedQty}</td>
               <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
               <td>{data.billItem?.expiryDate || "------"}</td>
-              <td>₹{data.billItem?.costPrice || "0"}</td>
+              <td>{currencySymbol} {data.billItem?.costPrice || "0"}</td>
               <td style={{
                 textAlign: 'right',
                 fontWeight: 700,
                 color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
               }}>
-                {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </td>
             </tr>
           </tbody>
@@ -247,7 +250,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
           fontWeight: 700,
           color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
         }}>
-          {displayTotalVal >= 0 ? `+ ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ₹ ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         </div>
       </div>
     </div>

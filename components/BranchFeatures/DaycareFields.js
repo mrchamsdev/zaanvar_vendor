@@ -1,6 +1,7 @@
 import React from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/daycareFields.module.css";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PET_SIZES = [
   { id: "Toy", name: "Toy" },
@@ -40,6 +41,8 @@ const EMPTY_ITEM = { petTypes: [], petSizes: [] };
 const EMPTY_PACKAGE = { packageName: "", selectedCombinations: [], foodOption: "", price: "" };
 
 const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const rawDaycare = branch.services?.[type] || {};
 
   const daycare = {

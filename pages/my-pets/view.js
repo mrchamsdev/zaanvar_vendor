@@ -15,10 +15,13 @@ import {
 } from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { IMAGE_URL } from "@/components/utilities/Constants";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 // const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "";
 
 const ViewDetails = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const [sharePopup, setSharePopup] = useState(false);
   const [pet, setPet] = useState(null);
   const router = useRouter();
@@ -74,7 +77,7 @@ const ViewDetails = () => {
                   </div>
 
                   <div className={styles["reward-container"]}>
-                    <p>Price: ₹ {pet?.price ? `${pet.price} /-` : "N/A"}</p>
+                    <p>Price: ${currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
                   </div>
                 </div>
                 <div className={styles["below-text"]}>
@@ -238,7 +241,7 @@ const ViewDetails = () => {
               />
             </div>
             <div className={styles["reward-container"]}>
-              <p>Price: ₹ {pet?.price ? `${pet.price} /-` : "N/A"}</p>
+              <p>Price: ${currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
             </div>
           </div>
           <div className={styles["below-text"]}>

@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "../../styles/suppliers/suppliers.module.css";
 import EmptyState from "../utilities/EmptyState";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const IconEye = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -33,6 +34,8 @@ const SupplierList = ({
   onAddClick,
   searchTerm = ""
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
 
@@ -127,8 +130,7 @@ const SupplierList = ({
                     color: Number(s.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' :
                       Number(s.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : '#333',
                     fontWeight: 600
-                  }}>
-                    ₹{Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  }}>{currencySymbol} {Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}

@@ -3,8 +3,11 @@ import styles from "../../styles/purchase-bill/purchase-order-summary.module.css
 import { FiChevronDown, FiPrinter } from "react-icons/fi";
 import PaymentDetailsPopup from "./payment-details-popup";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -54,7 +57,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
 
     // Use root properties if available, fallback to receivedDetails
     const finalOverallTax = rootOverallTax || receivedDetails.overallTax || { value: 0, type: '%' };
-    const finalOverallDiscount = rootOverallDiscount || receivedDetails.overallDiscount || { value: 0, type: '₹' };
+    const finalOverallDiscount = rootOverallDiscount || receivedDetails.overallDiscount || { value: 0, type: '${currencySymbol}' };
     const finalPreviousCredit = rootPreviousCredit ?? receivedDetails.previousCredit ?? 0;
 
     const [showBreakdown, setShowBreakdown] = React.useState(false);
@@ -144,7 +147,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                 costPrice: `₹ ${cost.toLocaleString()}`,
                 tax: taxPercent,
                 discount: discPercent,
-                amount: `₹ ${finalProductAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                amount: `${currencySymbol} ${finalProductAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             };
         });
 
@@ -199,37 +202,37 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
         const finalAmount = subtotal - overallDiscountVal + overallTaxVal - previousCredit;
 
         const summaryData = [
-            { label: "Total Ordered Cost", value: `₹ ${totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Total Ordered Cost", value: `${currencySymbol} ${totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
         ];
 
         if (!payBasedOnOrdered && shortfallAmountTotal > 0) {
-            summaryData.push({ label: "Shortfall Amount", value: `- ₹ ${shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Shortfall Amount", value: `- ${currencySymbol} ${shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         if (returnsApplicable && damagedAmountTotal > 0) {
-            summaryData.push({ label: "Damaged Amount", value: `- ₹ ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Damaged Amount", value: `- ${currencySymbol} ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         summaryData.push(
-            { label: "Discountable Amount", value: `₹ ${discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Discountable Amount", value: `${currencySymbol} ${discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
         );
         if (itemDiscountTotal > 0) {
-            summaryData.push({ label: "Item Discount", value: `- ₹ ${itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Item Discount", value: `- ${currencySymbol} ${itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         if (itemTaxTotal > 0) {
-            summaryData.push({ label: "Item Tax", value: `₹ ${itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Item Tax", value: `${currencySymbol} ${itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         summaryData.push(
-            { label: "Subtotal", value: `₹ ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Subtotal", value: `${currencySymbol} ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
         );
         if (overallDiscountVal > 0) {
-            summaryData.push({ label: "Overall Discount", value: `- ₹ ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Overall Discount", value: `- ${currencySymbol} ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         if (overallTaxVal > 0) {
-            summaryData.push({ label: "Overall Tax", value: `₹ ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Overall Tax", value: `${currencySymbol} ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
         if (previousCredit > 0) {
-            summaryData.push({ label: "Previous Credit", value: `- ₹ ${previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Previous Credit", value: `- ${currencySymbol} ${previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
         }
-        summaryData.push({ label: "Total Amount", value: `₹ ${finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true });
+        summaryData.push({ label: "Total Amount", value: `${currencySymbol} ${finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true });
 
         const columns = [
             { header: "S.NO", accessor: "sno" },
@@ -372,12 +375,12 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                             <th>DAMAGED GOODS</th>
                             <th>BATCH NUMBER</th>
                             <th>EXPIRY DATE</th>
-                            <th>COST PRICE (₹)</th>
-                            <th>MRP (₹)</th>
-                            <th>DISCOUNTABLE AMOUNT (₹)</th>
+                            <th>COST PRICE ({currencySymbol})</th>
+                            <th>MRP ({currencySymbol})</th>
+                            <th>DISCOUNTABLE AMOUNT ({currencySymbol})</th>
                             <th>TAX (%)</th>
                             <th>Discount (%)</th>
-                            <th>Total Received Value (₹)</th>
+                            <th>Total Received Value ({currencySymbol})</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -419,8 +422,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                     <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>{parseFloat(item.taxGroupId || item.tax || 0)}%</td>
                                     <td>{parseFloat(item.discount || 0)}%</td>
-                                    <td className={styles.costCell}>
-                                        ₹ {(() => {
+                                    <td className={styles.costCell}>{currencySymbol} {(() => {
                                             const discPercent = parseFloat(item.discount) || 0;
                                             const discAmount = (billableSubtotal * discPercent / 100);
                                             const afterDisc = billableSubtotal - discAmount;
@@ -437,7 +439,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                             <td colSpan={returnsApplicable ? 14 : 15} className={styles.totalLabelCell}>Total Amount (Inc. Tax & Disc.)</td>
                             <td className={styles.totalValueCell}>
                                 <div className={styles.totalValueWrapper}>
-                                    <span>₹</span>
+                                    <span>{currencySymbol}</span>
                                     <span>{breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </td>
@@ -447,7 +449,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                 <td colSpan={returnsApplicable ? 14 : 15} className={styles.totalLabelCell} style={{ borderTop: 'none', paddingTop: '8px', paddingBottom: '16px' }}>Balance Amount</td>
                                 <td className={styles.totalValueCell} style={{ borderTop: 'none', paddingTop: '8px', paddingBottom: '16px' }}>
                                     <div className={styles.totalValueWrapper}>
-                                        <span>₹</span>
+                                        <span>{currencySymbol}</span>
                                         <span>{displayedBalanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </td>
@@ -469,55 +471,55 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                     <div className={`${styles.breakdownContent} ${showBreakdown ? styles.breakdownContentActive : ""}`}>
                         <div className={styles.breakdownRow}>
                             <span>Total Ordered Cost</span>
-                            <span>₹ {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         {!breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Shortfall Amount</span>
-                                <span>- ₹ {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         {returnsApplicable && breakdown.damagedAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Damaged Amount</span>
-                                <span>- ₹ {breakdown.damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRow}>
                             <span>Discountable Amount</span>
-                            <span style={{ fontWeight: '700', color: '#000' }}>₹ {breakdown.discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {breakdown.discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Discount</span>
-                            <span>- ₹ {breakdown.itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>- {currencySymbol} {breakdown.itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Tax</span>
-                            <span>₹ {breakdown.itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownDivider} />
                         <div className={styles.breakdownRow}>
                             <span>Subtotal</span>
-                            <span>₹ {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span> Overall Discount</span>
-                            <span>- ₹ {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>- {currencySymbol} {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span> Overall Tax</span>
-                            <span>₹ {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         {breakdown.previousCredit > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span>Previous Credit</span>
-                                <span>- ₹ {breakdown.previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRowTotal}>
                             <span>TOTAL</span>
-                            <span>₹ {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>
@@ -525,7 +527,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
 
             {/* <div className={styles.totalSection}>
                 <span className={styles.totalLabel}>TOTAL :</span>
-                <span className={styles.totalValue}>₹ {breakdown.finalAmount.toLocaleString()}</span>
+                <span className={styles.totalValue}>{currencySymbol} {breakdown.finalAmount.toLocaleString()}</span>
             </div> */}
 
             <div className={styles.footer}>

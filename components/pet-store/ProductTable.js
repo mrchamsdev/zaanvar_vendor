@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "../../styles/pet-store/products.module.css";
 import { FiTrash2, FiEdit2, FiX } from "react-icons/fi";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ProductTable = ({
   products = [],
@@ -12,6 +13,8 @@ const ProductTable = ({
   onEdit,
   selectedIds = []
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -112,7 +115,7 @@ const ProductTable = ({
                     <td>{totalQty}</td>
                     <td>{openQty}</td>
                     <td>{holdQty}</td>
-                    <td className={styles.mrp}>₹{displayMRP}</td>
+                    <td className={styles.mrp}>{currencySymbol} {displayMRP}</td>
                   </tr>
                 );
               })

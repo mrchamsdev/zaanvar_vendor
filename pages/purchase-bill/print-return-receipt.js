@@ -4,8 +4,11 @@ import useStore from "../../components/state/useStore";
 import { purchaseService } from "../../services/purchaseService";
 import styles from "../../styles/purchase-bill/print-receipt.module.css";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PrintReturnReceipt = () => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { id, autoPrint } = router.query;
     const { jwtToken, userInfo } = useStore();
@@ -154,7 +157,7 @@ const PrintReturnReceipt = () => {
             <div className={styles.amountRow}>
                 <span>Returned Value</span>
                 <span>:</span>
-                <span className={styles.amountValue}>₹ {Number(data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className={styles.amountValue}>{currencySymbol} {Number(data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
 
             <div className={styles.wordsBox}>

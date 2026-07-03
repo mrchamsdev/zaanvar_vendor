@@ -11,6 +11,8 @@ import useDashboardData from "../dashboard/useDashboardData";
 import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
         return (startDate && !isNaN(d.getTime())) ? d : new Date();
@@ -105,6 +107,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
@@ -164,6 +168,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
@@ -290,8 +296,11 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SalesInvoiceList = ({ onAddClick }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken } = useStore();
     const [invoices, setInvoices] = useState([]);
@@ -718,9 +727,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
                 ]}
                 items={filteredInvoices}
                 summary={[
-                    { label: 'Total Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Balance', value: `₹${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
             />
         );
@@ -747,7 +756,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 {paymentHistoryModal.payments.map((p, i) => (
                                     <div key={i} className={styles.paymentItem}>
                                         <div className={styles.paymentInfo}>
-                                            <span className={styles.paymentAmount}>₹ {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className={styles.paymentAmount}>{currencySymbol} {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                             <span className={styles.paymentMethod}>{p.paymentMethod || p.paymentType || 'Cash'}</span>
                                         </div>
                                         <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>
@@ -813,7 +822,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.summaryTop}>
                         <div className={styles.summaryInfo}>
                             <div className={styles.summaryLabel}>Total Amount</div>
-                            <div className={styles.summaryValue}>₹{Number(totals.totalAmount || 0).toLocaleString()}</div>
+                            <div className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString()}</div>
                         </div>
                         <div className={styles.summaryTrend}>
                             <div className={styles.trendValue}>0% <span className={styles.trendIcon}>↗</span></div>
@@ -826,11 +835,11 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.summaryBottom}>
                         <div className={styles.summaryRowItem}>
                             <span className={styles.rowLabel}>Paid :</span>
-                            <span className={styles.rowValue}>₹{Number(totals.paid || 0).toLocaleString()}</span>
+                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.paid || 0).toLocaleString()}</span>
                         </div>
                         <div className={styles.summaryRowItem}>
                             <span className={styles.rowLabel}>Balance :</span>
-                            <span className={styles.rowValue}>₹{Number(totals.balance || 0).toLocaleString()}</span>
+                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.balance || 0).toLocaleString()}</span>
                         </div>
                     </div>
                 </div>

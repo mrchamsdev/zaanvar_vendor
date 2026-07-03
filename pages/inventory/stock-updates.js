@@ -10,6 +10,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
 import StockUpdateManager from "../../components/inventory/stock-update-manager";
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -18,6 +19,8 @@ const IconSearch = () => (
 );
 
 const StockUpdatesPage = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
   const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
@@ -242,7 +245,7 @@ const StockUpdatesPage = () => {
                       <td>{quantity}</td>
                       <td>{update.reason || "--"}</td>
                       <td className={`${styles.rightAlign} ${isNegative ? styles.totalValueRed : styles.totalValueGreen}`}>
-                        {isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `₹ ${val.toFixed(2)}`}
+                        {isNegative ? `- ${currencySymbol} ${Math.abs(val).toFixed(2)}` : `${currencySymbol} ${val.toFixed(2)}`}
                       </td>
                     </tr>
                   );

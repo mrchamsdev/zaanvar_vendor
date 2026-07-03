@@ -14,8 +14,11 @@ import {
 } from "@/public/images/SVG";
 import BackHeader from "@/components/pet-sales/backHeader";
 import { useRouter } from "next/router";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ViewDetails = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const [pet, setPet] = useState(null);
   const [sharePopup, setSharePopup] = useState(false);
   const router = useRouter();
@@ -70,7 +73,7 @@ const ViewDetails = () => {
                 </div>
 
                 <div className={styles["reward-container"]}>
-                  <p>₹ {pet?.price || "N/A"}</p>
+                  <p>{currencySymbol} {pet?.price || "N/A"}</p>
                 </div>
               </div>
 

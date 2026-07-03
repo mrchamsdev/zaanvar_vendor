@@ -7,6 +7,7 @@ import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
 import ProductFormManager from "./product-form-manager";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const IconX = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -51,6 +52,8 @@ const formatVariantSize = (size) => {
 
 // Searchable Product Dropdown component
 const ProductSelect = ({ products, value, onChange, onAddNew, error, disabled = false }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const containerRef = useRef(null);
@@ -128,6 +131,8 @@ const ProductSelect = ({ products, value, onChange, onAddNew, error, disabled = 
 };
 
 const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(value || "");
     const containerRef = useRef(null);
@@ -199,6 +204,8 @@ const BatchSelect = ({ batches, value, onChange, error, disabled = false }) => {
 };
 
 const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", initialId = null, initialData = null }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken, userInfo } = useStore();
     const { branches, branchId: globalBranchId } = useDashboardData({ skipReviews: true });
     const [branchId, setBranchId] = useState(globalBranchId || "91");
@@ -957,7 +964,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                             <th className={`${styles.colExp} ${styles.centerAlign}`}>Updated Qty</th>
                                             <th className={`${styles.colExpiry} ${styles.centerAlign}`}>Exp. Date</th>
                                             <th className={`${styles.colCost} ${styles.centerAlign}`}>Cost Price</th>
-                                            <th className={`${styles.colTotal} ${styles.rightAlign}`}>Total (₹)</th>
+                                            <th className={`${styles.colTotal} ${styles.rightAlign}`}>Total (${currencySymbol})</th>
                                             <th className={styles.colAction}></th>
                                         </tr>
                                     </thead>
@@ -1093,9 +1100,9 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                         />
                                                         {errors[`${index}_expiryDate`] && <span className={styles.errorText}>{errors[`${index}_expiryDate`]}</span>}
                                                     </td>
-                                                    <td><input className={styles.tableInput} readOnly value={`₹${row.costPrice}`} /></td>
+                                                    <td><input className={styles.tableInput} readOnly value={`${currencySymbol}${row.costPrice}`} /></td>
                                                     <td className={`${styles.rightAlign} ${row.total >= 0 ? styles.positiveText : styles.negativeText} ${styles.boldText}`}>
-                                                        {row.total >= 0 ? `+ ₹ ${row.total.toFixed(2)}` : `- ₹ ${Math.abs(row.total).toFixed(2)}`}
+                                                        {row.total >= 0 ? `+ ${currencySymbol} ${row.total.toFixed(2)}` : `- ${currencySymbol} ${Math.abs(row.total).toFixed(2)}`}
                                                     </td>
                                                     <td>
                                                         {rows.length > 1 && mode !== "View" && (
@@ -1114,7 +1121,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                             <div className={styles.totalSection}>
                                 <div className={styles.totalLabel}>TOTAL</div>
                                 <div className={`${styles.totalAmount} ${grandTotal >= 0 ? styles.positiveText : styles.negativeText}`}>
-                                    {grandTotal >= 0 ? `+ ₹ ${grandTotal.toFixed(2)}` : `- ₹ ${Math.abs(grandTotal).toFixed(2)}`}
+                                    {grandTotal >= 0 ? `+ ${currencySymbol} ${grandTotal.toFixed(2)}` : `- ${currencySymbol} ${Math.abs(grandTotal).toFixed(2)}`}
                                 </div>
                             </div>
 

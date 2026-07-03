@@ -7,8 +7,11 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
     const [loading, setLoading] = useState(false);
@@ -116,7 +119,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
         const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
         if (totalAmountToBePaid > 0 && Math.abs(currentTotalPaid - totalAmountToBePaid) > 0.01) {
-            newErrors.unbalanced = `The sum of payments (₹ ${currentTotalPaid}) does not match the Total Amount Paid (₹ ${totalAmountToBePaid})`;
+            newErrors.unbalanced = `The sum of payments (${currencySymbol} ${currentTotalPaid}) does not match the Total Amount Paid (₹ ${totalAmountToBePaid})`;
         }
 
         payments.forEach(p => {
@@ -285,7 +288,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `₹ ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
+                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `${currencySymbol} ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
                                 readOnly
                             />
                         </div>
@@ -294,7 +297,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={`₹ ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                value={`${currencySymbol} ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                 readOnly
                             />
                         </div>
@@ -390,7 +393,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                     {Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toFixed(2)}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>
-                                    Total Allocated: ₹ {currentTotalAllocated.toFixed(2)} / ₹ {Number(editablePaidAmount).toFixed(2)}
+                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toFixed(2)} / {currencySymbol} {Number(editablePaidAmount).toFixed(2)}
                                 </div>
                             </div>
                         )}

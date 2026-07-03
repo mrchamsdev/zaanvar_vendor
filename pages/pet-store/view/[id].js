@@ -9,8 +9,11 @@ import AddProduct from "@/components/pet-store/AddProduct";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ProductDetail = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const router = useRouter();
   const { id } = router.query;
   const { getJwtToken } = useStore();
@@ -362,11 +365,11 @@ const ProductDetail = () => {
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>Selling Price:</span>
-                            <span className={styles.infoValue}>₹ {parseFloat(variant.sellingPrice || 0).toFixed(2)}</span>
+                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.sellingPrice || 0).toFixed(2)}</span>
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>MRP:</span>
-                            <span className={styles.infoValue}>₹ {parseFloat(variant.mrp || 0).toFixed(2)}</span>
+                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.mrp || 0).toFixed(2)}</span>
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>Discount Percentage:</span>

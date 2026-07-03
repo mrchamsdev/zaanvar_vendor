@@ -7,8 +7,11 @@ import { toast } from "sonner";
 import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import PurchaseOrderSummary from "./purchase-order-summary";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialData }) => {
+    const currencySymbol = useCurrencySymbol();
+
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -124,7 +127,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     setDamagedReturnedGoods(receivedDetails.toggles?.damagedReturnedGoods || false);
                     setAddToCreditNote(receivedDetails.toggles?.addToCreditNote || false);
                     setOverallTax(receivedDetails.overallTax || { value: 0, type: '%' });
-                    setOverallDiscount(receivedDetails.overallDiscount || { value: 0, type: '₹' });
+                    setOverallDiscount(receivedDetails.overallDiscount || { value: 0, type: '${currencySymbol}' });
                     setPreviousCredit(receivedDetails.previousCredit || 0);
                     setPaymentStatus(receivedDetails.paymentStatus || "Pending");
                     setPaidAmount(receivedDetails.paidAmount ? Number(receivedDetails.paidAmount).toFixed(2) : 0);
@@ -537,7 +540,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                         </div>
                                     </div>
                                     <div className={styles.headerRight}>
-                                        <div className={styles.headerTotalValue}>Total Value : <span>₹ {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                                        <div className={styles.headerTotalValue}>Total Value : <span>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                                         <FiChevronDown className={`${styles.expandIcon} ${expandedItems[index] ? styles.expandIconActive : ""}`} />
                                     </div>
                                 </div>
@@ -605,7 +608,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                         <div className={styles.fieldGroup}>
                                                             <label className={styles.fieldLabel}>Cost Price <span style={{ color: '#ff4d4f' }}>*</span></label>
                                                             <div className={styles.inputWrapper}>
-                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
                                                                     type="number"
                                                                     className={`${styles.input} ${styles.inputWithSymbol} ${(Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) || (batch.costPrice !== "" && batch.costPrice !== undefined && batch.costPrice !== null && Number(batch.costPrice) <= 0) || (isSubmitted && (batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null)) ? styles.inputError : ""}`}
@@ -626,7 +629,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                         <div className={styles.fieldGroup}>
                                                             <label className={styles.fieldLabel}>MRP <span style={{ color: '#ff4d4f' }}>*</span></label>
                                                             <div className={styles.inputWrapper}>
-                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
                                                                     type="number"
                                                                     className={`${styles.input} ${styles.inputWithSymbol} ${(batch.mrp !== "" && batch.mrp !== undefined && batch.mrp !== null && Number(batch.mrp) <= 0) || (isSubmitted && (batch.mrp === "" || batch.mrp === undefined || batch.mrp === null)) ? styles.inputError : ""}`}
@@ -684,7 +687,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                         <div className={styles.fieldGroup}>
                                                             <label className={styles.fieldLabel}>Discountable Amount</label>
                                                             <div className={styles.inputWrapper}>
-                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
                                                                     type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol}`}
@@ -725,7 +728,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                         <div className={styles.fieldGroup}>
                                                             <label className={styles.fieldLabel}>Amount</label>
                                                             <div className={styles.inputWrapper}>
-                                                                <span className={styles.currencySymbol}>₹</span>
+                                                                <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
                                                                     type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol}`}
@@ -759,15 +762,15 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                         <div className={styles.itemSummary}>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Ordered Value</span>
-                                                <span className={styles.summaryValue}>₹ {rowOrdered.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {rowOrdered.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Received Value</span>
-                                                <span className={styles.summaryValue}>₹ {(totalReceived * firstCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {(totalReceived * firstCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Calculated Amount</span>
-                                                <span className={styles.summaryValue}>₹ {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -826,7 +829,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     {payBasedOnOrdered && totals.shortfallAmount > 0 && (
                         <div className={styles.alertBox}>
                             <div className={styles.alertHeader}>
-                                <span className={styles.alertValue}>₹ {totals.shortfallAmount}</span>
+                                <span className={styles.alertValue}>{currencySymbol} {totals.shortfallAmount}</span>
                                 <div className={styles.alertAction}>
                                     <FiCheckCircle className={styles.checkIconActive} />
                                     <span>Added to Credit Note</span>
@@ -838,7 +841,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
                     <div className={styles.alertBox}>
                         <div className={styles.alertHeader}>
-                            <span className={styles.alertValue}>₹ {totals.damagedAmount}</span>
+                            <span className={styles.alertValue}>{currencySymbol} {totals.damagedAmount}</span>
                             <div className={`${styles.toggle} ${damagedReturnedGoods ? styles.toggleActive : ""}`} onClick={() => setDamagedReturnedGoods(!damagedReturnedGoods)}>
                                 <div className={`${styles.toggleCircle} ${damagedReturnedGoods ? styles.toggleCircleActive : ""}`} />
                             </div>
@@ -858,7 +861,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 }} />
                                 <select className={styles.miniSelect} value={overallTax.type} onChange={(e) => setOverallTax({ ...overallTax, type: e.target.value })}>
                                     <option>%</option>
-                                    <option>₹</option>
+                                    <option>{currencySymbol}</option>
                                 </select>
                             </div>
                         </div>
@@ -871,7 +874,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                     setOverallDiscount({ ...overallDiscount, value: val });
                                 }} />
                                 <select className={styles.miniSelect} value={overallDiscount.type} onChange={(e) => setOverallDiscount({ ...overallDiscount, type: e.target.value })}>
-                                    <option>₹</option>
+                                    <option>{currencySymbol}</option>
                                     <option>%</option>
                                 </select>
                             </div>
@@ -887,29 +890,29 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         </div>
                         {showBreakdown && (
                             <div className={styles.breakdownContent}>
-                                <div className={styles.breakdownRow}><span>Total cost</span><span>₹ {totals.totalCost.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Total cost</span><span>{currencySymbol} {totals.totalCost.toFixed(2)}</span></div>
 
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ₹ {totals.shortfallAmount.toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ${currencySymbol} {totals.shortfallAmount.toFixed(2)}</span></div>
                                 )}
 
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- ₹ {totals.damagedAmount.toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- {currencySymbol} {totals.damagedAmount.toFixed(2)}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>₹ {totals.discountableAmount.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {totals.discountableAmount.toFixed(2)}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- ₹ {totals.itemDiscountTotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Item Tax</span><span>₹ {totals.itemTaxTotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- {currencySymbol} {totals.itemDiscountTotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Tax</span><span>{currencySymbol} {totals.itemTaxTotal.toFixed(2)}</span></div>
                                 <div className={styles.breakdownDivider} />
-                                <div className={styles.breakdownRow}><span>Subtotal</span><span>₹ {breakdown.subtotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span> Overall Discount</span><span>- ₹ {breakdown.discountVal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Subtotal</span><span>{currencySymbol} {breakdown.subtotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span> Overall Discount</span><span>- {currencySymbol} {breakdown.discountVal.toFixed(2)}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>₹ {breakdown.taxVal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>{currencySymbol} {breakdown.taxVal.toFixed(2)}</span></div>
                                 {Number(previousCredit) > 0 && (
-                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- ₹ {Number(previousCredit).toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- {currencySymbol} {Number(previousCredit).toFixed(2)}</span></div>
                                 )}
-                                <div className={styles.breakdownRowBold}><span>Total</span><span>₹ {breakdown.finalAmount.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRowBold}><span>Total</span><span>{currencySymbol} {breakdown.finalAmount.toFixed(2)}</span></div>
                             </div>
                         )}
                     </div>
@@ -935,7 +938,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         <div className={styles.infoGroup}>
                             <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
                             <div className={styles.inputWrapper}>
-                                <span className={styles.currencySymbol}>₹</span>
+                                <span className={styles.currencySymbol}>{currencySymbol}</span>
                                 <input
                                     type="number"
                                     className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.inputError : ""}`}

@@ -1,7 +1,10 @@
 import React from 'react'
 import styles from "../../styles/pet-sales/dashBoard.module.css"
 import Image from 'next/image'
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 const ChatOnline = () => {
+  const currencySymbol = useCurrencySymbol();
+
   return (
    <>
    <div className={styles["chats-div"]}>
@@ -33,7 +36,7 @@ const ChatOnline = () => {
                         </p>
                       </div>
                     </div>
-                    <p className={styles["amount"]}>₹5000.00</p>
+                    <p className={styles["amount"]}>{currencySymbol} 5000.00</p>
                   </div>
                 ))}
               </div>

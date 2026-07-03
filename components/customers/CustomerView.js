@@ -4,8 +4,11 @@ import styles from "../../styles/customers/customerView.module.css";
 import { customerService } from "../../services/customerService";
 import { useRouter } from "next/router";
 import useStore from "../state/useStore";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken } = useStore();
     const router = useRouter();
     const [data, setData] = useState(initialData || {});
@@ -52,6 +55,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     }, [activeRightTab]);
 
     const PaginationFooter = ({ totalItems = 0 }) => {
+  const currencySymbol = useCurrencySymbol();
+
         const totalPages = Math.ceil(totalItems / rowsPerPage);
         const startItem = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
         const endItem = Math.min(currentPage * rowsPerPage, totalItems);
@@ -147,8 +152,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{formatDate(item.invoiceDate || item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.dueAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.totalAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.dueAmount, '0.00')}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.userOrderId ? null : item.userOrderId)}>
                                                     <FiMoreVertical />
@@ -216,8 +221,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{item.bill?.userOrderId || item.userOrderId || '-'}</td>
                                             <td className={styles.dataTableCell}>{item.customerReturnId}</td>
-                                            <td className={styles.dataTableCell}>₹ {Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className={styles.dataTableCell}>₹ {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.customerReturnId ? null : item.customerReturnId)}>
                                                     <FiMoreVertical />
@@ -298,10 +303,10 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentId)}</td>
                                             <td className={styles.dataTableCell}>{formatDate(item.paymentDate || item.createdDate)}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.totalAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.totalAmount, '0.00')}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.amount, '0.00')}</td>
-                                            <td className={styles.dataTableCell}>₹ {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.amount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.paymentId ? null : item.paymentId)}>
                                                     <FiMoreVertical />
@@ -387,7 +392,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                 {paymentHistoryModal.payments.map((p, i) => (
                                     <div key={i} className={styles.paymentItem}>
                                         <div className={styles.paymentInfo}>
-                                            <span className={styles.paymentAmount}>₹ {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className={styles.paymentAmount}>{currencySymbol} {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                             <span className={styles.paymentMethod}>{p.paymentMethod || 'Cash'}</span>
                                         </div>
                                         <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>
@@ -449,7 +454,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                         </div>
                                         <div className={styles.overviewStatsGrid}>
                                             <div>
-                                                <div className={styles.statValue}>₹900</div>
+                                                <div className={styles.statValue}>{currencySymbol} 900</div>
                                                 <div className={styles.statLabel}>Revenue</div>
                                             </div>
                                             <div>
@@ -465,7 +470,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                         </div>
                                         <div className={styles.overviewStatsGrid}>
                                             <div>
-                                                <div className={styles.statValue}>₹900</div>
+                                                <div className={styles.statValue}>{currencySymbol} 900</div>
                                                 <div className={styles.statLabel}>Revenue</div>
                                             </div>
                                             <div>

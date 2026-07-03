@@ -1,6 +1,7 @@
 import React from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/clinicFields.module.css";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const CLINIC_TYPES = [
   { id: "Home visit", name: "Home visit" },
@@ -23,6 +24,8 @@ const ClinicFields = ({
   availablePetTypes,
   serviceOptionsByFeatureType,
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   /* ================= NORMALIZE DATA ================= */
   const rawClinic = branch.services?.[type] || {};
 

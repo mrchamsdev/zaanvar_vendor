@@ -7,8 +7,11 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initialBillData, allOrders }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken, userInfo } = useStore();
     const { branchId: selectedBranchId } = useDashboardData({ skipReviews: true });
     const branchId = selectedBranchId || userInfo?.branchId || 1;
@@ -395,15 +398,15 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`₹ ${totalBillAmount.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${totalBillAmount.toLocaleString()}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Previously Paid Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`₹ ${previouslyPaid.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${previouslyPaid.toLocaleString()}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`₹ ${currentBalance.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${currentBalance.toLocaleString()}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Paid Amount</label>

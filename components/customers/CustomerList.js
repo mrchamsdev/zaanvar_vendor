@@ -2,6 +2,7 @@ import React from "react";
 import styles from "../../styles/customers/customers.module.css";
 import EmptyState from "../utilities/EmptyState";
 import { FiMoreVertical } from "react-icons/fi";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const formatDate = (dateString) => {
   if (!dateString) return "-";
@@ -55,6 +56,8 @@ const CustomerList = ({
   onAddClick,
   searchTerm = ""
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [activeMenuId, setActiveMenuId] = React.useState(null);
@@ -158,8 +161,7 @@ const CustomerList = ({
                     {`${c.firstName || ""} ${c.lastName || ""}`.trim() || "-"}
                   </td>
                   <td>{c.phoneNumber || "-"}</td>
-                  <td className={styles.revenueCell}>
-                    ₹{Number(c.overallTotals?.totalAmount || 0).toLocaleString()}
+                  <td className={styles.revenueCell}>{currencySymbol} {Number(c.overallTotals?.totalAmount || 0).toLocaleString()}
                   </td>
                   <td>0</td>
                   <td>{formatDate(c.createdAt)}</td>

@@ -4,8 +4,11 @@ import { FiX, FiMail, FiMessageSquare } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken } = useStore();
     const [customerInfo, setCustomerInfo] = React.useState(null);
 
@@ -49,7 +52,7 @@ const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
         return dateStr ? new Date(dateStr).toLocaleDateString('en-GB') : "";
     };
 
-    const message = `Sale Details:\nRef No: ${getRefNo(data)}\nCustomer: ${customerName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${getFormattedDate(data)}`;
+    const message = `Sale Details:\nRef No: ${getRefNo(data)}\nCustomer: ${customerName}\nAmount: ${currencySymbol}${getDisplayTotalAmount(data)}\nDate: ${getFormattedDate(data)}`;
 
     const handleShare = (type) => {
         let url = "";
