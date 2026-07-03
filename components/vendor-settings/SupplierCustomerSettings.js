@@ -60,7 +60,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
             <input id="supplierGrouping" type="checkbox" className={styles.checkInput}
               checked={p.supplierGrouping} onChange={toggle("supplierGrouping")} />
             <label htmlFor="supplierGrouping" className={styles.checkLabel}>Supplier Grouping</label>
-            <InfoIcon tip="When ON, suppliers can be organised into groups with filter support." />
+            <InfoIcon tip={`What is this?\nYou can group similar types of suppliers together. You can create groups and assign suppliers to those groups.\n\nWhy use it?\nIf you want to create groups of customers, vendors, or region-wise customers and view reports based on those groups, you can enable this setting.`} />
           </div>
 
           {/* Shipping Address */}
@@ -100,7 +100,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
             <input id="enablePaymentReminder" type="checkbox" className={styles.checkInput}
               checked={p.enablePaymentReminder} onChange={toggle("enablePaymentReminder")} />
             <label htmlFor="enablePaymentReminder" className={styles.checkLabel}>Enable Payment Reminder</label>
-            <InfoIcon tip="Send payment reminders before due date." />
+            <InfoIcon tip={`What is this?\nEnables you to receive automatic payment reminders that help you follow up with your suppliers and get paid faster.`} />
           </div>
 
           {/* Reminder days stepper */}
