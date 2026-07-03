@@ -12,8 +12,11 @@ import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
     const [selecting, setSelecting] = useState('start'); // 'start' or 'end'
 
@@ -112,6 +115,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
@@ -171,6 +176,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
@@ -289,6 +296,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 const PurchaseReturnList = ({ onAddClick }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [returns, setReturns] = useState([]);

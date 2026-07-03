@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "../../styles/inventory/product-view.module.css";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const IconChevronDown = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -8,6 +9,8 @@ const IconChevronDown = () => (
 );
 
 const ProductView = ({ data, onBack, isSplit }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const [isGalleryOpen, setIsGalleryOpen] = React.useState(false);
   const [selectedGalleryImage, setSelectedGalleryImage] = React.useState(null);
 
@@ -347,8 +350,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td style={{ fontWeight: 600 }}>{totalQty}</td>
                           <td style={{ fontWeight: 600 }}>{openQty}</td>
                           <td style={{ fontWeight: 600, color: holdQty > 0 ? '#ff4d4f' : 'inherit' }}>{holdQty}</td>
-                          <td>₹{bill.mrp}</td>
-                          <td>₹{bill.costPrice}</td>
+                          <td>{currencySymbol} {bill.mrp}</td>
+                          <td>{currencySymbol} {bill.costPrice}</td>
                           <td>{bill.qty}</td>
                           <td>{bill.receivedQuantity}</td>
                           <td>{bill.damagedQuantity}</td>
@@ -380,7 +383,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       <th>REASON</th>
                       <th>SOURCE STATUS</th>
                       <th>EXP. DATE</th>
-                      <th>TOTAL (₹)</th>
+                      <th>TOTAL (${currencySymbol})</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -395,7 +398,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       const isNegative = stock.remove > 0 || (stock.reason?.toLowerCase().includes('damaged') || stock.reason?.toLowerCase().includes('expired') || stock.reason?.toLowerCase().includes('theft') || stock.reason?.toLowerCase().includes('internal purpose') || stock.reason?.toLowerCase().includes('onhold'));
                       const val = parseFloat(stock.totalValue || 0);
                       const displayColor = isNegative ? '#e74c3c' : '#27ae60';
-                      const displayText = isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `+ ₹ ${Math.abs(val).toFixed(2)}`;
+                      const displayText = isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `+ ${currencySymbol} ${Math.abs(val).toFixed(2)}`;
                       return (
                         <tr key={idx}>
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>

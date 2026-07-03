@@ -20,6 +20,7 @@ import Reviews from "./Reviews";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const chartColors = ["#FFB200", "#FF6B6B", "#3DD598", "#56CCF2", "#5A6ACF", "#FFC107"];
 
@@ -29,6 +30,8 @@ const PetStoreDashboard = ({
   recentProducts: propRecentProducts,
   reviews = petStoreReviews,
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
   const webApi = new WebApimanager(jwt);
@@ -59,7 +62,7 @@ const PetStoreDashboard = ({
             product.variants?.forEach((variant) => {
               if (variant.variantType) {
                 const size = String(variant.variantType).trim();
-                const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
+                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
                 
                 if (size && !allSizes.includes(size)) {
                   allSizes.push(size);

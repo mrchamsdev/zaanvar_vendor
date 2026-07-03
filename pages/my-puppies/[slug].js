@@ -20,8 +20,11 @@ import AddNewPuppyPopup from "@/components/pet-sales/AddNewPuppyPopUp";
 import ChangeStatus from "@/components/pet-sales/ChangeStatus";
 import SharePopup from "@/components/pet-sales/SharePopup";
 import { formatInOriginalTz, parseWallClockDate } from "@/utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ViewDetails = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
@@ -125,7 +128,7 @@ const ViewDetails = () => {
         <div className={styles.leftCol}>
           <div className={styles.heroImageContainer}>
             <Image src={displayImage} alt="Pet" fill className={styles.heroImg} />
-            <div className={styles.priceTag}>Price: ₹ {pet.price}</div>
+            <div className={styles.priceTag}>Price: {currencySymbol} {pet.price}</div>
           </div>
           
           <p className={styles.postDate}>

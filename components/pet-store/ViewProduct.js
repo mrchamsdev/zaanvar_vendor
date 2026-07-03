@@ -5,8 +5,11 @@ import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/pet-store/viewProduct.module.css";
 import Image from "next/image";
 import { FiX, FiMinus, FiSquare } from "react-icons/fi";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ViewProduct = ({ product, onClose }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const modalRef = useRef(null);
   const [windowState, setWindowState] = useState("fullscreen"); // 'standard', 'minimized', 'fullscreen'
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -263,8 +266,8 @@ const ViewProduct = ({ product, onClose }) => {
                 <tr>
                   <td>#0001</td>
                   <td>NOBITA</td>
-                  <td>₹200</td>
-                  <td>₹150</td>
+                  <td>{currencySymbol} 200</td>
+                  <td>{currencySymbol} 150</td>
                   <td>50</td>
                   <td>3</td>
                   <td>3</td>
@@ -274,8 +277,8 @@ const ViewProduct = ({ product, onClose }) => {
                 <tr>
                   <td>#0002</td>
                   <td>....</td>
-                  <td>₹200</td>
-                  <td>₹150</td>
+                  <td>{currencySymbol} 200</td>
+                  <td>{currencySymbol} 150</td>
                   <td>1</td>
                   <td>0</td>
                   <td>0</td>
@@ -315,8 +318,8 @@ const ViewProduct = ({ product, onClose }) => {
                   <td>7</td>
                   <td className={styles.bold}>MISCOUNT</td>
                   <td>29 JAN 2026</td>
-                  <td>₹200</td>
-                  <td>₹1400.00</td>
+                  <td>{currencySymbol} 200</td>
+                  <td>{currencySymbol} 1400.00</td>
                 </tr>
                 <tr>
                   <td>29 JAN 2026</td>
@@ -328,8 +331,8 @@ const ViewProduct = ({ product, onClose }) => {
                   <td>7</td>
                   <td className={styles.bold}>MISCOUNT</td>
                   <td>29 JAN 2026</td>
-                  <td>₹200</td>
-                  <td>₹1400.00</td>
+                  <td>{currencySymbol} 200</td>
+                  <td>{currencySymbol} 1400.00</td>
                 </tr>
               </tbody>
             </table>

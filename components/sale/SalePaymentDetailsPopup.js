@@ -6,8 +6,11 @@ import { saleService } from "../../services/saleService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -227,7 +230,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Total Amount Paid *</label>
                             <div className={styles.inputWrapper}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     placeholder="0"
@@ -253,14 +256,14 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Total Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
@@ -277,13 +280,13 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                 />
                                 <label htmlFor="useWalletPopup" style={{ cursor: 'pointer', marginBottom: 0, fontWeight: '600' }}>
-                                    Use Wallet Amount (Available: ₹ {walletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                    Use Wallet Amount (Available: ${currencySymbol} {walletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                 </label>
                             </div>
                             {useWallet && appliedWalletAmount > 0 && (
                                 <div className={styles.field}>
                                     <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
-                                        <span className={styles.prefix}>₹</span>
+                                        <span className={styles.prefix}>{currencySymbol}</span>
                                         <input type="text" value={appliedWalletAmount.toFixed(2)} readOnly />
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Applied to Total Amount Paid</div>
@@ -308,7 +311,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Amount Paid *</label>
                             <div className={styles.inputWrapper}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     placeholder="0"
@@ -327,7 +330,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             ) : (hasMismatch && payments.length === 1 && (
                                 <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    The sum of payments (₹ {totalCurrentPayment}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                    The sum of payments (${currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                 </div>
                             ))}
                         </div>
@@ -373,7 +376,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </button>
                                     </div>
                                     <div className={styles.inputWrapper}>
-                                        <span className={styles.prefix}>₹</span>
+                                        <span className={styles.prefix}>{currencySymbol}</span>
                                         <input
                                             type="text"
                                             placeholder="0"
@@ -392,7 +395,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </div>
                                     ) : (hasMismatch && idx === payments.length - 2 && (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            The sum of payments (₹ {totalCurrentPayment}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                            The sum of payments (${currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                         </div>
                                     ))}
                                 </div>

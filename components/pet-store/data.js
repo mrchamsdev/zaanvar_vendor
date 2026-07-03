@@ -1,3 +1,4 @@
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 export const petStoreSummaryCards = [
   {
     title: "Brands Available",

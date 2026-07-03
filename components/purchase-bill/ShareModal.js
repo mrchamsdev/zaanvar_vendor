@@ -4,8 +4,11 @@ import { FiX, FiMail, FiMessageSquare } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const { jwtToken } = useStore();
     const [supplierInfo, setSupplierInfo] = React.useState(null);
 
@@ -45,7 +48,7 @@ const ShareModal = ({ isOpen, onClose, data, branchId, showBelow }) => {
         return mainAmount + splitSum;
     };
 
-    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ₹${getDisplayTotalAmount(data)}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
+    const message = `Purchase Details:\nRef No: ${data?.suppliersTransactionId}\nSupplier: ${supplierName}\nAmount: ${currencySymbol}${getDisplayTotalAmount(data)}\nDate: ${new Date(data?.userTransactionDate).toLocaleDateString('en-GB')}`;
 
     const handleShare = (type) => {
         let url = "";

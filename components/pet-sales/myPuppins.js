@@ -10,6 +10,7 @@ import useStore from "../state/useStore";
 import { WebApimanager } from "../utilities/WebApiManager";
 import Image from "next/image";
 import { IMAGE_URL } from "../utilities/Constants";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const MyPuppies = ({
   pets = [],
@@ -19,6 +20,8 @@ const MyPuppies = ({
   refreshPets,
   editingPet
 }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const { getJwtToken, getUserInfo } = useStore();
   const jwttoken = getJwtToken();
   const currentUser = getUserInfo();
@@ -34,6 +37,8 @@ const MyPuppies = ({
 
   // Update petList when pets prop changes (initial load)
   useEffect(() => {
+  const currencySymbol = useCurrencySymbol();
+
     setPetList(pets);
   }, [pets]);
 
@@ -203,7 +208,7 @@ const MyPuppies = ({
               </span>
 
               <span className={`${styles.cell} ${styles.colPrice}`}>
-                {pet.price ? `₹ ${pet.price}/-` : "—"}
+                {pet.price ? `${currencySymbol} ${pet.price}/-` : "—"}
               </span>
 
               <span className={`${styles.cell} ${styles.colActions}`}>
@@ -268,7 +273,7 @@ const MyPuppies = ({
 
                 <div className={styles.mobileCardRight}>
                   <p className={styles.mobilePetSub}>
-                    {pet.price ? `₹ ${pet.price}/-` : "—"}
+                    {pet.price ? `${currencySymbol} ${pet.price}/-` : "—"}
                   </p>
                   <span className={`${styles.statusBadge} ${statusClass(pet.petStatus)}`}>
                     {pet.petStatus || "—"}

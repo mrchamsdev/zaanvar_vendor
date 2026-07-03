@@ -2,11 +2,11 @@ import { WebApimanager } from "@/components/utilities/WebApiManager";
 
 /**
  * Fetch current settings for a branch.
- * GET /api/vendor/settings?branchId=X
+ * GET /api/vendor/settings/{branchId}
  */
 export const getSettings = async (jwtToken, branchId) => {
   const webApi = new WebApimanager(jwtToken);
-  const res = await webApi.get(`vendor/settings?branchId=${branchId}`);
+  const res = await webApi.get(`vendor/settings/${branchId}`);
   return res?.data || res;
 };
 

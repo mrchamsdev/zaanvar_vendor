@@ -9,8 +9,11 @@ import ReceiveOrderForm from "./receive-order-form";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import { parseWallClockDate } from "../../utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialData }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const formatVariantSize = (size) => {
         if (!size) return "";
         if (typeof size === 'string' && size.trim().startsWith('{')) {
@@ -151,17 +154,17 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                 sno: String(idx + 1).padStart(2, '0'),
                 productName: item.productName,
                 variant: [item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--",
-                costPrice: item.costPrice ? `₹ ${item.costPrice}` : "-",
+                costPrice: item.costPrice ? `${currencySymbol} ${item.costPrice}` : "-",
                 orderQty: item.qty,
                 tax: "-",
                 discount: "-",
-                amount: `₹ ${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                amount: `${currencySymbol} ${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             };
         });
 
         const totalAmount = orderData.items.reduce((acc, item) => acc + (item.qty * (item.costPrice || 0)), 0);
         const summary = [
-            { label: "Total Amount", value: `₹ ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+            { label: "Total Amount", value: `${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
         ];
 
         const formattedAddress = orderData.branchAddress?.addressText || [orderData.branchAddress?.flatNo, orderData.branchAddress?.area, orderData.branchAddress?.city, [orderData.branchAddress?.state, orderData.branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -269,7 +272,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                                 <td style={{ textAlign: 'center', color: '#666' }}>
                                     {[item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>{item.costPrice ? `₹ ${item.costPrice}` : "-"}</td>
+                                <td style={{ textAlign: 'center' }}>{item.costPrice ? `${currencySymbol} ${item.costPrice}` : "-"}</td>
                                 <td style={{ textAlign: 'center' }}>
                                     <div style={{ fontWeight: '700' }}>{item.qty}</div>
                                 </td>

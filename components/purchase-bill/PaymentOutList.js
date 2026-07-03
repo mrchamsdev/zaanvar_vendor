@@ -14,8 +14,11 @@ import useDashboardData from "../dashboard/useDashboardData";
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
     const [selecting, setSelecting] = useState('start'); // 'start' or 'end'
 
@@ -114,6 +117,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
@@ -203,6 +208,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
@@ -321,6 +328,8 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 const PaymentOutList = ({ onAddClick }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [transactions, setTransactions] = useState([]);
@@ -751,9 +760,9 @@ const PaymentOutList = ({ onAddClick }) => {
                     ));
                 }}
                 summary={[
-                    { label: 'Total Amount', value: `₹${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Paid', value: `₹${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Balance', value: `₹${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
             />
         );
@@ -835,7 +844,7 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryTop}>
                             <div className={styles.summaryItem}>
                                 <span className={styles.summaryLabel}>Total Amount</span>
-                                <span className={styles.summaryValue}>₹{Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className={styles.summaryValue}>{currencySymbol} {Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.summaryStats}>
                                 <span className={styles.percentText}>0% <FiArrowUpRight /></span>
@@ -845,11 +854,11 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryBottom}>
                             <div className={styles.bottomItem}>
                                 <span className={styles.paidLabel}>Paid : </span>
-                                <span className={styles.paidValue}>₹{Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className={styles.bottomItem} style={{ marginLeft: 'auto' }}>
                                 <span className={styles.paidLabel}>Balance : </span>
-                                <span className={styles.paidValue}>₹{Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>

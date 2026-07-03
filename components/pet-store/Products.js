@@ -8,8 +8,11 @@ import { useRouter } from "next/router";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PetStoreProducts = ({ products: propProducts }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const router = useRouter();
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
@@ -38,7 +41,7 @@ const PetStoreProducts = ({ products: propProducts }) => {
               if (variant.variantType) {
                 // Use variantType as-is without splitting
                 const size = String(variant.variantType).trim();
-                const price = `₹ ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
+                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
                 
                 // Add size if not already present
                 if (size && !allSizes.includes(size)) {

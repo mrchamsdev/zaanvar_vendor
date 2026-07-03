@@ -9,8 +9,13 @@ import { toast } from "sonner";
 import { VENDOR_API_URL } from "../../components/utilities/Constants";
 import ShareModal from "../../components/purchase-bill/ShareModal";
 import PrintInvoiceTemplate from "../../components/shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 
 const PaymentOutFormPage = () => {
+    const currencySymbol = useCurrencySymbol();
+    useDashboardData({ skipReviews: true });
+
     const router = useRouter();
     const { id, mode, branchId: queryBranchId } = router.query;
     const isView = mode === "view";
@@ -131,7 +136,7 @@ const PaymentOutFormPage = () => {
 
         const currentTotalPaid = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
         if (totalAmountToBePaid > 0 && Math.abs(currentTotalPaid - totalAmountToBePaid) > 0.01) {
-            newErrors.unbalanced = `The sum of payments (₹ ${currentTotalPaid}) does not match the Paid Amount (₹ ${totalAmountToBePaid})`;
+            newErrors.unbalanced = `The sum of payments (${currencySymbol} ${currentTotalPaid}) does not match the Paid Amount (₹ ${totalAmountToBePaid})`;
         }
 
         payments.forEach(p => {
@@ -243,10 +248,10 @@ const PaymentOutFormPage = () => {
             : (totalBalanceAmt || totalBalance || "0");
 
         const summary = [
-            { label: "Total Bill Amount", value: `₹${totalBillAmt || "0"}` },
-            { label: "Total Balance", value: `₹${totalBalance || "0"}` },
-            { label: "Total Balance Amount", value: `₹${displayBalanceAmt}` },
-            { label: "Paid Amount", value: `₹${paidAmount || "0"}`, isTotal: true }
+            { label: "Total Bill Amount", value: `${currencySymbol}${totalBillAmt || "0"}` },
+            { label: "Total Balance", value: `${currencySymbol}${totalBalance || "0"}` },
+            { label: "Total Balance Amount", value: `${currencySymbol}${displayBalanceAmt}` },
+            { label: "Paid Amount", value: `${currencySymbol}${paidAmount || "0"}`, isTotal: true }
         ];
 
         return (
@@ -258,7 +263,7 @@ const PaymentOutFormPage = () => {
                 invoiceDetails={{
                     "Receipt No": queryRefNo || data?.userOrderId || data?.suppliersTransactionId || 'N/A',
                     "Date": transactionDate || 'N/A',
-                    "Total Balance Amount": `₹${displayBalanceAmt}`
+                    "Total Balance Amount": `${currencySymbol}${displayBalanceAmt}`
                 }}
                 columns={columns}
                 items={payments.map(p => ({
@@ -306,7 +311,7 @@ const PaymentOutFormPage = () => {
                         <div className={styles.field}>
                             <label>Total Balance Amount</label>
                             <div style={{ position: 'relative', width: '100%' }}>
-                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
@@ -319,7 +324,7 @@ const PaymentOutFormPage = () => {
                         <div className={styles.field}>
                             <label>Total Bill Amount</label>
                             <div style={{ position: 'relative', width: '100%' }}>
-                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
@@ -387,7 +392,7 @@ const PaymentOutFormPage = () => {
                                     <label>Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>
                                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                         <div style={{ position: 'relative', flex: 1, width: '100%' }}>
-                                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>₹</span>
+                                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>{currencySymbol}</span>
                                             <input
                                                 type="number"
                                                 className={`${styles.input} ${isView ? styles.readOnly : ""} ${(!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0)) || errors[`payment_${p.id}`] ? styles.inputError : ""}`}
@@ -487,11 +492,11 @@ const PaymentOutFormPage = () => {
                                     fontWeight: '700',
                                     color: !isUnbalanced ? '#22c55e' : '#E93E64'
                                 }}>
-                                    {(Number(paidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ '}
+                                    {(Number(paidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ${currencySymbol} ' : 'Remaining to Allocate: ₹ '}
                                     {Math.abs(Number(paidAmount) - currentTotalAllocated).toFixed(2)}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>
-                                    Total Allocated: ₹ {currentTotalAllocated.toFixed(2)} / ₹ {Number(paidAmount).toFixed(2)}
+                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toFixed(2)} / {currencySymbol} {Number(paidAmount).toFixed(2)}
                                 </div>
                             </div>
                         )}

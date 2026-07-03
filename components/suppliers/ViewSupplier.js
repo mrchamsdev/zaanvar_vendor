@@ -7,8 +7,11 @@ import { toast } from "sonner";
 import { parseApiToLocal } from "../../utilities/date-time-utils";
 import { useRouter } from "next/router";
 import useDashboardData from "../dashboard/useDashboardData";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const queryBranchId = router.query.branchId || "";
     const { jwtToken } = useStore();
@@ -214,12 +217,12 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                             return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
                                         })()}
                                     </td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayPaymentType(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayReferenceNumber(t)}</td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>₹ {getDisplayBalanceAmount(t)}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {getDisplayBalanceAmount(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>
                                         {t.splitTransactions && t.splitTransactions.length > 0 && (
                                             <div
@@ -240,7 +243,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>{split.paymentType}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>{split.referenceNumber || "--"}</td>
-                                        <td style={{ padding: '14px', fontSize: '13px' }}>₹ {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                     </tr>
@@ -300,19 +303,19 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                         <div>
-                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.totalAmount ?? '7499.00'}</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>{currencySymbol} {supplier?.totalAmount ?? '7499.00'}</p>
                                             <p style={{ color: '#888', fontSize: '13px' }}>Total Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.paidAmount ?? '450'}</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>{currencySymbol} {supplier?.paidAmount ?? '450'}</p>
                                             <p style={{ color: '#888', fontSize: '13px' }}>Paid Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#b34162', marginBottom: '8px' }}>₹ {supplier?.balanceAmount ?? '0'}</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#b34162', marginBottom: '8px' }}>{currencySymbol} {supplier?.balanceAmount ?? '0'}</p>
                                             <p style={{ color: '#888', fontSize: '13px' }}>Balance Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>₹ {supplier?.totalReturnAmount ?? '408.00'}</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>{currencySymbol} {supplier?.totalReturnAmount ?? '408.00'}</p>
                                             <p style={{ color: '#888', fontSize: '13px' }}>Return Amount</p>
                                         </div>
                                     </div>

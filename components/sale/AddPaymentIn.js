@@ -10,8 +10,11 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { IMAGE_URL } from "../utilities/Constants";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
@@ -327,7 +330,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             });
 
             if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
-                updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+                updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
             } else {
                 updated.paymentsTotal = undefined;
             }
@@ -357,7 +360,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 [`paymentAmount_${index}`]: undefined
             };
             if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
-                updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+                updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
             } else {
                 updated.paymentsTotal = undefined;
             }
@@ -391,7 +394,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
         const totalPaid = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
         if (!newErrors.paidAmount && totalPaid > paidAmountNum) {
-            newErrors.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+            newErrors.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -534,8 +537,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         ];
 
         const summary = [
-            { label: "Total Balance", value: `₹${formData.totalBalance || "0"}` },
-            { label: "Paid Amount", value: `₹${formData.paidAmount || "0"}`, isTotal: true }
+            { label: "Total Balance", value: `${currencySymbol}${formData.totalBalance || "0"}` },
+            { label: "Paid Amount", value: `${currencySymbol}${formData.paidAmount || "0"}`, isTotal: true }
         ];
 
         return (
@@ -547,8 +550,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 invoiceDetails={{
                     "Receipt No": paymentId || formData.referenceNumber || formData.userOrderId || 'N/A',
                     "Date": formData.date || 'N/A',
-                    "Total Balance": `₹${formData.totalBalance || "0"}`,
-                    "Paid Amount": `₹${formData.paidAmount || "0"}`
+                    "Total Balance": `${currencySymbol}${formData.totalBalance || "0"}`,
+                    "Paid Amount": `${currencySymbol}${formData.paidAmount || "0"}`
                 }}
                 columns={columns}
                 items={[
@@ -664,7 +667,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                                 <span style={{ color: '#999' }}>{c.phoneNumber}</span>
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#E93E64', marginTop: '4px' }}>
-                                                Bal: ₹{c.overallTotals?.dueAmount || 0}
+                                                Bal: ${currencySymbol}{c.overallTotals?.dueAmount || 0}
                                             </div>
                                         </div>
                                     ))}
@@ -698,7 +701,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                             <input
                                 type="text"
                                 className={styles.input}
-                                value={`₹ ${formData.totalBalance}`}
+                                value={`${currencySymbol} ${formData.totalBalance}`}
                                 readOnly
                                 style={{ border: '1px solid #eee' }}
                             />
@@ -732,7 +735,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     setErrors(prev => {
                                         const updated = { ...prev, paidAmount: undefined };
                                         if (!isNaN(num) && totalPaid > num) {
-                                            updated.paymentsTotal = `Total of all payment methods (₹${totalPaid}) cannot exceed Paid Amount (₹${num})`;
+                                            updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${num})`;
                                         } else {
                                             updated.paymentsTotal = undefined;
                                         }

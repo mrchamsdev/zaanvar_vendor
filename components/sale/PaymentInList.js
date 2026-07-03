@@ -13,6 +13,8 @@ import ShareModal from "./ShareModal";
 import HistoryModal from "../purchase-bill/HistoryModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
         return (startDate && !isNaN(d.getTime())) ? d : new Date();
@@ -107,6 +109,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
@@ -196,6 +200,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
@@ -321,8 +327,11 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PaymentInList = ({ onAddClick }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const [payments, setPayments] = useState([]);
@@ -855,9 +864,9 @@ const PaymentInList = ({ onAddClick }) => {
                     ));
                 }}
                 summary={[
-                    { label: 'Total Amount', value: `₹${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Paid', value: `₹${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Balance', value: `₹${Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
             />
         );
@@ -933,7 +942,7 @@ const PaymentInList = ({ onAddClick }) => {
                 <div className={styles.summaryTop}>
                     <div className={styles.summaryInfo}>
                         <span className={styles.summaryLabel}>Total Amount</span>
-                        <span className={styles.summaryValue}>₹{Number(totals.totalAmount || 0).toLocaleString()}</span>
+                        <span className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className={styles.summaryTrend}>
                         <span className={styles.trendValue}>0% <FiArrowUpRight className={styles.trendIcon} /></span>
@@ -944,11 +953,11 @@ const PaymentInList = ({ onAddClick }) => {
                 <div className={styles.summaryBottom}>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Paid : </span>
-                        <span className={styles.rowValue}>₹{Number(totals.paidAmount || 0).toLocaleString()}</span>
+                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.paidAmount || 0).toLocaleString()}</span>
                     </div>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Balance : </span>
-                        <span className={styles.rowValue}>₹{Number(totals.dueAmount || 0).toLocaleString()}</span>
+                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.dueAmount || 0).toLocaleString()}</span>
                     </div>
                 </div>
             </div>

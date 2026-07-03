@@ -10,8 +10,11 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
@@ -1239,11 +1242,11 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                         style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
                                     />
                                     <span style={{ fontWeight: '600', marginLeft: '8px' }}>
-                                        Use Wallet Amount (Available: ₹ {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                        Use Wallet Amount (Available: ${currencySymbol} {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                     </span>
                                     {useWallet && appliedWalletAmount > 0 && (
                                         <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
-                                            Applied: ₹ {appliedWalletAmount.toFixed(2)}
+                                            Applied: {currencySymbol} {appliedWalletAmount.toFixed(2)}
                                         </div>
                                     )}
                                 </div>

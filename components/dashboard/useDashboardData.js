@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import useStore from "../state/useStore";
 import { WebApimanager } from "../utilities/WebApiManager";
+import { getSettings } from "../../services/settingsService";
 
 /* ── helpers ────────────────────────────────────────────── */
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -37,7 +38,7 @@ function normaliseTiming(timings) {
 export default function useDashboardData(options = {}) {
   const { skipReviews = true } = options;
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId, setVendorSettings, vendorSettings } = useStore();
 
   /* ── supplementary state ── */
   const [reviews, setReviews] = useState([]);
@@ -98,6 +99,24 @@ export default function useDashboardData(options = {}) {
 
   const branchId = branch?.id || branch?._id || null;
 
+  /* ── fetch vendor settings ── */
+  useEffect(() => {
+    if (!jwtToken || !branchId) return;
+    
+    getSettings(jwtToken, branchId)
+      .then((res) => {
+        const data = res?.data?.settings || res?.settings;
+        if (data) {
+          setVendorSettings(data);
+        }
+      })
+      .catch((err) => {
+        if (err?.response?.status !== 404) {
+          console.error("Failed to fetch settings in useDashboardData:", err);
+        }
+      });
+  }, [jwtToken, branchId, setVendorSettings]);
+
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
     if (!jwtToken || !branchId || skipReviews) return;
@@ -145,5 +164,8 @@ export default function useDashboardData(options = {}) {
     ratings,
     reviewsLoading,
     reviewsError,
+    
+    /* ── currency ── */
+    currencySymbol: vendorSettings?.general?.businessCurrency || "₹",
   };
 }

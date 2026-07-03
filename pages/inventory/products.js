@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -47,6 +48,8 @@ const IconEdit = () => (
 );
 
 const ProductsPage = () => {
+  const currencySymbol = useCurrencySymbol();
+
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated: isHydrated } = useStore();
   const { branches, branchId } = useDashboardData({ skipReviews: true });
@@ -440,7 +443,7 @@ const ProductsPage = () => {
                             onClick={() => hasMultipleVariants && toggleRowExpansion(productId)}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <span>₹{firstVariant.mrp || "-"}</span>
+                              <span>{currencySymbol} {firstVariant.mrp || "-"}</span>
                               {hasMultipleVariants && (
                                 <div style={{ marginTop: -4 }}>
                                   {expandedRows.includes(productId) ? <IconChevronUp /> : <IconChevronDown />}
@@ -456,7 +459,7 @@ const ProductsPage = () => {
                             <td>{v.stockUpdates?.totalQuantity ?? v.currentQty ?? v.numberOfPieces ?? v.variantMeasure ?? "-"}</td>
                             <td>{v.stockUpdates?.openStockQuantity ?? "0"}</td>
                             <td>{v.stockUpdates?.onHoldQuantity ?? "0"}</td>
-                            <td style={{ fontWeight: 600 }}>₹{v.mrp}</td>
+                            <td style={{ fontWeight: 600 }}>{currencySymbol} {v.mrp}</td>
                           </tr>
                         ))}
                       </React.Fragment>

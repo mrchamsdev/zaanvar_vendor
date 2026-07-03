@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { FaTimes } from "react-icons/fa";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "@/styles/branchFeatures/GroomingFields.module.css";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SERVICE_MODES = ["In-store", "In-home", "In-mobile"];
 
@@ -35,6 +36,8 @@ const emptyPackage = {
 };
 
 const GroomingSelect = ({ s, i, updateService }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const value = s.serviceName?.[0] || "";
 
   const onChange = (e) => {
@@ -64,6 +67,8 @@ const GroomingSelect = ({ s, i, updateService }) => {
 };
 
 const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes }) => {
+  const currencySymbol = useCurrencySymbol();
+
   const grooming = branch.services?.[type] || {};
   const [priceErrors, setPriceErrors] = useState({});
 

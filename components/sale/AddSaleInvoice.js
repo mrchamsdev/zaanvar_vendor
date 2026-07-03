@@ -9,8 +9,11 @@ import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });

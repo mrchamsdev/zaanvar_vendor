@@ -11,6 +11,8 @@ import useDashboardData from "../dashboard/useDashboardData";
 import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
         return (startDate && !isNaN(d.getTime())) ? d : new Date();
@@ -105,6 +107,8 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
     const [showOptions, setShowOptions] = useState(false);
@@ -165,6 +169,8 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
     const [dates, setDates] = useState({
@@ -291,8 +297,11 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const SalesReturnList = ({ onAddClick }) => {
+  const currencySymbol = useCurrencySymbol();
+
     const router = useRouter();
     const { jwtToken } = useStore();
     const [returns, setReturns] = useState([]);
@@ -726,8 +735,8 @@ const SalesReturnList = ({ onAddClick }) => {
                 ]}
                 items={filteredReturns}
                 summary={[
-                    { label: 'Total Return Amount', value: `₹${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                    { label: 'Total Balance Amount', value: `₹${Number(totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
+                    { label: 'Total Return Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                    { label: 'Total Balance Amount', value: `${currencySymbol}${Number(totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true }
                 ]}
             />
         );

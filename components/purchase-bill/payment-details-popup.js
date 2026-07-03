@@ -6,8 +6,11 @@ import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
+    const currencySymbol = useCurrencySymbol();
+
     const { jwtToken, userInfo } = useStore();
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -218,7 +221,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Total Amount Paid <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     placeholder="0"
@@ -245,14 +248,14 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Total Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
                             </div>
                         </div>
@@ -274,7 +277,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                         <div className={styles.field}>
                             <label>Amount Paid <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
-                                <span className={styles.prefix}>₹</span>
+                                <span className={styles.prefix}>{currencySymbol}</span>
                                 <input
                                     type="text"
                                     placeholder="0"
@@ -294,7 +297,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             ) : (hasMismatch && payments.length === 1 && (
                                 <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                    The sum of payments (${currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                 </div>
                             ))}
                         </div>
@@ -340,7 +343,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </button>
                                     </div>
                                     <div className={styles.inputWrapper}>
-                                        <span className={styles.prefix}>₹</span>
+                                        <span className={styles.prefix}>{currencySymbol}</span>
                                         <input
                                             type="text"
                                             placeholder="0"
@@ -360,7 +363,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </div>
                                     ) : (hasMismatch && idx === payments.length - 2 && (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            The sum of payments (₹ {sessionTotal}) does not match the Total Amount Paid (₹ {masterTarget || 0})
+                                            The sum of payments (${currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                         </div>
                                     ))}
                                 </div>
