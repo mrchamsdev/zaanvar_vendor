@@ -217,6 +217,7 @@ function buildMenuFromVendor(userInfo) {
       subItems: SERVICE_MAP["Sale"].subItems
     },
     { label: "Customers", path: "/customers", icon: <IconUser /> },
+    { label: "Staff Management", path: "/staff-management", icon: <IconUser /> },
     { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
     {
       label: "Settings",
@@ -229,6 +230,7 @@ function buildMenuFromVendor(userInfo) {
         { label: "Transaction Message", path: "/vendor-settings?tab=TransactionMessage" },
         { label: "Supplier & Customer", path: "/vendor-settings?tab=SupplierCustomer" },
         { label: "Item Settings", path: "/vendor-settings?tab=ItemSettings" },
+        { label: "Roles & Permissions", path: "/vendor-settings?tab=RolesAndPermissions" },
         { label: "Profile Settings", path: "/vendor-settings?tab=ProfileSettings" },
       ],
     },
@@ -526,10 +528,10 @@ const DashboardLayout = ({
               <button
                 key={i}
                 className={`${styles.topBtn} ${btn.color === "purple"
-                    ? styles.topBtnPurple
-                    : btn.color === "red"
-                      ? styles.topBtnRed
-                      : styles.topBtnGray
+                  ? styles.topBtnPurple
+                  : btn.color === "red"
+                    ? styles.topBtnRed
+                    : styles.topBtnGray
                   }`}
                 onClick={() => onTopbarAction && onTopbarAction(btn.action)}
               >

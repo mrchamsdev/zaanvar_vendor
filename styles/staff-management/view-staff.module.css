@@ -1,0 +1,191 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modalContent {
+  background: #fff;
+  border-radius: 8px;
+  width: 95%;
+  max-width: 1200px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.modalContentMaximized {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  border-radius: 0;
+}
+
+.modalContentMinimized {
+  height: 60px;
+  overflow: hidden;
+  align-self: flex-end;
+  margin-bottom: 20px;
+  margin-right: 20px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eaeaea;
+  background: #fdfdfd;
+}
+
+.modalHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.modalControls {
+  display: flex;
+  gap: 16px;
+  color: #666;
+}
+
+.modalControls span {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.topBar h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.btnAction {
+  background: #fff;
+  border: 1px solid #ff4d4f;
+  color: #ff4d4f;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnAction:hover {
+  background: #fff1f0;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.card {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 20px;
+  background: #fff;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.infoRow:last-child {
+  margin-bottom: 0;
+}
+
+.infoLabel {
+  color: #666;
+}
+
+.infoValue {
+  font-weight: 500;
+  color: #333;
+  text-align: right;
+}
+
+.profileImage {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.ownerRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.permissionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.permissionRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.permName {
+  color: #333;
+  font-weight: 500;
+}
+
+.permName span {
+  color: #999;
+  font-weight: normal;
+}
+
+.permValue {
+  color: #666;
+}
