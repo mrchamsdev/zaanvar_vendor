@@ -1,4 +1,5 @@
-import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import { getBoolSetting } from "@/utilities/settings-utils";
+import { toApiDateOnly, dateOnlyWithTimeZone, withTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
@@ -11,12 +12,15 @@ import { toast } from "sonner";
 import { IMAGE_URL } from "../utilities/Constants";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
   const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
@@ -35,6 +39,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         totalBalance: "",
         paidAmount: "",
         date: toApiDateOnly(new Date()),
+        time: "",
         referenceNumber: "",
         description: "",
         image: null,
@@ -42,7 +47,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     });
 
     const [payments, setPayments] = useState([
-        { method: "Cash", amount: "", referenceNumber: "" }
+        { method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }
     ]);
 
     const [useWallet, setUseWallet] = useState(false);
@@ -109,8 +114,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 setFormData({
                     vendorCustomerId: customer.vendorCustomerId || prefill.vendorCustomerId || "",
                     partyName: custName,
-                    totalBalance: dueAmt.toFixed(2),
-                    paidAmount: dueAmt > 0 ? dueAmt.toFixed(2) : "",
+                    totalBalance: dueAmt.toDynamicFixed(),
+                    paidAmount: dueAmt > 0 ? dueAmt.toDynamicFixed() : "",
                     date: toApiDateOnly(new Date()),
                     referenceNumber: prefill.userOrderId ? prefill.userOrderId.toString() : "",
                     description: `Payment for Invoice #${prefill.userOrderId}`,
@@ -118,8 +123,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     userOrderId: prefill.userOrderId || ""
                 });
                 setPayments([{
-                    method: "Cash",
-                    amount: dueAmt > 0 ? dueAmt.toFixed(2) : "",
+                    method: cashSaleByDefault ? "Cash" : "",
+                    amount: dueAmt > 0 ? dueAmt.toDynamicFixed() : "",
                     referenceNumber: ""
                 }]);
                 setSearchTerm(custName);
@@ -131,13 +136,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 resetForm();
             }
         }
-    }, [isOpen, mode, paymentId, prefill]);
+    }, [isOpen, mode, paymentId, prefill, cashSaleByDefault]);
 
     useEffect(() => {
         if (isOpen && jwtToken && branchId) {
             fetchCustomers();
         }
-    }, [isOpen, jwtToken, branchId]);
+    }, [isOpen, jwtToken, branchId, cashSaleByDefault]);
 
     useEffect(() => {
         if (!loading && isOpen && mode === "view" && router.query.print === "true") {
@@ -150,7 +155,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [loading, isOpen, mode, router.query.print, router.query.pdf]);
+    }, [loading, isOpen, mode, router.query.print, router.query.pdf, cashSaleByDefault]);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -165,12 +170,21 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     }, [showCustomerDropdown]);
 
     useEffect(() => {
+        if (isOpen && mode === 'add') {
+            if (addTimeOnTransactions) {
+            const now = new Date();
+            (val) => setFormData({ ...formData, time: val })(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+        }
+        }
+    }, [isOpen, cashSaleByDefault, mode]);
+
+    useEffect(() => {
         // Reset errors when modal is closed or mode changes to view
         if (!isOpen) {
             setErrors({});
             setFormError('');
         }
-    }, [isOpen, mode]);
+    }, [isOpen, mode, cashSaleByDefault]);
 
 
     const fetchCustomers = async () => {
@@ -212,7 +226,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
-                    totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
+                    totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
@@ -239,13 +253,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                             });
                         }
                     });
-                    setPayments(nonWallet.length > 0 ? nonWallet : [{ method: "Cash", amount: "", referenceNumber: "" }]);
+                    setPayments(nonWallet.length > 0 ? nonWallet : [{ method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
                 } else if (data.amount || data.paidAmount) {
                     const amt = isPayment ? (data.amount || 0) : (data.paidAmount || 0);
                     if (data.paymentMethod === "Wallet") {
                         hasWalletPayment = true;
                         walletPaidAmt = parseFloat(amt);
-                        setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
+                        setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
                     } else {
                         setPayments([{ method: data.paymentMethod || "Cash", amount: amt, referenceNumber: data.referenceNumber || data.transactionRef || "" }]);
                     }
@@ -268,12 +282,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             totalBalance: "",
             paidAmount: "",
             date: toApiDateOnly(new Date()),
-            referenceNumber: "",
+        time: "",
+        referenceNumber: "",
             description: "",
             image: null,
             userOrderId: ""
         });
-        setPayments([{ method: "Cash", amount: "", referenceNumber: "" }]);
+        setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
         setSearchTerm("");
         setSelectedImage(null);
         setErrors({});
@@ -304,12 +319,12 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     };
 
     const handleAddPaymentRow = () => {
-        setPayments([...payments, { method: "Cash", amount: "", referenceNumber: "" }]);
+        setPayments([...payments, { method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
     };
 
     const handleRemovePaymentRow = (index) => {
         const newPayments = payments.filter((_, i) => i !== index);
-        setPayments(newPayments.length > 0 ? newPayments : [{ method: "Cash", amount: "", referenceNumber: "" }]);
+        setPayments(newPayments.length > 0 ? newPayments : [{ method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
 
         const totalPaid = newPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
         const paidAmountNum = parseFloat(formData.paidAmount);
@@ -590,15 +605,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Bill</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Rs ${parseFloat(prefill.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Rs ${parseFloat(prefill.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Paid</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e8e3e' }}>Rs ${parseFloat(prefill.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e8e3e' }}>Rs ${parseFloat(prefill.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Balance Due</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: parseFloat(prefill.dueAmount || 0) > 0 ? '#d93025' : '#1e8e3e' }}>Rs ${parseFloat(prefill.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: parseFloat(prefill.dueAmount || 0) > 0 ? '#d93025' : '#1e8e3e' }}>Rs ${parseFloat(prefill.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                             </div>
                             {prefill.cartItems && prefill.cartItems.length > 0 && (
@@ -619,7 +634,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                             }}>
                                                 <span style={{ fontWeight: '600' }}>${item.productName || item.product?.productName}</span>
                                                 <span style={{ color: '#64748b' }}>x${item.qty || item.quantity}</span>
-                                                <span style={{ fontWeight: '600', color: '#0f172a' }}>Rs ${parseFloat(item.amount || item.itemTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span style={{ fontWeight: '600', color: '#0f172a' }}>Rs ${parseFloat(item.amount || item.itemTotal || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -695,6 +710,63 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                             />
                             {errors.date && <span className={styles.errorMsg}>{errors.date}</span>}
                         </div>
+
+                        {addTimeOnTransactions && (
+                            <div className={styles.field}>
+                                <label>Time</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={formData.time ? String(parseInt(formData.time.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        onChange={(e) => {
+                                            const h = parseInt(e.target.value);
+                                            const m = formData.time ? formData.time.split(':')[1] : '00';
+                                            const isPm = formData.time ? parseInt(formData.time.split(':')[0]) >= 12 : false;
+                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                            (val) => setFormData({ ...formData, time: val })(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const val = String(i + 1).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={formData.time ? formData.time.split(':')[1] : '00'}
+                                        onChange={(e) => {
+                                            const currentH = formData.time ? formData.time.split(':')[0] : '00';
+                                            (val) => setFormData({ ...formData, time: val })(`${currentH}:${e.target.value}`);
+                                        }}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const val = String(i).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '35%', padding: '0 8px' }}
+                                        value={formData.time && parseInt(formData.time.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        onChange={(e) => {
+                                            const currentH = parseInt(formData.time ? formData.time.split(':')[0] : '00');
+                                            const m = formData.time ? formData.time.split(':')[1] : '00';
+                                            const isPm = e.target.value === 'PM';
+                                            let newH = currentH;
+                                            if (isPm && currentH < 12) newH = currentH + 12;
+                                            if (!isPm && currentH >= 12) newH = currentH - 12;
+                                            (val) => setFormData({ ...formData, time: val })(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
 
                         <div className={styles.field}>
                             <label>Total Balance Amount</label>

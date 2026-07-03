@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 
 import React, { useState, useEffect } from "react";
@@ -385,7 +386,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 )
                 : {}),
             createdBy: userInfo?.userId || 1,
-            totalReturnAmount: parseFloat(totalReturnAmount.toFixed(2)),
+            totalReturnAmount: parseFloat(totalReturnAmount.toDynamicFixed()),
             updatedFrom: "Sale Return",
             items: validItems.map(i => ({
                 userOrderItemsID: i.userOrderItemsID,
@@ -455,10 +456,10 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
         const summary = [
             { label: "Total Quantity", value: totalQty },
-            { label: "Subtotal", value: subtotal.toFixed(2) },
-            { label: "Total Tax", value: totalTax.toFixed(2) },
-            { label: "Total Discount", value: totalDiscount.toFixed(2) },
-            { label: "Grand Total", value: grandTotal.toFixed(2), isTotal: true }
+            { label: "Subtotal", value: subtotal.toDynamicFixed() },
+            { label: "Total Tax", value: totalTax.toDynamicFixed() },
+            { label: "Total Discount", value: totalDiscount.toDynamicFixed() },
+            { label: "Grand Total", value: grandTotal.toDynamicFixed(), isTotal: true }
         ];
 
         // Need to require/import PrintInvoiceTemplate inline or dynamically if we don't have it at top level, 
@@ -767,7 +768,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ textAlign: 'right' }}>{item.price ? item.price.toFixed(2) : "0.00"}</td>
+                                        <td style={{ textAlign: 'right' }}>{item.price ? item.price.toDynamicFixed() : "0.00"}</td>
                                         <td style={{ textAlign: 'center' }}>
                                             <select
                                                 className={styles.unitSelect}
@@ -792,7 +793,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         </td>
                                         <td style={{ textAlign: 'center' }}>{item.taxPercentage}%</td>
                                         <td style={{ textAlign: 'center' }}>{item.discountPercentage}%</td>
-                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.itemTotal ? item.itemTotal.toFixed(2) : "0.00"}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.itemTotal ? item.itemTotal.toDynamicFixed() : "0.00"}</td>
                                         {mode === "add" && (
                                             <td>
                                                 {items.length > 1 && (
@@ -807,8 +808,8 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
                                 <tr style={{ fontWeight: '700', borderTop: '2px solid #eee' }}>
                                     <td colSpan="2" style={{ paddingTop: '20px' }}>TOTAL</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseFloat(i.returnQty) || 0), 0).toFixed(2)}</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0)), 0).toFixed(2)}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + (parseFloat(i.returnQty) || 0), 0).toDynamicFixed()}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0)), 0).toDynamicFixed()}</td>
                                     <td style={{ paddingTop: '20px' }}></td>
                                     <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => {
                                         const qty = parseFloat(i.returnQty) || 0;
@@ -819,9 +820,9 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         const taxableAmount = (price * qty) - discountAmount;
                                         const taxAmount = (taxableAmount * taxPercentage) / 100;
                                         return acc + taxAmount;
-                                    }, 0).toFixed(2)}</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toFixed(2)}</td>
-                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toFixed(2)}</td>
+                                    }, 0).toDynamicFixed()}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'center' }}>{items.reduce((acc, i) => acc + ((i.price || 0) * (parseFloat(i.returnQty) || 0) * (i.discountPercentage || 0) / 100), 0).toDynamicFixed()}</td>
+                                    <td style={{ paddingTop: '20px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + (i.itemTotal || 0), 0).toDynamicFixed()}</td>
                                     {mode === "add" && <td></td>}
                                 </tr>
                             </tbody>

@@ -4,6 +4,7 @@ import { FiChevronDown, FiPrinter } from "react-icons/fi";
 import PaymentDetailsPopup from "./payment-details-popup";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
   const currencySymbol = useCurrencySymbol();
@@ -147,7 +148,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                 costPrice: `₹ ${cost.toLocaleString()}`,
                 tax: taxPercent,
                 discount: discPercent,
-                amount: `${currencySymbol} ${finalProductAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                amount: `${currencySymbol} ${finalProductAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`
             };
         });
 
@@ -202,37 +203,37 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
         const finalAmount = subtotal - overallDiscountVal + overallTaxVal - previousCredit;
 
         const summaryData = [
-            { label: "Total Ordered Cost", value: `${currencySymbol} ${totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Total Ordered Cost", value: `${currencySymbol} ${totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` }
         ];
 
         if (!payBasedOnOrdered && shortfallAmountTotal > 0) {
-            summaryData.push({ label: "Shortfall Amount", value: `- ${currencySymbol} ${shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Shortfall Amount", value: `- ${currencySymbol} ${shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         if (returnsApplicable && damagedAmountTotal > 0) {
-            summaryData.push({ label: "Damaged Amount", value: `- ${currencySymbol} ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Damaged Amount", value: `- ${currencySymbol} ${damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         summaryData.push(
-            { label: "Discountable Amount", value: `${currencySymbol} ${discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Discountable Amount", value: `${currencySymbol} ${discountableBase.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` }
         );
         if (itemDiscountTotal > 0) {
-            summaryData.push({ label: "Item Discount", value: `- ${currencySymbol} ${itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Item Discount", value: `- ${currencySymbol} ${itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         if (itemTaxTotal > 0) {
-            summaryData.push({ label: "Item Tax", value: `${currencySymbol} ${itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Item Tax", value: `${currencySymbol} ${itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         summaryData.push(
-            { label: "Subtotal", value: `${currencySymbol} ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }
+            { label: "Subtotal", value: `${currencySymbol} ${subtotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` }
         );
         if (overallDiscountVal > 0) {
-            summaryData.push({ label: "Overall Discount", value: `- ${currencySymbol} ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Overall Discount", value: `- ${currencySymbol} ${overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         if (overallTaxVal > 0) {
-            summaryData.push({ label: "Overall Tax", value: `${currencySymbol} ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Overall Tax", value: `${currencySymbol} ${overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
         if (previousCredit > 0) {
-            summaryData.push({ label: "Previous Credit", value: `- ${currencySymbol} ${previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` });
+            summaryData.push({ label: "Previous Credit", value: `- ${currencySymbol} ${previousCredit.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` });
         }
-        summaryData.push({ label: "Total Amount", value: `${currencySymbol} ${finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, isTotal: true });
+        summaryData.push({ label: "Total Amount", value: `${currencySymbol} ${finalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true });
 
         const columns = [
             { header: "S.NO", accessor: "sno" },
@@ -419,7 +420,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                     <td>{(() => { const d = item.expDate || item.expiryDate; return (d && !/^0+[-/]0+[-/]0+$/.test(d)) ? formatDate(d) : "–"; })()}</td>
                                     <td className={styles.costCell}>{cost.toLocaleString()}</td>
                                     <td className={styles.costCell}>{parseFloat(item.mrp || 0).toLocaleString()}</td>
-                                    <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className={styles.costCell}>{billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td>{parseFloat(item.taxGroupId || item.tax || 0)}%</td>
                                     <td>{parseFloat(item.discount || 0)}%</td>
                                     <td className={styles.costCell}>{currencySymbol} {(() => {
@@ -427,7 +428,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                             const discAmount = (billableSubtotal * discPercent / 100);
                                             const afterDisc = billableSubtotal - discAmount;
                                             const tax = (afterDisc * (parseFloat(item.taxGroupId || item.tax) || 0) / 100);
-                                            return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                            return (afterDisc + tax).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() });
                                         })()}
                                     </td>
                                 </tr>
@@ -440,7 +441,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                             <td className={styles.totalValueCell}>
                                 <div className={styles.totalValueWrapper}>
                                     <span>{currencySymbol}</span>
-                                    <span>{breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span>{breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                             </td>
                         </tr>
@@ -450,7 +451,7 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                 <td className={styles.totalValueCell} style={{ borderTop: 'none', paddingTop: '8px', paddingBottom: '16px' }}>
                                     <div className={styles.totalValueWrapper}>
                                         <span>{currencySymbol}</span>
-                                        <span>{displayedBalanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span>{displayedBalanceAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -471,55 +472,55 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                     <div className={`${styles.breakdownContent} ${showBreakdown ? styles.breakdownContentActive : ""}`}>
                         <div className={styles.breakdownRow}>
                             <span>Total Ordered Cost</span>
-                            <span>{currencySymbol} {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.totalCost.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         {!breakdown.payBasedOnOrdered && breakdown.shortfallAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Shortfall Amount</span>
-                                <span>- {currencySymbol} {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.shortfallAmountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                         )}
                         {returnsApplicable && breakdown.damagedAmountTotal > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span> Damaged Amount</span>
-                                <span>- {currencySymbol} {breakdown.damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.damagedAmountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRow}>
                             <span>Discountable Amount</span>
-                            <span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {breakdown.discountableBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {breakdown.discountableBase.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Discount</span>
-                            <span>- {currencySymbol} {breakdown.itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>- {currencySymbol} {breakdown.itemDiscountTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span>Item Tax</span>
-                            <span>{currencySymbol} {breakdown.itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.itemTaxTotal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.breakdownDivider} />
                         <div className={styles.breakdownRow}>
                             <span>Subtotal</span>
-                            <span>{currencySymbol} {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {(breakdown.discountableAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span> Overall Discount</span>
-                            <span>- {currencySymbol} {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>- {currencySymbol} {breakdown.overallDiscountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.breakdownRow}>
                             <span> Overall Tax</span>
-                            <span>{currencySymbol} {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.overallTaxVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
 
                         {breakdown.previousCredit > 0 && (
                             <div className={styles.breakdownRow}>
                                 <span>Previous Credit</span>
-                                <span>- {currencySymbol} {breakdown.previousCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>- {currencySymbol} {breakdown.previousCredit.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                         )}
                         <div className={styles.breakdownRowTotal}>
                             <span>TOTAL</span>
-                            <span>{currencySymbol} {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>{currencySymbol} {breakdown.finalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                     </div>
                 </div>

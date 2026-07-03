@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/router";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const getVariantSizeDisplay = (variant) => {
     if (!variant) return "-";
@@ -755,10 +756,10 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
 
         const summary = [
             { label: "Total Quantity", value: totalQty },
-            { label: "Total Price", value: totalPrice.toFixed(2) },
-            { label: "Total Tax", value: totalTax.toFixed(2) },
-            { label: "Total Discount", value: totalDiscount.toFixed(2) },
-            { label: "Grand Total", value: totalAmount.toFixed(2), isTotal: true }
+            { label: "Total Price", value: totalPrice.toDynamicFixed() },
+            { label: "Total Tax", value: totalTax.toDynamicFixed() },
+            { label: "Total Discount", value: totalDiscount.toDynamicFixed() },
+            { label: "Grand Total", value: totalAmount.toDynamicFixed(), isTotal: true }
         ];
 
         return (
@@ -937,7 +938,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <input
                                     type="text"
                                     className={styles.input}
-                                    value={returnAmount ? `${currencySymbol} ${Number(returnAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
+                                    value={returnAmount ? `${currencySymbol} ${Number(returnAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : "-"}
                                     disabled
                                 />
                             </div>
@@ -1158,7 +1159,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             </div>
                                         </td>
                                         <td className={styles.amountCol}>
-                                            <div style={{ fontWeight: '600' }}>{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                            <div style={{ fontWeight: '600' }}>{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</div>
                                         </td>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {!isViewOnly && items.length > 1 && (
@@ -1211,7 +1212,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalDiscount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </td>
-                                    <td className={styles.amountCol}>{Number(totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className={styles.amountCol}>{Number(totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td></td>
                                 </tr>
                             </tbody>

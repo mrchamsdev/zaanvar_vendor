@@ -1,6 +1,7 @@
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
-import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import { dateOnlyWithTimeZone, withTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import styles from "../../styles/purchase-bill/add-payment-out.module.css";
 import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
@@ -8,17 +9,21 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
   const currencySymbol = useCurrencySymbol();
 
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplierId, setSelectedSupplierId] = useState("");
     const [supplierTotals, setSupplierTotals] = useState(null);
     const [transactionDate, setTransactionDate] = useState(toApiDateOnly(new Date()));
+    const [transactionTime, setTransactionTime] = useState("");
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -28,13 +33,23 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     // Multi-payment state
     const [payments, setPayments] = useState([{
         amountPaid: "",
-        paymentType: "Cash",
+        paymentType: cashSaleByDefault ? "Cash" : "",
         refNo: "",
         id: Date.now()
     }]);
 
     const currentTotalAllocated = payments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
     const isUnbalanced = Number(editablePaidAmount) > 0 && Math.abs(currentTotalAllocated - Number(editablePaidAmount)) > 0.01;
+
+    useEffect(() => {
+        if (isOpen) {
+            setPayments([{ paymentType: cashSaleByDefault ? "Cash" : "", amountPaid: "", refNo: "", id: Date.now() }]);
+        if (addTimeOnTransactions) {
+            const now = new Date();
+            setTransactionTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+        }
+        }
+    }, [isOpen, cashSaleByDefault]);
 
     useEffect(() => {
         const fetchSuppliers = async () => {
@@ -48,7 +63,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
             }
         };
         if (isOpen) fetchSuppliers();
-    }, [isOpen]);
+    }, [isOpen, cashSaleByDefault]);
 
     const handleSupplierChange = async (supplierId) => {
         setSelectedSupplierId(supplierId);
@@ -77,7 +92,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const handleAddPayment = () => {
         setPayments([...payments, {
             amountPaid: "",
-            paymentType: "Cash",
+            paymentType: cashSaleByDefault ? "Cash" : "",
             refNo: "",
             id: Date.now()
         }]);
@@ -144,10 +159,15 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 paymentFrom: "payment out",
                 branchId: branchId,
                 supplierId: Number(selectedSupplierId),
-                ...dateOnlyWithTimeZone(
-                    "userTransactionDate",
-                    parseWallClockDate(transactionDate) || new Date(transactionDate),
-                ),
+                ...(addTimeOnTransactions && transactionTime
+                    ? withTimeZone(
+                          "userTransactionDate",
+                          new Date(`${transactionDate}T${transactionTime}:00`)
+                      )
+                    : dateOnlyWithTimeZone(
+                          "userTransactionDate",
+                          parseWallClockDate(transactionDate) || new Date(transactionDate)
+                      )),
                 transactionInfo: description || "",
                 createdBy: userInfo?.userId || 1,
                 productsBillId: null,
@@ -251,6 +271,64 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.transactionDate}</span>
                             )}
                         </div>
+
+                        {addTimeOnTransactions && (
+                            <div className={styles.field}>
+                                <label>Amount paid time</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={transactionTime ? String(parseInt(transactionTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        onChange={(e) => {
+                                            const h = parseInt(e.target.value);
+                                            const m = transactionTime ? transactionTime.split(':')[1] : '00';
+                                            const isPm = transactionTime ? parseInt(transactionTime.split(':')[0]) >= 12 : false;
+                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                            setTransactionTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const val = String(i + 1).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={transactionTime ? transactionTime.split(':')[1] : '00'}
+                                        onChange={(e) => {
+                                            const currentH = transactionTime ? transactionTime.split(':')[0] : '00';
+                                            setTransactionTime(`${currentH}:${e.target.value}`);
+                                        }}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const val = String(i).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '35%', padding: '0 8px' }}
+                                        value={transactionTime && parseInt(transactionTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        onChange={(e) => {
+                                            const currentH = parseInt(transactionTime ? transactionTime.split(':')[0] : '00');
+                                            const m = transactionTime ? transactionTime.split(':')[1] : '00';
+                                            const isPm = e.target.value === 'PM';
+                                            let newH = currentH;
+                                            if (isPm && currentH < 12) newH = currentH + 12;
+                                            if (!isPm && currentH >= 12) newH = currentH - 12;
+                                            setTransactionTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
                         <div className={styles.field}>
                             <label>Total Amount Paid <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
@@ -288,7 +366,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `${currencySymbol} ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹ 0"}
+                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `${currencySymbol} ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : "₹ 0"}
                                 readOnly
                             />
                         </div>
@@ -297,7 +375,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={`${currencySymbol} ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                value={`${currencySymbol} ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
                                 readOnly
                             />
                         </div>
@@ -314,7 +392,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                         value={p.paymentType}
                                         onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}
                                     >
-                                        {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                        <option value="" disabled hidden>Select Payment Type</option>
+                                {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
                                             <option key={type} value={type}>{type}</option>
                                         ))}
                                     </select>
@@ -390,10 +469,10 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                     color: !isUnbalanced ? '#22c55e' : '#E93E64'
                                 }}>
                                     {(Number(editablePaidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ₹ ' : 'Remaining to Allocate: ₹ '}
-                                    {Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toFixed(2)}
+                                    {Math.abs(Number(editablePaidAmount) - currentTotalAllocated).toDynamicFixed()}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>
-                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toFixed(2)} / {currencySymbol} {Number(editablePaidAmount).toFixed(2)}
+                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toDynamicFixed()} / {currencySymbol} {Number(editablePaidAmount).toDynamicFixed()}
                                 </div>
                             </div>
                         )}

@@ -11,6 +11,7 @@ import ShareModal from "../../components/purchase-bill/ShareModal";
 import PrintInvoiceTemplate from "../../components/shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import { getAmountDecimalPlaces } from "../../components/utilities/formatAmount";
 
 const PaymentOutFormPage = () => {
     const currencySymbol = useCurrencySymbol();
@@ -315,7 +316,7 @@ const PaymentOutFormPage = () => {
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
-                                    value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
+                                    value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : "—"}
                                     style={{ paddingLeft: '32px', width: '100%' }}
                                     readOnly
                                 />
@@ -328,7 +329,7 @@ const PaymentOutFormPage = () => {
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
-                                    value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                                    value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : "0.00"}
                                     style={{ paddingLeft: '32px', width: '100%' }}
                                     readOnly
                                 />
@@ -493,10 +494,10 @@ const PaymentOutFormPage = () => {
                                     color: !isUnbalanced ? '#22c55e' : '#E93E64'
                                 }}>
                                     {(Number(paidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ${currencySymbol} ' : 'Remaining to Allocate: ₹ '}
-                                    {Math.abs(Number(paidAmount) - currentTotalAllocated).toFixed(2)}
+                                    {Math.abs(Number(paidAmount) - currentTotalAllocated).toDynamicFixed()}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>
-                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toFixed(2)} / {currencySymbol} {Number(paidAmount).toFixed(2)}
+                                    Total Allocated: {currencySymbol} {currentTotalAllocated.toDynamicFixed()} / {currencySymbol} {Number(paidAmount).toDynamicFixed()}
                                 </div>
                             </div>
                         )}

@@ -12,7 +12,8 @@ import { useRouter } from "next/router";
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
     const router = useRouter();
     const branchId = router.query.branchId || "";
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const enableGstin = vendorSettings?.general?.enableGstin;
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
     const [errorPopupMessage, setErrorPopupMessage] = useState(null);
@@ -25,6 +26,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [emailError, setEmailError] = useState("");
+    const [gstin, setGstin] = useState("");
+    const [gstinError, setGstinError] = useState("");
     const [phoneError, setPhoneError] = useState("");
     const [pinCodeError, setPinCodeError] = useState("");
     const [street, setStreet] = useState("");
@@ -88,6 +91,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             setSupplierType(initialData.supplierType ? (Array.isArray(initialData.supplierType) ? initialData.supplierType : initialData.supplierType.split(',').map(s => s.trim())) : []);
             setPhone(initialData.phone || "");
             setEmail(initialData.email || "");
+            setGstin(initialData.gstin || "");
             setStreet(initialData.street || "");
             setLandmark(initialData.landmark || "");
             setState(initialData.state || "");
@@ -148,6 +152,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 supplierType,
                 phone,
                 email,
+                gstin,
                 street,
                 landmark,
                 state,
@@ -168,6 +173,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         supplierType,
         phone,
         email,
+        gstin,
         street,
         landmark,
         state,
@@ -259,6 +265,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             supplierType: supplierType,
             phone,
             email,
+            gstin,
             street,
             landmark,
             state,
@@ -383,6 +390,20 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             />
                             {emailError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{emailError}</span>}
                         </div>
+                        {enableGstin && (
+                            <div className={styles.field}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>GSTIN</label>
+                                <input
+                                    type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter GSTIN"
+                                    value={gstin}
+                                    onChange={(e) => {
+                                        setGstin(e.target.value);
+                                        if (gstinError) setGstinError("");
+                                    }}
+                                />
+                                {gstinError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{gstinError}</span>}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

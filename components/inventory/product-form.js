@@ -6,6 +6,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import { productService } from "../../services/productService";
 import ConfirmationModal from "./confirmation-modal";
 import { toast } from "sonner";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const IconPlus = () => (
   <svg
@@ -224,7 +225,7 @@ const ProductForm = ({
     const str = String(rawGst);
     const parts = str.split(".");
     if (parts.length === 2 && parts[1].length > 2) {
-      return parseFloat(rawGst).toFixed(2);
+      return parseFloat(rawGst).toDynamicFixed();
     }
     return str;
   });

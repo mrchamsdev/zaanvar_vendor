@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "../../styles/inventory/product-view.module.css";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const IconChevronDown = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -398,7 +399,7 @@ const ProductView = ({ data, onBack, isSplit }) => {
                       const isNegative = stock.remove > 0 || (stock.reason?.toLowerCase().includes('damaged') || stock.reason?.toLowerCase().includes('expired') || stock.reason?.toLowerCase().includes('theft') || stock.reason?.toLowerCase().includes('internal purpose') || stock.reason?.toLowerCase().includes('onhold'));
                       const val = parseFloat(stock.totalValue || 0);
                       const displayColor = isNegative ? '#e74c3c' : '#27ae60';
-                      const displayText = isNegative ? `- ₹ ${Math.abs(val).toFixed(2)}` : `+ ${currencySymbol} ${Math.abs(val).toFixed(2)}`;
+                      const displayText = isNegative ? `- ₹ ${Math.abs(val).toDynamicFixed()}` : `+ ${currencySymbol} ${Math.abs(val).toDynamicFixed()}`;
                       return (
                         <tr key={idx}>
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>

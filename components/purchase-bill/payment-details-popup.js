@@ -1,3 +1,4 @@
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/payment-details-popup.module.css";
@@ -5,18 +6,21 @@ import { FiX, FiCalendar, FiPlus, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
-import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import { dateOnlyWithTimeZone, withTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const currencySymbol = useCurrencySymbol();
 
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     // Global States
     const [amountPaidDate, setAmountPaidDate] = useState(toApiDateOnly(new Date()));
+    const [amountPaidTime, setAmountPaidTime] = useState("");
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -25,7 +29,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [masterTarget, setMasterTarget] = useState("");
     const [payments, setPayments] = useState([{
         amountPaid: "",
-        paymentType: "Cash",
+        paymentType: cashSaleByDefault ? "Cash" : "",
         referenceNumber: "",
         id: Date.now()
     }]);
@@ -43,24 +47,29 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const totalAmountPaid = previousPaidAmount + (Number(masterTarget) || 0);
 
     const today = toApiDateOnly(new Date());
+    const currentTime = new Date().toTimeString().slice(0, 5);
 
     useEffect(() => {
-        if (isOpen && data) {
+        if (isOpen) {
             setIsSubmitted(false);
             setMasterTarget("");
             setPayments([{
                 amountPaid: "",
-                paymentType: "Cash",
+                paymentType: cashSaleByDefault ? "Cash" : "",
                 referenceNumber: "",
                 id: Date.now()
             }]);
+        if (addTimeOnTransactions) {
+            const now = new Date();
+            setAmountPaidTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
         }
-    }, [isOpen, data]);
+        }
+    }, [isOpen, data, cashSaleByDefault]);
 
     const handleAddPayment = () => {
         setPayments([...payments, {
             amountPaid: "",
-            paymentType: "Cash",
+            paymentType: cashSaleByDefault ? "Cash" : "",
             referenceNumber: "",
             id: Date.now()
         }]);
@@ -122,10 +131,15 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             const payload = {
                 debitOrCredit: "Debit",
                 paymentFrom: "payment out",
-                ...dateOnlyWithTimeZone(
-                    "userTransactionDate",
-                    parseWallClockDate(amountPaidDate) || new Date(amountPaidDate),
-                ),
+                ...(addTimeOnTransactions && amountPaidTime
+                    ? withTimeZone(
+                          "userTransactionDate",
+                          new Date(`${amountPaidDate}T${amountPaidTime}:00`)
+                      )
+                    : dateOnlyWithTimeZone(
+                          "userTransactionDate",
+                          parseWallClockDate(amountPaidDate) || new Date(amountPaidDate)
+                      )),
                 supplierId: data.supplierId,
                 branchId: data.branchId,
                 createdBy: userInfo?.userId || 1,
@@ -218,6 +232,62 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             )}
                         </div>
+                        {addTimeOnTransactions && (
+                            <div className={styles.field}>
+                                <label>Amount paid time</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={amountPaidTime ? String(parseInt(amountPaidTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        onChange={(e) => {
+                                            const h = parseInt(e.target.value);
+                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                            const isPm = amountPaidTime ? parseInt(amountPaidTime.split(':')[0]) >= 12 : false;
+                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const val = String(i + 1).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={amountPaidTime ? amountPaidTime.split(':')[1] : '00'}
+                                        onChange={(e) => {
+                                            const currentH = amountPaidTime ? amountPaidTime.split(':')[0] : '00';
+                                            setAmountPaidTime(`${currentH}:${e.target.value}`);
+                                        }}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const val = String(i).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '35%', padding: '0 8px' }}
+                                        value={amountPaidTime && parseInt(amountPaidTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        onChange={(e) => {
+                                            const currentH = parseInt(amountPaidTime ? amountPaidTime.split(':')[0] : '00');
+                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                            const isPm = e.target.value === 'PM';
+                                            let newH = currentH;
+                                            if (isPm && currentH < 12) newH = currentH + 12;
+                                            if (!isPm && currentH >= 12) newH = currentH - 12;
+                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                         <div className={styles.field}>
                             <label>Total Amount Paid <span style={{ color: 'red' }}>*</span></label>
                             <div className={styles.inputWrapper}>
@@ -269,6 +339,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 value={payments[0].paymentType}
                                 onChange={(e) => handlePaymentChange(payments[0].id, "paymentType", e.target.value)}
                             >
+                                <option value="" disabled hidden>Select Payment Type</option>
                                 {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
                                     <option key={type} value={type}>{type}</option>
                                 ))}
@@ -330,7 +401,8 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         value={p.paymentType}
                                         onChange={(e) => handlePaymentChange(p.id, "paymentType", e.target.value)}
                                     >
-                                        {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                        <option value="" disabled hidden>Select Payment Type</option>
+                                {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
                                             <option key={type} value={type}>{type}</option>
                                         ))}
                                     </select>

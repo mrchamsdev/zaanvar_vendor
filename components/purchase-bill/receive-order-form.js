@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/receive-order-form.module.css";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toast } from "sonner";
 import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi";
 import PurchaseOrderSummary from "./purchase-order-summary";
@@ -33,7 +34,9 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
     // FORCE EDIT MODE FOR DEBUGGING
     const isView = mode === "view";
-    const { jwtToken, userId } = useStore();
+    const { jwtToken, userId, vendorSettings } = useStore();
+    const cashSaleByDefault = getBoolSetting(vendorSettings, "cashSaleByDefault", true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, "addTimeOnTransactions", false);
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
 
@@ -58,6 +61,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '%' });
     const [previousCredit, setPreviousCredit] = useState(0);
     const [paymentStatus, setPaymentStatus] = useState("Pending"); // Default to Pending matching ENUM
+    const [paymentType, setPaymentType] = useState(cashSaleByDefault ? "Cash" : "");
+    const [amountPaidTime, setAmountPaidTime] = useState("");
     const [paidAmount, setPaidAmount] = useState(0);
     const [duedate, setDuedate] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -298,6 +303,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     }, [totals, overallTax, overallDiscount, previousCredit]);
 
     useEffect(() => {
+        if (addTimeOnTransactions) {
+            const now = new Date();
+            setAmountPaidTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+        }
+    }, [cashSaleByDefault]);
+
+    useEffect(() => {
         if (paymentStatus === "Full") {
             setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
         }
@@ -398,6 +410,13 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 return;
             }
 
+            if ((paymentStatus === "Partial" || paymentStatus === "Full") && !paymentType) {
+                setLoading(false);
+                toast.error("Please select a payment type.");
+                scrollToFirstError();
+                return;
+            }
+
             if (paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0)) {
                 setLoading(false);
                 toast.error("Please enter a valid paid amount for Partial payment.");
@@ -422,6 +441,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 branchId: orderData?.branchId || 91,
                 ...receivedDateFields,
                 amountPaidToSupplier: paymentStatus === "Full" ? Number(breakdown.finalAmount) : Number(paidAmount),
+                paymentMethod: paymentStatus !== "Pending" ? paymentType : undefined,
+                paymentTime: paymentStatus !== "Pending" ? amountPaidTime : undefined,
                 paymentStatus: paymentStatus,
                 duedate: paymentStatus === "Full" ? null : duedate,
                 returnsApplicable: damagedReturnedGoods,
@@ -935,6 +956,79 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     </div>
 
                     {(paymentStatus === "Partial" || paymentStatus === "Full") && (
+                        <>
+                        <div className={styles.infoGroup}>
+                            <label className={styles.infoLabel}>Payment Type <span style={{ color: '#ff4d4f' }}>*</span></label>
+                            <select
+                                className={styles.input}
+                                value={paymentType}
+                                onChange={(e) => setPaymentType(e.target.value)}
+                            >
+                                <option value="" disabled hidden>Select Payment Type</option>
+                                {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                            {isSubmitted && !paymentType && (
+                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Payment Type is required</span>
+                            )}
+                        </div>
+                        {addTimeOnTransactions && (
+                            <div className={styles.infoGroup}>
+                                <label className={styles.infoLabel}>Payment Time</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={amountPaidTime ? String(parseInt(amountPaidTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        onChange={(e) => {
+                                            const h = parseInt(e.target.value);
+                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                            const isPm = amountPaidTime ? parseInt(amountPaidTime.split(':')[0]) >= 12 : false;
+                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const val = String(i + 1).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '30%', padding: '0 8px' }}
+                                        value={amountPaidTime ? amountPaidTime.split(':')[1] : '00'}
+                                        onChange={(e) => {
+                                            const currentH = amountPaidTime ? amountPaidTime.split(':')[0] : '00';
+                                            setAmountPaidTime(`${currentH}:${e.target.value}`);
+                                        }}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const val = String(i).padStart(2, '0');
+                                            return <option key={val} value={val}>{val}</option>;
+                                        })}
+                                    </select>
+                                    <select 
+                                        className={styles.input} 
+                                        style={{ width: '35%', padding: '0 8px' }}
+                                        value={amountPaidTime && parseInt(amountPaidTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        onChange={(e) => {
+                                            const currentH = parseInt(amountPaidTime ? amountPaidTime.split(':')[0] : '00');
+                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                            const isPm = e.target.value === 'PM';
+                                            let newH = currentH;
+                                            if (isPm && currentH < 12) newH = currentH + 12;
+                                            if (!isPm && currentH >= 12) newH = currentH - 12;
+                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                        }}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                         <div className={styles.infoGroup}>
                             <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
                             <div className={styles.inputWrapper}>
@@ -961,6 +1055,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Paid amount is required for partial payment</span>
                             )}
                         </div>
+                        </>
                     )}
 
                     {paymentStatus !== "Full" && (

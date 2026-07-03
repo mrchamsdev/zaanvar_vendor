@@ -10,7 +10,8 @@ import { useRouter } from "next/router";
 const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) => {
     const router = useRouter();
     const branchId = router.query.branchId || "";
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const enableGstin = vendorSettings?.general?.enableGstin;
     const [loading, setLoading] = useState(false);
 
     // Form states
@@ -18,6 +19,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const [supplierType, setSupplierType] = useState([]); // Multi-select
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
+    const [gstin, setGstin] = useState("");
     const [street, setStreet] = useState("");
     const [landmark, setLandmark] = useState("");
     const [state, setState] = useState("");
@@ -58,6 +60,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 setSupplierType(data.supplierType ? (Array.isArray(data.supplierType) ? data.supplierType : data.supplierType.split(',').map(s => s.trim())) : []);
                 setPhone(data.phone || "");
                 setEmail(data.email || "");
+                setGstin(data.gstin || "");
                 setStreet(data.street || "");
                 setLandmark(data.landmark || "");
                 setState(data.state || "");
@@ -86,6 +89,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             supplierType: supplierType,
             phone,
             email,
+            gstin,
             street,
             landmark,
             state,
@@ -173,6 +177,15 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                 value={email} onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
+                        {enableGstin && (
+                            <div className={styles.field}>
+                                <label>GSTIN</label>
+                                <input
+                                    type="text" className={styles.input} placeholder="Enter GSTIN"
+                                    value={gstin} onChange={(e) => setGstin(e.target.value)}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <h4 style={{ margin: '30px 0 20px', color: '#000' }}>Address Information</h4>

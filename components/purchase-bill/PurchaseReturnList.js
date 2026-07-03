@@ -13,6 +13,7 @@ import EmptyState from "../utilities/EmptyState";
 import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
   const currencySymbol = useCurrencySymbol();
@@ -950,7 +951,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
                         <span>Total Balance Amount : </span>
                         <span style={{ color: Number(totals?.totalBalance) > 0 ? '#FF4D4F' : Number(totals?.totalBalance) < 0 ? '#52c41a' : 'inherit', marginLeft: '6px' }}>
-                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
                         </span>
                     </div>
                 </div>
