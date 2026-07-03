@@ -135,7 +135,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             <input id="sendMessageToSupplier" type="checkbox" className={styles.checkInput}
               checked={m.sendMessageToSupplier} onChange={toggle("sendMessageToSupplier")} />
             <label htmlFor="sendMessageToSupplier" className={styles.checkLabel}>Send Message to Supplier</label>
-            <InfoIcon tip="When ON, supplier receives a message when a purchase order is created or received." />
+            <InfoIcon tip={`What is this?\nZaanvar will automatically send a message (SMS/WhatsApp) to your supplier immediately after the transaction has been recorded.`} />
           </div>
 
           <div className={styles.checkRow}>
@@ -151,7 +151,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             <label htmlFor="sendTxnUpdateToSupplier" className={styles.checkLabel}>
               Send Transaction Update Message to Supplier
             </label>
-            <InfoIcon tip="When ON, supplier gets a message when payment is done in purchase order, mark as pay, payment out, or purchase return." />
+            <InfoIcon tip={`What is this?\nZaanvar will send an automatic message to your supplier immediately after you have updated a transaction.`} />
           </div>
 
           <div className={styles.checkRow}>
@@ -167,7 +167,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             <input id="sendCopyToSelf" type="checkbox" className={styles.checkInput}
               checked={m.sendCopyToSelf} onChange={toggle("sendCopyToSelf")} />
             <label htmlFor="sendCopyToSelf" className={styles.checkLabel}>Send Message Copy to Self</label>
-            <InfoIcon tip="When ON, any transaction message is also sent to you." />
+            <InfoIcon tip={`What is this?\nZaanvar will send an automatic message to you immediately after the transaction has been recorded.`} />
           </div>
         </div>
 
@@ -181,7 +181,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             <label htmlFor="includeSupplierBalance" className={styles.checkLabel}>
               Supplier Current Balance in Message
             </label>
-            <InfoIcon tip="When ON, the supplier's outstanding balance is included in the message." />
+            <InfoIcon tip={`What is this?\nZaanvar will include the suppliers current balance in your message.`} />
           </div>
 
           <div className={styles.checkRow}>
@@ -199,7 +199,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             <label htmlFor="includeSupplierWebInvoiceLink" className={styles.checkLabel}>
               Web invoice link in Message for Suppliers
             </label>
-            <InfoIcon tip="When ON, suppliers receive a web link to view their invoice online." />
+            <InfoIcon tip={`What is this?\nZaanvar will include a web invoice link in your message.`} />
           </div>
 
           <div className={styles.checkRow}>

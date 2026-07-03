@@ -1,8 +1,8 @@
 import React from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
 
-const InfoIcon = () => (
-  <span className={styles.infoIcon} title="More info">ⓘ</span>
+const InfoIcon = ({ tip }) => (
+  <span className={styles.infoIcon} title={tip || "More info"}>ⓘ</span>
 );
 
 const GST_TYPE_OPTIONS = [
@@ -42,7 +42,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
           {/* Business Currency */}
           <div className={styles.fieldWrap}>
             <div className={styles.fieldLabel}>
-              Business Currency <InfoIcon />
+              Business Currency <InfoIcon tip={`What is this?\nSelect your currency’s symbol.\n\nHow it is used?\nThe selected currency symbol will be printed on all your transactions, such as sales, purchases, expenses, etc.`} />
             </div>
             <div style={{ position: "relative" }}>
               <select
@@ -61,7 +61,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
           {/* Amount Decimal Places */}
           <div className={styles.fieldWrap}>
             <div className={styles.fieldLabel}>
-              Amount (Up to Decimal Places) <InfoIcon />
+              Amount (Up to Decimal Places) <InfoIcon tip={`What is this?\nSpecify the number of digits after the decimal for amounts. Amounts will be printed with these decimal places.`} />
             </div>
             <div className={styles.stepperWrap}>
               <input
@@ -103,7 +103,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <label htmlFor="enableGstin" className={styles.checkLabel}>
               GSTIN Enable
             </label>
-            <InfoIcon />
+            <InfoIcon tip={`What is this?\nYou can enter GSTIN of the party while adding a party to Zaanvar. This GSTIN will be printed on invoices to the parties.\n\nWhy to use?\nIn case you want Party’s GSTIN no. to be printed on invoice, then you can enable this.`} />
           </div>
 
           {/* GST Type — only shown when GSTIN enabled */}
@@ -135,7 +135,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <label htmlFor="stopSaleNegativeStock" className={styles.checkLabel}>
               Stop Sale on Negative Stock
             </label>
-            <InfoIcon />
+            <InfoIcon tip={`What is this?\nThis setting stops all users of the company from creating a sale if any item becomes less than 0 quantity after the sale.`} />
           </div>
 
           {/* Block New Items from Txn Form */}
@@ -150,7 +150,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <label htmlFor="blockNewItemsFromTxn" className={styles.checkLabel}>
               Block New Items &nbsp;Txn Form
             </label>
-            <InfoIcon />
+            <InfoIcon tip={`What is this?\nThis setting blocks you from creating an item instantly without going through the item creation process.\n\nHow it is used?\nYou will not be able to create an item instantly without going through the item creation process.`} />
           </div>
 
           {/* Block New Suppliers from Txn Form */}
@@ -165,7 +165,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <label htmlFor="blockNewSupplierFromTxn" className={styles.checkLabel}>
               Block New Suppliers &nbsp;Txn Form
             </label>
-            <InfoIcon />
+            <InfoIcon tip={`What is this?\nThis setting blocks you from creating a supplier instantly without going through the supplier creation process.\n\nHow it is used?\nYou will not be able to create a supplier instantly without going through the supplier creation process.`} />
           </div>
 
           {/* Block New Customers from Txn Form */}
@@ -180,7 +180,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <label htmlFor="blockNewCustomerFromTxn" className={styles.checkLabel}>
               Block New Customers &nbsp;Txn Form
             </label>
-            <InfoIcon />
+            <InfoIcon tip={`What is this?\nThis setting blocks you from creating a customer instantly without going through the customer creation process.\n\nHow it is used?\nYou will not be able to create a customer instantly without going through the customer creation process.`} />
           </div>
         </div>
       </div>

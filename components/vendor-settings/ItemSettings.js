@@ -51,14 +51,14 @@ const ItemSettings = ({ settings, onChange }) => {
           <input id="barcodeScan" type="checkbox" className={styles.checkInput}
             checked={s.barcodeScan} onChange={toggle("barcodeScan")} />
           <label htmlFor="barcodeScan" className={styles.checkLabel}>Barcode Scan</label>
-          <InfoIcon tip="Enable barcode scanning for product lookup." />
+          <InfoIcon tip={`What is this?\nEnables you to scan item codes or serial numbers for your items while entering transactions.\n\nWhy use it?\nIf you want to use barcode scanning to quickly search for and add items to transactions, you can enable this feature.`} />
         </div>
 
         <div className={styles.checkRow}>
           <input id="showLowStockDialog" type="checkbox" className={styles.checkInput}
             checked={s.showLowStockDialog} onChange={toggle("showLowStockDialog")} />
           <label htmlFor="showLowStockDialog" className={styles.checkLabel}>Show Low Stock Dialog</label>
-          <InfoIcon tip="Show an alert when stock falls below the minimum threshold." />
+          <InfoIcon tip={`What is this?\nZaanvar will display a confirmation dialog when stock is low while creating a transaction.\n\nWhy use it?\nThis setting warns you when the stock quantity of an item falls below the specified minimum quantity, helping you avoid overselling or running out of stock.`} />
         </div>
 
         <div className={styles.checkRow}>
@@ -67,7 +67,7 @@ const ItemSettings = ({ settings, onChange }) => {
           <label htmlFor="updateSalePriceFromTxn" className={styles.checkLabel}>
             Update Sale Price from Transaction
           </label>
-          <InfoIcon tip="When ON, changing selling price in a sale invoice auto-updates the product." />
+          <InfoIcon tip={`What is this?\nThis setting automatically updates an item’s sale price whenever you change it during a sales transaction. The next time you create a sale for that item, the last used sale price will be shown automatically.\n\nWhy use it?\nIt helps keep your item prices up to date without manually editing the item master every time you change the selling price. This is useful if your selling prices change frequently.`} />
         </div>
 
         <div className={styles.checkRow}>
@@ -76,7 +76,7 @@ const ItemSettings = ({ settings, onChange }) => {
           <label htmlFor="calculateTaxBasedOnMrp" className={styles.checkLabel}>
             Calculate Tax based on MRP
           </label>
-          <InfoIcon tip="When ON, tax is calculated on MRP × Qty instead of Selling Price × Qty." />
+          <InfoIcon tip={`What is this?\nThis setting calculates GST on the item’s MRP (Maximum Retail Price) instead of the actual selling price.\n\nHow is it used?\nWhen enabled, GST is automatically calculated using the item’s MRP (per primary unit) while creating transactions.\n\nWhy use it?\nEnable this only if your business deals with products where GST is legally required to be calculated on the MRP, as per government regulations (for example, certain packaged goods). For most businesses, GST is calculated on the selling price, so this option is usually left disabled unless specifically required.`} />
         </div>
 
         <div className={styles.checkRow}>

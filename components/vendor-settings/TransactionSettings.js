@@ -58,7 +58,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.invoiceBillNoEditable}
             onChange={toggle("invoiceBillNoEditable")}
             label="Invoice / Bill No."
-            tip="When ON, invoice number is auto-generated but user can edit it. When OFF, auto-generated only."
+            tip={`What is this?\nZaanvar will assign invoice/bill numbers automatically to your transactions like sales, expenses, etc.\n\nHow it is used?\nInvoice/bill numbers will be assigned to every invoice, and the number will keep increasing as you continue creating invoices in Zaanvar. You can also change the number manually.\n\nWhy to use?\nKeep track of your invoices and assign unique invoice numbers automatically.`}
           />
 
           <CheckRow
@@ -66,15 +66,15 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.addTimeOnTransactions}
             onChange={toggle("addTimeOnTransactions")}
             label="Add Time on Transactions"
-            tip="When ON, a time field is added near payment date fields."
+            tip={`What is this?\nThis setting allows Zaanvar users to enter the time of the transaction along with the date at the time of creating it.\n\nHow it is used?\nYou can enter the time of the transaction whenever you open a new transaction form or open an existing transaction for editing.\n\nWhy to use?\nTime on transactions allows users to keep a record of time-critical transactions, such as retail slips. It also helps users differentiate between two transactions with the same party on the same date.`}
           />
 
           <CheckRow
             id="cashSaleByDefault"
             checked={t.cashSaleByDefault}
             onChange={toggle("cashSaleByDefault")}
-            label="Cash Sale"
-            tip="When ON, payment type defaults to Cash. When OFF, user must select a payment type."
+            label="Cash Sale by Default"
+            tip={`What is this?\nAll Sale Invoices will be treated as Paid in Full without any pending dues. Zaanvar will also allow you to create Sale Invoices without selecting any Party.\n\nHow it is used?\nThe Cash Sale option will be selected by default in Sale Invoices. You can always change it to a Credit Invoice manually.\n\nWhy to use?\nThis setting is useful for retailers and businesses that make over-the-counter sales where customers pay the full amount upfront.`}
           />
 
           <CheckRow
@@ -82,7 +82,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.billingNameOfCustomer}
             onChange={toggle("billingNameOfCustomer")}
             label="Billing Name of Customer"
-            tip="When ON, billing name and billing person name fields are added to sale invoices."
+            tip={`What is this?\nEnables you to add a billing name in Sale Invoices and Sale Orders. This billing name will be printed on invoices in place of the Party name.\n\nHow it is used?\nAfter enabling this setting, you will be able to enter a billing name in transactions, which will be printed on invoices.\n\nWhy to use?\nThis feature is useful when customer names are very similar and a proper billing name needs to be printed on invoices for each customer.`}
           />
 
 
@@ -104,8 +104,8 @@ const TransactionSettings = ({ settings, onChange }) => {
             id="displayPurchasePriceOfItems"
             checked={t.displayPurchasePriceOfItems}
             onChange={toggle("displayPurchasePriceOfItems")}
-            label="Display Purchase Price of Items"
-            tip="When ON, selling price and purchase price both show in the product dropdown inside sale invoice."
+            label="Display Purchase Price"
+            tip={`What is this?\nThe purchase price of items will be shown in the item list while adding an item to Sales, Purchases, and other transactions.\n\nWhy to use?\nThis helps you understand the price at which you purchased an item and determine the appropriate profit margin when selling it.`}
           />
         </div>
       </div>
@@ -152,7 +152,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.discountDuringPayments}
             onChange={toggle("discountDuringPayments")}
             label="Discount During Payments"
-            tip="When ON, a discount field is added to Payment In and Payment Out forms."
+            tip={`What is this?\nEnables you to add and track discounts during Payment-In and Payment-Out transactions.\n\nWhy to use?\nFor example, if a customer has to pay ₹1,000 but pays only ₹900, and you agree to accept ₹900 as full payment, then the remaining ₹100 is recorded as a discount. The original bill amount remains ₹1,000, and the discount amount can be entered while recording the payment transaction.`}
           />
 
           <CheckRow
@@ -160,7 +160,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.linkPaymentsToInvoices}
             onChange={toggle("linkPaymentsToInvoices")}
             label="Link Payments to Invoices"
-            tip="When ON, a 'Link Payment' button appears in Payment In and Payment Out to associate payments with specific orders."
+            tip={`What is this?\nYou can link Payment In transactions (money received) to the unpaid invoices/bills of a party. Once a payment is linked to an invoice, the invoice will be marked as Paid.\n\nHow it is used?\nWhile receiving payments through a Payment In transaction or while editing a sale/purchase transaction, Zaanvar provides options to receive and link payments to invoices.\n\nWhy to use?\nThis feature helps you track invoice statuses as Unpaid, Partially Paid, or Paid. It also links received payments to invoices for complete payment tracking.`}
           />
 
           <CheckRow
@@ -168,7 +168,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.showProfitWhileMakingInvoice}
             onChange={toggle("showProfitWhileMakingInvoice")}
             label="Show Profit while making Sale Invoice"
-            tip="When ON, a graph icon in the sale invoice opens a profit breakdown popup."
+            tip={`What is this?\nThis allows the user to view the profit they would be making on a particular sale invoice.\n\nHow it is used?\nEnabling this setting adds a button to the Sale Invoice form that displays the cost breakdown and the profit to be made on the sale invoice.`}
           />
 
           <CheckRow
@@ -176,7 +176,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.termsAndConditions}
             onChange={toggle("termsAndConditions")}
             label="Terms and Conditions"
-            tip="When ON, a Terms and Conditions text field is added to sale invoices."
+            tip={`What is this?\nEnables you to print Terms and Conditions on Sale Invoices, Delivery Challans, Sale Orders, Estimates/Quotations, Purchases, and Purchase Orders.\n\nHow it is used?\nAfter enabling this setting, you can set transaction-specific Terms and Conditions. These will appear on invoices, and you can also customize them for each transaction.`}
           />
         </div>
 
@@ -195,7 +195,7 @@ const TransactionSettings = ({ settings, onChange }) => {
               }
             }}
             label="Transaction wise Tax"
-            tip="When ON, an overall transaction-level tax field appears. Note: Only one tax per bill."
+            tip={`What is this?\nAllows you to apply a single tax to the entire Sale/Purchase transaction instead of applying different taxes to each item being sold or purchased.\n\nHow it is used?\nYou can apply one tax to all the line items in a transaction. This tax is calculated on the subtotal of all individual line items.\n\nWhy to use?\nIf all the stock items in a transaction have the same tax rate, this setting lets you apply the tax once to the entire invoice instead of setting it separately for each item.`}
           />
 
           <CheckRow
@@ -203,7 +203,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             checked={t.transactionWiseDiscount}
             onChange={toggle("transactionWiseDiscount")}
             label="Transaction wise Discount"
-            tip="When ON, an overall transaction-level discount field appears."
+            tip={`What is this?\nAllows you to apply a single discount to the entire Sale/Purchase transaction instead of applying different discounts to each item being sold or purchased.\n\nHow it is used?\nYou can apply one discount to all the line items in a transaction. The discount is calculated on the subtotal of all individual line items.\n\nWhy to use?\nIf you offer a discount on the entire invoice or bill rather than on individual items, this option allows you to apply the discount once to the whole transaction.`}
           />
 
           {/* Round Off Total */}
@@ -218,7 +218,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             <label htmlFor="roundOffTotal" className={styles.checkLabel}>
               Round Off Total
             </label>
-            <InfoIcon tip="Applies to purchase orders, payment out/in, sale invoices, returns, supplier pay now." />
+            <InfoIcon tip={`What is this?\nEnabling this setting gives you the option to round off the transaction amount to the nearest value you select.\n\nWhy to use?\nIf you do not want decimal values in your transactions, you can round the total amount to the nearest whole number (or any other selected value) using this option.`} />
           </div>
           {t.roundOffTotal && (
             <div className={styles.subField}>
