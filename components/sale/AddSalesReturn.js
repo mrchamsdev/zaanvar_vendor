@@ -14,7 +14,9 @@ import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 
 const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) => {
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const { getBoolSetting } = require('@/utilities/settings-utils');
+    const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, "calculateTaxBasedOnMrp", false);
     const { branchId } = useDashboardData({ skipReviews: true });
 
     const [errors, setErrors] = useState({});
@@ -127,6 +129,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                             unit: unitVal,
                             batchNumber: item.batchNumber || "N/A",
                             price: parseFloat(item.sellingPrice) || 0,
+                            mrp: parseFloat(item.mrp || item.variant?.mrp || item.product?.mrp || item.sellingPrice || 0),
                             taxPercentage: parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId || 0)) || 0,
                             discountPercentage: parseFloat(item.discountPercentage) || 0,
                         };
@@ -148,11 +151,14 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     const itemTaxPercent = original?.taxPercentage !== undefined ? original.taxPercentage : parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId !== undefined && item.taxGroupId !== null ? item.taxGroupId : (item.taxAmount || 0)));
                     const itemDiscPercent = original?.discountPercentage !== undefined ? original.discountPercentage : parseFloat(item.discountPercentage !== undefined && item.discountPercentage !== null ? item.discountPercentage : (item.discount || item.discountForItem || 0));
 
+                    const itemMrp = original?.mrp !== undefined ? original.mrp : parseFloat(item.mrp || item.variant?.mrp || item.sellingPrice || 0);
+
                     const qty = parseFloat(item.quantity) || 0;
                     const discountAmount = (itemPrice * itemDiscPercent) / 100;
-                    const taxablePrice = itemPrice - discountAmount;
+                    const taxablePrice = calculateTaxBasedOnMrp && itemMrp > 0 ? itemMrp : itemPrice - (discountAmount / qty || 0);
+                    // Handle tax correctly based on taxablePrice
                     const taxAmount = (taxablePrice * itemTaxPercent) / 100;
-                    const calculatedItemTotal = qty * (taxablePrice + taxAmount);
+                    const calculatedItemTotal = qty * (itemPrice - (discountAmount / qty || 0) + taxAmount);
 
                     return {
                         userOrderItemsID: item.userOrderItemsID,
@@ -162,6 +168,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                         returnableQty: original?.returnableQty || qty,
                         unit: original?.unit || "Unit",
                         price: itemPrice,
+                        mrp: itemMrp,
                         taxPercentage: itemTaxPercent,
                         discountPercentage: itemDiscPercent,
                         returnCondition: item.returnCondition || "Resellable",
@@ -229,6 +236,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     unit: unitVal,
                     batchNumber: item.batchNumber || "N/A",
                     price: parseFloat(item.sellingPrice) || 0,
+                    mrp: parseFloat(item.mrp || item.variant?.mrp || item.product?.mrp || item.sellingPrice || 0),
                     taxPercentage: parseFloat(item.taxPercentage !== undefined && item.taxPercentage !== null ? item.taxPercentage : (item.taxGroupId || 0)) || 0,
                     discountPercentage: parseFloat(item.discountPercentage) || 0,
                 };
@@ -276,11 +284,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     const handleProductSelect = (index, p) => {
         const newItems = [...items];
+        const discountAmount = (p.price * p.discountPercentage) / 100;
+        const taxablePrice = calculateTaxBasedOnMrp && p.mrp > 0 ? p.mrp : p.price - (discountAmount / 1 || 0);
+        const taxAmount = (taxablePrice * p.taxPercentage) / 100;
+        
         newItems[index] = {
             ...p,
             returnQty: 1,
             returnCondition: "Resellable",
-            itemTotal: (p.price - (p.price * p.discountPercentage / 100)) * (1 + p.taxPercentage / 100)
+            itemTotal: 1 * (p.price - (discountAmount / 1 || 0) + taxAmount)
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -293,20 +305,19 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         setItems(newItems);
     };
 
-    const updateItemQty = (index, qty) => {
+    const updateItemQty = (index, newQty) => {
         const newItems = [...items];
         const maxQty = items[index].returnableQty !== undefined ? items[index].returnableQty : (items[index].quantity || 0);
-        newItems[index].returnQty = qty;
+        newItems[index].returnQty = newQty;
 
-        const price = newItems[index].price || 0;
-        const disc = (price * (newItems[index].discountPercentage || 0)) / 100;
-        const taxablePrice = price - disc;
-        const tax = (taxablePrice * (newItems[index].taxPercentage || 0)) / 100;
-        newItems[index].itemTotal = qty * (taxablePrice + tax);
-
+        const item = newItems[index];
+        const discountAmount = (item.price * item.discountPercentage) / 100;
+        const taxablePrice = calculateTaxBasedOnMrp && item.mrp > 0 ? item.mrp : item.price - (discountAmount / newQty || 0);
+        const taxAmount = (taxablePrice * item.taxPercentage) / 100;
+        newItems[index].itemTotal = newQty * (item.price - (discountAmount / newQty || 0) + taxAmount);
         setItems(newItems);
 
-        if (qty > maxQty) {
+        if (newQty > maxQty) {
             setErrors(prev => ({ ...prev, [`itemQty_${index}`]: `Quantity cannot exceed returnable quantity (${maxQty})` }));
         } else {
             setErrors(prev => ({ ...prev, [`itemQty_${index}`]: undefined }));
@@ -817,7 +828,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                                         const discountPercentage = i.discountPercentage || 0;
                                         const taxPercentage = i.taxPercentage || 0;
                                         const discountAmount = (price * qty * discountPercentage) / 100;
-                                        const taxableAmount = (price * qty) - discountAmount;
+                                        const taxableAmount = calculateTaxBasedOnMrp && i.mrp > 0 ? (i.mrp * qty) : (price * qty) - discountAmount;
                                         const taxAmount = (taxableAmount * taxPercentage) / 100;
                                         return acc + taxAmount;
                                     }, 0).toDynamicFixed()}</td>

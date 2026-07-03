@@ -38,10 +38,12 @@ const getVariantSizeDisplay = (variant) => {
 };
 
 const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const { getBoolSetting } = require('@/utilities/settings-utils');
+    const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, 'calculateTaxBasedOnMrp', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
@@ -173,12 +175,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 const billItem = (billData.billItems || []).find(bi => bi.productsBillItemsId === it.productsBillItemsId);
                                 const discountPercent = isAutomatedReturn ? 0 : (billItem ? parseFloat(billItem.discount || 0) : parseFloat(it.discount || 0));
                                 const costPrice = parseFloat(it.costPrice || 0);
+                                const mrp = parseFloat(it.mrp || billItem?.mrp || billItem?.variant?.mrp || costPrice);
                                 const returnQty = it.qty;
                                 const subtotal = returnQty * costPrice;
                                 const discountAmount = isAutomatedReturn ? 0 : ((subtotal * discountPercent) / 100);
                                 const amtAfterDiscount = subtotal - discountAmount;
+                                const taxBase = calculateTaxBasedOnMrp && mrp > 0 ? (mrp * returnQty) : amtAfterDiscount;
                                 const taxPercent = isAutomatedReturn ? 0 : (billItem ? parseFloat(billItem.taxGroupId || 0) : 0);
-                                const taxAmount = isAutomatedReturn ? 0 : ((amtAfterDiscount * taxPercent) / 100);
+                                const taxAmount = isAutomatedReturn ? 0 : ((taxBase * taxPercent) / 100);
                                 const finalAmount = amtAfterDiscount + taxAmount;
 
                                 return {
@@ -198,6 +202,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                     returnableQty: billItem ? parseInt(billItem.returnableQty) || 0 : (parseInt(it.returnableQty) || 0),
                                     returnQty: it.qty,
                                     costPrice: costPrice,
+                                    mrp: mrp,
                                     discount: discountPercent,
                                     discountAmount: discountAmount,
                                     tax: taxPercent,
@@ -456,12 +461,14 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
     const handleProductSelect = (index, billItem) => {
         const taxPercent = parseFloat(billItem.taxGroupId || 0);
         const costPrice = parseFloat(billItem.costPrice || 0);
+        const mrp = parseFloat(billItem.mrp || billItem.variant?.mrp || costPrice);
         const discountPercent = parseFloat(billItem.discount || 0);
         const qty = 1;
         const subtotal = qty * costPrice;
         const discountAmount = (subtotal * discountPercent) / 100;
         const amtAfterDiscount = subtotal - discountAmount;
-        const taxAmount = (amtAfterDiscount * taxPercent) / 100;
+        const taxBase = calculateTaxBasedOnMrp && mrp > 0 ? (mrp * qty) : amtAfterDiscount;
+        const taxAmount = (taxBase * taxPercent) / 100;
         const finalAmount = amtAfterDiscount + taxAmount;
 
         const newItems = [...items];
@@ -483,6 +490,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
             returnableQty: parseInt(billItem.returnableQty) || 0,
             returnQty: 0,
             costPrice: costPrice,
+            mrp: mrp,
             discount: discountPercent,
             discountAmount: 0,
             tax: taxPercent,
@@ -552,7 +560,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
         const subtotal = qty * item.costPrice;
         const discountAmount = (subtotal * item.discount) / 100;
         const amtAfterDiscount = subtotal - discountAmount;
-        const taxAmount = (amtAfterDiscount * item.tax) / 100;
+        const taxBase = calculateTaxBasedOnMrp && item.mrp > 0 ? (item.mrp * qty) : amtAfterDiscount;
+        const taxAmount = (taxBase * item.tax) / 100;
 
         newItems[index].discountAmount = discountAmount;
         newItems[index].taxAmount = taxAmount;

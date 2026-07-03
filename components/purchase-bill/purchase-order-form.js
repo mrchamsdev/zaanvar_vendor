@@ -39,9 +39,12 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const router = useRouter();
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branches, branchId: currentBranchId } = useDashboardData();
+    const { getBoolSetting } = require('@/utilities/settings-utils');
 
     const blockNewSupplierFromTxn = vendorSettings?.general?.blockNewSupplierFromTxn;
     const blockNewItemsFromTxn = vendorSettings?.general?.blockNewItemsFromTxn;
+    const transactionWiseTax = getBoolSetting(vendorSettings, "transactionWiseTax", false);
+    const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
 
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
@@ -52,6 +55,8 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const [supplierId, setSupplierId] = useState(initialData?.supplierId || "");
     const [supplierPhone, setSupplierPhone] = useState(initialData?.supplierPhone || "");
     const [orderDate, setOrderDate] = useState(initialData?.orderDate || toApiDateOnly(new Date()));
+    const [overallTax, setOverallTax] = useState(initialData?.overallTax || { value: 0, type: '%' });
+    const [overallDiscount, setOverallDiscount] = useState(initialData?.overallDiscount || { value: 0, type: '%' });
     const [items, setItems] = useState(initialData?.items || [
         { id: Date.now(), productId: "", productName: "", productCode: "--", variant: "--", currentStock: 0, orderQty: "", costPrice: "", mrp: 0 }
     ]);
@@ -341,7 +346,9 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     taxGroupId: i.taxGroupId || 1,
                     orderQuantity: parseFloat(i.orderQty),
                     costPrice: parseFloat(i.costPrice) || 0
-                }))
+                })),
+                overallTax: transactionWiseTax ? overallTax : { value: 0, type: '%' },
+                overallDiscount: transactionWiseDiscount ? overallDiscount : { value: 0, type: '%' }
             };
 
             const res = requestId
@@ -630,6 +637,41 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     </tbody>
                 </table>
                 <button className={styles.addItemBtn} onClick={addItem}>+ADD ITEM</button>
+            </div>
+
+            <div className={styles.globalInputs} style={{ display: 'flex', gap: '20px', marginTop: '20px', padding: '0 20px' }}>
+                {transactionWiseTax && (
+                    <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.infoLabel} style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '13px' }}>Overall TAX</label>
+                        <div className={styles.combinedInput} style={{ display: 'flex', alignItems: 'center' }}>
+                            <input type="number" className={styles.miniInput} style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px 0 0 4px' }} value={overallTax.value} onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                setOverallTax({ ...overallTax, value: val });
+                            }} />
+                            <select className={styles.miniSelect} style={{ padding: '8px', border: '1px solid #ccc', borderLeft: 'none', borderRadius: '0 4px 4px 0', background: '#f5f5f5' }} value={overallTax.type} onChange={(e) => setOverallTax({ ...overallTax, type: e.target.value })}>
+                                <option>%</option>
+                                <option>Rs</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+                {transactionWiseDiscount && (
+                    <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.infoLabel} style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '13px' }}>Overall Discount</label>
+                        <div className={styles.combinedInput} style={{ display: 'flex', alignItems: 'center' }}>
+                            <input type="number" className={styles.miniInput} style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px 0 0 4px' }} value={overallDiscount.value} onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                setOverallDiscount({ ...overallDiscount, value: val });
+                            }} />
+                            <select className={styles.miniSelect} style={{ padding: '8px', border: '1px solid #ccc', borderLeft: 'none', borderRadius: '0 4px 4px 0', background: '#f5f5f5' }} value={overallDiscount.type} onChange={(e) => setOverallDiscount({ ...overallDiscount, type: e.target.value })}>
+                                <option>Rs</option>
+                                <option>%</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className={styles.actions}>

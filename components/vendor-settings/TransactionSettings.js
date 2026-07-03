@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
 
 const InfoIcon = ({ tip }) => (
@@ -26,6 +26,7 @@ const CheckRow = ({ id, checked, onChange, label, tip, children }) => (
 
 const TransactionSettings = ({ settings, onChange }) => {
   const t = settings;
+  const [showTaxModal, setShowTaxModal] = useState(false);
 
   const set = (field, val) => onChange({ ...t, [field]: val });
   const toggle = (field) => (e) => set(field, e.target.checked);
@@ -84,34 +85,7 @@ const TransactionSettings = ({ settings, onChange }) => {
             tip="When ON, billing name and billing person name fields are added to sale invoices."
           />
 
-          <CheckRow
-            id="displayPurchasePrice"
-            checked={t.displayPurchasePrice}
-            onChange={toggle("displayPurchasePrice")}
-            label="Display Purchase Price"
-            tip="Show purchase price alongside selling price in product dropdowns."
-          />
 
-          <CheckRow
-            id="customerProfileDetails"
-            checked={t.customerProfileDetails}
-            onChange={toggle("customerProfileDetails")}
-            label="Customer Profile Details"
-          />
-          
-          <CheckRow
-            id="showProfitOnSales"
-            checked={t.showProfitOnSales}
-            onChange={toggle("showProfitOnSales")}
-            label="Show Profit on Sales"
-          />
-          
-          <CheckRow
-            id="countEnabled"
-            checked={t.countEnabled}
-            onChange={toggle("countEnabled")}
-            label="Count Enabled"
-          />
         </div>
 
         {/* Item Table Settings */}
@@ -213,7 +187,13 @@ const TransactionSettings = ({ settings, onChange }) => {
           <CheckRow
             id="transactionWiseTax"
             checked={t.transactionWiseTax}
-            onChange={toggle("transactionWiseTax")}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setShowTaxModal(true);
+              } else {
+                toggle("transactionWiseTax")(e);
+              }
+            }}
             label="Transaction wise Tax"
             tip="When ON, an overall transaction-level tax field appears. Note: Only one tax per bill."
           />
@@ -271,6 +251,47 @@ const TransactionSettings = ({ settings, onChange }) => {
           )}
         </div>
       </div>
+
+      {showTaxModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999,
+          display: "flex", justifyContent: "center", alignItems: "center"
+        }}>
+          <div style={{
+            backgroundColor: "#333", borderRadius: 16, padding: 24, width: 340,
+            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            fontFamily: "system-ui, -apple-system, sans-serif"
+          }}>
+            <p style={{ color: "#fff", fontSize: 14, fontWeight: 500, lineHeight: 1.4, margin: "0 0 24px 0", textAlign: "left" }}>
+              According to Government there should not be tax on tax. You have enabled item wise tax, so you should not enable transaction level tax. Do you wish to continue?
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
+              <button
+                onClick={() => setShowTaxModal(false)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 20, border: "none",
+                  backgroundColor: "#555", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowTaxModal(false);
+                  set("transactionWiseTax", true);
+                }}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 20, border: "none",
+                  backgroundColor: "#0A7CFF", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer"
+                }}
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

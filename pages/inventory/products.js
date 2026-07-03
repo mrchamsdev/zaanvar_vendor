@@ -11,6 +11,7 @@ import EmptyState from "../../components/utilities/EmptyState";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getBoolSetting } from "../../utilities/settings-utils";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -51,7 +52,8 @@ const ProductsPage = () => {
   const currencySymbol = useCurrencySymbol();
 
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated: isHydrated } = useStore();
+  const { userInfo, jwtToken, vendorSettings, _hasHydrated: isHydrated } = useStore();
+  const manageItemStatus = getBoolSetting(vendorSettings, "manageItemStatus", false);
   const { branches, branchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -102,7 +104,7 @@ const ProductsPage = () => {
       fetchStats();
       fetchProducts();
     }
-  }, [router.isReady, branchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage]);
+  }, [router.isReady, branchId, jwtToken, productType, debouncedSearchTerm, currentPage, rowsPerPage, manageItemStatus]);
 
   // Clear selections when changing branch or product type
   useEffect(() => {
@@ -138,10 +140,20 @@ const ProductsPage = () => {
         currentPage,
         rowsPerPage
       );
-      const normalizedProducts = (result.products || []).map(p => ({
-        ...p,
-        productId: p.productId || p.id || p.ID || p._id
-      }));
+      const normalizedProducts = (result.products || []).reduce((acc, p) => {
+        let activeVariants = p.variants || [];
+        if (manageItemStatus) {
+          activeVariants = activeVariants.filter(v => v.isActive === true || v.isActive === "true");
+        }
+        if (manageItemStatus && activeVariants.length === 0) return acc;
+        
+        acc.push({
+          ...p,
+          variants: activeVariants,
+          productId: p.productId || p.id || p.ID || p._id
+        });
+        return acc;
+      }, []);
       setProducts(normalizedProducts);
       setTotalProducts(result.total);
     } catch (e) {
