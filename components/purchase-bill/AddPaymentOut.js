@@ -10,6 +10,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import LinkPaymentPopup from "../shared/link-payment-popup";
 
 const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
   const currencySymbol = useCurrencySymbol();
@@ -17,6 +18,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const linkPaymentsToInvoices = getBoolSetting(vendorSettings, 'linkPaymentsToInvoices', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
@@ -29,6 +31,11 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
     const [imagePreview, setImagePreview] = useState(null);
     const [editablePaidAmount, setEditablePaidAmount] = useState("");
     const [errors, setErrors] = useState({});
+    
+    // Link payment states
+    const [showLinkPopup, setShowLinkPopup] = useState(false);
+    const [showHistoryPopup, setShowHistoryPopup] = useState(false);
+    const [linkedTxns, setLinkedTxns] = useState([]);
 
     // Multi-payment state
     const [payments, setPayments] = useState([{
@@ -83,6 +90,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 const totals = res.totals?.[0] || null;
                 setSupplierTotals(totals);
                 setEditablePaidAmount("0");
+                setLinkedTxns([]);
             }
         } catch (error) {
             console.error("Error fetching supplier totals:", error);
@@ -170,7 +178,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                       )),
                 transactionInfo: description || "",
                 createdBy: userInfo?.userId || 1,
-                productsBillId: null,
+                productsBillId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].productsBillId) : null,
                 paymentTypes: validPayments.map(p => {
                     const typeObj = {
                         paymentType: p.paymentType,
@@ -510,12 +518,85 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 </div>
 
                 <div className={styles.modalFooter}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                        {linkPaymentsToInvoices && (
+                            <button 
+                                className={styles.linkPaymentBtn} 
+                                onClick={() => selectedSupplierId ? setShowLinkPopup(true) : toast.error("Please select a supplier first")}
+                            >
+                                Link Payment 🔗
+                            </button>
+                        )}
+                        {linkPaymentsToInvoices && linkedTxns.length > 0 && (
+                            <button 
+                                type="button" 
+                                style={{ background: 'transparent', border: '1px solid #ccc', padding: '10px 16px', borderRadius: '4px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                                onClick={() => setShowHistoryPopup(true)}
+                            >
+                                Payment History
+                            </button>
+                        )}
+                    </div>
                     <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
                         {loading ? "Saving..." : "Save"}
                     </button>
                 </div>
             </div>
+
+            {showHistoryPopup && (
+                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex' }}>
+                    <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '80vh', borderRadius: '8px', margin: 'auto', width: '90%', maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
+                        <div className={styles.modalHeader}>
+                            <h3>Linked Payment History</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowHistoryPopup(false)}><FiX /></button>
+                        </div>
+                        <div className={styles.modalContent} style={{ padding: '24px' }}>
+                            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ color: '#666', borderBottom: '1px solid #ddd' }}>
+                                        <th style={{ paddingBottom: '8px' }}>Date</th>
+                                        <th style={{ paddingBottom: '8px' }}>Type</th>
+                                        <th style={{ paddingBottom: '8px' }}>Total</th>
+                                        <th style={{ paddingBottom: '8px' }}>Linked Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {linkedTxns.map((t, i) => (
+                                        <tr key={i}>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.createdAt ? new Date(t.orderDate || t.billDate || t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>Sale</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{Number(t.totalAmount || t.overallBillAmount || 0).toFixed(2)}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>{Number(t.linkedAmount).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <LinkPaymentPopup
+                isOpen={showLinkPopup}
+                onClose={() => setShowLinkPopup(false)}
+                type="paymentOut"
+                partyId={selectedSupplierId}
+                partyName={suppliers.find(s => s.supplierId?.toString() === selectedSupplierId?.toString())?.supplierName}
+                totalPaidAmount={editablePaidAmount}
+                initialLinkedTxns={linkedTxns}
+                onDone={(selections, newPaidAmount) => {
+                    setLinkedTxns(selections);
+                    setEditablePaidAmount(newPaidAmount);
+                    setPayments(prev => {
+                        if (prev.length === 1) {
+                            return [{ ...prev[0], amountPaid: newPaidAmount }];
+                        }
+                        return prev;
+                    });
+                    setShowLinkPopup(false);
+                }}
+            />
         </div>
     );
 };
