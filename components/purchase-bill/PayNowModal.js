@@ -475,15 +475,15 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
                         <div className={styles.field}>
                             <label>Total Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${totalBillAmount.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${totalBillAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Previously Paid Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${previouslyPaid.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${previouslyPaid.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${currentBalance.toLocaleString()}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${currentBalance.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`} readOnly />
                         </div>
                         <div className={styles.field}>
                             <label>Paid Amount</label>

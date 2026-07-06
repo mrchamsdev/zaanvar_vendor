@@ -374,7 +374,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `${currencySymbol} ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : "₹ 0"}
+                                value={(supplierTotals?.overallBillAmount || supplierTotals?.totalBillAmount) ? `${currencySymbol} ${Number(supplierTotals.overallBillAmount || supplierTotals.totalBillAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : "₹ 0"}
                                 readOnly
                             />
                         </div>
@@ -383,7 +383,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${styles.readOnly}`}
-                                value={`${currencySymbol} ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
+                                value={`${currencySymbol} ${(Number(supplierTotals?.totalBalanceAmount || 0) - Number(editablePaidAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`}
                                 readOnly
                             />
                         </div>

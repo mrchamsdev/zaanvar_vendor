@@ -229,7 +229,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
                 fontWeight: 700,
                 color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
               }}>
-                {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
+                {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`}
               </td>
             </tr>
           </tbody>
@@ -251,7 +251,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
           fontWeight: 700,
           color: displayTotalVal >= 0 ? '#27ae60' : '#e74c3c'
         }}>
-          {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`}
+          {displayTotalVal >= 0 ? `+ ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : `- ${currencySymbol} ${Math.abs(displayTotalVal).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`}
         </div>
       </div>
     </div>

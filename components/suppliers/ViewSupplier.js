@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -75,7 +76,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         } else {
             val = t["balance amount"] || t.balance || t.totalBalanceAmount || 0;
         }
-        return Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return Number(val).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() });
     };
 
     useEffect(() => {
@@ -218,11 +219,11 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                             return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
                                         })()}
                                     </td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(t["previouspaid amount"] || t.amountPaidToSupplier || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayPaymentType(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{getDisplayReferenceNumber(t)}</td>
-                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {getDisplayBalanceAmount(t)}</td>
                                     <td style={{ padding: '14px', fontSize: '13px' }}>
                                         {t.splitTransactions && t.splitTransactions.length > 0 && (
@@ -244,7 +245,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>{split.paymentType}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}>{split.referenceNumber || "--"}</td>
-                                        <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ padding: '14px', fontSize: '13px' }}>{currencySymbol} {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                         <td style={{ padding: '14px', fontSize: '13px' }}></td>
                                     </tr>

@@ -1,5 +1,7 @@
 "use client";
 
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
@@ -365,15 +367,15 @@ const ProductDetail = () => {
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>Selling Price:</span>
-                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.sellingPrice || 0).toFixed(2)}</span>
+                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.sellingPrice || 0).toFixed(getAmountDecimalPlaces())}</span>
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>MRP:</span>
-                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.mrp || 0).toFixed(2)}</span>
+                            <span className={styles.infoValue}>{currencySymbol} {parseFloat(variant.mrp || 0).toFixed(getAmountDecimalPlaces())}</span>
                           </div>
                           <div className={styles.infoItem} style={{ marginBottom: "12px" }}>
                             <span className={styles.infoLabel}>Discount Percentage:</span>
-                            <span className={styles.infoValue}>{parseFloat(variant.discountPercentage || 0).toFixed(2)}%</span>
+                            <span className={styles.infoValue}>{parseFloat(variant.discountPercentage || 0).toFixed(getAmountDecimalPlaces())}%</span>
                           </div>
                           {/* {variant.description && (
                             <div className={styles.infoItem}>

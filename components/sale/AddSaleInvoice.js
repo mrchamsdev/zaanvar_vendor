@@ -11,18 +11,129 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import { getTermsAndConditions } from "../../services/settingsService";
+
+const convertToBulletPoints = (text) => {
+    if (!text) return "";
+    return text
+        .split('\n')
+        .map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return "";
+            if (trimmed.startsWith("• ")) return trimmed;
+            if (trimmed.startsWith("•") || trimmed.startsWith("-")) {
+                return "• " + trimmed.substring(1).trimStart();
+            }
+            return "• " + trimmed;
+        })
+        .filter(Boolean)
+        .join('\n');
+};
 
 const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
     const [loading, setLoading] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [products, setProducts] = useState([]);
+    const [termsAndCondition, setTermsAndCondition] = useState("");
+
+    const handleTermsChange = (val) => {
+        if (!val) {
+            setTermsAndCondition("");
+            return;
+        }
+        
+        // If they just typed the first character in an empty box:
+        if (val.length === 1 && val !== "•" && val !== " ") {
+            setTermsAndCondition("• " + val);
+            return;
+        }
+
+        let lines = val.split('\n');
+        let formattedLines = lines.map((line) => {
+            if (line === "") return "";
+            const trimmed = line.trim();
+            if (trimmed !== "" && !line.startsWith("• ")) {
+                if (line.startsWith("•")) {
+                    return "• " + line.slice(1).trimStart();
+                }
+                if (line.startsWith("- ")) {
+                    return "• " + line.slice(2);
+                }
+                if (line.startsWith("-")) {
+                    return "• " + line.slice(1).trimStart();
+                }
+                return "• " + line;
+            }
+            return line;
+        });
+        setTermsAndCondition(formattedLines.join('\n'));
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const val = textarea.value;
+            
+            // Text before cursor and text after cursor
+            const textBefore = val.substring(0, start);
+            const textAfter = val.substring(end);
+            
+            // If the textarea is completely empty, start with a bullet point
+            let newValue;
+            let offset = 3; // length of '\n• '
+            
+            if (val === "") {
+                newValue = "• ";
+                offset = 2; // length of '• '
+            } else {
+                newValue = textBefore + '\n• ' + textAfter;
+            }
+            
+            setTermsAndCondition(newValue);
+            
+            // Set cursor position right after the newly inserted bullet point
+            setTimeout(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + offset;
+            }, 0);
+        }
+    };
+
+    // Fetch default terms if enabled
+    useEffect(() => {
+        const fetchDefaultTerms = async () => {
+            if (isOpen && vendorSettings?.transaction?.termsAndConditions && mode === 'add' && branchId) {
+                try {
+                    const res = await getTermsAndConditions(jwtToken, branchId);
+                    let items = [];
+                    if (res && res.status === "success" || res?.status === 200) {
+                        if (Array.isArray(res.data)) items = res.data;
+                        else if (res.data && Array.isArray(res.data.data)) items = res.data.data;
+                    } else if (Array.isArray(res)) {
+                        items = res;
+                    } else if (res && Array.isArray(res.data)) {
+                        items = res.data;
+                    }
+                    const saleTerm = items.find(t => t.transactionType === "Sale Invoice");
+                    if (saleTerm) {
+                        setTermsAndCondition(convertToBulletPoints(saleTerm.termsText || ""));
+                    }
+                } catch (e) {
+                    console.error("Failed to load terms");
+                }
+            }
+        };
+        fetchDefaultTerms();
+    }, [isOpen, vendorSettings?.transaction?.termsAndConditions, mode, branchId, jwtToken]);
 
     const formatVariantSize = (size) => {
         if (!size) return "";
@@ -81,6 +192,9 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
     const [errors, setErrors] = useState({});
+
+    const [isRoundOffChecked, setIsRoundOffChecked] = useState(false);
+    const [loadedBeforeRoundOff, setLoadedBeforeRoundOff] = useState(null);
 
     const [useWallet, setUseWallet] = useState(false);
     const [savedWalletAmount, setSavedWalletAmount] = useState(0);
@@ -166,6 +280,8 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         setErrors({});
         setUseWallet(false);
         setSavedWalletAmount(0);
+        setTermsAndCondition("");
+        setLoadedBeforeRoundOff(null);
     };
 
     const fetchInitialData = async () => {
@@ -210,6 +326,9 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                     invoiceDate: (data.invoiceDate || data.createdDate) ? (data.invoiceDate || data.createdDate).split('T')[0] : "",
                     status: data.status || "Pending"
                 });
+                setTermsAndCondition(convertToBulletPoints(data.termsAndConditions || data.termsAndCondition || ""));
+                setIsRoundOffChecked(!!data.roundOff);
+                setLoadedBeforeRoundOff(data.beforeRoundOff);
 
                 // Mapping cartItems based on the latest API response
                 const mappedItems = (data.cartItems || []).map(it => {
@@ -224,7 +343,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         productName: it.productName || it.product?.productName || variant.SKU || "Product",
                         unit: unitLabel,
                         qty: it.quantity || 0,
-                        purchasePrice: parseFloat(it.purchasePrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
+                        purchasePrice: parseFloat(it.purchasePrice || it.costPrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
                         price: parseFloat(it.sellingPrice || 0),
                         discount: parseFloat(it.discountForItem || 0),
                         taxPercent: parseFloat(it.taxPercentage || 0),
@@ -258,15 +377,17 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                             });
                         }
                     });
-                    setPayments(nonWallet.length > 0 ? nonWallet : [{ method: "Cash", amount: 0, referenceNumber: "" }]);
-                } else if (data.paidAmount) {
+                    setPayments(nonWallet);
+                } else if (data.paidAmount && parseFloat(data.paidAmount) > 0) {
                     if (data.paymentMethod === "Wallet") {
                         hasWalletPayment = true;
                         walletPaidAmt = parseFloat(data.paidAmount);
-                        setPayments([{ method: "Cash", amount: 0, referenceNumber: "" }]);
+                        setPayments([]);
                     } else {
                         setPayments([{ method: data.paymentMethod || "Cash", amount: parseFloat(data.paidAmount), referenceNumber: data.referenceNumber || "" }]);
                     }
+                } else {
+                    setPayments([]);
                 }
                 setUseWallet(hasWalletPayment);
                 setSavedWalletAmount(walletPaidAmt);
@@ -489,13 +610,34 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         setPayments(newPayments);
     };
 
-    const totalBillAmount = items.reduce((acc, it) => acc + (it.amount || 0), 0);
+    const totalBillAmountBeforeRound = items.reduce((acc, it) => acc + (it.amount || 0), 0);
     const discountForCustomer = 0;
     const totalPaidAmount = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
 
     const itemsSubtotal = items.reduce((acc, it) => acc + ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 0)), 0);
     const itemsDiscount = items.reduce((acc, it) => acc + (it.discountAmount || 0), 0);
     const itemsTax = items.reduce((acc, it) => acc + (it.taxAmount || 0), 0);
+
+    let totalBillAmount = totalBillAmountBeforeRound;
+    let roundOffAmount = 0;
+
+    if (isRoundOffChecked && vendorSettings?.transaction) {
+        const rType = vendorSettings.transaction.roundOffType || "nearest";
+        const rVal = Number(vendorSettings.transaction.roundOffValue) || 1;
+
+        let roundedAmount = totalBillAmount;
+        if (rVal > 0) {
+            if (rType === "nearest") {
+                roundedAmount = Math.round(totalBillAmount / rVal) * rVal;
+            } else if (rType === "down") {
+                roundedAmount = Math.floor(totalBillAmount / rVal) * rVal;
+            } else if (rType === "up") {
+                roundedAmount = Math.ceil(totalBillAmount / rVal) * rVal;
+            }
+            roundOffAmount = roundedAmount - totalBillAmountBeforeRound;
+            totalBillAmount = roundedAmount;
+        }
+    }
 
     const appliedWalletAmount = useMemo(() => {
         if (!useWallet || walletAmount <= 0) return 0;
@@ -580,11 +722,14 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
         const payload = {
             branchId,
             vendorCustomerId: formData.vendorCustomerId,
+            billingName: formData.billingName || "",
             discountForCustomer: 0,
             amountPaid: totalPaidAmount + appliedWalletAmount,
             paymentMethod: activePayments[0]?.paymentMethod || "Cash",
             referenceNumber: activePayments[0]?.referenceNumber || "",
             payments: activePayments,
+            roundOff: isRoundOffChecked,
+            beforeRoundOff: totalBillAmountBeforeRound,
             paymentMethods: activePayments.map(p => ({
                 paymentMethod: p.paymentMethod,
                 paymentType: p.paymentType,
@@ -593,7 +738,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 transactionRef: p.referenceNumber,
                 referenceNumber: p.referenceNumber
             })),
-            items: validItems.map(it => ({
+            items: validItems.map((it, idx) => ({
                 productId: it.productId,
                 variantId: it.variantId,
                 batchNumber: it.batchNumber || null,
@@ -603,11 +748,12 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                 sellingPrice: it.price,
                 taxPercentage: it.taxPercent,
                 taxAmount: it.taxAmount,
-                itemTotal: it.amount,
+                itemTotal: idx === validItems.length - 1 ? (it.amount + roundOffAmount) : it.amount,
                 openQty: parseInt(it.availableQty) || 0
             })),
             createdBy: userInfo?.id || 1,
-            modifiedBy: mode === 'edit' ? (userInfo?.id || 1) : null
+            modifiedBy: mode === 'edit' ? (userInfo?.id || 1) : null,
+            termsAndConditions: termsAndCondition || ""
         };
 
         Object.assign(payload, dateOnlyWithTimeZone('invoiceDate', formData.invoiceDate));
@@ -912,11 +1058,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.purchasePrice.toLocaleString()}</td>
-                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.price.toLocaleString()}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.purchasePrice.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.price.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxPercent}%</td>
-                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxAmount.toLocaleString()}</td>
-                                        <td style={{ fontWeight: '700', textAlign: 'right' }}>{it.amount.toLocaleString()}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'center' }}>{it.taxAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td style={{ fontWeight: '700', textAlign: 'right' }}>{it.amount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         {!isViewOnly && (
                                             <td>
                                                 {idx !== 0 && (
@@ -932,11 +1078,11 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <td></td>
                                     <td></td>
                                     <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)}</td>
-                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0).toLocaleString()}</td>
-                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString()}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.price || 0), 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td></td>
-                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString()}</td>
-                                    <td style={{ fontWeight: '700', textAlign: 'right' }}>{totalBillAmount.toLocaleString()}</td>
+                                    <td style={{ fontWeight: '600', textAlign: 'center' }}>{items.reduce((acc, it) => acc + (it.taxAmount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                    <td style={{ fontWeight: '700', textAlign: 'right' }}>{totalBillAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     {!isViewOnly && <td></td>}
                                 </tr>
                             </tbody>
@@ -946,9 +1092,36 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         )}
                     </div>
 
-                    <div className={styles.paymentSection} style={{ gridTemplateColumns: "1.5fr 0.5fr 1.2fr" }}>
-                        <div className={styles.paymentList}>
-                            <label style={{ fontWeight: '700' }}>Payment Details</label>
+                    <div className={styles.paymentSection} style={vendorSettings?.transaction?.termsAndConditions ? { gridTemplateColumns: "1.2fr 1.5fr 0.2fr 1.2fr" } : { gridTemplateColumns: "1.5fr 0.5fr 1.2fr" }}>
+                        {vendorSettings?.transaction?.termsAndConditions && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', color: '#333' }}>Terms & Conditions</label>
+                                <textarea
+                                    value={termsAndCondition}
+                                    onChange={(e) => handleTermsChange(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    disabled={isViewOnly}
+                                    placeholder="Thank you for doing business with us..!"
+                                    style={{
+                                        width: '90%',
+                                        height: '140px',
+                                        padding: '12px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '6px',
+                                        background: '#fafafa',
+                                        resize: 'none',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        outline: 'none',
+                                        fontFamily: 'inherit',
+                                        cursor: isViewOnly ? 'default' : 'text'
+                                    }}
+                                />
+                            </div>
+                        )}
+                        {(!isViewOnly || (payments && payments.length > 0) || (useWallet && appliedWalletAmount > 0)) ? (
+                            <div className={styles.paymentList}>
+                                <label style={{ fontWeight: '700' }}>Payment Details</label>
                             {walletAmount > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '12px', marginTop: '-4px' }}>
                                     <input
@@ -958,7 +1131,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                         disabled={isViewOnly}
                                         style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
                                     />
-                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString()})</span>
+                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})</span>
                                 </div>
                             )}
                             {useWallet && appliedWalletAmount > 0 && (
@@ -970,64 +1143,113 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                 </div>
                             )}
                             {payments.map((p, idx) => (
-                                <div key={idx} className={styles.paymentRow} style={{ gridTemplateColumns: p.method === "UPI" || p.method === "Cheque" ? "1fr 1fr 1.2fr" : "1fr 1fr" }}>
-
-                                    <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly}>
-                                        <option value="Cash">Cash</option>
-                                        <option value="UPI">UPI</option>
-                                        <option value="Card">Card</option>
-                                        <option value="Cheque">Cheque</option>
-                                        <option value="Bank">Bank</option>
-                                    </select>
-                                    <input type="number" className={styles.input} placeholder="Amount" value={p.amount} onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)} disabled={isViewOnly} />
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", gap: '12px', alignItems: 'flex-end' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Payment Type</label>
+                                            <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }}>
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Bank">Bank</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Amount Paid</label>
+                                            <input type="number" className={styles.input} placeholder="Amount" value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount} onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }} />
+                                        </div>
+                                        {payments.length > 1 && !isViewOnly && (
+                                            <div
+                                                style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '38px' }}
+                                                onClick={() => {
+                                                    const newPayments = [...payments];
+                                                    newPayments.splice(idx, 1);
+                                                    setPayments(newPayments);
+                                                }}
+                                            >
+                                                <FiTrash2 size={16} />
+                                            </div>
+                                        )}
+                                    </div>
                                     {(p.method === "UPI" || p.method === "Cheque") && (
-                                        <input
-                                            type="text"
-                                            className={styles.input}
-                                            placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
-                                            value={p.referenceNumber || ""}
-                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>{p.method === "Cheque" ? "Cheque No" : "Reference Number"}</label>
+                                            <input
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
+                                                value={p.referenceNumber || ""}
+                                                onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                                disabled={isViewOnly}
+                                                style={{ border: '1px solid #ddd', padding: '10px' }}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             ))}
                             {!isViewOnly && (
                                 <span className={styles.addAnotherPayment} onClick={handleAddPayment}>+ Add another payment</span>
                             )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div></div>
+                        )}
                         <div className={styles.spacer}></div>
-                        <div className={styles.totalSection}>
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Sub Total</span>
-                                <span>Rs {Number(itemsSubtotal || 0).toDynamicFixed()}</span>
-                            </div>
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Discount</span>
-                                <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toDynamicFixed()}</span>
-                            </div>
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Tax</span>
-                                <span>Rs {Number(itemsTax || 0).toDynamicFixed()}</span>
-                            </div>
-                            <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
-                                <span>Total</span>
-                                <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toDynamicFixed()}</span>
+                        <div className={styles.totalSectionContainer}>
+                            <div className={styles.totalBoxGray}>
+                                <div className={styles.totalRowGray}>
+                                    <span>Total Cost</span>
+                                    <span>{currencySymbol}{Number(itemsSubtotal || 0).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+                                <div className={styles.totalRowGray}>
+                                    <span>Discount Amount</span>
+                                    <span>{currencySymbol}{Number(itemsDiscount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+                                <div className={styles.totalRowGray}>
+                                    <span>Tax Amount</span>
+                                    <span>{currencySymbol}{Number(itemsTax || 0).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+                                <div className={styles.totalRowBold} style={{ marginTop: '8px' }}>
+                                    <span>Bill Cost</span>
+                                    <span>{currencySymbol}{(isViewOnly && loadedBeforeRoundOff !== null && loadedBeforeRoundOff !== undefined ? Number(loadedBeforeRoundOff) : (totalBillAmountBeforeRound || 0)).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+
+                                <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontSize: '15px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isRoundOffChecked}
+                                            onChange={(e) => setIsRoundOffChecked(e.target.checked)}
+                                            style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: 'pointer', margin: 0, borderRadius: '4px' }}
+                                        />
+                                        Round off
+                                    </label>
+                                    <span></span>
+                                </div>
+
+                                <div className={styles.totalRowBold}>
+                                    <span>Finalized Cost</span>
+                                    <span>{currencySymbol}{Number(totalBillAmount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+
+                                {useWallet && appliedWalletAmount > 0 && (
+                                    <div className={styles.totalRowGray}>
+                                        <span>Wallet Applied</span>
+                                        <span>{currencySymbol}-{Number(appliedWalletAmount).toFixed(getAmountDecimalPlaces())}</span>
+                                    </div>
+                                )}
+                                <div className={styles.totalRowGray}>
+                                    <span>Total Paid</span>
+                                    <span>{currencySymbol}{Number(totalPaidAmount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
                             </div>
 
-                            {useWallet && appliedWalletAmount > 0 && (
-                                <div className={styles.totalRow} style={{ width: "250px" }}>
-                                    <span>Wallet Applied</span>
-                                    <span style={{ color: '#D93025' }}>Rs -{appliedWalletAmount.toLocaleString()}</span>
-                                </div>
-                            )}
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Total Paid</span>
-                                <span style={{ color: '#1E8E3E' }}>Rs {totalPaidAmount.toLocaleString()}</span>
-                            </div>
-                            <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
-                                <span>Balance</span>
-                                <span style={{ color: balanceAmount > 0 ? '#D93025' : '#1E8E3E' }}>Rs {balanceAmount.toLocaleString()}</span>
+                            <div className={styles.balanceBox}>
+                                <span className={styles.balanceLabel}>Balance Amount</span>
+                                <span className={balanceAmount > 0 ? styles.balanceValueRed : styles.balanceValueGreen}>
+                                    {currencySymbol}{balanceAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
+                                </span>
                             </div>
                         </div>
                     </div>

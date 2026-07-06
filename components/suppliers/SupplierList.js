@@ -131,7 +131,7 @@ const SupplierList = ({
                     color: Number(s.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' :
                       Number(s.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : '#333',
                     fontWeight: 600
-                  }}>{currencySymbol} {Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                  }}>{currencySymbol} {Math.abs(Number(s.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                   </td>
                 </tr>
               ))}

@@ -178,8 +178,11 @@ const useStore = create(
       getIsNotificationOpen: () => get().isNotificationOpen,
       getIsSettingsDetailOpen: () => get().isSettingsDetailOpen,
       // Clear all stored data (logout function)
-      clearStore: () =>
-        set({
+      clearStore: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('hideLowStockAlert');
+        }
+        return set({
           selectedPet: null,
 
           jwtToken: null,
@@ -212,7 +215,8 @@ const useStore = create(
           genieFilters: { petname: "", gender: "", Theme: "", letters: [] },
           selectedBranchId: null,
           expandedMenus: {},
-        }),
+        });
+      },
 
     }),
     {

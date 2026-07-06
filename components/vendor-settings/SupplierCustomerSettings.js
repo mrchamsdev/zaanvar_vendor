@@ -24,12 +24,12 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
   };
 
   /* Additional fields */
-  const additionalFields = Array.isArray(p.additionalFields) && p.additionalFields.length > 0 
-    ? p.additionalFields 
+  const additionalFields = Array.isArray(p.additionalFields) && p.additionalFields.length > 0
+    ? p.additionalFields
     : [
-        { label: "", showInPrint: false },
-        { label: "", showInPrint: false },
-      ];
+      { label: "", showInPrint: false },
+      { label: "", showInPrint: false },
+    ];
 
   const updateField = (idx, key, val) => {
     const next = additionalFields.map((f, i) =>
@@ -174,22 +174,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
           )}
         </div>
 
-        {/* ── Enable Loyalty Point ── */}
-        <div className={styles.card}>
-          <div className={styles.cardTitle}>Enable Loyalty Point</div>
 
-          <div className={styles.checkRow}>
-            <input
-              id="enableLoyaltyPoint"
-              type="checkbox"
-              className={styles.checkInput}
-              checked={p.enableLoyaltyPoint}
-              onChange={toggle("enableLoyaltyPoint")}
-            />
-            <label htmlFor="enableLoyaltyPoint" className={styles.checkLabel}>Enable Loyalty Point</label>
-            <InfoIcon tip="Enable a loyalty point program for customers." />
-          </div>
-        </div>
       </div>
     </div>
   );

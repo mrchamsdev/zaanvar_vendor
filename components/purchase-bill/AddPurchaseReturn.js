@@ -947,7 +947,7 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <input
                                     type="text"
                                     className={styles.input}
-                                    value={returnAmount ? `${currencySymbol} ${Number(returnAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` : "-"}
+                                    value={returnAmount ? `${currencySymbol} ${Number(returnAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : "-"}
                                     disabled
                                 />
                             </div>
@@ -1153,22 +1153,22 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                             )}
                                         </td>
                                         <td className={styles.priceCol}>
-                                            <div style={{ textAlign: 'center' }}>{Number(item.costPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                            <div style={{ textAlign: 'center' }}>{Number(item.costPrice || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</div>
                                         </td>
                                         <td className={styles.taxCol}>
                                             <div style={{ display: 'flex', width: '100%' }}>
                                                 <span style={{ flex: 1, textAlign: 'center' }}>{item.tax}%</span>
-                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.taxAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                         </td>
                                         <td className={styles.taxCol}>
                                             <div style={{ display: 'flex', width: '100%' }}>
                                                 <span style={{ flex: 1, textAlign: 'center' }}>{item.discount || 0}%</span>
-                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.discountAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                <span style={{ flex: 1, textAlign: 'center' }}>{Number(item.discountAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                         </td>
                                         <td className={styles.amountCol}>
-                                            <div style={{ fontWeight: '600' }}>{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</div>
+                                            <div style={{ fontWeight: '600' }}>{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</div>
                                         </td>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {!isViewOnly && items.length > 1 && (
@@ -1208,20 +1208,20 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 <tr className={styles.totalRow}>
                                     <td className={styles.totalLabel} colSpan="6" style={{ textAlign: 'left', paddingLeft: '24px' }}>TOTAL</td>
                                     <td className={styles.qtyCol}>{totalQty.toString().padStart(3, '0')}</td>
-                                    <td className={styles.priceCol}>{Number(totalPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                                    <td className={styles.priceCol}>{Number(totalPrice || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td className={styles.taxCol}>
                                         <div style={{ display: 'flex', width: '100%' }}>
                                             <span style={{ flex: 1, textAlign: 'center' }}></span>
-                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalTax || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalTax || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                         </div>
                                     </td>
                                     <td className={styles.taxCol}>
                                         <div style={{ display: 'flex', width: '100%' }}>
                                             <span style={{ flex: 1, textAlign: 'center' }}></span>
-                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalDiscount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                            <span style={{ flex: 1, textAlign: 'center' }}>{Number(totalDiscount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                         </div>
                                     </td>
-                                    <td className={styles.amountCol}>{Number(totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                    <td className={styles.amountCol}>{Number(totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                     <td></td>
                                 </tr>
                             </tbody>

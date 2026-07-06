@@ -316,7 +316,7 @@ const PaymentOutFormPage = () => {
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
-                                    value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : "—"}
+                                    value={totalBalanceAmt ? Number(totalBalanceAmt).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "—"}
                                     style={{ paddingLeft: '32px', width: '100%' }}
                                     readOnly
                                 />
@@ -329,7 +329,7 @@ const PaymentOutFormPage = () => {
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.readOnly}`}
-                                    value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : "0.00"}
+                                    value={totalBalance ? Number(totalBalance).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "0.00"}
                                     style={{ paddingLeft: '32px', width: '100%' }}
                                     readOnly
                                 />

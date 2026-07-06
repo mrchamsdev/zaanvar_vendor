@@ -277,8 +277,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
                   <td>{weightUnitVal}</td>
                   <td style={{ fontWeight: 600, color: '#ff4d4f' }}>{v.minStockAlert || "0"}</td>
                   <td>{v.numberOfPieces || v.variantType?.packCount || "-"}</td>
-                  <td>{v.mrp || "-"}</td>
-                  <td>{v.sellingPrice || "-"}</td>
+                  <td>{v.mrp ? Number(v.mrp).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "-"}</td>
+                  <td>{v.sellingPrice ? Number(v.sellingPrice).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "-"}</td>
                   <td>{
                     v.batchNumbers?.length > 0
                       ? v.batchNumbers.reduce((sum, b) => sum + Number(b.stockUpdates?.totalQuantity || b.quantity || 0), 0)
@@ -351,8 +351,8 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td style={{ fontWeight: 600 }}>{totalQty}</td>
                           <td style={{ fontWeight: 600 }}>{openQty}</td>
                           <td style={{ fontWeight: 600, color: holdQty > 0 ? '#ff4d4f' : 'inherit' }}>{holdQty}</td>
-                          <td>{currencySymbol} {bill.mrp}</td>
-                          <td>{currencySymbol} {bill.costPrice}</td>
+                          <td>{currencySymbol} {bill.mrp ? Number(bill.mrp).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "0.00"}</td>
+                          <td>{currencySymbol} {bill.costPrice ? Number(bill.costPrice).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "0.00"}</td>
                           <td>{bill.qty}</td>
                           <td>{bill.receivedQuantity}</td>
                           <td>{bill.damagedQuantity}</td>

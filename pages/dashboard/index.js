@@ -20,6 +20,7 @@ import {
   TotalSuppliersIcon,
   InventoryIcon
 } from "../../components/dashboard/DashboardIcons";
+import LowStockAlertModal from "../../components/dashboard/LowStockAlertModal";
 
 // Helper to format currency
 const formatCurrency = (val) =>
@@ -65,6 +66,9 @@ export default function DashboardHomePage() {
   const { jwtToken } = useStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const [lowStockItems, setLowStockItems] = useState([]);
+  const [isLowStockModalOpen, setIsLowStockModalOpen] = useState(false);
 
   // Initialize independent filters for each of the 8 dashboard sections
   const defaultFilter = { filter: 'thisMonth', from: '', to: '' };
@@ -123,6 +127,34 @@ export default function DashboardHomePage() {
     // For simplicity, we just trigger it immediately. In most browsers <input type="date"> fires onChange only on complete.
     fetchDashboard();
   }, [branchId, vendor?.branchId, filters]);
+
+  // Fetch low stock reports for the modal on mount
+  useEffect(() => {
+    const fetchStockReports = async () => {
+      try {
+        if (!jwtToken) return;
+        const id = branchId || vendor?.branchId || 91;
+        const webApi = new WebApimanager(jwtToken);
+        const res = await webApi.get(`vendor/products/stock-reports?branchId=${id}`);
+        const payload = res.data || res;
+        
+        if (payload && payload.status === "success" && payload.data?.lowStock) {
+          const lowStockData = payload.data.lowStock;
+          if (lowStockData.length > 0) {
+            setLowStockItems(lowStockData);
+            // Verify if already dismissed this session
+            const isHidden = localStorage.getItem('hideLowStockAlert');
+            if (isHidden !== 'true') {
+              setIsLowStockModalOpen(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch stock reports for modal", err);
+      }
+    };
+    fetchStockReports();
+  }, [branchId, vendor?.branchId]);
 
   if (loading) {
     return (
@@ -476,6 +508,12 @@ export default function DashboardHomePage() {
         </div>
 
       </div>
+
+      <LowStockAlertModal 
+          isOpen={isLowStockModalOpen}
+          onClose={() => setIsLowStockModalOpen(false)}
+          lowStockItems={lowStockItems}
+      />
     </DashboardLayout>
   );
 }

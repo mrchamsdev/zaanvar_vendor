@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import useStore from "../../components/state/useStore";
@@ -113,7 +114,7 @@ const PrintReceipt = () => {
             <div className={styles.amountRow}>
                 <span>Paid</span>
                 <span>:</span>
-                <span className={styles.amountValue}>{currencySymbol} {Number(totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className={styles.amountValue}>{currencySymbol} {Number(totalAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
             </div>
 
             <div className={styles.wordsBox}>

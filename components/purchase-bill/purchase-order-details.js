@@ -155,17 +155,17 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                 sno: String(idx + 1).padStart(2, '0'),
                 productName: item.productName,
                 variant: [item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--",
-                costPrice: item.costPrice ? `${currencySymbol} ${item.costPrice}` : "-",
+                costPrice: item.costPrice ? `${currencySymbol} ${Number(item.costPrice).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : "-",
                 orderQty: item.qty,
                 tax: "-",
                 discount: "-",
-                amount: `${currencySymbol} ${amountVal.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`
+                amount: `${currencySymbol} ${amountVal.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`
             };
         });
 
         const totalAmount = orderData.items.reduce((acc, item) => acc + (item.qty * (item.costPrice || 0)), 0);
         const summary = [
-            { label: "Total Amount", value: `${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+            { label: "Total Amount", value: `${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
         ];
 
         const formattedAddress = orderData.branchAddress?.addressText || [orderData.branchAddress?.flatNo, orderData.branchAddress?.area, orderData.branchAddress?.city, [orderData.branchAddress?.state, orderData.branchAddress?.pincode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -273,7 +273,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                                 <td style={{ textAlign: 'center', color: '#666' }}>
                                     {[item.variantType?.packType, formatVariantSize(item.variantType?.size), item.variantType?.flavor].filter(Boolean).join(" - ") || item.variantMeasure || "--"}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>{item.costPrice ? `${currencySymbol} ${item.costPrice}` : "-"}</td>
+                                <td style={{ textAlign: 'center' }}>{item.costPrice ? `${currencySymbol} ${Number(item.costPrice).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` : "-"}</td>
                                 <td style={{ textAlign: 'center' }}>
                                     <div style={{ fontWeight: '700' }}>{item.qty}</div>
                                 </td>

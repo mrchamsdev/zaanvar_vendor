@@ -1,5 +1,7 @@
 "use client";
 
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
+
 import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import {
@@ -62,7 +64,7 @@ const PetStoreDashboard = ({
             product.variants?.forEach((variant) => {
               if (variant.variantType) {
                 const size = String(variant.variantType).trim();
-                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
+                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(getAmountDecimalPlaces())}`;
                 
                 if (size && !allSizes.includes(size)) {
                   allSizes.push(size);

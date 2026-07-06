@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from "../../styles/pet-store/products.module.css";
 import { FiTrash2, FiEdit2, FiX } from "react-icons/fi";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 
 const ProductTable = ({
   products = [],
@@ -115,7 +116,7 @@ const ProductTable = ({
                     <td>{totalQty}</td>
                     <td>{openQty}</td>
                     <td>{holdQty}</td>
-                    <td className={styles.mrp}>{currencySymbol} {displayMRP}</td>
+                    <td className={styles.mrp}>{currencySymbol} {displayMRP !== "0" && displayMRP !== "-" ? Number(displayMRP).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : displayMRP}</td>
                   </tr>
                 );
               })

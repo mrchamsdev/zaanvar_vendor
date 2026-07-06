@@ -1,5 +1,6 @@
-
 "use client";
+
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -182,7 +183,7 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
             const str = String(rawGst);
             const parts = str.split(".");
             if (parts.length === 2 && parts[1].length > 2) {
-              return parseFloat(rawGst).toFixed(2);
+              return parseFloat(rawGst).toFixed(getAmountDecimalPlaces());
             }
             return str;
           })(),

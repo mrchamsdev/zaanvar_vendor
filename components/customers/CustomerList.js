@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import React from "react";
 import styles from "../../styles/customers/customers.module.css";
 import EmptyState from "../utilities/EmptyState";
@@ -161,7 +162,7 @@ const CustomerList = ({
                     {`${c.firstName || ""} ${c.lastName || ""}`.trim() || "-"}
                   </td>
                   <td>{c.phoneNumber || "-"}</td>
-                  <td className={styles.revenueCell}>{currencySymbol} {Number(c.overallTotals?.totalAmount || 0).toLocaleString()}
+                  <td className={styles.revenueCell}>{currencySymbol} {Number(c.overallTotals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                   </td>
                   <td>0</td>
                   <td>{formatDate(c.createdAt)}</td>
