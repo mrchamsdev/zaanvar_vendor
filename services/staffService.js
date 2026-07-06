@@ -46,3 +46,8 @@ export const updateStaffProfileImage = async (id, formData) => {
   });
   return response.data;
 };
+
+export const updateStaffStatus = async (id, status) => {
+  const response = await axios.put(`${BACKEND_URL}vendor-users/${id}/status`, { status });
+  return response.data;
+};

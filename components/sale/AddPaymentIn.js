@@ -13,6 +13,7 @@ import { IMAGE_URL } from "../utilities/Constants";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import LinkPaymentPopup from "../shared/link-payment-popup";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
   const currencySymbol = useCurrencySymbol();
@@ -21,6 +22,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const linkPaymentsToInvoices = getBoolSetting(vendorSettings, 'linkPaymentsToInvoices', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
@@ -32,6 +34,11 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     const [formError, setFormError] = useState('');
     const [selectedImage, setSelectedImage] = useState(null);
     const fileInputRef = useRef(null);
+
+    // Link payment states
+    const [showLinkPopup, setShowLinkPopup] = useState(false);
+    const [showHistoryPopup, setShowHistoryPopup] = useState(false);
+    const [linkedTxns, setLinkedTxns] = useState([]);
 
     const [formData, setFormData] = useState({
         vendorCustomerId: "",
@@ -294,6 +301,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setErrors({});
         setUseWallet(false);
         setSavedWalletAmount(0);
+        setLinkedTxns([]);
     };
 
     const filteredCustomers = useMemo(() => {
@@ -316,6 +324,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setErrors(prev => ({ ...prev, vendorCustomerId: undefined }));
         setUseWallet(false);
         setSavedWalletAmount(0);
+        setLinkedTxns([]);
     };
 
     const handleAddPaymentRow = () => {
@@ -447,7 +456,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
                     paymentMethods,
-                    userOrderId: formData.userOrderId ? parseInt(formData.userOrderId) : null
+                    userOrderId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].userOrderId) : (formData.userOrderId ? parseInt(formData.userOrderId) : null)
                 };
                 Object.assign(updatePayload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
                 res = await saleService.updatePayment(jwtToken, paymentId, updatePayload);
@@ -477,7 +486,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
                     paymentMethods,
-                    userOrderId: formData.userOrderId ? parseInt(formData.userOrderId) : null
+                    userOrderId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].userOrderId) : (formData.userOrderId ? parseInt(formData.userOrderId) : null)
                 };
                 Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
 
@@ -1004,31 +1013,106 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     </div>
                 </div>
 
-                <div className={styles.footer}>
-                    <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
-                    {isViewOnly && (
-                        <button className={styles.saveBtn} onClick={() => {
-                            const printUrl = `${window.location.pathname}?view=true&id=${paymentId}&print=true&pdf=true`;
-                            const iframe = document.createElement('iframe');
-                            iframe.style.position = 'fixed';
-                            iframe.style.width = '0';
-                            iframe.style.height = '0';
-                            iframe.style.border = '0';
-                            iframe.src = printUrl;
-                            document.body.appendChild(iframe);
-                            const cleanup = () => {
-                                window.removeEventListener('focus', cleanup);
-                            };
-                            window.addEventListener('focus', cleanup);
-                        }}>Print</button>
-                    )}
-                    {!isViewOnly && (
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                            {loading ? 'Saving...' : 'Save'}
-                        </button>
-                    )}
+                <div className={styles.footer} style={{ justifyContent: 'space-between' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                        {linkPaymentsToInvoices && (
+                            <button 
+                                style={{ background: '#ec4899', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '4px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                onClick={() => formData.vendorCustomerId ? setShowLinkPopup(true) : toast.error("Please select a customer first")}
+                            >
+                                Link Payment 🔗
+                            </button>
+                        )}
+                        {linkPaymentsToInvoices && linkedTxns.length > 0 && (
+                            <button 
+                                type="button" 
+                                style={{ background: 'transparent', border: '1px solid #ccc', padding: '10px 16px', borderRadius: '4px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                                onClick={() => setShowHistoryPopup(true)}
+                            >
+                                Payment History
+                            </button>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className={styles.shareBtn} onClick={onClose}>Cancel</button>
+                        {isViewOnly && (
+                            <button className={styles.saveBtn} onClick={() => {
+                                const printUrl = `${window.location.pathname}?view=true&id=${paymentId}&print=true&pdf=true`;
+                                const iframe = document.createElement('iframe');
+                                iframe.style.position = 'fixed';
+                                iframe.style.width = '0';
+                                iframe.style.height = '0';
+                                iframe.style.border = '0';
+                                iframe.src = printUrl;
+                                document.body.appendChild(iframe);
+                                const cleanup = () => {
+                                    window.removeEventListener('focus', cleanup);
+                                };
+                                window.addEventListener('focus', cleanup);
+                            }}>Print</button>
+                        )}
+                        {!isViewOnly && (
+                            <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                                {loading ? 'Saving...' : 'Save'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {showHistoryPopup && (
+                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex' }}>
+                    <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '80vh', borderRadius: '8px', margin: 'auto', width: '90%', maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
+                        <div className={styles.modalHeader}>
+                            <h3>Linked Payment History</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowHistoryPopup(false)}><FiX /></button>
+                        </div>
+                        <div className={styles.modalContent} style={{ padding: '24px' }}>
+                            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ color: '#666', borderBottom: '1px solid #ddd' }}>
+                                        <th style={{ paddingBottom: '8px' }}>Date</th>
+                                        <th style={{ paddingBottom: '8px' }}>Type</th>
+                                        <th style={{ paddingBottom: '8px' }}>Total</th>
+                                        <th style={{ paddingBottom: '8px' }}>Linked Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {linkedTxns.map((t, i) => (
+                                        <tr key={i}>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.createdAt ? new Date(t.orderDate || t.billDate || t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>Sale</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{Number(t.totalAmount || t.overallBillAmount || 0).toFixed(2)}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>{Number(t.linkedAmount).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <LinkPaymentPopup
+                isOpen={showLinkPopup}
+                onClose={() => setShowLinkPopup(false)}
+                type="paymentIn"
+                partyId={formData.vendorCustomerId}
+                partyName={formData.partyName}
+                totalPaidAmount={formData.paidAmount}
+                initialLinkedTxns={linkedTxns}
+                onDone={(selections, newPaidAmount) => {
+                    setLinkedTxns(selections);
+                    setFormData(prev => ({ ...prev, paidAmount: newPaidAmount }));
+                    setPayments(prev => {
+                        if (prev.length === 1) {
+                            return [{ ...prev[0], amount: newPaidAmount }];
+                        }
+                        return prev;
+                    });
+                    setShowLinkPopup(false);
+                }}
+            />
         </div>
     );
 };
