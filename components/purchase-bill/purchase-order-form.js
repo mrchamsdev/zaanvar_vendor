@@ -235,7 +235,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             currentStock: variant.currentQty || 0,
             variantId: variant.variantId,
             costPrice: "",
-            mrp: variant.mrp || 0,
+            mrp: variant.mrp ? Number(variant.mrp).toFixed(getAmountDecimalPlaces()) : "",
             taxGroupId: variant.taxGroupId || 1, // Default or from data
             allVariants: variants
         };
@@ -260,7 +260,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             currentStock: variant.currentQty || 0,
             variantId: variant.variantId,
             costPrice: "",
-            mrp: variant.mrp || 0,
+            mrp: variant.mrp ? Number(variant.mrp).toFixed(getAmountDecimalPlaces()) : "",
             taxGroupId: variant.taxGroupId || 1
         };
         setItems(newItems);

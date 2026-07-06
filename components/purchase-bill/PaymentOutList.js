@@ -18,7 +18,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
     const [selecting, setSelecting] = useState('start'); // 'start' or 'end'
@@ -118,7 +118,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
@@ -209,7 +209,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
@@ -329,7 +329,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 const PaymentOutList = ({ onAddClick }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
@@ -734,10 +734,10 @@ const PaymentOutList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.userTransactionDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'suppliersTransactionId', align: 'left' },
                     { header: 'SUPPLIER NAME', render: (item) => item.supplierName || item.transactionInfo || 'N/A', align: 'left' },
-                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.overallBillAmount || getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
-                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item) || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.overallBillAmount || getSupplierTotalBill(item.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item) || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
                     { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
-                    { header: 'BALANCE', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) }
+                    { header: 'BALANCE', align: 'right', render: (item) => Number((item.splitTransactions && item.splitTransactions.length ? item.splitTransactions[item.splitTransactions.length - 1].totalBalanceAmount : item.totalBalanceAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredTransactions}
                 renderExpandedRow={(t, idx) => {
@@ -754,16 +754,16 @@ const PaymentOutList = ({ onAddClick }) => {
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                             <td style={{ textAlign: 'left' }}>{split.paymentType}</td>
                             <td></td>
                         </tr>
                     ));
                 }}
                 summary={[
-                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -845,7 +845,7 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryTop}>
                             <div className={styles.summaryItem}>
                                 <span className={styles.summaryLabel}>Total Amount</span>
-                                <span className={styles.summaryValue}>{currencySymbol} {Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                <span className={styles.summaryValue}>{currencySymbol} {Number(totals?.overallBillAmount || totals?.supplierTotalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                             <div className={styles.summaryStats}>
                                 <span className={styles.percentText}>0% <FiArrowUpRight /></span>
@@ -855,11 +855,11 @@ const PaymentOutList = ({ onAddClick }) => {
                         <div className={styles.summaryBottom}>
                             <div className={styles.bottomItem}>
                                 <span className={styles.paidLabel}>Paid : </span>
-                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                             <div className={styles.bottomItem} style={{ marginLeft: 'auto' }}>
                                 <span className={styles.paidLabel}>Balance : </span>
-                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                <span className={styles.paidValue}>{currencySymbol} {Number(totals?.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                             </div>
                         </div>
                     </div>
@@ -1047,11 +1047,11 @@ const PaymentOutList = ({ onAddClick }) => {
                                                 <td>{new Date(t.userTransactionDate).toLocaleDateString('en-GB')}</td>
                                                 <td>{t.suppliersTransactionId}</td>
                                                 <td>{t.supplierName || t.transactionInfo || "N/A"}</td>
-                                                <td>{Number(t.overallBillAmount || getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
-                                                <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(t.overallBillAmount || getSupplierTotalBill(t.supplierId) || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(getDisplayTotalAmount(t) || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                 <td>{getDisplayPaymentType(t)}</td>
                                                 <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>
-                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                                 </td>
                                                 <td>
                                                     <div className={styles.actions}>
@@ -1137,7 +1137,7 @@ const PaymentOutList = ({ onAddClick }) => {
                                                     <td></td>
                                                     <td></td>
                                                     <td></td>
-                                                    <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                    <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                     <td>{split.paymentType}</td>
                                                     <td></td>
                                                     <td></td>

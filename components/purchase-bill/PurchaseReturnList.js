@@ -16,7 +16,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [viewDate, setViewDate] = useState(new Date(startDate || new Date()));
     const [selecting, setSelecting] = useState('start'); // 'start' or 'end'
@@ -116,7 +116,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
@@ -177,7 +177,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
@@ -297,7 +297,7 @@ const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
 };
 
 const PurchaseReturnList = ({ onAddClick }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
@@ -629,13 +629,13 @@ const PurchaseReturnList = ({ onAddClick }) => {
                     { header: 'RETURN ID', accessor: 'returnProductsId', align: 'left' },
                     { header: 'BILL NO', accessor: 'productsBillId', align: 'left' },
                     { header: 'SUPPLIER NAME', render: (item) => item.supplierName || 'N/A', align: 'left' },
-                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.returnAmount || 0).toLocaleString() },
-                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.totalBalanceAmount || 0).toLocaleString() }
+                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.returnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.totalBalanceAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredReturns}
                 summary={[
-                    { label: 'Total Return Amount', value: `Rs ${Number(totals.totalAmount || 0).toLocaleString()}` },
-                    { label: 'Total Balance Amount', value: `Rs ${Number(totals.totalBalance || 0).toLocaleString()}`, isTotal: true }
+                    { label: 'Total Return Amount', value: `Rs ${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Total Balance Amount', value: `Rs ${Number(totals.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -864,12 +864,12 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                         <td style={{ fontWeight: '600', color: '#333' }}>{r.returnProductsId}</td>
                                         <td>{r.productsBillId || "N/A"}</td>
                                         <td>{r.supplierName || "N/A"}</td>
-                                        <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString()}</td>
+                                        <td style={{ fontWeight: '600' }}>{Number(r.returnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td style={{
                                             fontWeight: '600',
                                             color: Number(r.totalBalanceAmount) < 0 ? '#28a745' : (Number(r.totalBalanceAmount) > 0 ? '#E9315D' : 'inherit')
                                         }}>
-                                            {Math.abs(Number(r.totalBalanceAmount || 0)).toLocaleString()}
+                                            {Math.abs(Number(r.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                         </td>
                                         <td>
                                             <div className={styles.actions}>
@@ -946,12 +946,12 @@ const PurchaseReturnList = ({ onAddClick }) => {
             {returns.length > 0 && (
                 <div className={styles.bottomSummary} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', boxSizing: 'border-box' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
-                        <span>Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span>Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
                         <span>Total Balance Amount : </span>
                         <span style={{ color: Number(totals?.totalBalance) > 0 ? '#FF4D4F' : Number(totals?.totalBalance) < 0 ? '#52c41a' : 'inherit', marginLeft: '6px' }}>
-                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                         </span>
                     </div>
                 </div>

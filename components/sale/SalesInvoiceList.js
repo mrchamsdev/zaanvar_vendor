@@ -11,7 +11,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
@@ -107,7 +107,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
@@ -168,7 +168,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
@@ -300,7 +300,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const SalesInvoiceList = ({ onAddClick }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken } = useStore();
@@ -722,15 +722,15 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.invoiceDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'INVOICE NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.invoiceNumber || '' },
                     { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : (item.partyName || "Walk-in Customer"), align: 'left' },
-                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
-                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
-                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) }
+                    { header: 'AMOUNT', align: 'right', render: (item) => Number(item.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'PAID', align: 'right', render: (item) => Number(item.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredInvoices}
                 summary={[
-                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals?.totalDueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -757,7 +757,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                 {paymentHistoryModal.payments.map((p, i) => (
                                     <div key={i} className={styles.paymentItem}>
                                         <div className={styles.paymentInfo}>
-                                            <span className={styles.paymentAmount}>{currencySymbol} {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            <span className={styles.paymentAmount}>{currencySymbol} {Number(p.amount || p.paidAmount || p.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             <span className={styles.paymentMethod}>{p.paymentMethod || p.paymentType || 'Cash'}</span>
                                         </div>
                                         <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>
@@ -823,7 +823,7 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.summaryTop}>
                         <div className={styles.summaryInfo}>
                             <div className={styles.summaryLabel}>Total Amount</div>
-                            <div className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString()}</div>
+                            <div className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</div>
                         </div>
                         <div className={styles.summaryTrend}>
                             <div className={styles.trendValue}>0% <span className={styles.trendIcon}>↗</span></div>
@@ -836,11 +836,11 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <div className={styles.summaryBottom}>
                         <div className={styles.summaryRowItem}>
                             <span className={styles.rowLabel}>Paid :</span>
-                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.paid || 0).toLocaleString()}</span>
+                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.paid || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                         <div className={styles.summaryRowItem}>
                             <span className={styles.rowLabel}>Balance :</span>
-                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.balance || 0).toLocaleString()}</span>
+                            <span className={styles.rowValue}>{currencySymbol} {Number(totals.balance || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                         </div>
                     </div>
                 </div>
@@ -1002,9 +1002,9 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                                 <td>{(parseApiToLocal(inv.invoiceDate || inv.createdDate) || new Date()).toLocaleDateString('en-GB')}</td>
                                                 <td className={styles.textBold}>{inv.userOrderId}</td>
                                                 <td>{partyName}</td>
-                                                <td className={styles.textBold}>{Number(inv.totalAmount || 0).toLocaleString()}</td>
-                                                <td>{Number(inv.paidAmount || 0).toLocaleString()}</td>
-                                                <td>{Number(inv.dueAmount || 0).toLocaleString()}</td>
+                                                <td className={styles.textBold}>{Number(inv.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(inv.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(inv.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                 <td>
                                                     <div className={styles.actions}>
                                                         <div className={styles.relativePosition}>

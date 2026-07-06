@@ -9,7 +9,7 @@ export const getAmountDecimalPlaces = () => {
 };
 
 export const getMinDecimalPlaces = () => {
-    return Math.min(2, getAmountDecimalPlaces());
+    return getAmountDecimalPlaces();
 };
 
 Number.prototype.toDynamicFixed = function() {

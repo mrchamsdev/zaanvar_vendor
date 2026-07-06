@@ -324,14 +324,14 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <label>Total Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>{currencySymbol}</span>
-                                <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
+                                <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
                             </div>
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>{currencySymbol}</span>
-                                <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
+                                <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
                             </div>
                         </div>
                     </div>
@@ -347,7 +347,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                 />
                                 <label htmlFor="useWalletPopup" style={{ cursor: 'pointer', marginBottom: 0, fontWeight: '600' }}>
-                                    Use Wallet Amount (Available: ${currencySymbol} {walletAmount.toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                    Use Wallet Amount (Available: ${currencySymbol} {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
                                 </label>
                             </div>
                             {useWallet && appliedWalletAmount > 0 && (

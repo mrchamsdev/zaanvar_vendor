@@ -143,7 +143,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                 </td>
                                 <td className={`${styles.td} ${styles.tdBold}`}>PO-{String(t.productsPurchaseRqstID || idx).padStart(5, '0')}</td>
                                 <td className={styles.td}>{t.branchname || "Main Branch"}</td>
-                                <td className={styles.td}>{t.overallBillAmount !== null && t.overallBillAmount !== undefined ? Number(t.overallBillAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : "-"}</td>
+                                <td className={styles.td}>{t.overallBillAmount !== null && t.overallBillAmount !== undefined ? Number(t.overallBillAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : "-"}</td>
                                 <td className={styles.td}>
                                     <div className={`${styles.statusText} ${t.orderStatus === 'received' ? styles.statusGreen : styles.statusOrange}`}>{typeof t.orderStatus === 'object' && t.orderStatus !== null ? (t.orderStatus.type || JSON.stringify(t.orderStatus)) : (t.orderStatus || "Order Placed")}</div>
                                     <div className={styles.subText}>
@@ -222,11 +222,11 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                                 return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : "--";
                                             })()}
                                         </td>
-                                        <td className={styles.td}>{currencySymbol} {Number(t.relatedBill?.overallBillAmount || t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
-                                        <td className={styles.td}>{currencySymbol} {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td className={styles.td}>{currencySymbol} {Number(t.relatedBill?.overallBillAmount || t.overallBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td className={styles.td}>{currencySymbol} {Number(t["previouspaid amount"] || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td className={styles.td}>{getDisplayPaymentType(t)}</td>
                                         <td className={styles.td}>{getDisplayReferenceNumber(t)}</td>
-                                        <td className={styles.td}>{currencySymbol} {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td className={styles.td}>{currencySymbol} {Number(getDisplayTotalAmount(t)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td className={styles.td}>{currencySymbol} {getDisplayBalanceAmount(t)}</td>
                                         <td className={styles.td}>
                                             {t.splitTransactions && t.splitTransactions.length > 0 && (
@@ -252,7 +252,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                                     : split.paymentType}
                                             </td>
                                             <td className={styles.td}>{split.referenceNumber || "--"}</td>
-                                            <td className={styles.td}>{currencySymbol} {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                            <td className={styles.td}>{currencySymbol} {Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
                                         </tr>
@@ -311,23 +311,23 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                             </div>
                             <div className={styles.statsGrid}>
                                 <div>
-                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totals?.[0]?.overallBillAmount || supplier?.totals?.[0]?.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
+                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totals?.[0]?.overallBillAmount || supplier?.totals?.[0]?.totalBillAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
                                     <p className={styles.infoLabel}>Total Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
+                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totals?.[0]?.totalPaidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
                                     <p className={styles.infoLabel}>Paid Amount</p>
                                 </div>
                                 <div>
                                     <p className={styles.infoValue} style={{
                                         color: Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) > 0 ? '#E9315D' :
                                             Number(supplier?.totals?.[0]?.totalBalanceAmount || 0) < 0 ? '#27AE60' : 'inherit'
-                                    }}>{currencySymbol} {Math.abs(Number(supplier?.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                                    }}>{currencySymbol} {Math.abs(Number(supplier?.totals?.[0]?.totalBalanceAmount || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                     </p>
                                     <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 408).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
+                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 408).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
                                     <p className={styles.infoLabel}>Return Amount</p>
                                 </div>
                             </div>

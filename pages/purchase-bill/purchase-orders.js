@@ -558,7 +558,7 @@ const PurchaseOrdersPage = () => {
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }).format(amount || 0);
+        return new Intl.NumberFormat('en-IN', { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }).format(amount || 0);
     };
 
     const hasFiltersApplied = useMemo(() => {

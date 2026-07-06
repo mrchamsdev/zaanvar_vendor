@@ -28,7 +28,7 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
   const handleVal = (field) => (e) => onChange({ ...g, [field]: e.target.value });
 
   const stepDecimal = (delta) => {
-    const next = Math.max(0, Math.min(10, (g.amountDecimalPlaces || 2) + delta));
+    const next = Math.max(0, Math.min(5, (g.amountDecimalPlaces || 2) + delta));
     onChange({ ...g, amountDecimalPlaces: next });
   };
 
@@ -70,10 +70,13 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
                 className={styles.stepperInput}
                 value={g.amountDecimalPlaces}
                 min={0}
-                max={10}
-                onChange={(e) =>
-                  onChange({ ...g, amountDecimalPlaces: parseInt(e.target.value) || 0 })
-                }
+                max={5}
+                onChange={(e) => {
+                  let val = parseInt(e.target.value) || 0;
+                  if (val > 5) val = 5;
+                  if (val < 0) val = 0;
+                  onChange({ ...g, amountDecimalPlaces: val });
+                }}
               />
               <div className={styles.stepperBtns}>
                 <button

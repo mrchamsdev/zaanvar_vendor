@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -41,7 +42,7 @@ const PetStoreProducts = ({ products: propProducts }) => {
               if (variant.variantType) {
                 // Use variantType as-is without splitting
                 const size = String(variant.variantType).trim();
-                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(2)}`;
+                const price = `${currencySymbol} ${parseFloat(variant.sellingPrice || 0).toFixed(getAmountDecimalPlaces())}`;
                 
                 // Add size if not already present
                 if (size && !allSizes.includes(size)) {
@@ -152,8 +153,14 @@ const PetStoreProducts = ({ products: propProducts }) => {
 
   // Filter products based on selected date filter
   const products = useMemo(() => {
+    // Filter active products first (where isActive is not false, "false", 0, or "0")
+    const activeProducts = allProducts.filter((product) => {
+      const isActive = product.isActive !== undefined ? product.isActive : (product._fullData?.isActive !== undefined ? product._fullData.isActive : true);
+      return isActive !== false && isActive !== "false" && isActive !== 0 && isActive !== "0";
+    });
+
     if (dateFilter === "All Products") {
-      return allProducts;
+      return activeProducts;
     }
     
     const now = new Date();
@@ -173,10 +180,10 @@ const PetStoreProducts = ({ products: propProducts }) => {
         startDate.setHours(0, 0, 0, 0);
         break;
       default:
-        return allProducts;
+        return activeProducts;
     }
     
-    return allProducts.filter((product) => {
+    return activeProducts.filter((product) => {
       if (!product.createdAt) return false;
       const productDate = new Date(product.createdAt);
       return productDate >= startDate && productDate <= now;

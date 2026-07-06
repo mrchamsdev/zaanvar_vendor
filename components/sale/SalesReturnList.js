@@ -11,7 +11,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import ShareModal from "./ShareModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
@@ -107,7 +107,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
@@ -169,7 +169,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
@@ -301,7 +301,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const SalesReturnList = ({ onAddClick }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken } = useStore();
@@ -731,13 +731,13 @@ const SalesReturnList = ({ onAddClick }) => {
                     { header: 'BILL NO', accessor: 'userOrderId', align: 'left' },
                     { header: 'RETURN ID', render: (item) => `SR-${item.customerReturnId}`, align: 'left' },
                     { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : 'Walk-in Customer', align: 'left' },
-                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
-                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) }
+                    { header: 'TOTAL RETURN AMOUNT', align: 'right', render: (item) => Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'TOTAL BALANCE AMOUNT', align: 'right', render: (item) => Number(item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredReturns}
                 summary={[
-                    { label: 'Total Return Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Total Balance Amount', value: `${currencySymbol}${Number(totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+                    { label: 'Total Return Amount', value: `${currencySymbol}${Number(totals?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Total Balance Amount', value: `${currencySymbol}${Number(totals?.overAllDueAmount || totals?.dueAmount || totals?.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -963,9 +963,9 @@ const SalesReturnList = ({ onAddClick }) => {
                                         <td>{r.userOrderId || "-"}</td>
                                         <td>SR-{r.customerReturnId}</td>
                                         <td>{r.customer ? `${r.customer.firstName} ${r.customer.lastName}` : `Walk-in Customer`}</td>
-                                        <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                        <td>{Number(r.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                         <td style={{ color: Number(r.dueAmount || 0) < 0 ? 'green' : 'red', fontWeight: '500' }}>
-                                            {Number(r.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                                            {Number(r.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                         </td>
                                         <td>
                                             <div className={styles.actions}>
@@ -1032,10 +1032,10 @@ const SalesReturnList = ({ onAddClick }) => {
             {returns.length > 0 && (
                 <div className={styles.bottomSummary}>
                     <div className={styles.summaryItem}>
-                        Total Return Amount : Rs {Number(computedTotals.totalReturnAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                        Total Return Amount : Rs {Number(computedTotals.totalReturnAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                     </div>
                     <div className={styles.summaryItem}>
-                        Total Balance Amount : Rs {Number(computedTotals.dueAmount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                        Total Balance Amount : Rs {Number(computedTotals.dueAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                     </div>
                 </div>
             )}

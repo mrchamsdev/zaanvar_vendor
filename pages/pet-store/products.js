@@ -40,7 +40,9 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     setLoading(true);
     const data = await productService.getProducts(jwt, productType);
-    setProducts(data);
+    const productsList = data?.products || (Array.isArray(data) ? data : []);
+    const activeProducts = productsList.filter(p => p.isActive !== false && p.isActive !== "false" && p.isActive !== 0 && p.isActive !== "0");
+    setProducts(activeProducts);
     setLoading(false);
   };
 

@@ -13,7 +13,7 @@ import ShareModal from "./ShareModal";
 import HistoryModal from "../purchase-bill/HistoryModal";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [viewDate, setViewDate] = useState(() => {
         const d = new Date(startDate);
@@ -109,7 +109,7 @@ const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInpu
 };
 
 const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode, label }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Contains');
     const [value, setValue] = useState(currentValue !== undefined && currentValue !== null ? currentValue.toString() : '');
@@ -200,7 +200,7 @@ const GeneralFilterModal = ({ onClose, onApply, type, currentValue, currentMode,
 };
 
 const DateFilterModal = ({ onClose, onApply, currentMode, currentDate }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const [mode, setMode] = useState(currentMode || 'Equal to');
     const [showOptions, setShowOptions] = useState(false);
@@ -331,7 +331,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const PaymentInList = ({ onAddClick }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
@@ -838,10 +838,10 @@ const PaymentInList = ({ onAddClick }) => {
                     { header: 'DATE', align: 'left', render: (item) => (parseApiToLocal(item.paymentDate || item.createdDate) || new Date()).toLocaleDateString('en-GB') },
                     { header: 'REF NO', accessor: 'userOrderId', align: 'left', render: (item) => item.userOrderId || item.paymentId || "" },
                     { header: 'CUSTOMER NAME', render: (item) => item.customer ? `${item.customer.firstName} ${item.customer.lastName}`.trim() : `Customer #${item.vendorCustomerId}`, align: 'left' },
-                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.totalAmount !== undefined && item.totalAmount !== null ? item.totalAmount : getCustomerTotalAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'TOTAL', align: 'right', render: (item) => Number(item.totalAmount !== undefined && item.totalAmount !== null ? item.totalAmount : getCustomerTotalAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
                     { header: 'PAYMENT TYPE', render: (item) => getDisplayPaymentType(item), align: 'left' },
-                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) },
-                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAtTime !== undefined && item.dueAtTime !== null ? item.dueAtTime : getCustomerBalanceAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) }
+                    { header: 'PAID', align: 'right', render: (item) => Number(getDisplayTotalAmount(item)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) },
+                    { header: 'BALANCE', align: 'right', render: (item) => Number(item.dueAtTime !== undefined && item.dueAtTime !== null ? item.dueAtTime : getCustomerBalanceAmount(item.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) }
                 ]}
                 items={filteredPayments}
                 renderExpandedRow={(p, idx) => {
@@ -859,15 +859,15 @@ const PaymentInList = ({ onAddClick }) => {
                             <td></td>
                             <td></td>
                             <td style={{ textAlign: 'left' }}>{split.paymentType}</td>
-                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                            <td style={{ textAlign: 'right' }}>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                             <td></td>
                         </tr>
                     ));
                 }}
                 summary={[
-                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Paid', value: `${currencySymbol}${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Balance', value: `${currencySymbol}${Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+                    { label: 'Total Amount', value: `${currencySymbol}${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Paid', value: `${currencySymbol}${Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Balance', value: `${currencySymbol}${Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -943,7 +943,7 @@ const PaymentInList = ({ onAddClick }) => {
                 <div className={styles.summaryTop}>
                     <div className={styles.summaryInfo}>
                         <span className={styles.summaryLabel}>Total Amount</span>
-                        <span className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString()}</span>
+                        <span className={styles.summaryValue}>{currencySymbol} {Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                     </div>
                     <div className={styles.summaryTrend}>
                         <span className={styles.trendValue}>0% <FiArrowUpRight className={styles.trendIcon} /></span>
@@ -954,11 +954,11 @@ const PaymentInList = ({ onAddClick }) => {
                 <div className={styles.summaryBottom}>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Paid : </span>
-                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.paidAmount || 0).toLocaleString()}</span>
+                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                     </div>
                     <div className={styles.summaryRowItem}>
                         <span className={styles.rowLabel}>Balance : </span>
-                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.dueAmount || 0).toLocaleString()}</span>
+                        <span className={styles.rowValue}>{currencySymbol} {Number(totals.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                     </div>
                 </div>
             </div>
@@ -1157,11 +1157,11 @@ const PaymentInList = ({ onAddClick }) => {
                                                     )}
                                                 </td>
                                                 <td>{p.customer ? `${p.customer.firstName} ${p.customer.lastName}` : `Customer #${p.vendorCustomerId}`}</td>
-                                                <td>{Number(p.totalAmount !== undefined && p.totalAmount !== null ? p.totalAmount : getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(p.totalAmount !== undefined && p.totalAmount !== null ? p.totalAmount : getCustomerTotalAmount(p.vendorCustomerId)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                 <td>{getDisplayPaymentType(p)}</td>
-                                                <td>{Number(getDisplayTotalAmount(p)).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                                <td>{Number(getDisplayTotalAmount(p)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                 <td style={{ color: balAmt > 0 ? '#FF4D4F' : balAmt < 0 ? '#52c41a' : 'inherit' }}>
-                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}
+                                                    {Math.abs(balAmt).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                                 </td>
                                                 <td>
                                                     <div className={styles.actions}>
@@ -1233,7 +1233,7 @@ const PaymentInList = ({ onAddClick }) => {
                                                     <td></td>
                                                     <td></td>
                                                     <td>{split.paymentType}</td>
-                                                    <td>{Number(split.amount).toLocaleString()}</td>
+                                                    <td>{Number(split.amount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                                                     <td></td>
                                                     <td></td>
                                                 </tr>

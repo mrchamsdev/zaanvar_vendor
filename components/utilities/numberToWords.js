@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 export const numberToWords = (num) => {
     if (num === 0 || isNaN(num) || num === null || num === undefined) return 'ZERO RUPEES ONLY';
     
@@ -10,7 +11,7 @@ export const numberToWords = (num) => {
         return a[Math.floor(n / 100)] + 'HUNDRED ' + (n % 100 !== 0 ? convertChunk(n % 100) : '');
     };
 
-    let nStr = String(Number(num).toFixed(2));
+    let nStr = String(Number(num).toFixed(getAmountDecimalPlaces()));
     let [rupees, paisa] = nStr.split('.');
     
     let rs = parseInt(rupees, 10);

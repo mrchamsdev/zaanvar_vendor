@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect } from "react";
@@ -319,14 +320,14 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             <label>Total Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>{currencySymbol}</span>
-                                <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
+                                <input type="text" value={totalAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
                             </div>
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
                             <div className={`${styles.inputWrapper} ${styles.readOnly}`}>
                                 <span className={styles.prefix}>{currencySymbol}</span>
-                                <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} readOnly />
+                                <input type="text" value={balanceAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })} readOnly />
                             </div>
                         </div>
                     </div>

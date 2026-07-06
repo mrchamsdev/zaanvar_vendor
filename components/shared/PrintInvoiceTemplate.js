@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styles from '../../styles/shared/print-invoice.module.css';
@@ -211,8 +212,8 @@ const PrintInvoiceTemplate = ({
                 <>
                   {processedItems.map((pi, rowIdx) => {
                     const { item, qtyVal, taxPercentVal, discPercentVal, taxAmt, discAmt } = pi;
-                    const formattedTaxAmt = taxAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    const formattedDiscAmt = discAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const formattedTaxAmt = taxAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() });
+                    const formattedDiscAmt = discAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() });
 
                     return (
                       <tr key={rowIdx}>
@@ -241,23 +242,23 @@ const PrintInvoiceTemplate = ({
                   })}
                   <tr className={styles.tableTotalRow}>
                     <td colSpan={2} className={styles.left}>TOTAL</td>
-                    <td>{totalQty % 1 !== 0 ? totalQty.toFixed(2) : totalQty.toString().padStart(2, '0')}</td>
+                    <td>{totalQty % 1 !== 0 ? totalQty.toFixed(getAmountDecimalPlaces()) : totalQty.toString().padStart(2, '0')}</td>
                     <td></td>
                     <td>{totalPrice ? totalPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : ''}</td>
                     <td style={{ padding: 0 }}>
                       <div className={styles.nestedCell}>
                         <span></span>
-                        <span>{totalTaxAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>{totalTaxAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                       </div>
                     </td>
                     <td style={{ padding: 0 }}>
                       <div className={styles.nestedCell}>
                         <span></span>
-                        <span>{totalDiscAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>{totalDiscAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                       </div>
                     </td>
                     <td className={styles.right}>
-                      {`${currencySymbol} ${totalAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      {`${currencySymbol} ${totalAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`}
                     </td>
                   </tr>
                 </>
@@ -291,7 +292,7 @@ const PrintInvoiceTemplate = ({
                 <tr key={rowIdx}>
                   <td className={styles.left}>{mode}</td>
                   <td className={styles.left}>{ref}</td>
-                  <td className={styles.right}>{currencySymbol} {parseFloat(amt).toLocaleString()}</td>
+                  <td className={styles.right}>{currencySymbol} {parseFloat(amt).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
                 </tr>
               );
             })}

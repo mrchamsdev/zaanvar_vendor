@@ -233,7 +233,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
-                    totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
+                    totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
@@ -614,15 +614,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px' }}>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Bill</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Rs ${parseFloat(prefill.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Rs ${parseFloat(prefill.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Total Paid</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e8e3e' }}>Rs ${parseFloat(prefill.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e8e3e' }}>Rs ${parseFloat(prefill.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                                 <div style={{ background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                     <span style={{ display: 'block', fontSize: '12px', color: '#64748b', fontWeight: '500', textTransform: 'uppercase' }}>Balance Due</span>
-                                    <span style={{ fontSize: '18px', fontWeight: '700', color: parseFloat(prefill.dueAmount || 0) > 0 ? '#d93025' : '#1e8e3e' }}>Rs ${parseFloat(prefill.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                    <span style={{ fontSize: '18px', fontWeight: '700', color: parseFloat(prefill.dueAmount || 0) > 0 ? '#d93025' : '#1e8e3e' }}>Rs ${parseFloat(prefill.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                 </div>
                             </div>
                             {prefill.cartItems && prefill.cartItems.length > 0 && (
@@ -643,7 +643,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                             }}>
                                                 <span style={{ fontWeight: '600' }}>${item.productName || item.product?.productName}</span>
                                                 <span style={{ color: '#64748b' }}>x${item.qty || item.quantity}</span>
-                                                <span style={{ fontWeight: '600', color: '#0f172a' }}>Rs ${parseFloat(item.amount || item.itemTotal || 0).toLocaleString(undefined, { minimumFractionDigits: Math.min(2, getAmountDecimalPlaces()), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                                <span style={{ fontWeight: '600', color: '#0f172a' }}>Rs ${parseFloat(item.amount || item.itemTotal || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -845,7 +845,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                         disabled={isViewOnly}
                                         style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
                                     />
-                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString()})</span>
+                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})</span>
                                 </div>
                             )}
                             {useWallet && appliedWalletAmount > 0 && (

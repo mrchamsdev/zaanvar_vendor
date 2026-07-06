@@ -178,6 +178,14 @@ const TransactionSettings = ({ settings, onChange }) => {
             label="Terms and Conditions"
             tip={`What is this?\nEnables you to print Terms and Conditions on Sale Invoices, Delivery Challans, Sale Orders, Estimates/Quotations, Purchases, and Purchase Orders.\n\nHow it is used?\nAfter enabling this setting, you can set transaction-specific Terms and Conditions. These will appear on invoices, and you can also customize them for each transaction.`}
           />
+
+          <CheckRow
+            id="dueDatesAndPaymentNotifications"
+            checked={t.dueDatesAndPaymentNotifications}
+            onChange={toggle("dueDatesAndPaymentNotifications")}
+            label="Due Dates and Payment Notifications"
+            tip={`What is this?\nEnables tracking of due dates and automatic notifications for pending customer payments.\n\nWhy to use?\nHelps you stay on top of outstanding invoices and automate payment reminders.`}
+          />
         </div>
 
         {/* Taxes, Discount & Totals */}
@@ -259,19 +267,20 @@ const TransactionSettings = ({ settings, onChange }) => {
           display: "flex", justifyContent: "center", alignItems: "center"
         }}>
           <div style={{
-            backgroundColor: "#333", borderRadius: 16, padding: 24, width: 340,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+            backgroundColor: "#ffffff", borderRadius: 16, padding: 24, width: 340,
+            boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+            border: "1px solid #e5e7eb",
             fontFamily: "system-ui, -apple-system, sans-serif"
           }}>
-            <p style={{ color: "#fff", fontSize: 14, fontWeight: 500, lineHeight: 1.4, margin: "0 0 24px 0", textAlign: "left" }}>
+            <p style={{ color: "#1f2937", fontSize: 14, fontWeight: 500, lineHeight: 1.4, margin: "0 0 24px 0", textAlign: "left" }}>
               According to Government there should not be tax on tax. You have enabled item wise tax, so you should not enable transaction level tax. Do you wish to continue?
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
               <button
                 onClick={() => setShowTaxModal(false)}
                 style={{
-                  flex: 1, padding: "10px 0", borderRadius: 20, border: "none",
-                  backgroundColor: "#555", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer"
+                  flex: 1, padding: "10px 0", borderRadius: 20, border: "1px solid #d1d5db",
+                  backgroundColor: "#f3f4f6", color: "#1f2937", fontSize: 14, fontWeight: 600, cursor: "pointer"
                 }}
               >
                 Cancel
@@ -283,7 +292,7 @@ const TransactionSettings = ({ settings, onChange }) => {
                 }}
                 style={{
                   flex: 1, padding: "10px 0", borderRadius: 20, border: "none",
-                  backgroundColor: "#0A7CFF", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer"
+                  backgroundColor: "#E93E64", color: "#ffffff", fontSize: 14, fontWeight: 600, cursor: "pointer"
                 }}
               >
                 Ok

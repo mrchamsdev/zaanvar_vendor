@@ -1,3 +1,4 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import { toApiDateOnly } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/purchase-bill/receive-order-form.module.css";
@@ -42,6 +43,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
+    const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("");
 
     // Form State
     const [receivedDate, setReceivedDate] = useState(toApiDateOnly(new Date()));
@@ -59,6 +61,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const [payBasedOnOrdered, setPayBasedOnOrdered] = useState(false);
     const [damagedReturnedGoods, setDamagedReturnedGoods] = useState(false);
     const [addToCreditNote, setAddToCreditNote] = useState(true);
+    const [isRoundOffChecked, setIsRoundOffChecked] = useState(false);
 
     const [overallTax, setOverallTax] = useState({ value: 0, type: '%' });
     const [overallDiscount, setOverallDiscount] = useState({ value: 0, type: '%' });
@@ -82,6 +85,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
             const res = await purchaseService.getPurchaseRequestSummary(jwtToken, requestId);
             if (res.status === "success") {
                 setOrderData(res.data);
+                setPurchaseOrderNumber(String(res.data.purchaseRequestId).padStart(6, '0'));
                 const receivedDetails = res.data.receivedDetails;
                 const rawItems = res.data.items || res.data.orderItems || [];
 
@@ -97,8 +101,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         batches = savedItems.map(savedItem => ({
                             batchNumber: savedItem.batchNumber || "",
                             expDate: savedItem.expDate || "",
-                            costPrice: savedItem.costPrice || "",
-                            mrp: savedItem.mrp || "",
+                            costPrice: savedItem.costPrice !== undefined && savedItem.costPrice !== null && savedItem.costPrice !== "" ? Number(savedItem.costPrice).toFixed(getAmountDecimalPlaces()) : "",
+                            mrp: savedItem.mrp !== undefined && savedItem.mrp !== null && savedItem.mrp !== "" ? Number(savedItem.mrp).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: savedItem.receivedQty ?? "",
                             damagedQty: savedItem.damagedQty ?? "",
                             tax: savedItem.tax ?? savedItem.taxGroupId ?? 0,
@@ -108,8 +112,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         batches = [{
                             batchNumber: "",
                             expDate: "",
-                            costPrice: item.costPrice || "",
-                            mrp: item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice || "",
+                            costPrice: item.costPrice !== undefined && item.costPrice !== null && item.costPrice !== "" ? Number(item.costPrice).toFixed(getAmountDecimalPlaces()) : "",
+                            mrp: (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== undefined && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== null && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== "" ? Number(item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: "",
                             damagedQty: "",
                             tax: item.taxGroupId ?? productInfo.taxGroupId ?? item.tax ?? productInfo.tax ?? 0,
@@ -138,7 +142,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     setOverallDiscount(receivedDetails.overallDiscount || { value: 0, type: '${currencySymbol}' });
                     setPreviousCredit(receivedDetails.previousCredit || 0);
                     setPaymentStatus(receivedDetails.paymentStatus || "Pending");
-                    setPaidAmount(receivedDetails.paidAmount ? Number(receivedDetails.paidAmount).toFixed(2) : 0);
+                    setPaidAmount(receivedDetails.paidAmount ? Number(receivedDetails.paidAmount).toFixed(getAmountDecimalPlaces()) : 0);
                     setDuedate(receivedDetails.duedate || "");
                 }
             } else {
@@ -189,8 +193,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 {
                     batchNumber: "",
                     expDate: "",
-                    costPrice: lastBatch.costPrice || "",
-                    mrp: lastBatch.mrp || "",
+                    costPrice: lastBatch.costPrice !== undefined && lastBatch.costPrice !== null && lastBatch.costPrice !== "" ? Number(lastBatch.costPrice).toFixed(getAmountDecimalPlaces()) : "",
+                    mrp: lastBatch.mrp !== undefined && lastBatch.mrp !== null && lastBatch.mrp !== "" ? Number(lastBatch.mrp).toFixed(getAmountDecimalPlaces()) : "",
                     receivedQty: "",
                     damagedQty: "",
                     tax: lastBatch.tax || 0,
@@ -302,28 +306,48 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
         const subtotal = grandTotal;
         const totalAfterGlobal = subtotal - discountVal + taxVal;
-        const finalAmount = totalAfterGlobal - previousCredit;
+        let finalAmountBeforeRound = totalAfterGlobal - previousCredit;
+        let finalAmount = finalAmountBeforeRound;
+        let roundOffAmount = 0;
 
-        return { discountVal, taxVal, subtotal, finalAmount, totalAfterGlobal };
-    }, [totals, overallTax, overallDiscount, previousCredit]);
+        if (isRoundOffChecked && vendorSettings?.transaction) {
+            const rType = vendorSettings.transaction.roundOffType || "nearest";
+            const rVal = Number(vendorSettings.transaction.roundOffValue) || 1;
+            
+            let roundedAmount = finalAmount;
+            if (rVal > 0) {
+                if (rType === "nearest") {
+                    roundedAmount = Math.round(finalAmount / rVal) * rVal;
+                } else if (rType === "down") {
+                    roundedAmount = Math.floor(finalAmount / rVal) * rVal;
+                } else if (rType === "up") {
+                    roundedAmount = Math.ceil(finalAmount / rVal) * rVal;
+                }
+                roundOffAmount = roundedAmount - finalAmountBeforeRound;
+                finalAmount = roundedAmount;
+            }
+        }
+
+        return { discountVal, taxVal, subtotal, finalAmountBeforeRound, finalAmount, totalAfterGlobal, roundOffAmount };
+    }, [totals, overallTax, overallDiscount, previousCredit, isRoundOffChecked, vendorSettings]);
 
     useEffect(() => {
         if (addTimeOnTransactions) {
             const now = new Date();
             setAmountPaidTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
         }
-    }, [cashSaleByDefault]);
+    }, [addTimeOnTransactions]);
 
     useEffect(() => {
         if (paymentStatus === "Full") {
-            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(getAmountDecimalPlaces()));
         }
     }, [breakdown.finalAmount, paymentStatus]);
 
     const handlePaymentStatusChange = (status) => {
         setPaymentStatus(status);
         if (status === "Full") {
-            setPaidAmount(Number(breakdown.finalAmount).toFixed(2));
+            setPaidAmount(Number(breakdown.finalAmount).toFixed(getAmountDecimalPlaces()));
         } else if (status === "Pending" || status === "PayLaterWithRemainder") {
             setPaidAmount(0);
         } else if (status === "Partial") {
@@ -465,6 +489,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 shortfallAmount: Number(totals.shortfallAmount),
                 shortFallApplicable: payBasedOnOrdered ? true : false,
                 bill: {
+                    billNumber: purchaseOrderNumber,
                     ...receivedDateFields,
                 },
                 billItems: items.flatMap(item =>
@@ -516,7 +541,15 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
         <div className={styles.container}>
             <div className={styles.mainContent}>
                 <div className={styles.headerSection}>
-                    <h2 className={styles.title}>Receive Purchase Order <span className={styles.requestId}>{String(orderData.purchaseRequestId).padStart(6, '0')}</span></h2>
+                    <h2 className={styles.title}>
+                        Receive Purchase Order 
+                        <input 
+                            type="text"
+                            className={styles.poNumberInput}
+                            value={purchaseOrderNumber}
+                            onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+                        />
+                    </h2>
                 </div>
 
                 <div className={styles.itemList}>
@@ -566,7 +599,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                         </div>
                                     </div>
                                     <div className={styles.headerRight}>
-                                        <div className={styles.headerTotalValue}>Total Value : <span>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                                        <div className={styles.headerTotalValue}>Total Value : <span>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span></div>
                                         <FiChevronDown className={`${styles.expandIcon} ${expandedItems[index] ? styles.expandIconActive : ""}`} />
                                     </div>
                                 </div>
@@ -636,12 +669,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                             <div className={styles.inputWrapper}>
                                                                 <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
-                                                                    type="number"
+                                                                    type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol} ${(Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) || (batch.costPrice !== "" && batch.costPrice !== undefined && batch.costPrice !== null && Number(batch.costPrice) <= 0) || (isSubmitted && (batch.costPrice === "" || batch.costPrice === undefined || batch.costPrice === null)) ? styles.inputError : ""}`}
                                                                     placeholder="0"
-                                                                    value={batch.costPrice === 0 ? "" : (batch.costPrice ?? "")}
+                                                                    value={batch.costPrice === 0 ? "" : (mode === "view" ? Number(batch.costPrice || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : (batch.costPrice ?? ""))}
                                                                     onFocus={(e) => e.target.select()}
                                                                     onChange={(e) => handleBatchChange(index, bIdx, "costPrice", e.target.value)}
+                                                                    onBlur={(e) => {
+                                                                        if (e.target.value !== "") {
+                                                                            handleBatchChange(index, bIdx, "costPrice", Number(e.target.value).toFixed(getAmountDecimalPlaces()));
+                                                                        }
+                                                                    }}
                                                                 />
                                                             </div>
                                                             {(Number(batch.costPrice) > Number(batch.mrp) && batch.mrp > 0) && (
@@ -657,12 +695,17 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                             <div className={styles.inputWrapper}>
                                                                 <span className={styles.currencySymbol}>{currencySymbol}</span>
                                                                 <input
-                                                                    type="number"
+                                                                    type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol} ${(batch.mrp !== "" && batch.mrp !== undefined && batch.mrp !== null && Number(batch.mrp) <= 0) || (isSubmitted && (batch.mrp === "" || batch.mrp === undefined || batch.mrp === null)) ? styles.inputError : ""}`}
                                                                     placeholder="0"
-                                                                    value={batch.mrp === 0 ? "" : (batch.mrp ?? "")}
+                                                                    value={batch.mrp === 0 ? "" : (mode === "view" ? Number(batch.mrp || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : (batch.mrp ?? ""))}
                                                                     onFocus={(e) => e.target.select()}
                                                                     onChange={(e) => handleBatchChange(index, bIdx, "mrp", e.target.value)}
+                                                                    onBlur={(e) => {
+                                                                        if (e.target.value !== "") {
+                                                                            handleBatchChange(index, bIdx, "mrp", Number(e.target.value).toFixed(getAmountDecimalPlaces()));
+                                                                        }
+                                                                    }}
                                                                 />
                                                             </div>
                                                             {((batch.mrp !== "" && batch.mrp !== undefined && batch.mrp !== null && Number(batch.mrp) <= 0) || (isSubmitted && (batch.mrp === "" || batch.mrp === undefined || batch.mrp === null))) && (
@@ -717,7 +760,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                                 <input
                                                                     type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol}`}
-                                                                    value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                    value={billableSubtotal.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                                                                     readOnly
                                                                 />
                                                             </div>
@@ -758,7 +801,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                                                 <input
                                                                     type="text"
                                                                     className={`${styles.input} ${styles.inputWithSymbol}`}
-                                                                    value={rowTotal.toFixed(2)}
+                                                                    value={rowTotal.toFixed(getAmountDecimalPlaces())}
                                                                     readOnly
                                                                 />
                                                             </div>
@@ -788,15 +831,15 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                         <div className={styles.itemSummary}>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Ordered Value</span>
-                                                <span className={styles.summaryValue}>{currencySymbol} {rowOrdered.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {rowOrdered.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Total Received Value</span>
-                                                <span className={styles.summaryValue}>{currencySymbol} {(totalReceived * firstCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {(totalReceived * firstCost).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                             <div className={styles.summaryItem}>
                                                 <span className={styles.summaryLabel}>Calculated Amount</span>
-                                                <span className={styles.summaryValue}>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                <span className={styles.summaryValue}>{currencySymbol} {itemRowTotal.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -920,29 +963,51 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         </div>
                         {showBreakdown && (
                             <div className={styles.breakdownContent}>
-                                <div className={styles.breakdownRow}><span>Total cost</span><span>{currencySymbol} {totals.totalCost.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Total cost</span><span>{currencySymbol} {totals.totalCost.toFixed(getAmountDecimalPlaces())}</span></div>
 
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ${currencySymbol} {totals.shortfallAmount.toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ${currencySymbol} {totals.shortfallAmount.toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
 
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- {currencySymbol} {totals.damagedAmount.toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span>Damaged Amount</span><span>- {currencySymbol} {totals.damagedAmount.toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
 
-                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {totals.discountableAmount.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Discountable Amount</span><span style={{ fontWeight: '700', color: '#000' }}>{currencySymbol} {totals.discountableAmount.toFixed(getAmountDecimalPlaces())}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- {currencySymbol} {totals.itemDiscountTotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span>Item Tax</span><span>{currencySymbol} {totals.itemTaxTotal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Discount</span><span>- {currencySymbol} {totals.itemDiscountTotal.toFixed(getAmountDecimalPlaces())}</span></div>
+                                <div className={styles.breakdownRow}><span>Item Tax</span><span>{currencySymbol} {totals.itemTaxTotal.toFixed(getAmountDecimalPlaces())}</span></div>
                                 <div className={styles.breakdownDivider} />
-                                <div className={styles.breakdownRow}><span>Subtotal</span><span>{currencySymbol} {breakdown.subtotal.toFixed(2)}</span></div>
-                                <div className={styles.breakdownRow}><span> Overall Discount</span><span>- {currencySymbol} {breakdown.discountVal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Subtotal</span><span>{currencySymbol} {breakdown.subtotal.toFixed(getAmountDecimalPlaces())}</span></div>
+                                <div className={styles.breakdownRow}><span> Overall Discount</span><span>- {currencySymbol} {breakdown.discountVal.toFixed(getAmountDecimalPlaces())}</span></div>
 
-                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>{currencySymbol} {breakdown.taxVal.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRow}><span>Overall Tax</span><span>{currencySymbol} {breakdown.taxVal.toFixed(getAmountDecimalPlaces())}</span></div>
                                 {Number(previousCredit) > 0 && (
-                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- {currencySymbol} {Number(previousCredit).toFixed(2)}</span></div>
+                                    <div className={styles.breakdownRow}><span> Previous Credit</span><span>- {currencySymbol} {Number(previousCredit).toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
-                                <div className={styles.breakdownRowBold}><span>Total</span><span>{currencySymbol} {breakdown.finalAmount.toFixed(2)}</span></div>
+                                <div className={styles.breakdownRowBold}><span>Total</span><span>{currencySymbol} {breakdown.finalAmountBeforeRound.toFixed(getAmountDecimalPlaces())}</span></div>
+                                
+                                <div className={styles.breakdownDivider} style={{ marginTop: '8px' }} />
+                                <div className={styles.breakdownRow} style={{ alignItems: 'center', marginTop: '8px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#000', fontSize: '14px' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={isRoundOffChecked}
+                                            onChange={(e) => setIsRoundOffChecked(e.target.checked)}
+                                            style={{ width: '16px', height: '16px', accentColor: '#000', cursor: 'pointer' }}
+                                        />
+                                        Round off
+                                    </label>
+                                    {isRoundOffChecked && (
+                                        <span>{breakdown.roundOffAmount >= 0 ? '+' : '-'} {currencySymbol} {Math.abs(breakdown.roundOffAmount).toFixed(getAmountDecimalPlaces())}</span>
+                                    )}
+                                </div>
+                                {isRoundOffChecked && (
+                                    <div className={styles.breakdownRowBold} style={{ marginTop: '8px' }}>
+                                        <span>Finalized Amount</span>
+                                        <span>{currencySymbol} {breakdown.finalAmount.toFixed(getAmountDecimalPlaces())}</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1055,7 +1120,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                     }}
                                     onBlur={() => {
                                         if (paidAmount) {
-                                            setPaidAmount(Number(paidAmount).toFixed(2));
+                                            setPaidAmount(Number(paidAmount).toFixed(getAmountDecimalPlaces()));
                                         }
                                     }}
                                 />

@@ -1,17 +1,37 @@
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import { getBoolSetting } from "@/utilities/settings-utils";
 import { toApiDateOnly, dateOnlyWithTimeZone } from "@/utilities/date-time-utils";
 import React, { useState, useEffect, useMemo } from "react";
 import styles from "../../styles/sale/add-sale-invoice.module.css";
-import { FiCalendar, FiChevronDown, FiTrash2, FiPrinter, FiPlus } from "react-icons/fi";
+import { FiCalendar, FiChevronDown, FiTrash2, FiPrinter, FiPlus, FiTrendingUp } from "react-icons/fi";
 import { saleService } from "../../services/saleService";
 import SalePaymentDetailsPopup from "./SalePaymentDetailsPopup";
+import CostCalculationPopup from "./CostCalculationPopup";
 import { productService } from "../../services/productService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
+import { getTermsAndConditions } from "../../services/settingsService";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+
+const convertToBulletPoints = (text) => {
+    if (!text) return "";
+    return text
+        .split('\n')
+        .map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return "";
+            if (trimmed.startsWith("• ")) return trimmed;
+            if (trimmed.startsWith("•") || trimmed.startsWith("-")) {
+                return "• " + trimmed.substring(1).trimStart();
+            }
+            return "• " + trimmed;
+        })
+        .filter(Boolean)
+        .join('\n');
+};
 
 const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
     const currencySymbol = useCurrencySymbol();
@@ -26,6 +46,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, 'calculateTaxBasedOnMrp', false);
+    const showProfitWhileMakingInvoice = getBoolSetting(vendorSettings, 'showProfitWhileMakingInvoice', false);
     const isViewOnly = mode === "view";
 
     const getActiveQty = (qty) => {
@@ -36,10 +57,10 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const subtotal = price * qty;
         const discountAmount = Math.round(((subtotal * discountPercent) / 100) * 100) / 100;
         const amtAfterDiscount = subtotal - discountAmount;
-        
+
         const taxableAmount = calculateTaxBasedOnMrp && itemMrp > 0 ? (itemMrp * qty) : amtAfterDiscount;
         const taxAmount = Math.round(((taxableAmount * taxPercent) / 100) * 100) / 100;
-        
+
         // Amount is selling price based, plus tax
         const amount = Math.round((amtAfterDiscount + taxAmount) * 100) / 100;
         return { discountAmount, taxAmount, amount };
@@ -111,9 +132,104 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [showProductDropdown, setShowProductDropdown] = useState(null); // index
     const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [showCostCalcModal, setShowCostCalcModal] = useState(false);
     const [saleInvoiceData, setSaleInvoiceData] = useState(null);
     const [useWallet, setUseWallet] = useState(false);
+    const [termsAndCondition, setTermsAndCondition] = useState("");
+
+    const handleTermsChange = (val) => {
+        if (!val) {
+            setTermsAndCondition("");
+            return;
+        }
+        
+        // If they just typed the first character in an empty box:
+        if (val.length === 1 && val !== "•" && val !== " ") {
+            setTermsAndCondition("• " + val);
+            return;
+        }
+
+        let lines = val.split('\n');
+        let formattedLines = lines.map((line) => {
+            if (line === "") return "";
+            const trimmed = line.trim();
+            if (trimmed !== "" && !line.startsWith("• ")) {
+                if (line.startsWith("•")) {
+                    return "• " + line.slice(1).trimStart();
+                }
+                if (line.startsWith("- ")) {
+                    return "• " + line.slice(2);
+                }
+                if (line.startsWith("-")) {
+                    return "• " + line.slice(1).trimStart();
+                }
+                return "• " + line;
+            }
+            return line;
+        });
+        setTermsAndCondition(formattedLines.join('\n'));
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const val = textarea.value;
+            
+            // Text before cursor and text after cursor
+            const textBefore = val.substring(0, start);
+            const textAfter = val.substring(end);
+            
+            // If the textarea is completely empty, start with a bullet point
+            let newValue;
+            let offset = 3; // length of '\n• '
+            
+            if (val === "") {
+                newValue = "• ";
+                offset = 2; // length of '• '
+            } else {
+                newValue = textBefore + '\n• ' + textAfter;
+            }
+            
+            setTermsAndCondition(newValue);
+            
+            // Set cursor position right after the newly inserted bullet point
+            setTimeout(() => {
+                textarea.selectionStart = textarea.selectionEnd = start + offset;
+            }, 0);
+        }
+    };
+
+    // Fetch default terms if enabled
+    useEffect(() => {
+        const fetchDefaultTerms = async () => {
+            if (vendorSettings?.transaction?.termsAndConditions && mode === "add" && branchId) {
+                try {
+                    const res = await getTermsAndConditions(jwtToken, branchId);
+                    let items = [];
+                    if (res && res.status === "success" || res?.status === 200) {
+                        if (Array.isArray(res.data)) items = res.data;
+                        else if (res.data && Array.isArray(res.data.data)) items = res.data.data;
+                    } else if (Array.isArray(res)) {
+                        items = res;
+                    } else if (res && Array.isArray(res.data)) {
+                        items = res.data;
+                    }
+                    const saleTerm = items.find(t => t.transactionType === "Sale Invoice");
+                    if (saleTerm) {
+                        setTermsAndCondition(convertToBulletPoints(saleTerm.termsText || ""));
+                    }
+                } catch (e) {
+                    console.error("Failed to load terms");
+                }
+            }
+        };
+        fetchDefaultTerms();
+    }, [vendorSettings?.transaction?.termsAndConditions, mode, branchId, jwtToken]);
     const [savedWalletAmount, setSavedWalletAmount] = useState(0);
+    const [isRoundOffChecked, setIsRoundOffChecked] = useState(false);
 
     const selectedCustomerObj = useMemo(() => {
         if (formData.vendorCustomerId) {
@@ -208,7 +324,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 productName: it.productName || it.product?.productName || variant.SKU || "Product",
                 unit: unitLabel,
                 qty: qty,
-                purchasePrice: parseFloat(it.purchasePrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
+                purchasePrice: parseFloat(it.purchasePrice || it.costPrice || variant.purchasePrice || variant.costPrice || variant.cost || 0),
                 mrp: parseFloat(it.mrp || variant.mrp || variant.sellingPrice || it.sellingPrice || 0),
                 price: price,
                 discount: discountPercent,
@@ -265,18 +381,22 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     });
                 }
             });
-            setPayments(nonWallet.length > 0 ? nonWallet : [{ method: "Cash", amount: 0, referenceNumber: "" }]);
-        } else if (data.paidAmount) {
+            setPayments(nonWallet);
+        } else if (data.paidAmount && parseFloat(data.paidAmount) > 0) {
             if (data.paymentMethod === "Wallet") {
                 hasWalletPayment = true;
                 walletPaidAmt = parseFloat(data.paidAmount);
-                setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: 0, referenceNumber: "" }]);
+                setPayments([]);
             } else {
                 setPayments([{ method: data.paymentMethod || "Cash", amount: parseFloat(data.paidAmount), referenceNumber: data.referenceNumber || "" }]);
             }
+        } else {
+            setPayments([]);
         }
         setUseWallet(hasWalletPayment);
         setSavedWalletAmount(walletPaidAmt);
+        setTermsAndCondition(convertToBulletPoints(data.termsAndConditions || data.termsAndCondition || ""));
+        setIsRoundOffChecked(!!data.roundOff);
     };
 
     const fetchSaleDetails = async (id) => {
@@ -632,7 +752,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         setPayments(newPayments);
     };
 
-    const totalBillAmount = items.reduce((acc, it) => acc + (it.amount || 0), 0);
+    const totalBillAmountBeforeRound = items.reduce((acc, it) => acc + (it.amount || 0), 0);
     const discountForCustomer = 0;
     const totalPaidAmount = isViewOnly && saleInvoiceData?.paidAmount !== undefined
         ? Number(saleInvoiceData.paidAmount || 0)
@@ -641,6 +761,27 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const itemsSubtotal = items.reduce((acc, it) => acc + ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 0)), 0);
     const itemsDiscount = items.reduce((acc, it) => acc + (it.discountAmount || 0), 0);
     const itemsTax = items.reduce((acc, it) => acc + (it.taxAmount || 0), 0);
+
+    let totalBillAmount = totalBillAmountBeforeRound;
+    let roundOffAmount = 0;
+
+    if (isRoundOffChecked && vendorSettings?.transaction) {
+        const rType = vendorSettings.transaction.roundOffType || "nearest";
+        const rVal = Number(vendorSettings.transaction.roundOffValue) || 1;
+        
+        let roundedAmount = totalBillAmount;
+        if (rVal > 0) {
+            if (rType === "nearest") {
+                roundedAmount = Math.round(totalBillAmount / rVal) * rVal;
+            } else if (rType === "down") {
+                roundedAmount = Math.floor(totalBillAmount / rVal) * rVal;
+            } else if (rType === "up") {
+                roundedAmount = Math.ceil(totalBillAmount / rVal) * rVal;
+            }
+            roundOffAmount = roundedAmount - totalBillAmountBeforeRound;
+            totalBillAmount = roundedAmount;
+        }
+    }
 
     const appliedWalletAmount = useMemo(() => {
         if (!useWallet) return 0;
@@ -749,11 +890,14 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             branchId,
             invoiceNumber: formData.invoiceNumber,
             vendorCustomerId: formData.vendorCustomerId,
+            billingName: formData.billingName || "",
             discountForCustomer: 0,
             amountPaid: totalPaidAmount + appliedWalletAmount,
             paymentMethod: activePayments[0]?.paymentMethod || "Cash",
             referenceNumber: activePayments[0]?.referenceNumber || "",
             payments: activePayments,
+            roundOff: isRoundOffChecked,
+            beforeRoundOff: totalBillAmountBeforeRound,
             paymentMethods: activePayments.map(p => ({
                 paymentMethod: p.paymentMethod,
                 paymentType: p.paymentType,
@@ -762,7 +906,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 transactionRef: p.referenceNumber,
                 referenceNumber: p.referenceNumber
             })),
-            items: validItems.map((it) => ({
+            items: validItems.map((it, idx) => ({
                 productId: it.productId,
                 variantId: it.variantId,
                 batchNumber: it.batchNumber || null,
@@ -772,11 +916,12 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 sellingPrice: it.price,
                 taxPercentage: it.taxPercent,
                 taxAmount: it.taxAmount,
-                itemTotal: it.amount,
+                itemTotal: idx === validItems.length - 1 ? (it.amount + roundOffAmount) : it.amount,
                 openQty: parseInt(it.availableQty) || 0
             })),
             createdBy: userInfo?.id || 1,
-            modifiedBy: mode === "edit" ? userInfo?.id || 1 : null
+            modifiedBy: mode === "edit" ? userInfo?.id || 1 : null,
+            termsAndConditions: termsAndCondition || ""
         };
 
         Object.assign(payload, dateOnlyWithTimeZone("invoiceDate", formData.invoiceDate));
@@ -834,19 +979,19 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
         const summary = [
             { label: "Total Quantity", value: totalQty },
-            { label: "Subtotal", value: subtotal.toFixed(2) },
-            { label: "Total Discount", value: totalDiscount.toFixed(2) },
-            { label: "Total Tax", value: totalTax.toFixed(2) }
+            { label: "Subtotal", value: subtotal.toFixed(getAmountDecimalPlaces()) },
+            { label: "Total Discount", value: totalDiscount.toFixed(getAmountDecimalPlaces()) },
+            { label: "Total Tax", value: totalTax.toFixed(getAmountDecimalPlaces()) }
         ];
 
         if (useWallet && appliedWalletAmount > 0) {
-            summary.push({ label: "Wallet Applied", value: `-${appliedWalletAmount.toFixed(2)}` });
+            summary.push({ label: "Wallet Applied", value: `-${appliedWalletAmount.toFixed(getAmountDecimalPlaces())}` });
         }
 
         summary.push(
-            { label: "Grand Total", value: totalBillAmount.toFixed(2), isTotal: true },
-            { label: "Amount Paid", value: totalPaidAmount.toFixed(2) },
-            { label: "Balance Due", value: balanceAmount.toFixed(2) }
+            { label: "Grand Total", value: totalBillAmount.toFixed(getAmountDecimalPlaces()), isTotal: true },
+            { label: "Amount Paid", value: totalPaidAmount.toFixed(getAmountDecimalPlaces()) },
+            { label: "Balance Due", value: balanceAmount.toFixed(getAmountDecimalPlaces()) }
         );
 
         return (
@@ -1219,13 +1364,13 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                     </td>
                                     {vendorSettings?.transaction?.displayPurchasePriceOfItems && (
                                         <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "90px", textAlign: "center", fontWeight: "700", color: "#666" }}>
-                                            {Number(it.purchasePrice || 0).toFixed(2)}
+                                            {Number(it.purchasePrice || 0).toFixed(getAmountDecimalPlaces())}
                                         </td>
                                     )}
                                     <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "60px", width: "60px", maxWidth: "60px" }}>
                                         {isViewOnly ? (
                                             <div style={{ textAlign: "center", fontWeight: "700" }}>
-                                                {Number(it.price || 0).toFixed(2)}
+                                                {Number(it.price || 0).toFixed(getAmountDecimalPlaces())}
                                             </div>
                                         ) : (
                                             <input
@@ -1238,7 +1383,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                         )}
                                     </td>
                                     <td style={{ fontWeight: "700", textAlign: "center" }}>{it.taxPercent}%</td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.taxAmount || 0).toFixed(2)}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.taxAmount || 0).toFixed(getAmountDecimalPlaces())}</td>
                                     <td style={{ verticalAlign: "top", paddingTop: "12px", minWidth: "45px", width: "45px", maxWidth: "45px" }}>
                                         {isViewOnly ? (
                                             <div style={{ textAlign: "center", fontWeight: "600" }}>
@@ -1254,8 +1399,8 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                             />
                                         )}
                                     </td>
-                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.discountAmount || 0).toFixed(2)}</td>
-                                    <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(it.amount || 0).toFixed(2)}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "center" }}>{Number(it.discountAmount || 0).toFixed(getAmountDecimalPlaces())}</td>
+                                    <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(it.amount || 0).toFixed(getAmountDecimalPlaces())}</td>
                                     {!isViewOnly && (
                                         <td>
                                             {idx !== 0 && (
@@ -1277,15 +1422,15 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 </td>
                                 {vendorSettings?.transaction?.displayPurchasePriceOfItems && (
                                     <td style={{ fontWeight: "600", textAlign: "center" }}>
-                                        {Number(items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0)).toFixed(2)}
+                                        {Number(items.reduce((acc, it) => acc + (it.purchasePrice || 0), 0)).toFixed(getAmountDecimalPlaces())}
                                     </td>
                                 )}
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.price || 0), 0)).toFixed(2)}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.price || 0), 0)).toFixed(getAmountDecimalPlaces())}</td>
                                 <td></td>
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.taxAmount || 0), 0)).toFixed(2)}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.taxAmount || 0), 0)).toFixed(getAmountDecimalPlaces())}</td>
                                 <td></td>
-                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.discountAmount || 0), 0)).toFixed(2)}</td>
-                                <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(totalBillAmount || 0).toFixed(2)}</td>
+                                <td style={{ fontWeight: "600", textAlign: "center" }}>{Number(items.reduce((acc, it) => acc + (it.discountAmount || 0), 0)).toFixed(getAmountDecimalPlaces())}</td>
+                                <td style={{ fontWeight: "700", textAlign: "right" }}>{Number(totalBillAmount || 0).toFixed(getAmountDecimalPlaces())}</td>
                                 {!isViewOnly && <td></td>}
                             </tr>
                         </tbody>
@@ -1297,82 +1442,112 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     )}
                 </div>
 
-                <div className={styles.paymentSection}>
-                    {!isViewOnly ? (
+                <div className={styles.paymentSection} style={vendorSettings?.transaction?.termsAndConditions ? { gridTemplateColumns: "1.2fr 1.5fr 0.2fr 1.2fr" } : { gridTemplateColumns: "1.5fr 0.5fr 1.2fr" }}>
+                    {vendorSettings?.transaction?.termsAndConditions && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Terms & Conditions</h3>
+                                <textarea
+                                    value={termsAndCondition}
+                                    onChange={(e) => handleTermsChange(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    disabled={isViewOnly}
+                                    placeholder="Thank you for doing business with us..!"
+                                    style={{
+                                        width: '100%',
+                                        height: '140px',
+                                        padding: '12px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '6px',
+                                        background: '#fafafa',
+                                        resize: 'none',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        outline: 'none',
+                                        fontFamily: 'inherit',
+                                        cursor: isViewOnly ? 'default' : 'text'
+                                    }}
+                                />
+                        </div>
+                    )}
+                    {(!isViewOnly || (payments && payments.length > 0) || (useWallet && appliedWalletAmount > 0)) ? (
                         <div className={styles.paymentList}>
-                            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
-                            {availableWalletAmount > 0 && (
-                                <div className={styles.walletToggle} onClick={() => setUseWallet(!useWallet)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={useWallet}
-                                        readOnly
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
-                                    />
-                                    <span style={{ fontWeight: '600', marginLeft: '8px' }}>
-                                        Use Wallet Amount (Available: ${currencySymbol} {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                                    </span>
-                                    {useWallet && appliedWalletAmount > 0 && (
-                                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
-                                            Applied: {currencySymbol} {appliedWalletAmount.toFixed(2)}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {payments.map((p, idx) => (
-                                <div key={idx} className={styles.paymentEntry} style={{ position: 'relative' }}>
-                                    <div className={styles.paymentRow} style={{ gridTemplateColumns: payments.length > 1 ? "1fr 1fr 24px" : "1fr 1fr", display: 'grid', gap: '12px', }}>
-                                        <div className={styles.field}>
-                                            {idx === 0 && <label>payment type</label>}
-                                            <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)}>
-                                                <option value="" disabled hidden>Select Payment Type</option>
-                                                <option value="Cash">Cash</option>
-                                                <option value="UPI">UPI</option>
-                                                <option value="Card">Card</option>
-                                                <option value="Cheque">Cheque</option>
-                                                <option value="Bank">Bank</option>
-                                            </select>
-                                        </div>
-                                        <div className={styles.field}>
-                                            {idx === 0 && <label>amount paid</label>}
-                                            <input
-                                                type="number"
-                                                className={styles.input}
-                                                value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
-                                                placeholder="0"
-                                                onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
-                                            />
-                                        </div>
-                                        {payments.length > 1 && (
-                                            <div
-                                                style={{ marginTop: idx === 0 ? '24px' : '0', color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                onClick={() => {
-                                                    const newPayments = [...payments];
-                                                    newPayments.splice(idx, 1);
-                                                    setPayments(newPayments);
-                                                }}
-                                            >
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                            </div>
-                                        )}
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
+                        {availableWalletAmount > 0 && (
+                            <div className={styles.walletToggle} onClick={() => !isViewOnly && setUseWallet(!useWallet)} style={{ cursor: isViewOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={useWallet}
+                                    disabled={isViewOnly}
+                                    style={{ width: '16px', height: '16px', cursor: isViewOnly ? 'not-allowed' : 'pointer', margin: 0 }}
+                                />
+                                <span style={{ fontWeight: '600', marginLeft: '8px' }}>
+                                    Use Wallet Amount (Available: {currencySymbol} {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                </span>
+                                {useWallet && appliedWalletAmount > 0 && (
+                                    <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
+                                        Applied: {currencySymbol} {appliedWalletAmount.toFixed(getAmountDecimalPlaces())}
                                     </div>
-                                    {(p.method === "UPI" || p.method === "Cheque") && (
-                                        <div className={styles.field} style={{ marginTop: "12px" }}>
-                                            <label>{p.method === "Cheque" ? "check no" : "reference number"}</label>
-                                            <input
-                                                type="text"
-                                                className={styles.input}
-                                                placeholder="****************"
-                                                value={p.referenceNumber || ""}
-                                                onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                            />
+                                )}
+                            </div>
+                        )}
+                        {payments.map((p, idx) => (
+                            <div key={idx} className={styles.paymentEntry} style={{ position: 'relative', marginBottom: '12px' }}>
+                                <div className={styles.paymentRow} style={{ gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", display: 'grid', gap: '12px', alignItems: 'flex-end' }}>
+                                    <div className={styles.field}>
+                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>payment type</label>
+                                        <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
+                                            <option value="" disabled hidden>Select Payment Type</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Card">Card</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Bank">Bank</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>amount paid</label>
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
+                                            placeholder="0"
+                                            onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
+                                            disabled={isViewOnly}
+                                        />
+                                    </div>
+                                    {payments.length > 1 && !isViewOnly && (
+                                        <div
+                                            style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            onClick={() => {
+                                                const newPayments = [...payments];
+                                                newPayments.splice(idx, 1);
+                                                setPayments(newPayments);
+                                            }}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                {(p.method === "UPI" || p.method === "Cheque") && (
+                                    <div className={styles.field} style={{ marginTop: "12px" }}>
+                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>{p.method === "Cheque" ? "check no" : "reference number"}</label>
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            placeholder="****************"
+                                            value={p.referenceNumber || ""}
+                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                            disabled={isViewOnly}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        {!isViewOnly && (
                             <span className={styles.addAnotherPayment} onClick={handleAddPayment}>
                                 + Add another payment
                             </span>
+                        )}
                         </div>
                     ) : (
                         <div></div>
@@ -1380,80 +1555,115 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
                     <div className={styles.spacer}></div>
 
-                    <div className={styles.totalSection}>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Sub Total</span>
-                            <span>Rs {Number(itemsSubtotal || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Discount</span>
-                            <span style={{ color: '#D93025' }}>Rs -{Number(itemsDiscount || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Tax</span>
-                            <span>Rs {Number(itemsTax || 0).toFixed(2)}</span>
-                        </div>
-                        <div className={`${styles.totalRow}`} style={{ width: "250px" }}>
-                            <span>Total</span>
-                            <span style={{ fontWeight: '700' }}>Rs {Number(totalBillAmount || 0).toFixed(2)}</span>
-                        </div>
-
-                        {useWallet && appliedWalletAmount > 0 && (
-                            <div className={styles.totalRow} style={{ width: "250px" }}>
-                                <span>Wallet Applied</span>
-                                <span style={{ color: '#D93025' }}>Rs -{Number(appliedWalletAmount).toFixed(2)}</span>
+                    <div className={styles.totalSectionContainer}>
+                        <div className={styles.totalBoxGray}>
+                            <div className={styles.totalRowGray}>
+                                <span>Total Cost</span>
+                                <span>{currencySymbol}{Number(itemsSubtotal || 0).toFixed(getAmountDecimalPlaces())}</span>
                             </div>
-                        )}
-                        <div className={styles.totalRow} style={{ width: "250px" }}>
-                            <span>Total Paid</span>
-                            <span style={{ color: "#1E8E3E" }}>Rs {Number(totalPaidAmount || 0).toFixed(2)}</span>
+                            <div className={styles.totalRowGray}>
+                                <span>Discount Amount</span>
+                                <span>{currencySymbol}{Number(itemsDiscount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                            </div>
+                            <div className={styles.totalRowGray}>
+                                <span>Tax Amount</span>
+                                <span>{currencySymbol}{Number(itemsTax || 0).toFixed(getAmountDecimalPlaces())}</span>
+                            </div>
+                            <div className={styles.totalRowBold} style={{ marginTop: '8px' }}>
+                                <span>Bill Cost</span>
+                                <span>{currencySymbol}{(isViewOnly && saleInvoiceData?.beforeRoundOff !== undefined && saleInvoiceData?.beforeRoundOff !== null ? Number(saleInvoiceData.beforeRoundOff) : (totalBillAmountBeforeRound || 0)).toFixed(getAmountDecimalPlaces())}</span>
+                            </div>
+
+                            <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontSize: '15px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isRoundOffChecked}
+                                        onChange={(e) => setIsRoundOffChecked(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: 'pointer', margin: 0, borderRadius: '4px' }}
+                                    />
+                                    Round off
+                                </label>
+                                <span></span>
+                            </div>
+
+                            <div className={styles.totalRowBold}>
+                                <span>Finalized Cost</span>
+                                <span>{currencySymbol}{Number(totalBillAmount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                            </div>
+
+                            {useWallet && appliedWalletAmount > 0 && (
+                                <div className={styles.totalRowGray}>
+                                    <span>Wallet Applied</span>
+                                    <span>{currencySymbol}-{Number(appliedWalletAmount).toFixed(getAmountDecimalPlaces())}</span>
+                                </div>
+                            )}
+                            <div className={styles.totalRowGray}>
+                                <span>Total Paid</span>
+                                <span>{currencySymbol}{Number(totalPaidAmount || 0).toFixed(getAmountDecimalPlaces())}</span>
+                            </div>
                         </div>
-                        <div className={`${styles.totalRow} ${styles.main}`} style={{ width: "250px" }}>
-                            <span>Balance</span>
-                            <span style={{ color: balanceAmount > 0 ? "#D93025" : "#1E8E3E" }}>Rs {Number(balanceAmount || 0).toFixed(2)}</span>
+                        
+                        <div className={styles.balanceBox}>
+                            <span className={styles.balanceLabel}>Balance Amount</span>
+                            <span className={balanceAmount > 0 ? styles.balanceValueRed : styles.balanceValueGreen}>
+                                {currencySymbol}{balanceAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
+                            </span>
                         </div>
                     </div>
                 </div>
 
-                <div className={styles.footer}>
-                    <button className={styles.shareBtn} onClick={onCancel}>
-                        Cancel
-                    </button>
-                    {isViewOnly && (
-                        <>
-                            {saleInvoiceData?.billStatus !== "Full" && balanceAmount > 0 && (
-                                <button
-                                    className={styles.saveBtn}
-                                    onClick={() => setPaymentModalOpen(true)}
-                                    style={{ marginRight: '12px', background: '#000' }}
-                                >
-                                    Make Payment
-                                </button>
-                            )}
-                            <button className={styles.saveBtn} onClick={() => {
-                                const printUrl = `${window.location.pathname}?view=true&id=${saleId || formData.userOrderId}&print=true&pdf=true`;
-                                const iframe = document.createElement('iframe');
-                                iframe.style.position = 'fixed';
-                                iframe.style.width = '0';
-                                iframe.style.height = '0';
-                                iframe.style.border = '0';
-                                iframe.src = printUrl;
-                                document.body.appendChild(iframe);
-                                const cleanup = () => {
-                                    window.removeEventListener('focus', cleanup);
-                                    setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
-                                };
-                                window.addEventListener('focus', cleanup);
-                            }} >
-                                Print Invoice
-                            </button>
-                        </>
-                    )}
-                    {!isViewOnly && (
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                            {loading ? "Saving..." : "Save Invoice"}
+                <div className={styles.minimizedBar}>
+                    {showProfitWhileMakingInvoice && (
+                        <button
+                            className={styles.profitBtn}
+                            onClick={() => setShowCostCalcModal(true)}
+                            title="Cost Calculation"
+                        >
+                            <FiTrendingUp className={styles.profitIcon} />
                         </button>
                     )}
+
+                    <div className={styles.minimizedActions}>
+                        <button className={styles.shareBtn} onClick={onCancel} style={{ margin: 0 }}>
+                            Cancel
+                        </button>
+                        {isViewOnly && (
+                            <>
+                                {saleInvoiceData?.billStatus !== "Full" && balanceAmount > 0 && (
+                                    <button
+                                        className={styles.saveBtn}
+                                        onClick={() => setPaymentModalOpen(true)}
+                                        style={{ background: '#000', margin: 0 }}
+                                    >
+                                        Make Payment
+                                    </button>
+                                )}
+                                <button className={styles.saveBtn} onClick={() => {
+                                    const printUrl = `${window.location.pathname}?view=true&id=${saleId || formData.userOrderId}&print=true&pdf=true`;
+                                    const iframe = document.createElement('iframe');
+                                    iframe.style.position = 'fixed';
+                                    iframe.style.width = '0';
+                                    iframe.style.height = '0';
+                                    iframe.style.border = '0';
+                                    iframe.src = printUrl;
+                                    document.body.appendChild(iframe);
+                                    const cleanup = () => {
+                                        window.removeEventListener('focus', cleanup);
+                                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1000);
+                                    };
+                                    window.addEventListener('focus', cleanup);
+                                }} style={{ margin: 0 }}>
+                                    Print Invoice
+                                </button>
+                            </>
+                        )}
+                        {!isViewOnly && (
+                            <button className={styles.saveBtn} onClick={handleSave} disabled={loading} style={{ margin: 0, background: '#000', color: '#fff' }}>
+                                {loading ? "Saving..." : "Save Invoice"}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -1480,6 +1690,15 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     }}
                 />
             )}
+
+            <CostCalculationPopup
+                isOpen={showCostCalcModal}
+                onClose={() => setShowCostCalcModal(false)}
+                items={items}
+                subtotal={itemsSubtotal}
+                totalTax={itemsTax}
+                invoiceDate={formData.invoiceDate}
+            />
         </div>
     );
 };

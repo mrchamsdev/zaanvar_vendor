@@ -650,3 +650,25 @@
         width: 100%;
     }
 }
+
+.poNumberInput {
+    border: 1px dashed transparent;
+    background: transparent;
+    font-size: inherit;
+    font-weight: inherit;
+    color: var(--color-primary);
+    width: 140px;
+    outline: none;
+    transition: all 0.2s;
+    padding: 0 4px;
+    font-family: inherit;
+}
+
+.poNumberInput:hover {
+    border-bottom-color: var(--color-border-light);
+}
+
+.poNumberInput:focus {
+    border-bottom-color: var(--color-primary);
+    background: var(--color-bg-subtle);
+}

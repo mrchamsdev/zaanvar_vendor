@@ -37,6 +37,46 @@ export const updateSettings = async (jwtToken, payload) => {
 };
 
 /**
+ * Fetch all terms and conditions
+ * GET /api/vendor/terms-and-conditions?branchId={branchId}
+ */
+export const getTermsAndConditions = async (jwtToken, branchId) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.get(`vendor/terms-and-conditions?branchId=${branchId}`);
+  return res;
+};
+
+/**
+ * Fetch term by id
+ * GET /api/vendor/terms-and-conditions/{id}
+ */
+export const getTermAndConditionById = async (jwtToken, id) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.get(`vendor/terms-and-conditions/${id}`);
+  return res;
+};
+
+/**
+ * Create/Update term and condition
+ * POST /api/vendor/terms-and-conditions
+ */
+export const createTermAndCondition = async (jwtToken, payload) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.post("vendor/terms-and-conditions", payload);
+  return res;
+};
+
+/**
+ * Delete term and condition
+ * DELETE /api/vendor/terms-and-conditions/{id}
+ */
+export const deleteTermAndCondition = async (jwtToken, id) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.delete(`vendor/terms-and-conditions/${id}`);
+  return res;
+};
+
+/**
  * Default settings payload — mirrors the API spec.
  */
 export const DEFAULT_SETTINGS = {
@@ -74,6 +114,7 @@ export const DEFAULT_SETTINGS = {
     linkPaymentsToInvoices: false,
     showProfitWhileMakingInvoice: false,
     termsAndConditions: false,
+    dueDatesAndPaymentNotifications: false,
     inclusiveExclusiveTaxOnRate: false,
     displayPurchasePriceOfItems: true,
     transactionWiseTax: false,

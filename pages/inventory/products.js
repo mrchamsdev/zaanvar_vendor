@@ -141,6 +141,10 @@ const ProductsPage = () => {
         rowsPerPage
       );
       const normalizedProducts = (result.products || []).reduce((acc, p) => {
+        if (p.isActive === false || p.isActive === "false" || p.isActive === 0 || p.isActive === "0") {
+          return acc;
+        }
+
         let activeVariants = p.variants || [];
         if (manageItemStatus) {
           activeVariants = activeVariants.filter(v => v.isActive === true || v.isActive === "true");
