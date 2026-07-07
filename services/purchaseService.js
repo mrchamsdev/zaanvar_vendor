@@ -278,5 +278,27 @@ export const purchaseService = {
       console.error("Error fetching supplier details:", error);
       return { status: "error" };
     }
+  },
+
+  getSupplierGroups: async (jwt, branchId) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.get(`vendor/supplier-groups/branch/${branchId}`);
+      return response?.data || { status: "error", data: [] };
+    } catch (error) {
+      console.error("Error fetching supplier groups:", error);
+      return { status: "error", data: [] };
+    }
+  },
+
+  createSupplierGroup: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    try {
+      const response = await webApi.post(`vendor/supplier-groups`, data);
+      return response || { status: "error" };
+    } catch (error) {
+      console.error("Error creating supplier group:", error);
+      return { status: "error" };
+    }
   }
 };

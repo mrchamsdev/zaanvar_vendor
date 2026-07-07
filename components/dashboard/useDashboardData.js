@@ -85,13 +85,14 @@ export default function useDashboardData(options = {}) {
 
   // Set default branch if none selected or if the selected one is no longer in the fetched branches (e.g., deleted)
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (branches.length > 0) {
       const isValidSelected = branches.find(b => String(b.id) === String(selectedBranchId));
       if (!selectedBranchId || !isValidSelected) {
         setSelectedBranchId(branches[0].id || branches[0]._id);
       }
     }
-  }, [branches, selectedBranchId, setSelectedBranchId]);
+  }, [branches, selectedBranchId, setSelectedBranchId, _hasHydrated]);
 
   const currentBranchId = selectedBranchId || vendor?.branchId || null;
   const branch = branches.find(b => String(b.id) === String(currentBranchId)) || branches[0] || null;

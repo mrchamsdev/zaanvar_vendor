@@ -122,7 +122,7 @@ const UnitPopup = ({ isOpen, onClose, primaryUnit, secondaryUnit, conversion, on
 };
 
 const AddProduct = ({ onClose, editProductId = null, productType: initialProductType = "retail" }) => {
-  const { getJwtToken } = useStore();
+  const { getJwtToken, selectedBranchId } = useStore();
   const jwt = getJwtToken();
   const isEditMode = !!editProductId;
   const modalRef = useRef(null);
@@ -315,6 +315,7 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
         }
       });
       data.append('productType', productType);
+      data.append('branchId', selectedBranchId || 1);
 
       images.forEach(img => {
         if (img.file) {

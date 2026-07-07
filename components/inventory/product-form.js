@@ -150,13 +150,24 @@ const ProductForm = ({
   onBack,
   productType: propType,
 }) => {
-  const { jwtToken, userInfo } = useStore();
-  const { selectedBranchId: globalBranchId } = useDashboardData({
-    skipReviews: true,
-  });
+  const { jwtToken, userInfo, selectedBranchId } = useStore();
   const [branchId, setBranchId] = useState(
-    initialData?.branchId || globalBranchId || userInfo?.branchId || 91,
+    initialData?.branchId || selectedBranchId || userInfo?.branchId || 91,
   );
+
+  useEffect(() => {
+    if (!initialData?.branchId && selectedBranchId) {
+      setBranchId(selectedBranchId);
+    }
+  }, [selectedBranchId, initialData]);
+
+  console.log("[ProductForm Debug]", {
+    initialDataBranchId: initialData?.branchId,
+    selectedBranchId,
+    userInfoBranchId: userInfo?.branchId,
+    resolvedBranchIdState: branchId
+  });
+
   const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
   const isEdit = !!initialData?.productId;
   const hasPurchaseOrder = isEdit && Array.isArray(initialData?.productsBillItems) && initialData.productsBillItems.length > 0;
