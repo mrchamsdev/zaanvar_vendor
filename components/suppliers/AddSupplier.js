@@ -29,6 +29,13 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const [country, setCountry] = useState("India");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
 
+    const [groupName, setGroupName] = useState("");
+    const [supplierGroups, setSupplierGroups] = useState([]);
+    const [showGroupPopup, setShowGroupPopup] = useState(false);
+    const [newGroupName, setNewGroupName] = useState("");
+
+    const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
+
     // Available options
     const supplierTypes = [
         { id: 'Wholesaler', name: 'Wholesaler' },
@@ -43,6 +50,25 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const branchesList = (userInfo?.vendorCompanies || []).flatMap(co =>
         (co.branches || []).map(br => ({ id: br.id, name: br.name }))
     );
+
+    const fetchSupplierGroups = async () => {
+        const activeBranchId = Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id) || 1;
+        if (!activeBranchId) return;
+        try {
+            const res = await purchaseService.getSupplierGroups(jwtToken, activeBranchId);
+            if (res.status === "success" || res.status === 200) {
+                setSupplierGroups(res.data || []);
+            }
+        } catch (e) {
+            console.error("Error fetching supplier groups:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen && showSupplierGrouping) {
+            fetchSupplierGroups();
+        }
+    }, [isOpen, branchId, selectedBranchIds, vendorSettings]);
 
     useEffect(() => {
         if (mode === 'edit' && supplierId) {
@@ -69,12 +95,40 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 setAreaPinCode(data.areaPinCode || "");
                 setCountry(data.country || "India");
                 setSelectedBranchIds(data.branches?.map(b => b.id) || []);
+                setGroupName(data.groupName || "");
             }
         } catch (e) {
             console.error(e);
             toast.error("Failed to fetch supplier details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveGroup = async () => {
+        if (!newGroupName || !newGroupName.trim()) {
+            toast.error("Please enter group name");
+            return;
+        }
+        const activeBranchId = branchId || selectedBranchIds[0] || branchesList[0]?.id || 1;
+        try {
+            const groupPayload = {
+                branchId: parseInt(activeBranchId) || 1,
+                name: newGroupName.trim()
+            };
+            const res = await purchaseService.createSupplierGroup(jwtToken, groupPayload);
+            if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
+                toast.success("Group created successfully");
+                await fetchSupplierGroups();
+                setGroupName(newGroupName.trim());
+                setNewGroupName("");
+                setShowGroupPopup(false);
+            } else {
+                toast.error(res.message || "Failed to create group");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("An error occurred while creating group");
         }
     };
 
@@ -98,7 +152,8 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             areaPinCode: parseInt(areaPinCode) || 0,
             country,
             createdBy: userInfo?.userId || 1,
-            branchIds: selectedBranchIds
+            branchIds: selectedBranchIds,
+            ...(showSupplierGrouping ? { groupName } : {})
         };
 
         setLoading(true);
@@ -186,6 +241,34 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                 />
                             </div>
                         )}
+                        {showSupplierGrouping && (
+                            <div className={styles.field}>
+                                <label>Group Name</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select 
+                                        className={styles.select} 
+                                        style={{ appearance: 'none', width: '100%', paddingRight: '40px' }} 
+                                        value={groupName} 
+                                        onChange={(e) => {
+                                            if (e.target.value === "ADD_NEW_GROUP") {
+                                                setShowGroupPopup(true);
+                                                // Reset select choice back to empty so it doesn't stay on ADD_NEW_GROUP
+                                                e.target.value = "";
+                                            } else {
+                                                setGroupName(e.target.value);
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Select Group Name</option>
+                                        {supplierGroups.map(g => (
+                                            <option key={g.id} value={g.name}>{g.name}</option>
+                                        ))}
+                                        <option value="ADD_NEW_GROUP" style={{ color: '#E93E64', fontWeight: 'bold' }}>+ Add group name</option>
+                                    </select>
+                                    <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }} />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <h4 style={{ margin: '30px 0 20px', color: '#000' }}>Address Information</h4>
@@ -245,6 +328,34 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                     </button>
                 </div>
             </div>
+
+            {showGroupPopup && (
+                <div className={styles.overlay} style={{ zIndex: 2010, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className={styles.modal} style={{ maxWidth: '450px', height: 'auto', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+                        <div className={styles.modalHeader} style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: '600' }}>Add Group Name</h3>
+                            <button className={styles.closeBtn} onClick={() => { setShowGroupPopup(false); setNewGroupName(""); }}><FiX /></button>
+                        </div>
+                        <div className={styles.modalContent} style={{ padding: '24px' }}>
+                            <div className={styles.field}>
+                                <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block', fontSize: '14px' }}>Group Name <span style={{ color: 'red' }}>*</span></label>
+                                <input 
+                                    type="text" 
+                                    className={styles.input} 
+                                    placeholder="Enter Group Name"
+                                    value={newGroupName}
+                                    onChange={(e) => setNewGroupName(e.target.value)}
+                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                />
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter} style={{ padding: '16px 24px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button className={styles.cancelBtn} onClick={() => { setShowGroupPopup(false); setNewGroupName(""); }} style={{ padding: '10px 24px', border: '1px solid #ddd', background: '#fff', color: '#666', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
+                            <button className={styles.saveBtn} onClick={handleSaveGroup} style={{ padding: '10px 24px', border: 'none', background: '#E93E64', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Save</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

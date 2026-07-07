@@ -8,6 +8,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
+import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 
 const IconTrash = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

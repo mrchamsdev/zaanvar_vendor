@@ -136,6 +136,7 @@ export class WebApimanager {
           throw new Error(`Unexpected status code: ${res.status}`);
         }
       } catch (error) {
+        console.error("GET request failed. URL:", BACKEND_URL + url, "Error:", error);
         if (error.response && error.response.status === 401) {
           error.customErrorMessage = "Apologies! An error occurred. Please log in again to continue.";
         }

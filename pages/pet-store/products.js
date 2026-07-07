@@ -13,6 +13,9 @@ import useStore from "@/components/state/useStore";
 import styles from "../../styles/pet-store/products.module.css";
 import { toast } from "sonner";
 
+import { useRouter } from "next/router";
+import useDashboardData from "@/components/dashboard/useDashboardData";
+
 const menuItems = [
   { name: "Dashboard", icon: <FiGrid />, path: "/pet-store" },
   { name: "Products", icon: <FiSearch />, path: "/pet-store/products" },
@@ -25,6 +28,8 @@ const topbarButtons = [
 ];
 
 const ProductsPage = () => {
+  const router = useRouter();
+  const { branches, branchId: defaultBranchId, setSelectedBranchId, selectedBranchId } = useDashboardData({ skipReviews: true });
   const { getJwtToken } = useStore();
   const jwt = getJwtToken();
 
@@ -37,9 +42,17 @@ const ProductsPage = () => {
   const [editProductId, setEditProductId] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const currentBranchId = router.query.branchId;
+
+  useEffect(() => {
+    if (router.isReady && currentBranchId) {
+      setSelectedBranchId(parseInt(currentBranchId) || currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+
   const fetchProducts = async () => {
     setLoading(true);
-    const data = await productService.getProducts(jwt, productType);
+    const data = await productService.getProducts(jwt, selectedBranchId || 1, productType);
     const productsList = data?.products || (Array.isArray(data) ? data : []);
     const activeProducts = productsList.filter(p => p.isActive !== false && p.isActive !== "false" && p.isActive !== 0 && p.isActive !== "0");
     setProducts(activeProducts);
@@ -47,8 +60,10 @@ const ProductsPage = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [productType, jwt]);
+    if (selectedBranchId) {
+      fetchProducts();
+    }
+  }, [productType, jwt, selectedBranchId]);
 
   const handleTopbarAction = (action) => {
     if (action === "addProduct") {

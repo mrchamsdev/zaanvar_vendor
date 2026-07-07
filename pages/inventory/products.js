@@ -54,10 +54,18 @@ const ProductsPage = () => {
   const router = useRouter();
   const { userInfo, jwtToken, vendorSettings, _hasHydrated: isHydrated } = useStore();
   const manageItemStatus = getBoolSetting(vendorSettings, "manageItemStatus", false);
-  const { branches, branchId } = useDashboardData({ skipReviews: true });
+  const { branches, branchId: defaultBranchId, setSelectedBranchId, selectedBranchId: branchId } = useDashboardData({ skipReviews: true });
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [stats, setStats] = useState({ total: 0, expired: 0, damaged: 0, saleReturn: 0 });
+
+  const currentBranchId = router.query.branchId;
+
+  useEffect(() => {
+    if (router.isReady && currentBranchId) {
+      setSelectedBranchId(parseInt(currentBranchId) || currentBranchId);
+    }
+  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
   const [productType, setProductType] = useState("Retail");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
