@@ -542,13 +542,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
             <div className={styles.mainContent}>
                 <div className={styles.headerSection}>
                     <h2 className={styles.title}>
-                        Receive Purchase Order 
-                        <input 
-                            type="text"
-                            className={styles.poNumberInput}
-                            value={purchaseOrderNumber}
-                            onChange={(e) => setPurchaseOrderNumber(e.target.value)}
-                        />
+                        Receive Purchase Order <span className={styles.poNumberText}>{purchaseOrderNumber}</span>
                     </h2>
                 </div>
 
