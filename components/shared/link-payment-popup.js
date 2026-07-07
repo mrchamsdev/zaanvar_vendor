@@ -38,7 +38,7 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                     data = Array.isArray(res.data) ? res.data : [res.data];
                 }
                 
-                const filteredData = data.filter(t => Number(t.balanceAmount || t.totalBalanceAmount || 0) > 0);
+                const filteredData = data.filter(t => Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0) > 0);
                 
                 setTransactions(filteredData);
                 
@@ -72,7 +72,7 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                 const currentUnused = Number(popupPaidAmount || 0) - currentAssigned;
                 
                 const t = transactions.find(tx => (tx.id || tx.userOrderId || tx.productsBillId).toString() === id);
-                const bal = Number(t?.balanceAmount || t?.totalBalanceAmount || 0);
+                const bal = Number(t?.balanceAmount || t?.totalBalanceAmount || t?.dueAmount || 0);
                 
                 let toAssign = 0;
                 if (currentUnused > 0) {
@@ -110,14 +110,14 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
     const unusedAmount = Number(popupPaidAmount || 0) - totalAssigned;
 
     return (
-        <div className={styles.overlay} style={{ zIndex: 2001, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex' }}>
+        <div className={styles.overlay} style={{ zIndex: 2001, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '90vh', borderRadius: '8px', margin: 'auto', width: '80%', maxWidth: '800px', display: 'flex', flexDirection: 'column' }}>
                 <div className={styles.modalHeader}>
                     <h3>Link payment to Txns</h3>
                     <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
                 </div>
                 
-                <div className={styles.modalContent} style={{ padding: '24px 40px' }}>
+                <div className={styles.modalContent} style={{ padding: '24px 40px', overflowY: 'auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                         <div>
                             <label style={{ fontSize: '13px', fontWeight: 600 }}>Party :</label>
@@ -160,7 +160,7 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                     transactions.map(t => {
                                         const id = (t.id || t.userOrderId || t.productsBillId).toString();
                                         const isSelected = !!selections[id];
-                                        const bal = Number(t.balanceAmount || t.totalBalanceAmount || 0);
+                                        const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
                                         const assignedAmount = isSelected ? Number(selections[id].amount || 0) : 0;
                                         const displayBalance = bal - assignedAmount;
                                         
@@ -172,9 +172,9 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                                             type="checkbox" 
                                                             checked={isSelected}
                                                             onChange={() => handleCheckbox(id)}
-                                                            style={{ width: '16px', height: '16px', accentColor: '#000' }}
+                                                            style={{ width: '16px', height: '16px', accentColor: '#000', cursor: 'pointer' }}
                                                         />
-                                                        {t.orderDate || t.billDate || t.createdAt ? new Date(t.orderDate || t.billDate || t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}
+                                                        {t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate ? new Date(t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '12px 8px' }}>Sale</td>

@@ -133,6 +133,21 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
         if (!transactionDate) {
             newErrors.transactionDate = "Amount paid date is required";
+        } else {
+            const today = new Date();
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+            const [year, month, day] = transactionDate.split('-').map(Number);
+            const selectedDateOnly = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+            if (selectedDateOnly > todayDateOnly) {
+                newErrors.transactionDate = "Amount paid date cannot be in the future";
+            } else if (selectedDateOnly.getTime() === todayDateOnly.getTime() && addTimeOnTransactions && transactionTime) {
+                const [hours, minutes] = transactionTime.split(':').map(Number);
+                const enteredDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+                if (enteredDateTime > today) {
+                    newErrors.transactionTime = "Amount paid time cannot be in the future";
+                }
+            }
         }
 
         const totalAmountToBePaid = Number(editablePaidAmount);
@@ -178,17 +193,18 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                       )),
                 transactionInfo: description || "",
                 createdBy: userInfo?.userId || 1,
-                productsBillId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].productsBillId) : null,
-                paymentTypes: validPayments.map(p => {
-                    const typeObj = {
-                        paymentType: p.paymentType,
-                        amount: Number(p.amountPaid)
-                    };
-                    if (p.refNo && (p.paymentType === 'UPI' || p.paymentType === 'Cheque')) {
-                        typeObj.referenceNumber = p.refNo;
-                    }
-                    return typeObj;
-                })
+                productsBillId: null,
+                ...(linkedTxns.length > 0 ? {
+                    bills: linkedTxns.map(t => ({
+                        productsBillId: Number(t.id || t.productsBillId),
+                        amount: Number(t.linkedAmount)
+                    }))
+                } : {}),
+                paymentTypes: validPayments.map(p => ({
+                    paymentType: p.paymentType,
+                    amount: Number(p.amountPaid),
+                    referenceNumber: p.refNo || ""
+                }))
             };
 
             const res = await purchaseService.createTransaction(jwtToken, payload);
@@ -270,6 +286,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                         setErrors(prev => {
                                             const newErr = { ...prev };
                                             delete newErr.transactionDate;
+                                            delete newErr.transactionTime;
                                             return newErr;
                                         });
                                     }
@@ -286,7 +303,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
+                                        style={{ width: '30%', padding: '14px 8px' }}
                                         value={transactionTime ? String(parseInt(transactionTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
                                         onChange={(e) => {
                                             const h = parseInt(e.target.value);
@@ -294,6 +311,11 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                             const isPm = transactionTime ? parseInt(transactionTime.split(':')[0]) >= 12 : false;
                                             const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
                                             setTransactionTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                            setErrors(prev => {
+                                                const newErr = { ...prev };
+                                                delete newErr.transactionTime;
+                                                return newErr;
+                                            });
                                         }}
                                     >
                                         {[...Array(12)].map((_, i) => {
@@ -304,11 +326,16 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                     <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
+                                        style={{ width: '30%', padding: '14px 8px' }}
                                         value={transactionTime ? transactionTime.split(':')[1] : '00'}
                                         onChange={(e) => {
                                             const currentH = transactionTime ? transactionTime.split(':')[0] : '00';
                                             setTransactionTime(`${currentH}:${e.target.value}`);
+                                            setErrors(prev => {
+                                                const newErr = { ...prev };
+                                                delete newErr.transactionTime;
+                                                return newErr;
+                                            });
                                         }}
                                     >
                                         {[...Array(60)].map((_, i) => {
@@ -318,7 +345,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                     </select>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '35%', padding: '0 8px' }}
+                                        style={{ width: '35%', padding: '14px 8px' }}
                                         value={transactionTime && parseInt(transactionTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
                                         onChange={(e) => {
                                             const currentH = parseInt(transactionTime ? transactionTime.split(':')[0] : '00');
@@ -328,12 +355,20 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                             if (isPm && currentH < 12) newH = currentH + 12;
                                             if (!isPm && currentH >= 12) newH = currentH - 12;
                                             setTransactionTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                            setErrors(prev => {
+                                                const newErr = { ...prev };
+                                                delete newErr.transactionTime;
+                                                return newErr;
+                                            });
                                         }}
                                     >
                                         <option value="AM">AM</option>
                                         <option value="PM">PM</option>
                                     </select>
                                 </div>
+                                {errors.transactionTime && (
+                                    <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.transactionTime}</span>
+                                )}
                             </div>
                         )}
 
@@ -545,13 +580,13 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
             </div>
 
             {showHistoryPopup && (
-                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex' }}>
+                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '80vh', borderRadius: '8px', margin: 'auto', width: '90%', maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
                         <div className={styles.modalHeader}>
                             <h3>Linked Payment History</h3>
                             <button className={styles.closeBtn} onClick={() => setShowHistoryPopup(false)}><FiX /></button>
                         </div>
-                        <div className={styles.modalContent} style={{ padding: '24px' }}>
+                        <div className={styles.modalContent} style={{ padding: '24px', overflowY: 'auto' }}>
                             <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ color: '#666', borderBottom: '1px solid #ddd' }}>
@@ -564,7 +599,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                 <tbody>
                                     {linkedTxns.map((t, i) => (
                                         <tr key={i}>
-                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.createdAt ? new Date(t.orderDate || t.billDate || t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate ? new Date(t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>Sale</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{Number(t.totalAmount || t.overallBillAmount || 0).toFixed(2)}</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>{Number(t.linkedAmount).toFixed(2)}</td>

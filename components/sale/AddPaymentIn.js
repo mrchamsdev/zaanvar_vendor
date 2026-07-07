@@ -179,11 +179,14 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     useEffect(() => {
         if (isOpen && mode === 'add') {
             if (addTimeOnTransactions) {
-            const now = new Date();
-            (val) => setFormData({ ...formData, time: val })(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+                const now = new Date();
+                setFormData(prev => ({
+                    ...prev,
+                    time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+                }));
+            }
         }
-        }
-    }, [isOpen, cashSaleByDefault, mode]);
+    }, [isOpen, cashSaleByDefault, mode, addTimeOnTransactions]);
 
     useEffect(() => {
         // Reset errors when modal is closed or mode changes to view
@@ -283,14 +286,15 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
     };
 
     const resetForm = () => {
+        const now = new Date();
         setFormData({
             vendorCustomerId: "",
             partyName: "",
             totalBalance: "",
             paidAmount: "",
             date: toApiDateOnly(new Date()),
-        time: "",
-        referenceNumber: "",
+            time: addTimeOnTransactions ? `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}` : "",
+            referenceNumber: "",
             description: "",
             image: null,
             userOrderId: ""
@@ -399,6 +403,21 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         }
         if (!formData.date) {
             newErrors.date = "Date is required";
+        } else {
+            const today = new Date();
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+            const [year, month, day] = formData.date.split('-').map(Number);
+            const selectedDateOnly = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+            if (selectedDateOnly > todayDateOnly) {
+                newErrors.date = "Amount paid date cannot be in the future";
+            } else if (selectedDateOnly.getTime() === todayDateOnly.getTime() && addTimeOnTransactions && formData.time) {
+                const [hours, minutes] = formData.time.split(':').map(Number);
+                const enteredDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+                if (enteredDateTime > today) {
+                    newErrors.time = "Amount paid time cannot be in the future";
+                }
+            }
         }
 
         const paidAmountNum = parseFloat(formData.paidAmount);
@@ -452,11 +471,18 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     branchId,
                     vendorCustomerId: formData.vendorCustomerId,
                     paymentStatus: "Completed",
-                    paymentFrom: "sale invoice",
+                    paymentFrom: "payment in",
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
                     paymentMethods,
-                    userOrderId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].userOrderId) : (formData.userOrderId ? parseInt(formData.userOrderId) : null)
+                    userOrderId: linkedTxns.length > 0 ? null : (formData.userOrderId ? parseInt(formData.userOrderId) : null),
+                    ...(addTimeOnTransactions && formData.time ? { time: formData.time } : {}),
+                    ...(linkedTxns.length > 0 ? {
+                        orders: linkedTxns.map(t => ({
+                            userOrderId: Number(t.id || t.userOrderId),
+                            amount: Number(t.linkedAmount)
+                        }))
+                    } : {})
                 };
                 Object.assign(updatePayload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
                 res = await saleService.updatePayment(jwtToken, paymentId, updatePayload);
@@ -482,11 +508,18 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     branchId,
                     vendorCustomerId: formData.vendorCustomerId,
                     paymentStatus: "Completed",
-                    paymentFrom: "sale invoice",
+                    paymentFrom: "payment in",
                     createdBy: userInfo?.userId || userInfo?.id || 1,
                     description: formData.description,
                     paymentMethods,
-                    userOrderId: linkedTxns.length > 0 ? (linkedTxns[0].id || linkedTxns[0].userOrderId) : (formData.userOrderId ? parseInt(formData.userOrderId) : null)
+                    userOrderId: linkedTxns.length > 0 ? null : (formData.userOrderId ? parseInt(formData.userOrderId) : null),
+                    ...(addTimeOnTransactions && formData.time ? { time: formData.time } : {}),
+                    ...(linkedTxns.length > 0 ? {
+                        orders: linkedTxns.map(t => ({
+                            userOrderId: Number(t.id || t.userOrderId),
+                            amount: Number(t.linkedAmount)
+                        }))
+                    } : {})
                 };
                 Object.assign(payload, dateOnlyWithTimeZone('paymentDate', parseWallClockDate(formData.date) || new Date(formData.date)));
 
@@ -711,6 +744,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                         setErrors(prev => {
                                             const next = { ...prev };
                                             delete next.date;
+                                            delete next.time;
                                             return next;
                                         });
                                     }
@@ -722,18 +756,24 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
 
                         {addTimeOnTransactions && (
                             <div className={styles.field}>
-                                <label>Time</label>
+                                <label>Amount paid time</label>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
+                                        style={{ width: '30%', padding: '14px 8px' }}
                                         value={formData.time ? String(parseInt(formData.time.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
                                         onChange={(e) => {
                                             const h = parseInt(e.target.value);
                                             const m = formData.time ? formData.time.split(':')[1] : '00';
                                             const isPm = formData.time ? parseInt(formData.time.split(':')[0]) >= 12 : false;
                                             const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
-                                            (val) => setFormData({ ...formData, time: val })(`${String(newH).padStart(2, '0')}:${m}`);
+                                            const newTime = `${String(newH).padStart(2, '0')}:${m}`;
+                                            setFormData(prev => ({ ...prev, time: newTime }));
+                                            setErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next.time;
+                                                return next;
+                                            });
                                         }}
                                     >
                                         {[...Array(12)].map((_, i) => {
@@ -744,11 +784,17 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
+                                        style={{ width: '30%', padding: '14px 8px' }}
                                         value={formData.time ? formData.time.split(':')[1] : '00'}
                                         onChange={(e) => {
                                             const currentH = formData.time ? formData.time.split(':')[0] : '00';
-                                            (val) => setFormData({ ...formData, time: val })(`${currentH}:${e.target.value}`);
+                                            const newTime = `${currentH}:${e.target.value}`;
+                                            setFormData(prev => ({ ...prev, time: newTime }));
+                                            setErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next.time;
+                                                return next;
+                                            });
                                         }}
                                     >
                                         {[...Array(60)].map((_, i) => {
@@ -758,7 +804,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     </select>
                                     <select 
                                         className={styles.input} 
-                                        style={{ width: '35%', padding: '0 8px' }}
+                                        style={{ width: '35%', padding: '14px 8px' }}
                                         value={formData.time && parseInt(formData.time.split(':')[0]) >= 12 ? 'PM' : 'AM'}
                                         onChange={(e) => {
                                             const currentH = parseInt(formData.time ? formData.time.split(':')[0] : '00');
@@ -767,13 +813,20 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                             let newH = currentH;
                                             if (isPm && currentH < 12) newH = currentH + 12;
                                             if (!isPm && currentH >= 12) newH = currentH - 12;
-                                            (val) => setFormData({ ...formData, time: val })(`${String(newH).padStart(2, '0')}:${m}`);
+                                            const newTime = `${String(newH).padStart(2, '0')}:${m}`;
+                                            setFormData(prev => ({ ...prev, time: newTime }));
+                                            setErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next.time;
+                                                return next;
+                                            });
                                         }}
                                     >
                                         <option value="AM">AM</option>
                                         <option value="PM">PM</option>
                                     </select>
                                 </div>
+                                {errors.time && <span className={styles.errorMsg}>{errors.time}</span>}
                             </div>
                         )}
 
@@ -1061,13 +1114,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             </div>
 
             {showHistoryPopup && (
-                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex' }}>
+                <div className={styles.overlay} style={{ zIndex: 2002, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '80vh', borderRadius: '8px', margin: 'auto', width: '90%', maxWidth: '600px', display: 'flex', flexDirection: 'column' }}>
                         <div className={styles.modalHeader}>
                             <h3>Linked Payment History</h3>
                             <button className={styles.closeBtn} onClick={() => setShowHistoryPopup(false)}><FiX /></button>
                         </div>
-                        <div className={styles.modalContent} style={{ padding: '24px' }}>
+                        <div className={styles.modalContent} style={{ padding: '24px', overflowY: 'auto' }}>
                             <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ color: '#666', borderBottom: '1px solid #ddd' }}>
@@ -1080,7 +1133,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                 <tbody>
                                     {linkedTxns.map((t, i) => (
                                         <tr key={i}>
-                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.createdAt ? new Date(t.orderDate || t.billDate || t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
+                                            <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate ? new Date(t.orderDate || t.billDate || t.invoiceDate || t.createdAt || t.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "-"}</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>Sale</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee' }}>{Number(t.totalAmount || t.overallBillAmount || 0).toFixed(2)}</td>
                                             <td style={{ padding: '12px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>{Number(t.linkedAmount).toFixed(2)}</td>
