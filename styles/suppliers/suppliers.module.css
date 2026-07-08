@@ -213,3 +213,14 @@
 .checkbox {
   cursor: pointer;
 }
+
+.supplierIdCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.supplierIdText {
+  display: inline-block;
+  width: 45px;
+}

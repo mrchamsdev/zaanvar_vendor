@@ -360,3 +360,14 @@
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+
+.productCodeCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.productCodeText {
+  display: inline-block;
+  width: 45px;
+}

@@ -12,11 +12,13 @@ import { useRouter } from "next/router";
 const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
     const router = useRouter();
     const branchId = router.query.branchId || "";
-    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const { jwtToken, userInfo, vendorSettings, selectedBranchId } = useStore();
     const enableGstin = vendorSettings?.general?.enableGstin;
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
     const [errorPopupMessage, setErrorPopupMessage] = useState(null);
+    const [additionalFields, setAdditionalFields] = useState([]);
+    const [additionalErrors, setAdditionalErrors] = useState({});
 
     // Form states
     const [supplierName, setSupplierName] = useState("");
@@ -51,7 +53,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
 
     const fetchSupplierGroups = async () => {
-        const activeBranchId = Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id) || 1;
+        const activeBranchId = Number(selectedBranchId) || Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id);
         if (!activeBranchId) return;
         try {
             const res = await purchaseService.getSupplierGroups(jwtToken, activeBranchId);
@@ -64,10 +66,28 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     };
 
     useEffect(() => {
-        if (showSupplierGrouping && jwtToken) {
+        if (showSupplierGrouping && jwtToken && (selectedBranchId || branchId)) {
             fetchSupplierGroups();
         }
-    }, [branchId, selectedBranchIds, vendorSettings, jwtToken]);
+    }, [branchId, selectedBranchId, selectedBranchIds, vendorSettings, jwtToken, showSupplierGrouping]);
+
+    useEffect(() => {
+        const settingsObj = vendorSettings?.settings || vendorSettings;
+        const partySettings = settingsObj?.party;
+        if (partySettings?.additionalFields) {
+            const activeFields = (partySettings.additionalFields || [])
+                .filter(f => f.label && f.label.trim() !== "")
+                .map(f => ({
+                    label: f.label,
+                    dataType: f.dataType || "string",
+                    required: !!f.required,
+                    showInPrint: !!f.showInPrint,
+                    value: ""
+                }));
+            setAdditionalFields(activeFields);
+            setAdditionalErrors({});
+        }
+    }, [vendorSettings]);
 
     // Dropdown lists
     const [countries, setCountries] = useState([]);
@@ -86,19 +106,36 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (supplierId && jwtToken) {
             const fetchFullDetails = async () => {
                 try {
-                    const res = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
+                    const activeBranchId = selectedBranchId || branchId;
+                    if (!activeBranchId) return;
+                    const res = await purchaseService.getSupplierById(jwtToken, supplierId, activeBranchId);
                     const data = res?.data || res;
                     if (data && data.branches && !hasUserEditedBranches.current) {
                         const fullBranchIds = data.branches.map(b => Number(b.id || b.branchId || b._id));
                         setSelectedBranchIds(fullBranchIds);
                     }
+                        const settingsObj = vendorSettings?.settings || vendorSettings;
+                        const partySettings = settingsObj?.party;
+                        const activeFields = (partySettings?.additionalFields || [])
+                            .filter(f => f.label && f.label.trim() !== "")
+                            .map(f => {
+                                const savedValue = data.customFields?.[f.label] !== undefined ? data.customFields[f.label] : "";
+                                return {
+                                    label: f.label,
+                                    dataType: f.dataType || "string",
+                                    required: !!f.required,
+                                    showInPrint: !!f.showInPrint,
+                                    value: savedValue
+                                };
+                            });
+                        setAdditionalFields(activeFields);
                 } catch (err) {
                     console.error("Failed to fetch full supplier details in form:", err);
                 }
             };
             fetchFullDetails();
         }
-    }, [supplierId, jwtToken]);
+    }, [supplierId, jwtToken, vendorSettings, selectedBranchId, branchId]);
 
     const lastSupplierIdRef = useRef(null);
 
@@ -131,6 +168,22 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 []
             );
             setGroupName(initialData.groupName || "");
+
+            const settingsObj = vendorSettings?.settings || vendorSettings;
+            const partySettings = settingsObj?.party;
+            const activeFields = (partySettings?.additionalFields || [])
+                .filter(f => f.label && f.label.trim() !== "")
+                .map(f => {
+                    const savedValue = initialData.customFields?.[f.label] !== undefined ? initialData.customFields[f.label] : "";
+                    return {
+                        label: f.label,
+                        dataType: f.dataType || "string",
+                        required: !!f.required,
+                        showInPrint: !!f.showInPrint,
+                        value: savedValue
+                    };
+                });
+            setAdditionalFields(activeFields);
 
             // Handle edit mode hydration for dropdowns
             const allCountries = Country.getAllCountries();
@@ -168,7 +221,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         } else {
             setCountries(Country.getAllCountries());
         }
-    }, [initialData]);
+    }, [initialData, vendorSettings]);
 
     useEffect(() => {
         if (!isInitialized.current) return;
@@ -193,7 +246,11 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 cities,
                 selectedCountryCode,
                 selectedStateCode,
-                groupName
+                groupName,
+                customFields: additionalFields.reduce((acc, f) => {
+                    acc[f.label] = f.value || "";
+                    return acc;
+                }, {})
             });
         }
     }, [
@@ -215,7 +272,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         cities,
         selectedCountryCode,
         selectedStateCode,
-        groupName
+        groupName,
+        additionalFields
     ]);
 
     const supplierTypes = [
@@ -311,10 +369,24 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             setPinCodeError("");
         }
 
+        const fieldErrors = {};
+        additionalFields.forEach(f => {
+            if (f.required && (!f.value || !f.value.trim())) {
+                fieldErrors[f.label] = `${f.label} is required`;
+                hasError = true;
+            }
+        });
+        setAdditionalErrors(fieldErrors);
+
         if (hasError) {
             toast.error("Please fill all required fields correctly.");
             return;
         }
+
+        const customFieldsObj = {};
+        additionalFields.forEach(f => {
+            customFieldsObj[f.label] = f.value || "";
+        });
 
         const payload = {
             supplierName,
@@ -331,6 +403,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             country,
             createdBy: userInfo?.userId || 1,
             branchIds: selectedBranchIds,
+            customFields: customFieldsObj,
             ...(showSupplierGrouping ? { groupName } : {})
         };
 
@@ -487,6 +560,50 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 </div>
                             </div>
                         )}
+
+                        {/* Dynamic Additional Fields */}
+                        {additionalFields.map((field, idx) => (
+                            <div key={idx} className={styles.field}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
+                                    {field.label} {field.required && <span style={{ color: '#FF4D4F' }}>*</span>}
+                                </label>
+                                <input
+                                    type="text"
+                                    style={{
+                                        boxSizing: 'border-box',
+                                        width: '100%',
+                                        padding: '14px 16px',
+                                        borderRadius: '8px',
+                                        border: additionalErrors[field.label] ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        background: additionalErrors[field.label] ? '#FFF1F4' : '#fff',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        outline: 'none'
+                                    }}
+                                    placeholder={`Enter ${field.label}`}
+                                    value={field.value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (field.dataType === "number" && val !== "" && !/^\d*\.?\d*$/.test(val)) {
+                                            return; // Only allow numbers
+                                        }
+                                        setAdditionalFields(prev => prev.map((item, i) => i === idx ? { ...item, value: val } : item));
+                                        if (additionalErrors[field.label]) {
+                                            setAdditionalErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next[field.label];
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                />
+                                {additionalErrors[field.label] && (
+                                    <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                        {additionalErrors[field.label]}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

@@ -18,7 +18,7 @@ const parseAgeStr = (ageStr) => {
 };
 
 const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
     const [errorPopupMessage, setErrorPopupMessage] = useState(null);
@@ -34,6 +34,8 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [source, setSource] = useState("");
     const [idProof, setIdProof] = useState("");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
+    const [customerAdditionalFields, setCustomerAdditionalFields] = useState([]);
+    const [additionalFieldsErrors, setAdditionalFieldsErrors] = useState({});
 
     // Address Details
     const [serviceableAddress, setServiceableAddress] = useState("");
@@ -49,6 +51,24 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
 
     const [errors, setErrors] = useState({});
     const isInitialized = useRef(false);
+
+    useEffect(() => {
+        const settingsObj = vendorSettings?.settings || vendorSettings;
+        const partySettings = settingsObj?.party;
+        if (partySettings?.customerAdditionalFields) {
+            const activeFields = (partySettings.customerAdditionalFields || [])
+                .filter(f => f.label && f.label.trim() !== "")
+                .map(f => ({
+                    label: f.label,
+                    dataType: f.dataType || "string",
+                    required: !!f.required,
+                    showInPrint: !!f.showInPrint,
+                    value: ""
+                }));
+            setCustomerAdditionalFields(activeFields);
+            setAdditionalFieldsErrors({});
+        }
+    }, [vendorSettings]);
 
     useEffect(() => {
         const fetchFullCustomerData = async () => {
@@ -103,6 +123,22 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     } else {
                         setPets([]);
                     }
+
+                    const settingsObj = vendorSettings?.settings || vendorSettings;
+                    const partySettings = settingsObj?.party;
+                    const activeFields = (partySettings?.customerAdditionalFields || [])
+                        .filter(f => f.label && f.label.trim() !== "")
+                        .map(f => {
+                            const savedValue = fullData.customFields?.[f.label] !== undefined ? fullData.customFields[f.label] : "";
+                            return {
+                                label: f.label,
+                                dataType: f.dataType || "string",
+                                required: !!f.required,
+                                showInPrint: !!f.showInPrint,
+                                value: savedValue
+                            };
+                        });
+                    setCustomerAdditionalFields(activeFields);
                 } catch (err) {
                     console.error("Error fetching full customer data", err);
                 } finally {
@@ -155,12 +191,28 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 } else {
                     setPets([]);
                 }
+
+                const settingsObj = vendorSettings?.settings || vendorSettings;
+                const partySettings = settingsObj?.party;
+                const activeFields = (partySettings?.customerAdditionalFields || [])
+                    .filter(f => f.label && f.label.trim() !== "")
+                    .map(f => {
+                        const savedValue = initialData.customFields?.[f.label] !== undefined ? initialData.customFields[f.label] : "";
+                        return {
+                            label: f.label,
+                            dataType: f.dataType || "string",
+                            required: !!f.required,
+                            showInPrint: !!f.showInPrint,
+                            value: savedValue
+                        };
+                    });
+                setCustomerAdditionalFields(activeFields);
                 isInitialized.current = true;
             }
         };
 
         fetchFullCustomerData();
-    }, [initialData, jwtToken]);
+    }, [initialData, jwtToken, vendorSettings]);
 
     useEffect(() => {
         if (!isInitialized.current && mode === 'Add') {
@@ -191,10 +243,14 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (onChange && isInitialized.current) {
             onChange({
                 vendorCustomerId: customerId,
-                firstName, lastName, phone, email, pets
+                firstName, lastName, phone, email, pets,
+                customFields: customerAdditionalFields.reduce((acc, f) => {
+                    acc[f.label] = f.value || "";
+                    return acc;
+                }, {})
             });
         }
-    }, [firstName, lastName, phone, email, pets, customerId]);
+    }, [firstName, lastName, phone, email, pets, customerId, customerAdditionalFields]);
 
     const branchesList = (branches || []).map(br => ({
         id: Number(br.id || br._id || br.branchId),
@@ -246,11 +302,24 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             }
         });
 
-        if (Object.keys(newErrors).length > 0) {
+        const additionalErrors = {};
+        customerAdditionalFields.forEach(f => {
+            if (f.required && (!f.value || !f.value.trim())) {
+                additionalErrors[f.label] = `${f.label} is required`;
+            }
+        });
+
+        if (Object.keys(newErrors).length > 0 || Object.keys(additionalErrors).length > 0) {
             setErrors(newErrors);
+            setAdditionalFieldsErrors(additionalErrors);
             toast.error("Please fix the highlighted errors before saving");
             return;
         }
+
+        const customFieldsObj = {};
+        customerAdditionalFields.forEach(f => {
+            customFieldsObj[f.label] = f.value || "";
+        });
 
         const payload = {
             firstName,
@@ -267,6 +336,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             locationLink,
             emergencyContactName,
             emergencyMobileNumber,
+            customFields: customFieldsObj,
             pets: pets.map(p => ({
                 petName: p.petName,
                 petType: p.petType,
@@ -443,6 +513,40 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 )}
                             </div>
                         </div>
+
+                        {/* Dynamic Customer Additional Fields */}
+                        {customerAdditionalFields.map((field, idx) => (
+                            <div key={idx}>
+                                <label className={styles.labelStyle}>
+                                    {field.label} {field.required && <span className={styles.asterisk}>*</span>}
+                                </label>
+                                <input
+                                    type="text"
+                                    className={`${styles.inputStyle} ${additionalFieldsErrors[field.label] ? styles.inputError : ""}`}
+                                    placeholder={`Enter ${field.label}`}
+                                    value={field.value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (field.dataType === "number" && val !== "" && !/^\d*\.?\d*$/.test(val)) {
+                                            return; // Only allow numbers
+                                        }
+                                        setCustomerAdditionalFields(prev => prev.map((item, i) => i === idx ? { ...item, value: val } : item));
+                                        if (additionalFieldsErrors[field.label]) {
+                                            setAdditionalFieldsErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next[field.label];
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                />
+                                {additionalFieldsErrors[field.label] && (
+                                    <span className={styles.errorText}>
+                                        {additionalFieldsErrors[field.label]}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 

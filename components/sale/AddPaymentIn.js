@@ -949,7 +949,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                             />
                                         )}
                                     </div>
-                                    {!isViewOnly && (
+                                    {!isViewOnly && idx > 0 && (
                                         <FiTrash2
                                             style={{ color: '#999', cursor: 'pointer', fontSize: '18px', marginTop: '12px' }}
                                             onClick={() => handleRemovePaymentRow(idx)}
@@ -962,7 +962,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     {errors.paymentsTotal}
                                 </div>
                             )}
-                            {!isViewOnly && (
+                            {!isViewOnly && !linkPaymentsToInvoices && (
                                 <span
                                     className={styles.addBtn}
                                     style={{ marginTop: '8px' }}

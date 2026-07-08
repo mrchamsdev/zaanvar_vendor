@@ -38,7 +38,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     };
 
     const router = useRouter();
-    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const { jwtToken, userInfo, vendorSettings, setSelectedBranchId } = useStore();
     const { branches, branchId: currentBranchId } = useDashboardData();
     const { getBoolSetting } = require('@/utilities/settings-utils');
 
@@ -365,7 +365,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                 if (onSave) onSave();
 
                 // Fallback direct navigation
-                router.push("/purchase-bill?tab=Orders");
+                router.push(`/purchase-bill?tab=Orders${branchId ? `&branchId=${branchId}` : ""}`);
             } else {
                 toast.error(res.message || res.msg || "Failed to process order");
             }
@@ -392,7 +392,11 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                 className={`${styles.select} ${styles.input} ${formErrors.branchId ? styles.errorField : ""}`}
                                 value={branchId}
                                 onChange={(e) => {
-                                    setBranchId(e.target.value);
+                                    const val = e.target.value;
+                                    setBranchId(val);
+                                    if (val) {
+                                        setSelectedBranchId(parseInt(val) || val);
+                                    }
                                     if (formErrors.branchId) {
                                         const newErrors = { ...formErrors };
                                         delete newErrors.branchId;

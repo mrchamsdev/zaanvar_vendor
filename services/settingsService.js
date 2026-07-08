@@ -151,11 +151,14 @@ export const DEFAULT_SETTINGS = {
     supplierGrouping: false,
     shippingAddress: false,
     printShippingAddress: true,
+    customerShippingAddress: false,
+    customerPrintShippingAddress: true,
     manageSupplierStatus: true,
     enablePaymentReminder: true,
     paymentReminderDays: 1,
     reminderMessage: "",
     additionalFields: [],
+    customerAdditionalFields: [],
     enableLoyaltyPoint: false
   },
   item: {

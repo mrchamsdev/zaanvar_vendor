@@ -41,10 +41,8 @@ const SuppliersPage = () => {
         pathname: router.pathname,
         query: { ...router.query, branchId: targetId }
       }, undefined, { shallow: true });
-    } else if (currentBranchId) {
-      setSelectedBranchId(currentBranchId);
     }
-  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+  }, [router.isReady, currentBranchId, branches, defaultBranchId]);
 
   useEffect(() => {
     if (router.isReady && router.query.action === 'add') {

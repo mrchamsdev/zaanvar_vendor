@@ -5,6 +5,7 @@ import invoiceStyles from "../../styles/sale/add-sale-invoice.module.css";
 import { FiX, FiCalendar, FiArrowLeft, FiTrash2 } from "react-icons/fi";
 import { purchaseService } from "../../services/purchaseService";
 import useStore from "../../components/state/useStore";
+import { getBoolSetting } from "@/utilities/settings-utils";
 import { toast } from "sonner";
 import { VENDOR_API_URL } from "../../components/utilities/Constants";
 import ShareModal from "../../components/purchase-bill/ShareModal";
@@ -21,7 +22,8 @@ const PaymentOutFormPage = () => {
     const { id, mode, branchId: queryBranchId } = router.query;
     const isView = mode === "view";
     const isEdit = mode === "edit";
-    const { jwtToken, userInfo } = useStore();
+    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const linkPaymentsToInvoices = getBoolSetting(vendorSettings, 'linkPaymentsToInvoices', false);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -414,7 +416,7 @@ const PaymentOutFormPage = () => {
                                                 placeholder="0"
                                             />
                                         </div>
-                                        {!isView && (
+                                        {!isView && idx > 0 && (
                                             <button
                                                 className={styles.miniRemove}
                                                 onClick={() => {
@@ -467,20 +469,22 @@ const PaymentOutFormPage = () => {
                         alignItems: 'center',
                         marginBottom: '32px'
                     }}>
-                        <div
-                            className={styles.addPaymentLink}
-                            onClick={() => {
-                                setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }]);
-                                setErrors(prev => {
-                                    const newErr = { ...prev };
-                                    delete newErr.unbalanced;
-                                    return newErr;
-                                });
-                            }}
-                            style={{ margin: 0 }}
-                        >
-                            +ADD ANOTHER PAYMENT
-                        </div>
+                        {!linkPaymentsToInvoices && (
+                            <div
+                                className={styles.addPaymentLink}
+                                onClick={() => {
+                                    setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }]);
+                                    setErrors(prev => {
+                                        const newErr = { ...prev };
+                                        delete newErr.unbalanced;
+                                        return newErr;
+                                    });
+                                }}
+                                style={{ margin: 0 }}
+                            >
+                                +ADD ANOTHER PAYMENT
+                            </div>
+                        )}
                         {Number(paidAmount) > 0 && (
                             <div style={{
                                 display: 'flex',

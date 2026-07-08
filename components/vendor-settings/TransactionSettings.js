@@ -31,19 +31,7 @@ const TransactionSettings = ({ settings, onChange }) => {
   const set = (field, val) => onChange({ ...t, [field]: val });
   const toggle = (field) => (e) => set(field, e.target.checked);
 
-  /* ── PIN input refs for auto-advance ── */
-  const pinRefs = [useRef(), useRef(), useRef(), useRef()];
 
-  const handlePinKey = (idx, e) => {
-    const digit = e.target.value.replace(/\D/g, "").slice(-1);
-    const pin = (t.txnEditPasscode || "    ").split("");
-    pin[idx] = digit || " ";
-    set("txnEditPasscode", pin.join("").trimEnd() || null);
-    if (digit && idx < 3) pinRefs[idx + 1].current?.focus();
-    if (!digit && e.key === "Backspace" && idx > 0) pinRefs[idx - 1].current?.focus();
-  };
-
-  const pinDigits = (t.txnEditPasscode || "").padEnd(4, "").split("");
 
   return (
     <div className={styles.twoColGrid}>
@@ -116,36 +104,7 @@ const TransactionSettings = ({ settings, onChange }) => {
         <div className={styles.card}>
           <div className={styles.cardTitle}>More Transaction Features</div>
 
-          {/* Passcode */}
-          <CheckRow
-            id="passcodeForTxnEdit"
-            checked={t.passcodeForTxnEdit}
-            onChange={toggle("passcodeForTxnEdit")}
-            label="Enable Passcode for transaction edit"
-            tip="When ON, editing a payment in Payment In or Payment Out requires a 4-digit PIN."
-          >
-            <div>
-              <div className={styles.fieldLabel} style={{ marginBottom: 8 }}>
-                Set 4-digit PIN
-              </div>
-              <div className={styles.pinWrap}>
-                {pinDigits.map((d, idx) => (
-                  <input
-                    key={idx}
-                    ref={pinRefs[idx]}
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={1}
-                    className={styles.pinInput}
-                    value={d.trim()}
-                    onChange={(e) => handlePinKey(idx, e)}
-                    onKeyDown={(e) => handlePinKey(idx, e)}
-                    id={`pin-digit-${idx}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </CheckRow>
+
 
           <CheckRow
             id="discountDuringPayments"
@@ -252,7 +211,10 @@ const TransactionSettings = ({ settings, onChange }) => {
                   onChange={(e) => set("roundOffValue", parseFloat(e.target.value))}
                 >
                   <option value="1">1</option>
-                  <option value="0.5">0.5</option>
+                  <option value="10">10</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="1000">1000</option>
                 </select>
               </div>
             </div>

@@ -357,6 +357,13 @@ const DashboardLayout = ({
     router.replace("/login");
   };
 
+  const appendBranchId = (path) => {
+    if (!selectedBranchId) return path;
+    const separator = path.includes('?') ? '&' : '?';
+    if (path.includes('branchId=')) return path;
+    return `${path}${separator}branchId=${selectedBranchId}`;
+  };
+
   return (
     <div className={styles.dashWrap}>
       {/* Mobile sidebar overlay */}
@@ -397,7 +404,7 @@ const DashboardLayout = ({
             return (
               <li key={item.path} className={isActive ? styles.active : ""}>
                 {!hasSub ? (
-                  <Link href={item.path} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
+                  <Link href={appendBranchId(item.path)} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
                     <span className={styles.navIcon}>{item.icon}</span>
                     {!sidebarCollapsed && (
                       <span className={styles.navLabel}>{item.label}</span>
@@ -425,18 +432,26 @@ const DashboardLayout = ({
                     {isExpanded && !sidebarCollapsed && (
                       <div style={{ display: "flex", flexDirection: "column", marginTop: "8px", marginLeft: "10px", gap: "6px" }}>
                         {item.subItems.map((sub, i) => {
-                          // Match full path including query params (for settings tabs) or just pathname
                           const subPathname = sub.path.split('?')[0];
                           const subQuery = sub.path.includes('?') ? sub.path.split('?')[1] : '';
                           const routerPathname = router.asPath.split('?')[0];
                           const routerQuery = router.asPath.includes('?') ? router.asPath.split('?')[1] : '';
+
+                          const getQueryParam = (queryString, paramName) => {
+                            if (typeof window === 'undefined') return null;
+                            const params = new URLSearchParams(queryString);
+                            return params.get(paramName);
+                          };
+                          const subTab = getQueryParam(subQuery, 'tab');
+                          const routerTab = getQueryParam(routerQuery, 'tab');
+
                           const isSubActive =
-                            (routerPathname === subPathname && (!subQuery || routerQuery === subQuery)) ||
+                            (routerPathname === subPathname && (!subTab || routerTab === subTab)) ||
                             (router.asPath === "/pet-sales" && i === 0);
                           return (
                             <Link
                               key={sub.path}
-                              href={sub.path}
+                              href={appendBranchId(sub.path)}
                               style={{
                                 display: "block",
                                 padding: "8px 12px 8px 36px",
@@ -509,7 +524,13 @@ const DashboardLayout = ({
                 <select
                   className={styles.branchSwitcher}
                   value={selectedBranchId || ""}
-                  onChange={(e) => setSelectedBranchId(e.target.value ? parseInt(e.target.value) : "")}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value) : "";
+                    router.push({
+                      pathname: router.pathname,
+                      query: { ...router.query, branchId: val }
+                    }, undefined, { shallow: true });
+                  }}
                 >
                   {branches.length > 1 && <option value="">Select Branch</option>}
                   {branches.map(b => (
