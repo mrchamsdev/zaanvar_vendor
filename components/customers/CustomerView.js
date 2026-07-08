@@ -436,6 +436,14 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                     <div className={styles.infoLabel}>E-mail Id</div>
                                     <div className={styles.infoValueBreak}>{safeRender(data.email)}</div>
                                 </div>
+                                {data.customFields && typeof data.customFields === 'object' && 
+                                    Object.entries(data.customFields).map(([key, val]) => (
+                                        <div key={key}>
+                                            <div className={styles.infoLabel}>{key}</div>
+                                            <div className={styles.infoValueBreak}>{safeRender(val)}</div>
+                                        </div>
+                                    ))
+                                }
                             </div>
                             <button onClick={onEdit} className={styles.editButton}>
                                 <span className={styles.editIcon}>✎</span> Edit Customer Details

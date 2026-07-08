@@ -300,6 +300,14 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoValue}>{supplier?.country || "India"}</p>
                                     <p className={styles.infoLabel}>Country</p>
                                 </div>
+                                {supplier?.customFields && typeof supplier.customFields === 'object' && 
+                                    Object.entries(supplier.customFields).map(([key, val]) => (
+                                        <div key={key}>
+                                            <p className={styles.infoValue}>{val || "--"}</p>
+                                            <p className={styles.infoLabel}>{key}</p>
+                                        </div>
+                                    ))
+                                }
                             </div>
                         </div>
 

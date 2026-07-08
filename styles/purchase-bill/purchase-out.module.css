@@ -1528,3 +1528,8 @@
     margin-top: 4px;
     display: block;
 }
+
+.requiredStar {
+    color: #ff4d4f !important;
+    margin-left: 2px;
+}

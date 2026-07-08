@@ -150,7 +150,7 @@ const ProductForm = ({
   onBack,
   productType: propType,
 }) => {
-  const { jwtToken, userInfo, selectedBranchId } = useStore();
+  const { jwtToken, userInfo, selectedBranchId, vendorSettings } = useStore();
   const [branchId, setBranchId] = useState(
     initialData?.branchId || selectedBranchId || userInfo?.branchId || 91,
   );
@@ -186,6 +186,9 @@ const ProductForm = ({
     initialData?.productName || "",
   );
   const [brand, setBrand] = useState(initialData?.brand || "");
+  const [productCustomFields, setProductCustomFields] = useState(() => {
+    return initialData?.customFields || {};
+  });
   const [category, setCategory] = useState(() => {
     const raw = initialData?.categoryId;
     let name = "";
@@ -498,6 +501,15 @@ const ProductForm = ({
       validationErrors.hsnCode = "HSN Code must be 6-8 digits";
     }
 
+    const settingsObj = vendorSettings?.settings || vendorSettings;
+    const itemSettings = settingsObj?.item;
+    const itemCustomFieldsConfig = itemSettings?.customFields || [];
+    itemCustomFieldsConfig.forEach(f => {
+      if (f.required && (!productCustomFields[f.label] || !String(productCustomFields[f.label]).trim())) {
+        validationErrors[f.label] = `${f.label} is required`;
+      }
+    });
+
     const currentPriceErrors = {};
     variants.forEach((v, index) => {
       // Only require packType for Retail products
@@ -603,6 +615,7 @@ const ProductForm = ({
         taxGroupId: parseFloat(gst) || 0,
         hsnCode: hsnCode,
         rack: rack,
+        customFields: productCustomFields,
         extraAttributes: {
           prescriptionRequired: true,
           storageCondition: "Store below 25°C",
@@ -1261,6 +1274,46 @@ const ProductForm = ({
             <div className={styles.errorMessage}>{formErrors.productCode}</div>
           )}
         </div>
+
+        {/* Dynamic Custom Fields */}
+        {(() => {
+          const settingsObj = vendorSettings?.settings || vendorSettings;
+          const itemSettings = settingsObj?.item;
+          const itemCustomFieldsConfig = itemSettings?.customFields || [];
+          return itemCustomFieldsConfig.map((field, idx) => (
+            <div key={idx} className={styles.inputField}>
+              <label>
+                {field.label} {field.required && <span>*</span>}
+              </label>
+              <input
+                type="text"
+                placeholder={`Enter ${field.label}`}
+                className={formErrors[field.label] ? styles.errorField : ""}
+                value={productCustomFields[field.label] || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if ((field.dataType === "number" || field.type === "number") && val !== "" && !/^\d*\.?\d*$/.test(val)) {
+                    return; // only allow numbers
+                  }
+                  setProductCustomFields(prev => ({
+                    ...prev,
+                    [field.label]: val
+                  }));
+                  if (formErrors[field.label]) {
+                    setFormErrors(prev => {
+                      const next = { ...prev };
+                      delete next[field.label];
+                      return next;
+                    });
+                  }
+                }}
+              />
+              {formErrors[field.label] && (
+                <div className={styles.errorMessage}>{formErrors[field.label]}</div>
+              )}
+            </div>
+          ));
+        })()}
       </div>
 
       <div className={styles.sectionTitle}>Tax information</div>

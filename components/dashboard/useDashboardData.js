@@ -89,10 +89,24 @@ export default function useDashboardData(options = {}) {
     if (branches.length > 0) {
       const isValidSelected = branches.find(b => String(b.id) === String(selectedBranchId));
       if (!selectedBranchId || !isValidSelected) {
-        setSelectedBranchId(branches[0].id || branches[0]._id);
+        // Safeguard: Do not overwrite the branch if the URL query explicitly specifies a branchId
+        if (!router.query.branchId) {
+          setSelectedBranchId(branches[0].id || branches[0]._id);
+        }
       }
     }
-  }, [branches, selectedBranchId, setSelectedBranchId, _hasHydrated]);
+  }, [branches, selectedBranchId, setSelectedBranchId, _hasHydrated, router.query.branchId]);
+
+  // Centralized query-to-store sync: if URL has a branchId query, make sure it matches store's selectedBranchId
+  const queryBranchId = router.query.branchId;
+  useEffect(() => {
+    if (router.isReady && queryBranchId) {
+      const parsed = parseInt(queryBranchId) || queryBranchId;
+      if (String(selectedBranchId) !== String(parsed)) {
+        setSelectedBranchId(parsed);
+      }
+    }
+  }, [router.isReady, queryBranchId, selectedBranchId, setSelectedBranchId]);
 
   const currentBranchId = selectedBranchId || vendor?.branchId || null;
   const branch = branches.find(b => String(b.id) === String(currentBranchId)) || branches[0] || null;
@@ -103,6 +117,12 @@ export default function useDashboardData(options = {}) {
   /* ── fetch vendor settings ── */
   useEffect(() => {
     if (!jwtToken || !branchId) return;
+
+    // Guard: wait until active branchId is synced with URL query branchId
+    const queryBranchId = router.query.branchId;
+    if (queryBranchId && String(branchId) !== String(queryBranchId)) {
+      return;
+    }
     
     getSettings(jwtToken, branchId)
       .then((res) => {
@@ -116,11 +136,17 @@ export default function useDashboardData(options = {}) {
           console.error("Failed to fetch settings in useDashboardData:", err);
         }
       });
-  }, [jwtToken, branchId, setVendorSettings]);
+  }, [jwtToken, branchId, setVendorSettings, router.query.branchId]);
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
     if (!jwtToken || !branchId || skipReviews) return;
+
+    // Guard: wait until active branchId is synced with URL query branchId
+    const queryBranchId = router.query.branchId;
+    if (queryBranchId && String(branchId) !== String(queryBranchId)) {
+      return;
+    }
 
     const webApi = new WebApimanager(jwtToken);
     setReviewsLoading(true);

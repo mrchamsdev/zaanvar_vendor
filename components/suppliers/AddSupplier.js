@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) => {
     const router = useRouter();
     const branchId = router.query.branchId || "";
-    const { jwtToken, userInfo, vendorSettings } = useStore();
+    const { jwtToken, userInfo, vendorSettings, selectedBranchId } = useStore();
     const enableGstin = vendorSettings?.general?.enableGstin;
     const [loading, setLoading] = useState(false);
 
@@ -28,6 +28,8 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const [areaPinCode, setAreaPinCode] = useState("");
     const [country, setCountry] = useState("India");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
+    const [additionalFields, setAdditionalFields] = useState([]);
+    const [errors, setErrors] = useState({});
 
     const [groupName, setGroupName] = useState("");
     const [supplierGroups, setSupplierGroups] = useState([]);
@@ -52,7 +54,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     );
 
     const fetchSupplierGroups = async () => {
-        const activeBranchId = Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id) || 1;
+        const activeBranchId = Number(selectedBranchId) || Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id);
         if (!activeBranchId) return;
         try {
             const res = await purchaseService.getSupplierGroups(jwtToken, activeBranchId);
@@ -65,10 +67,28 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     };
 
     useEffect(() => {
-        if (isOpen && showSupplierGrouping) {
+        if (isOpen && showSupplierGrouping && (selectedBranchId || branchId)) {
             fetchSupplierGroups();
         }
-    }, [isOpen, branchId, selectedBranchIds, vendorSettings]);
+    }, [isOpen, branchId, selectedBranchId, showSupplierGrouping]);
+
+    useEffect(() => {
+        const settingsObj = vendorSettings?.settings || vendorSettings;
+        const partySettings = settingsObj?.party;
+        if (isOpen && partySettings?.additionalFields) {
+            const activeFields = (partySettings.additionalFields || [])
+                .filter(f => f.label && f.label.trim() !== "")
+                .map(f => ({
+                    label: f.label,
+                    dataType: f.dataType || "string",
+                    required: !!f.required,
+                    showInPrint: !!f.showInPrint,
+                    value: ""
+                }));
+            setAdditionalFields(activeFields);
+            setErrors({});
+        }
+    }, [isOpen, vendorSettings]);
 
     useEffect(() => {
         if (mode === 'edit' && supplierId) {
@@ -79,7 +99,12 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const fetchSupplierDetails = async () => {
         setLoading(true);
         try {
-            const res = await purchaseService.getSupplierById(jwtToken, supplierId, branchId);
+            const activeBranchId = selectedBranchId || branchId;
+            if (!activeBranchId) {
+                setLoading(false);
+                return;
+            }
+            const res = await purchaseService.getSupplierById(jwtToken, supplierId, activeBranchId);
             if (res.status === "success") {
                 const data = res.data;
                 setSupplierName(data.supplierName || "");
@@ -96,6 +121,22 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 setCountry(data.country || "India");
                 setSelectedBranchIds(data.branches?.map(b => b.id) || []);
                 setGroupName(data.groupName || "");
+
+                const settingsObj = vendorSettings?.settings || vendorSettings;
+                const partySettings = settingsObj?.party;
+                const activeFields = (partySettings?.additionalFields || [])
+                    .filter(f => f.label && f.label.trim() !== "")
+                    .map(f => {
+                        const savedValue = data.customFields?.[f.label] !== undefined ? data.customFields[f.label] : "";
+                        return {
+                            label: f.label,
+                            dataType: f.dataType || "string",
+                            required: !!f.required,
+                            showInPrint: !!f.showInPrint,
+                            value: savedValue
+                        };
+                    });
+                setAdditionalFields(activeFields);
             }
         } catch (e) {
             console.error(e);
@@ -138,6 +179,24 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             return;
         }
 
+        const fieldErrors = {};
+        additionalFields.forEach(f => {
+            if (f.required && (!f.value || !f.value.trim())) {
+                fieldErrors[f.label] = `${f.label} is required`;
+            }
+        });
+
+        if (Object.keys(fieldErrors).length > 0) {
+            setErrors(fieldErrors);
+            toast.error("Please fill all required additional fields.");
+            return;
+        }
+
+        const customFieldsObj = {};
+        additionalFields.forEach(f => {
+            customFieldsObj[f.label] = f.value || "";
+        });
+
         const payload = {
             supplierName,
             supplierType: supplierType,
@@ -153,6 +212,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             country,
             createdBy: userInfo?.userId || 1,
             branchIds: selectedBranchIds,
+            customFields: customFieldsObj,
             ...(showSupplierGrouping ? { groupName } : {})
         };
 
@@ -194,14 +254,14 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                     <h4 style={{ marginBottom: '20px', color: '#000' }}>Supplier Information</h4>
                     <div className={styles.topGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
                         <div className={styles.field}>
-                            <label>Supplier name <span style={{ color: 'red' }}>*</span></label>
+                            <label>Supplier name <span className={styles.requiredStar}>*</span></label>
                             <input
                                 type="text" className={styles.input} placeholder="Enter Supplier Name"
                                 value={supplierName} onChange={(e) => setSupplierName(e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Branch Name <span style={{ color: 'red' }}>*</span></label>
+                            <label>Branch Name <span className={styles.requiredStar}>*</span></label>
                             <MultiSelectDropdown
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
@@ -210,7 +270,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Supplier Type <span style={{ color: 'red' }}>*</span></label>
+                            <label>Supplier Type <span className={styles.requiredStar}>*</span></label>
                             <MultiSelectDropdown
                                 listItems={supplierTypes}
                                 selectedIds={supplierType}
@@ -219,7 +279,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                             />
                         </div>
                         <div className={styles.field}>
-                            <label>Phone Number <span style={{ color: 'red' }}>*</span></label>
+                            <label>Phone Number <span className={styles.requiredStar}>*</span></label>
                             <input
                                 type="text" className={styles.input} placeholder="Enter Phone Number"
                                 value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -269,6 +329,40 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                 </div>
                             </div>
                         )}
+
+                        {/* Dynamic Additional Fields */}
+                        {additionalFields.map((field, idx) => (
+                            <div key={idx} className={styles.field}>
+                                <label>
+                                    {field.label} {field.required && <span className={styles.requiredStar}>*</span>}
+                                </label>
+                                <input
+                                    type="text"
+                                    className={`${styles.input} ${errors[field.label] ? styles.inputError : ""}`}
+                                    placeholder={`Enter ${field.label}`}
+                                    value={field.value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (field.dataType === "number" && val !== "" && !/^\d*\.?\d*$/.test(val)) {
+                                            return; // Only allow numbers
+                                        }
+                                        setAdditionalFields(prev => prev.map((item, i) => i === idx ? { ...item, value: val } : item));
+                                        if (errors[field.label]) {
+                                            setErrors(prev => {
+                                                const next = { ...prev };
+                                                delete next[field.label];
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                />
+                                {errors[field.label] && (
+                                    <span className={styles.errorLabel}>
+                                        {errors[field.label]}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
                     </div>
 
                     <h4 style={{ margin: '30px 0 20px', color: '#000' }}>Address Information</h4>

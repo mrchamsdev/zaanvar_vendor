@@ -458,7 +458,7 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                                                     handlePaymentChange(p.id, "amountPaid", val);
                                                 }}
                                             />
-                                            {payments.length > 1 && (
+                                            {payments.length > 1 && idx > 0 && (
                                                 <button className={styles.miniRemove} onClick={() => handleRemovePayment(p.id)}>
                                                     <FiTrash2 />
                                                 </button>
@@ -496,9 +496,11 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                         alignItems: 'center',
                         marginBottom: '32px'
                     }}>
-                        <div className={styles.addPaymentLink} onClick={handleAddPayment} style={{ margin: 0 }}>
-                            +ADD ANOTHER PAYMENT
-                        </div>
+                        {!linkPaymentsToInvoices && (
+                            <div className={styles.addPaymentLink} onClick={handleAddPayment} style={{ margin: 0 }}>
+                                +ADD ANOTHER PAYMENT
+                            </div>
+                        )}
                         {Number(editablePaidAmount) > 0 && (
                             <div style={{
                                 display: 'flex',

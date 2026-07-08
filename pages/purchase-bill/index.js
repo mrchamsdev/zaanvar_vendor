@@ -5,8 +5,13 @@ const PurchaseBillIndex = () => {
     const router = useRouter();
     
     useEffect(() => {
-        router.replace("/purchase-bill/purchase-orders");
-    }, []);
+        if (router.isReady) {
+            router.replace({
+                pathname: "/purchase-bill/purchase-orders",
+                query: router.query
+            });
+        }
+    }, [router.isReady, router.query]);
 
     return null;
 };

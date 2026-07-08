@@ -135,6 +135,19 @@ const ProductView = ({ data, onBack, isSplit }) => {
               <strong>{renderList(data.productPetType)}</strong>
             </div>
           </div>
+          {data.customFields && typeof data.customFields === 'object' && Object.keys(data.customFields).length > 0 && (
+            <div className={styles.infoGridRow}>
+              {Object.entries(data.customFields).map(([key, val]) => (
+                <div key={key} className={styles.infoGridItem}>
+                  <label>{key}</label>
+                  <strong>{val !== null && val !== undefined && val !== "" ? String(val) : "-"}</strong>
+                </div>
+              ))}
+              {Array.from({ length: (4 - (Object.keys(data.customFields).length % 4)) % 4 }).map((_, i) => (
+                <div key={`pad-${i}`} className={styles.infoGridItem} />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.viewHeaderRight}>

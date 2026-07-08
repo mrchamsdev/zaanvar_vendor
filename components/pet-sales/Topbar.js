@@ -26,7 +26,12 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
 
   const handleChangeBranch = (e) => {
     const value = e.target.value;
-    setSelectedBranchId(value ? parseInt(value) : "");
+    const val = value ? parseInt(value) : "";
+    setSelectedBranchId(val);
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, branchId: val }
+    }, undefined, { shallow: true });
   };
 
   const handleChangeService = (e) => {
@@ -35,7 +40,10 @@ const Topbar = ({ buttons = [], onButtonClick }) => {
 
     const selected = services.find(service => service.label === value);
     if (selected) {
-      router.push(selected.path);
+      router.push({
+        pathname: selected.path,
+        query: selectedBranchId ? { branchId: selectedBranchId } : {}
+      });
     }
   };
 
