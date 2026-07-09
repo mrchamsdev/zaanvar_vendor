@@ -236,6 +236,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 setFormData({
                     vendorCustomerId: data.vendorCustomerId,
                     partyName: data.customer ? `${data.customer.firstName} ${data.customer.lastName}` : `Customer #${data.vendorCustomerId}`,
+                    address: data.customer?.shippingAddress || data.customer?.serviceableAddress || data.order?.customer?.shippingAddress || data.order?.customer?.serviceableAddress || "",
                     totalBalance: data.dueAtTime ? Number(data.dueAtTime).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() }) : (isPayment ? (data.order?.dueAmount || 0) : (data.dueAmount || 0)),
                     paidAmount: isPayment ? (data.amount || 0) : (data.paidAmount || 0),
                     date: (data.paymentDate || data.createdDate) ? (data.paymentDate || data.createdDate).split('T')[0] : toApiDateOnly(new Date()),
@@ -290,6 +291,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setFormData({
             vendorCustomerId: "",
             partyName: "",
+            address: "",
             totalBalance: "",
             paidAmount: "",
             date: toApiDateOnly(new Date()),
@@ -321,6 +323,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             ...formData,
             vendorCustomerId: customer.vendorCustomerId,
             partyName: `${customer.firstName} ${customer.lastName}`,
+            address: customer.shippingAddress || customer.serviceableAddress || "",
             totalBalance: customer.overallTotals?.dueAmount || 0
         });
         setSearchTerm(`${customer.firstName} ${customer.lastName}`);
@@ -602,7 +605,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             <PrintInvoiceTemplate
                 title="PAYMENT IN RECEIPT"
                 customerDetails={{
-                    name: formData.partyName || 'N/A'
+                    name: formData.partyName || 'N/A',
+                    address: formData.address || selectedCustomerObj?.shippingAddress || selectedCustomerObj?.serviceableAddress || ''
                 }}
                 invoiceDetails={{
                     "Receipt No": paymentId || formData.referenceNumber || formData.userOrderId || 'N/A',

@@ -144,7 +144,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                     const supplierData = {
                         supplierId: data.productsBill.supplierId,
                         supplierName: data.productsBill.vendor?.supplierName || "N/A",
-                        phone: data.productsBill.vendor?.phone || ""
+                        phone: data.productsBill.vendor?.phone || "",
+                        street: data.productsBill.vendor?.street || "",
+                        landmark: data.productsBill.vendor?.landmark || "",
+                        city: data.productsBill.vendor?.city || "",
+                        state: data.productsBill.vendor?.state || "",
+                        country: data.productsBill.vendor?.country || "",
+                        areaPinCode: data.productsBill.vendor?.areaPinCode || ""
                     };
                     setSelectedSupplier(supplierData);
                     setPhone(supplierData.phone);
@@ -164,7 +170,13 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                                 const supplierData = {
                                     supplierId: billData.vendor.supplierId,
                                     supplierName: billData.vendor.supplierName || "N/A",
-                                    phone: billData.vendor.phone || ""
+                                    phone: billData.vendor.phone || "",
+                                    street: billData.vendor.street || "",
+                                    landmark: billData.vendor.landmark || "",
+                                    city: billData.vendor.city || "",
+                                    state: billData.vendor.state || "",
+                                    country: billData.vendor.country || "",
+                                    areaPinCode: billData.vendor.areaPinCode || ""
                                 };
                                 setSelectedSupplier(supplierData);
                                 setPhone(supplierData.phone);
@@ -776,7 +788,8 @@ const AddPurchaseReturn = ({ isOpen, onClose, onRefresh, mode = 'add', returnId 
                 title="PURCHASE RETURN"
                 customerDetails={{
                     name: selectedSupplier?.supplierName || 'N/A',
-                    phone: phone || ''
+                    phone: phone || '',
+                    address: selectedSupplier ? [selectedSupplier.street, selectedSupplier.landmark, selectedSupplier.city, selectedSupplier.state, selectedSupplier.country, selectedSupplier.areaPinCode].filter(Boolean).join(', ') : ''
                 }}
                 invoiceDetails={{
                     "Receipt No": selectedBillId || 'N/A',

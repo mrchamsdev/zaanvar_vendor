@@ -105,7 +105,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             mrp: savedItem.mrp !== undefined && savedItem.mrp !== null && savedItem.mrp !== "" ? Number(savedItem.mrp).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: savedItem.receivedQty ?? "",
                             damagedQty: savedItem.damagedQty ?? "",
-                            tax: savedItem.tax ?? savedItem.taxGroupId ?? 0,
+                            tax: savedItem.taxPercentage ?? savedItem.tax ?? savedItem.taxGroupId ?? 0,
                             discount: savedItem.discount || 0,
                         }));
                     } else {
@@ -116,7 +116,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             mrp: (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== undefined && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== null && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== "" ? Number(item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: "",
                             damagedQty: "",
-                            tax: item.taxGroupId ?? productInfo.taxGroupId ?? item.tax ?? productInfo.tax ?? 0,
+                            tax: item.taxPercentage ?? productInfo.taxPercentage ?? item.tax ?? productInfo.tax ?? item.taxGroupId ?? productInfo.taxGroupId ?? 0,
                             discount: 0,
                         }];
                     }

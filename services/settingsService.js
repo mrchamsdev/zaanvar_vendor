@@ -171,3 +171,83 @@ export const DEFAULT_SETTINGS = {
   }
 };
 
+/**
+ * Get tax rates for a branch
+ * GET /api/vendor/taxes/branch/{branchId}
+ */
+export const getTaxRates = async (jwtToken, branchId) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.get(`vendor/taxes/branch/${branchId}`);
+  return res;
+};
+
+/**
+ * Create a new tax rate
+ * POST /api/vendor/taxes
+ */
+export const createTaxRate = async (jwtToken, payload) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.post("vendor/taxes", payload);
+  return res;
+};
+
+/**
+ * Update an existing tax rate
+ * PUT /api/vendor/taxes/{id}
+ */
+export const updateTaxRate = async (jwtToken, id, payload) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.put(`vendor/taxes/${id}`, payload);
+  return res;
+};
+
+/**
+ * Delete a tax rate
+ * DELETE /api/vendor/taxes/{id}
+ */
+export const deleteTaxRate = async (jwtToken, id) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.delete(`vendor/taxes/${id}`);
+  return res;
+};
+
+/**
+ * Get tax groups for a branch
+ * GET /api/vendor/tax-groups/branch/{branchId}
+ */
+export const getTaxGroups = async (jwtToken, branchId) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.get(`vendor/tax-groups/branch/${branchId}`);
+  return res;
+};
+
+/**
+ * Create a new tax group
+ * POST /api/vendor/tax-groups
+ */
+export const createTaxGroup = async (jwtToken, payload) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.post("vendor/tax-groups", payload);
+  return res;
+};
+
+/**
+ * Update an existing tax group
+ * PUT /api/vendor/tax-groups/{id}
+ */
+export const updateTaxGroup = async (jwtToken, id, payload) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.put(`vendor/tax-groups/${id}`, payload);
+  return res;
+};
+
+/**
+ * Delete a tax group
+ * DELETE /api/vendor/tax-groups/{id}
+ */
+export const deleteTaxGroup = async (jwtToken, id) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.delete(`vendor/tax-groups/${id}`);
+  return res;
+};
+

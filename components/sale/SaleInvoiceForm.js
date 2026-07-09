@@ -142,7 +142,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             setTermsAndCondition("");
             return;
         }
-        
+
         // If they just typed the first character in an empty box:
         if (val.length === 1 && val !== "•" && val !== " ") {
             setTermsAndCondition("• " + val);
@@ -177,24 +177,24 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const val = textarea.value;
-            
+
             // Text before cursor and text after cursor
             const textBefore = val.substring(0, start);
             const textAfter = val.substring(end);
-            
+
             // If the textarea is completely empty, start with a bullet point
             let newValue;
             let offset = 3; // length of '\n• '
-            
+
             if (val === "") {
                 newValue = "• ";
                 offset = 2; // length of '• '
             } else {
                 newValue = textBefore + '\n• ' + textAfter;
             }
-            
+
             setTermsAndCondition(newValue);
-            
+
             // Set cursor position right after the newly inserted bullet point
             setTimeout(() => {
                 textarea.selectionStart = textarea.selectionEnd = start + offset;
@@ -253,6 +253,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             partyName: "",
             billingName: "",
             phone: "",
+            address: "",
             vendorCustomerId: null,
             discountForCustomer: 0,
             userOrderId: "",
@@ -295,6 +296,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
             partyName: customerName,
             billingName: data.billingName || "",
             phone: customerPhone,
+            address: data.customer?.shippingAddress || data.customer?.serviceableAddress || data.shippingAddress || data.serviceableAddress || "",
             vendorCustomerId: data.vendorCustomerId || null,
             discountForCustomer: data.discountForCustomer || 0,
             userOrderId: data.userOrderId || "",
@@ -512,7 +514,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
         const purchasePrice = parseFloat(selectedVariant?.purchasePrice || selectedVariant?.costPrice || selectedVariant?.cost || prod.purchasePrice || prod.costPrice || prod.cost || 0);
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
         const mrp = parseFloat(selectedVariant?.mrp || prod.mrp || price);
-        const tax = parseFloat(prod.taxGroupId || 0);
+        const tax = parseFloat(prod.taxPercentage ?? prod.taxGroupId ?? 0);
         const qty = ""; // Leave blank so placeholder 0 shows
         const calcQty = getActiveQty(qty);
         const discount = 0;
@@ -768,7 +770,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     if (isRoundOffChecked && vendorSettings?.transaction) {
         const rType = vendorSettings.transaction.roundOffType || "nearest";
         const rVal = Number(vendorSettings.transaction.roundOffValue) || 1;
-        
+
         let roundedAmount = totalBillAmount;
         if (rVal > 0) {
             if (rType === "nearest") {
@@ -1000,6 +1002,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 customerDetails={{
                     name: formData.partyName || 'N/A',
                     phone: formData.phone || '',
+                    address: formData.address || selectedCustomerObj?.shippingAddress || selectedCustomerObj?.serviceableAddress || ''
                 }}
                 invoiceDetails={{
                     "Invoice No": formData.invoiceNumber || 'N/A',
@@ -1446,108 +1449,108 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                     {vendorSettings?.transaction?.termsAndConditions && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Terms & Conditions</h3>
-                                <textarea
-                                    value={termsAndCondition}
-                                    onChange={(e) => handleTermsChange(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    disabled={isViewOnly}
-                                    placeholder="Thank you for doing business with us..!"
-                                    style={{
-                                        width: '100%',
-                                        height: '140px',
-                                        padding: '12px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '6px',
-                                        background: '#fafafa',
-                                        resize: 'none',
-                                        fontSize: '14px',
-                                        color: '#333',
-                                        outline: 'none',
-                                        fontFamily: 'inherit',
-                                        cursor: isViewOnly ? 'default' : 'text'
-                                    }}
-                                />
+                            <textarea
+                                value={termsAndCondition}
+                                onChange={(e) => handleTermsChange(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                disabled={isViewOnly}
+                                placeholder="Thank you for doing business with us..!"
+                                style={{
+                                    width: '100%',
+                                    height: '140px',
+                                    padding: '12px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '6px',
+                                    background: '#fafafa',
+                                    resize: 'none',
+                                    fontSize: '14px',
+                                    color: '#333',
+                                    outline: 'none',
+                                    fontFamily: 'inherit',
+                                    cursor: isViewOnly ? 'default' : 'text'
+                                }}
+                            />
                         </div>
                     )}
                     {(!isViewOnly || (payments && payments.length > 0) || (useWallet && appliedWalletAmount > 0)) ? (
                         <div className={styles.paymentList}>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
-                        {availableWalletAmount > 0 && (
-                            <div className={styles.walletToggle} onClick={() => !isViewOnly && setUseWallet(!useWallet)} style={{ cursor: isViewOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={useWallet}
-                                    disabled={isViewOnly}
-                                    style={{ width: '16px', height: '16px', cursor: isViewOnly ? 'not-allowed' : 'pointer', margin: 0 }}
-                                />
-                                <span style={{ fontWeight: '600', marginLeft: '8px' }}>
-                                    Use Wallet Amount (Available: {currencySymbol} {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
-                                </span>
-                                {useWallet && appliedWalletAmount > 0 && (
-                                    <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
-                                        Applied: {currencySymbol} {appliedWalletAmount.toFixed(getAmountDecimalPlaces())}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {payments.map((p, idx) => (
-                            <div key={idx} className={styles.paymentEntry} style={{ position: 'relative', marginBottom: '12px' }}>
-                                <div className={styles.paymentRow} style={{ gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", display: 'grid', gap: '12px', alignItems: 'flex-end' }}>
-                                    <div className={styles.field}>
-                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>payment type</label>
-                                        <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
-                                            <option value="" disabled hidden>Select Payment Type</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Card">Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Bank">Bank</option>
-                                        </select>
-                                    </div>
-                                    <div className={styles.field}>
-                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>amount paid</label>
-                                        <input
-                                            type="number"
-                                            className={styles.input}
-                                            value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
-                                            placeholder="0"
-                                            onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
-                                    </div>
-                                    {payments.length > 1 && !isViewOnly && (
-                                        <div
-                                            style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                            onClick={() => {
-                                                const newPayments = [...payments];
-                                                newPayments.splice(idx, 1);
-                                                setPayments(newPayments);
-                                            }}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: '#333' }}>Payment Details</h3>
+                            {availableWalletAmount > 0 && (
+                                <div className={styles.walletToggle} onClick={() => !isViewOnly && setUseWallet(!useWallet)} style={{ cursor: isViewOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={useWallet}
+                                        disabled={isViewOnly}
+                                        style={{ width: '16px', height: '16px', cursor: isViewOnly ? 'not-allowed' : 'pointer', margin: 0 }}
+                                    />
+                                    <span style={{ fontWeight: '600', marginLeft: '8px' }}>
+                                        Use Wallet Amount (Available: {currencySymbol} {availableWalletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                    </span>
+                                    {useWallet && appliedWalletAmount > 0 && (
+                                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
+                                            Applied: {currencySymbol} {appliedWalletAmount.toFixed(getAmountDecimalPlaces())}
                                         </div>
                                     )}
                                 </div>
-                                {(p.method === "UPI" || p.method === "Cheque") && (
-                                    <div className={styles.field} style={{ marginTop: "12px" }}>
-                                        <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>{p.method === "Cheque" ? "check no" : "reference number"}</label>
-                                        <input
-                                            type="text"
-                                            className={styles.input}
-                                            placeholder="****************"
-                                            value={p.referenceNumber || ""}
-                                            onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                            disabled={isViewOnly}
-                                        />
+                            )}
+                            {payments.map((p, idx) => (
+                                <div key={idx} className={styles.paymentEntry} style={{ position: 'relative', marginBottom: '12px' }}>
+                                    <div className={styles.paymentRow} style={{ gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", display: 'grid', gap: '12px', alignItems: 'flex-end' }}>
+                                        <div className={styles.field}>
+                                            <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>payment type</label>
+                                            <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, "method", e.target.value)} disabled={isViewOnly}>
+                                                <option value="" disabled hidden>Select Payment Type</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                                <option value="Bank">Bank</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.field}>
+                                            <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>amount paid</label>
+                                            <input
+                                                type="number"
+                                                className={styles.input}
+                                                value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount}
+                                                placeholder="0"
+                                                onChange={(e) => handlePaymentChange(idx, "amount", e.target.value)}
+                                                disabled={isViewOnly}
+                                            />
+                                        </div>
+                                        {payments.length > 1 && !isViewOnly && (
+                                            <div
+                                                style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                onClick={() => {
+                                                    const newPayments = [...payments];
+                                                    newPayments.splice(idx, 1);
+                                                    setPayments(newPayments);
+                                                }}
+                                            >
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        ))}
-                        {!isViewOnly && (
-                            <span className={styles.addAnotherPayment} onClick={handleAddPayment}>
-                                + Add another payment
-                            </span>
-                        )}
+                                    {(p.method === "UPI" || p.method === "Cheque") && (
+                                        <div className={styles.field} style={{ marginTop: "12px" }}>
+                                            <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: '4px' }}>{p.method === "Cheque" ? "check no" : "reference number"}</label>
+                                            <input
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="****************"
+                                                value={p.referenceNumber || ""}
+                                                onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                                disabled={isViewOnly}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {!isViewOnly && (
+                                <span className={styles.addAnotherPayment} onClick={handleAddPayment}>
+                                    + Add another payment
+                                </span>
+                            )}
                         </div>
                     ) : (
                         <div></div>
@@ -1574,18 +1577,21 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <span>{currencySymbol}{(isViewOnly && saleInvoiceData?.beforeRoundOff !== undefined && saleInvoiceData?.beforeRoundOff !== null ? Number(saleInvoiceData.beforeRoundOff) : (totalBillAmountBeforeRound || 0)).toFixed(getAmountDecimalPlaces())}</span>
                             </div>
 
-                            <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontSize: '15px' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={isRoundOffChecked}
-                                        onChange={(e) => setIsRoundOffChecked(e.target.checked)}
-                                        style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: 'pointer', margin: 0, borderRadius: '4px' }}
-                                    />
-                                    Round off
-                                </label>
-                                <span></span>
-                            </div>
+                            {(!isViewOnly || isRoundOffChecked) && (
+                                <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: isViewOnly ? 'default' : 'pointer', margin: 0, fontSize: '15px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isRoundOffChecked}
+                                            disabled={isViewOnly}
+                                            onChange={(e) => !isViewOnly && setIsRoundOffChecked(e.target.checked)}
+                                            style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: isViewOnly ? 'not-allowed' : 'pointer', margin: 0, borderRadius: '4px' }}
+                                        />
+                                        Round off
+                                    </label>
+                                    <span></span>
+                                </div>
+                            )}
 
                             <div className={styles.totalRowBold}>
                                 <span>Finalized Cost</span>
@@ -1603,7 +1609,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <span>{currencySymbol}{Number(totalPaidAmount || 0).toFixed(getAmountDecimalPlaces())}</span>
                             </div>
                         </div>
-                        
+
                         <div className={styles.balanceBox}>
                             <span className={styles.balanceLabel}>Balance Amount</span>
                             <span className={balanceAmount > 0 ? styles.balanceValueRed : styles.balanceValueGreen}>

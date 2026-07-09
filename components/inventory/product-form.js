@@ -4,6 +4,7 @@ import styles from "../../styles/inventory/product-form.module.css";
 import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { productService } from "../../services/productService";
+import { getTaxGroups } from "../../services/settingsService";
 import ConfirmationModal from "./confirmation-modal";
 import { toast } from "sonner";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
@@ -155,11 +156,22 @@ const ProductForm = ({
     initialData?.branchId || selectedBranchId || userInfo?.branchId || 91,
   );
 
+  const [taxGroups, setTaxGroups] = useState([]);
+
   useEffect(() => {
-    if (!initialData?.branchId && selectedBranchId) {
-      setBranchId(selectedBranchId);
-    }
-  }, [selectedBranchId, initialData]);
+    const fetchTaxGroupsData = async () => {
+      if (!jwtToken || !branchId) return;
+      try {
+        const res = await getTaxGroups(jwtToken, branchId);
+        const payload = res?.data || res;
+        const rawGroups = Array.isArray(payload) ? payload : (payload?.data || payload?.taxGroups || []);
+        setTaxGroups(rawGroups);
+      } catch (err) {
+        console.error("Failed to fetch tax groups in product form:", err);
+      }
+    };
+    fetchTaxGroupsData();
+  }, [jwtToken, branchId]);
 
   console.log("[ProductForm Debug]", {
     initialDataBranchId: initialData?.branchId,
@@ -602,6 +614,9 @@ const ProductForm = ({
       const formattedPetTypes = selectedPetTypes.map((t) => petTypeMap[t] || t);
       const userId = userInfo?.userId || userInfo?.id || userInfo?._id || 1;
 
+      const selectedGroupObj = taxGroups.find((t) => t.name === gst);
+      const selectedTaxGroupId = selectedGroupObj ? (selectedGroupObj.id || selectedGroupObj.taxGroupId) : 0;
+
       const firstVariant = variants[0] || {};
       const payload = {
         branchId: branchId,
@@ -612,7 +627,7 @@ const ProductForm = ({
         subCategoryId: { subCategory: subCategory },
         productType: productType,
         productPetType: { petType: selectedPetTypes.join(" and ") },
-        taxGroupId: parseFloat(gst) || 0,
+        taxGroupId: selectedTaxGroupId,
         hsnCode: hsnCode,
         rack: rack,
         customFields: productCustomFields,
@@ -1322,27 +1337,23 @@ const ProductForm = ({
           <label>
             GST(%) <InfoIcon text="Goods and Services Tax percentage." />
           </label>
-          <input
-            type="text"
-            placeholder="Enter GST(%)"
-            value={gst}
-            onChange={(e) => {
-              let val = e.target.value;
-              // Allow digits and at most one decimal point
-              val = val.replace(/[^\d.]/g, "");
-              const parts = val.split(".");
-              if (parts.length > 2) {
-                val = parts[0] + "." + parts.slice(1).join("");
-              }
-              const cleanParts = val.split(".");
-              if (cleanParts.length === 2) {
-                val = cleanParts[0].substring(0, 2) + "." + cleanParts[1].substring(0, 2);
-              } else if (cleanParts.length === 1) {
-                val = cleanParts[0].substring(0, 2);
-              }
-              setGst(val);
-            }}
-          />
+          <div className={styles.selectWrapper}>
+            <select
+              value={gst}
+              onChange={(e) => setGst(e.target.value)}
+              className={!gst ? styles.placeholderSelect : ""}
+            >
+              <option value="">Select GST Group</option>
+              {taxGroups.map((g) => (
+                <option key={g.id || g.taxGroupId} value={g.name}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <div className={styles.selectIcon}>
+              <IconChevron />
+            </div>
+          </div>
         </div>
         <div className={styles.inputField}>
           <label>

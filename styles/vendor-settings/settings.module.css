@@ -51,7 +51,7 @@
   color: #222;
   margin-bottom: 20px;
   padding-bottom: 12px;
-  /* border-bottom: 1px solid #f0f0f0; */
+  border-bottom: 1px solid #f0f0f0;
 }
 
 /* ── Two-column grid ── */
@@ -791,4 +791,59 @@
 .additionalFieldsCol {
   flex: 1;
   min-width: 250px;
+}
+
+/* Bottom Action Bar */
+.bottomActionBar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 20px 0;
+  margin-top: 32px;
+  border-top: 1px solid #f1f5f9;
+  background: #fff;
+}
+
+.cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.primarySaveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 28px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primarySaveBtn:hover {
+  background: #1f2937;
+}
+
+.primarySaveBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
