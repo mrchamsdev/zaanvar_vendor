@@ -104,11 +104,26 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 // Fetch customer to get phone etc.
                 const custRes = await saleService.getCustomersByBranch(jwtToken, branchId);
                 const customersList = Array.isArray(custRes.data) ? custRes.data : (custRes.data?.data || []);
-                const cust = customersList.find(c => c.vendorCustomerId === data.vendorCustomerId);
-                if (cust) setSelectedCustomer(cust);
-
                 // Fetch original order to get max quantities
                 const orderRes = await saleService.getOrderById(jwtToken, data.userOrderId);
+                
+                let cust = customersList.find(c => c.vendorCustomerId === data.vendorCustomerId);
+                if (!cust && (data.customer || orderRes.data?.customer)) {
+                    const cSource = data.customer || orderRes.data?.customer;
+                    cust = {
+                        firstName: cSource.firstName || "",
+                        lastName: cSource.lastName || "",
+                        phoneNumber: cSource.phoneNumber || cSource.phone || "",
+                        shippingAddress: cSource.shippingAddress || cSource.serviceableAddress || "",
+                        serviceableAddress: cSource.serviceableAddress || cSource.shippingAddress || ""
+                    };
+                }
+                if (cust) {
+                    if (!cust.shippingAddress && cust.serviceableAddress) {
+                        cust.shippingAddress = cust.serviceableAddress;
+                    }
+                    setSelectedCustomer(cust);
+                }
                 let availableItemsList = [];
                 let invoiceDateStr = "";
                 if (orderRes.status === "success" && orderRes.data) {
@@ -154,11 +169,11 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                     const itemMrp = original?.mrp !== undefined ? original.mrp : parseFloat(item.mrp || item.variant?.mrp || item.sellingPrice || 0);
 
                     const qty = parseFloat(item.quantity) || 0;
-                    const discountAmount = (itemPrice * itemDiscPercent) / 100;
-                    const taxablePrice = calculateTaxBasedOnMrp && itemMrp > 0 ? itemMrp : itemPrice - (discountAmount / qty || 0);
+                    const unitDiscount = (itemPrice * itemDiscPercent) / 100;
+                    const taxablePrice = calculateTaxBasedOnMrp && itemMrp > 0 ? itemMrp : itemPrice - unitDiscount;
                     // Handle tax correctly based on taxablePrice
                     const taxAmount = (taxablePrice * itemTaxPercent) / 100;
-                    const calculatedItemTotal = qty * (itemPrice - (discountAmount / qty || 0) + taxAmount);
+                    const calculatedItemTotal = qty * (itemPrice - unitDiscount + taxAmount);
 
                     return {
                         userOrderItemsID: item.userOrderItemsID,
@@ -284,15 +299,15 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
 
     const handleProductSelect = (index, p) => {
         const newItems = [...items];
-        const discountAmount = (p.price * p.discountPercentage) / 100;
-        const taxablePrice = calculateTaxBasedOnMrp && p.mrp > 0 ? p.mrp : p.price - (discountAmount / 1 || 0);
+        const unitDiscount = (p.price * p.discountPercentage) / 100;
+        const taxablePrice = calculateTaxBasedOnMrp && p.mrp > 0 ? p.mrp : p.price - unitDiscount;
         const taxAmount = (taxablePrice * p.taxPercentage) / 100;
         
         newItems[index] = {
             ...p,
             returnQty: 1,
             returnCondition: "Resellable",
-            itemTotal: 1 * (p.price - (discountAmount / 1 || 0) + taxAmount)
+            itemTotal: 1 * (p.price - unitDiscount + taxAmount)
         };
         setItems(newItems);
         setShowProductDropdown(null);
@@ -311,10 +326,10 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
         newItems[index].returnQty = newQty;
 
         const item = newItems[index];
-        const discountAmount = (item.price * item.discountPercentage) / 100;
-        const taxablePrice = calculateTaxBasedOnMrp && item.mrp > 0 ? item.mrp : item.price - (discountAmount / newQty || 0);
+        const unitDiscount = (item.price * item.discountPercentage) / 100;
+        const taxablePrice = calculateTaxBasedOnMrp && item.mrp > 0 ? item.mrp : item.price - unitDiscount;
         const taxAmount = (taxablePrice * item.taxPercentage) / 100;
-        newItems[index].itemTotal = newQty * (item.price - (discountAmount / newQty || 0) + taxAmount);
+        newItems[index].itemTotal = newQty * (item.price - unitDiscount + taxAmount);
         setItems(newItems);
 
         if (newQty > maxQty) {
@@ -483,6 +498,7 @@ const AddSalesReturn = ({ isOpen, onClose, onRefresh, mode = "add", returnId }) 
                 customerDetails={{
                     name: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'N/A',
                     phone: selectedCustomer?.phoneNumber || '',
+                    address: selectedCustomer?.shippingAddress || selectedCustomer?.serviceableAddress || ''
                 }}
                 invoiceDetails={{
                     "Receipt No": formData.receiptNo ? `Order ${formData.receiptNo}` : 'N/A',

@@ -1,8 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
+import useStore from "../../components/state/useStore";
+import useDashboardData from "../../components/dashboard/useDashboardData";
+import {
+  getTaxRates,
+  createTaxRate,
+  updateTaxRate,
+  deleteTaxRate,
+  getTaxGroups,
+  createTaxGroup,
+  updateTaxGroup,
+  deleteTaxGroup
+} from "../../services/settingsService";
+import { toast } from "sonner";
 
 const InfoIcon = ({ tip }) => (
-  <span className={styles.infoIcon} title={tip || "More info"}>ⓘ</span>
+  <span className={styles.infoIcon} title={tip || "More info"}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  </span>
 );
 
 const EditIcon = () => (
@@ -22,16 +41,271 @@ const TrashIcon = () => (
 
 const TaxesGSTSettings = ({ settings, onChange }) => {
   const g = settings;
-  const [taxRates, setTaxRates] = useState([]);
-  const [taxGroups, setTaxGroups] = useState([]);
-  const [loadingTax, setLoadingTax] = useState(false);
+  const { jwtToken } = useStore();
+  const { branchId } = useDashboardData({ skipReviews: true });
 
-  const toggle = (field) => (e) => onChange({ ...g, [field]: e.target.checked });
+  const [showTaxList, setShowTaxList] = useState(false);
+
+  // API tax rates state
+  const [apiTaxRates, setApiTaxRates] = useState([]);
+  const [loadingRates, setLoadingRates] = useState(false);
+
+  // API tax groups state
+  const [apiTaxGroups, setApiTaxGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+
+  // Modals visibility
+  const [showAddRate, setShowAddRate] = useState(false);
+  const [showAddGroup, setShowAddGroup] = useState(false);
+  const [editingRate, setEditingRate] = useState(null);
+  const [editingGroup, setEditingGroup] = useState(null);
+
+  // Delete rate confirmation states
+  const [rateToDelete, setRateToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Delete group confirmation states
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [showGroupDeleteConfirm, setShowGroupDeleteConfirm] = useState(false);
+
+  // Modal form states
+  const [rateName, setRateName] = useState("");
+  const [rateValue, setRateValue] = useState("");
+  const [rateType, setRateType] = useState("Other");
+
+  const [groupName, setGroupName] = useState("");
+  const [selectedGroupRates, setSelectedGroupRates] = useState([]);
+
+  // Fetch Tax Rates from API
+  const fetchRates = async () => {
+    if (!jwtToken || !branchId) return;
+    setLoadingRates(true);
+    try {
+      const res = await getTaxRates(jwtToken, branchId);
+      const payload = res?.data || res;
+      const rawRates = Array.isArray(payload) ? payload : (payload?.data || payload?.taxes || []);
+      const mappedRates = rawRates.map((r) => ({
+        ...r,
+        id: r.taxTableId || r.id,
+        value: parseFloat(r.value) || 0,
+      }));
+      setApiTaxRates(mappedRates);
+    } catch (err) {
+      console.error("Failed to fetch tax rates:", err);
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  // Fetch Tax Groups from API
+  const fetchGroups = async () => {
+    if (!jwtToken || !branchId) return;
+    setLoadingGroups(true);
+    try {
+      const res = await getTaxGroups(jwtToken, branchId);
+      const payload = res?.data || res;
+      const rawGroups = Array.isArray(payload) ? payload : (payload?.data || payload?.taxGroups || []);
+      const mappedGroups = rawGroups.map((group) => ({
+        ...group,
+        id: group.taxGroupId || group.id,
+        rates: group.taxTableId || group.rates || [],
+      }));
+      setApiTaxGroups(mappedGroups);
+    } catch (err) {
+      console.error("Failed to fetch tax groups:", err);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const refreshList = () => {
+    fetchRates();
+    fetchGroups();
+  };
+
+  useEffect(() => {
+    if (showTaxList) {
+      refreshList();
+    }
+  }, [showTaxList, jwtToken, branchId]);
+
+  const toggle = (field) => (e) => {
+    onChange({ ...g, [field]: e.target.checked });
+  };
+
+  // Tax Rate Actions
+  const handleOpenAddRate = () => {
+    setEditingRate(null);
+    setRateName("");
+    setRateValue("");
+    setRateType("Other");
+    setShowAddRate(true);
+  };
+
+  const handleOpenEditRate = (rate) => {
+    setEditingRate(rate);
+    setRateName(rate.name);
+    setRateValue(rate.value);
+    setRateType(rate.taxType || rate.type || "Other");
+    setShowAddRate(true);
+  };
+
+  const handleSaveRate = async () => {
+    if (!rateName.trim()) return;
+    const valueNum = parseFloat(rateValue) || 0;
+    try {
+      const payload = {
+        name: rateName,
+        value: valueNum,
+        taxType: rateType,
+      };
+
+      if (editingRate && editingRate.id) {
+        // PUT /api/vendor/taxes/:id
+        await updateTaxRate(jwtToken, editingRate.id, payload);
+        toast.success("Tax rate updated successfully!");
+      } else {
+        // POST /api/vendor/taxes
+        const createPayload = {
+          ...payload,
+          branchId: parseInt(branchId),
+        };
+        await createTaxRate(jwtToken, createPayload);
+        toast.success("Tax rate saved successfully!");
+      }
+      fetchRates();
+      setShowAddRate(false);
+      setEditingRate(null);
+    } catch (err) {
+      console.error("Failed to save tax rate:", err);
+      toast.error("Failed to save tax rate");
+    }
+  };
+
+  const confirmDeleteRate = (rate) => {
+    setRateToDelete(rate);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!rateToDelete) return;
+    try {
+      const res = await deleteTaxRate(jwtToken, rateToDelete.id);
+      const data = res?.data || res;
+      if (data?.status === "fail" || data?.status === "error") {
+        toast.error(data.message || "Cannot delete tax rate");
+      } else {
+        toast.success("Tax rate deleted successfully");
+        fetchRates();
+      }
+    } catch (err) {
+      const serverMsg = err?.response?.data?.message || err?.message;
+      console.error("Failed to delete tax rate:", err);
+      toast.error(serverMsg || "Failed to delete tax rate");
+    } finally {
+      setShowDeleteConfirm(false);
+      setRateToDelete(null);
+    }
+  };
+
+  // Tax Group Actions
+  const handleOpenAddGroup = () => {
+    setEditingGroup(null);
+    setGroupName("");
+    setSelectedGroupRates([]);
+    setShowAddGroup(true);
+  };
+
+  const handleOpenEditGroup = (group) => {
+    setEditingGroup(group);
+    setGroupName(group.name);
+    // Support either array of taxTableIds or rates
+    setSelectedGroupRates(group.rates || group.taxTableId || []);
+    setShowAddGroup(true);
+  };
+
+  const handleSaveGroup = async () => {
+    if (!groupName.trim()) return;
+    try {
+      const payload = {
+        name: groupName,
+        taxTableId: selectedGroupRates, // Array of selected Tax Rate IDs
+      };
+
+      if (editingGroup && editingGroup.id) {
+        // PUT /api/vendor/tax-groups/:id
+        await updateTaxGroup(jwtToken, editingGroup.id, payload);
+        toast.success("Tax group updated successfully!");
+      } else {
+        // POST /api/vendor/tax-groups
+        const createPayload = {
+          ...payload,
+          branchId: parseInt(branchId),
+        };
+        await createTaxGroup(jwtToken, createPayload);
+        toast.success("Tax group saved successfully!");
+      }
+      fetchGroups();
+      setShowAddGroup(false);
+      setEditingGroup(null);
+    } catch (err) {
+      console.error("Failed to save tax group:", err);
+      toast.error("Failed to save tax group");
+    }
+  };
+
+  const confirmDeleteGroup = (group) => {
+    setGroupToDelete(group);
+    setShowGroupDeleteConfirm(true);
+  };
+
+  const handleDeleteGroupConfirm = async () => {
+    if (!groupToDelete) return;
+    try {
+      const res = await deleteTaxGroup(jwtToken, groupToDelete.id);
+      const data = res?.data || res;
+      if (data?.status === "fail" || data?.status === "error") {
+        toast.error(data.message || "Cannot delete tax group");
+      } else {
+        toast.success("Tax group deleted successfully");
+        fetchGroups();
+      }
+    } catch (err) {
+      const serverMsg = err?.response?.data?.message || err?.message;
+      console.error("Failed to delete tax group:", err);
+      toast.error(serverMsg || "Failed to delete tax group");
+    } finally {
+      setShowGroupDeleteConfirm(false);
+      setGroupToDelete(null);
+    }
+  };
+
+  const handleToggleGroupRate = (rateId) => {
+    const rateIdNum = Number(rateId);
+    if (selectedGroupRates.includes(rateIdNum)) {
+      setSelectedGroupRates(selectedGroupRates.filter((id) => id !== rateIdNum));
+    } else {
+      setSelectedGroupRates([...selectedGroupRates, rateIdNum]);
+    }
+  };
+
+  const getGroupComponentText = (group) => {
+    const ratesArray = group.rates || group.taxTableId || [];
+    const selected = ratesArray
+      .map((rId) => apiTaxRates.find((r) => Number(r.id) === Number(rId)))
+      .filter(Boolean);
+    if (selected.length === 0) {
+      return "No taxes selected";
+    }
+    return selected.map((r) => r.name).join("    ");
+  };
+
+  const isGstEnabled = g.enableGst ?? g.enableGST ?? true;
 
   return (
-    <div className={styles.threeColGrid}>
+    <div className={styles.threeColGrid} style={{ gridTemplateColumns: showTaxList ? "1fr 1fr 1fr" : "1fr", transition: "grid-template-columns 0.3s ease" }}>
       {/* ── GST Settings ── */}
-      <div className={styles.card}>
+      <div className={styles.card} style={{ maxWidth: showTaxList ? "none" : "480px" }}>
         <div className={styles.cardTitle}>GST Settings</div>
 
         <div className={styles.checkRow}>
@@ -39,8 +313,8 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
             id="enableGST"
             type="checkbox"
             className={styles.checkInput}
-            checked={g.enableGST ?? true}
-            onChange={toggle("enableGST")}
+            checked={isGstEnabled}
+            onChange={(e) => onChange({ ...g, enableGst: e.target.checked })}
           />
           <label htmlFor="enableGST" className={styles.checkLabel}>Enable GST</label>
           <InfoIcon tip={`What is this?\nGST stands for Goods and Services Tax of the Government of India. Enabling GST allows you to apply GST to Sales, Purchases, and other types of transactions.\n\nHow it is used?\nApply GST to Sale and/or Purchase invoices. You can also generate GST reports for tax f iling.\n\nWhy to use?\nBusinesses with a GSTIN and registered under the Regular or Composition scheme can enable GST. Zaanvar generates ready-made GST reports such as GSTR-1 and GSTR-3B to simplify GST filing in India.`} />
@@ -51,8 +325,8 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
             id="enableTCS"
             type="checkbox"
             className={styles.checkInput}
-            checked={g.enableTCS ?? false}
-            onChange={toggle("enableTCS")}
+            checked={g.enableTcs ?? false}
+            onChange={toggle("enableTcs")}
           />
           <label htmlFor="enableTCS" className={styles.checkLabel}>Enable TCS</label>
           <InfoIcon tip={`What is this?\nTCS (Tax Collected at Source) is a tax that vendors collect from their customers at the time of sale.\n\nHow it is used?\nEnter TCS in your transactions. You can find your TCS details in Form 27EQ.\n\nWhy to use?\nThe government requires businesses to collect TCS if: * Your turnover exceeded ₹10 crore in the previous financial year, and * The value of sales to a customer exceeds ₹50 lakh in the current financial year.`} />
@@ -63,17 +337,17 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
             id="enableTDS"
             type="checkbox"
             className={styles.checkInput}
-            checked={g.enableTDS ?? false}
-            onChange={toggle("enableTDS")}
+            checked={g.enableTds ?? false}
+            onChange={toggle("enableTds")}
           />
           <label htmlFor="enableTDS" className={styles.checkLabel}>Enable TDS</label>
           <InfoIcon tip={`What is this?\nTDS (Tax Deducted at Source) is a tax deducted by the payer at the time of making specified payments and subsequently deposited with the government.\n\nHow it is used?\nEnter TDS in your transactions. You can view your TDS details in the TDS Receivable and TDS Payable reports.\n\nWhy to use?\nUnder the TDS system, a person or entity making certain types of payments is required to deduct a specified percentage of tax before making the payment to the recipient. Using the TDS feature helps streamline financial processes, minimize errors, stay compliant with tax regulations, and avoid penalties or legal issues related to tax deductions.`} />
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <button className={styles.btnLink} type="button">
+          <button className={styles.btnLink} type="button" onClick={() => setShowTaxList(!showTaxList)}>
             Tax List
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showTaxList ? "rotate(90deg)" : "none", transition: "transform 0.2s", marginLeft: 4 }}>
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -81,96 +355,299 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
       </div>
 
       {/* ── Tax Rates ── */}
-      <div className={styles.card}>
-        <div className={styles.cardTitle}>Tax Rates</div>
+      {showTaxList && (
+        <div className={styles.card}>
+          <div className={styles.cardTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Tax Rates
+              <button
+                type="button"
+                onClick={handleOpenAddRate}
+                style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" style={{ transition: "stroke 0.2s" }} onMouseEnter={(e) => e.currentTarget.setAttribute("stroke", "#e9315d")} onMouseLeave={(e) => e.currentTarget.setAttribute("stroke", "#bbb")}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-        {loadingTax ? (
-          <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>Loading…</div>
-        ) : taxRates.length === 0 ? (
-          /* Fallback sample display when API returns empty */
-          <>
-            {[
-              { name: "IGST @ 0%", value: 0 },
-              { name: "SGST @ 0%", value: 0 },
-              { name: "CGST @ 0%", value: 0 },
-              { name: "IGST @ 0.25%", value: 0.25 },
-              { name: "SGST @ 0.125%", value: 0.125 },
-              { name: "CGST @ 0.125%", value: 0.125 },
-            ].map((rate) => (
-              <div key={rate.name} className={styles.listRow}>
-                <div>
-                  <div>{rate.name}</div>
-                </div>
+          {loadingRates ? (
+            <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>Loading...</div>
+          ) : apiTaxRates.length === 0 ? (
+            <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>No tax rates added.</div>
+          ) : (
+            apiTaxRates.map((rate) => (
+              <div key={rate.id} className={styles.listRow}>
+                <div>{rate.name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontWeight: 600, fontSize: 13 }}>{rate.value}</span>
                   <div className={styles.listRowActions}>
+                    <div onClick={() => handleOpenEditRate(rate)} style={{ cursor: "pointer", display: "inline-flex" }}>
+                      <EditIcon />
+                    </div>
+                    <div onClick={() => confirmDeleteRate(rate)} style={{ cursor: "pointer", display: "inline-flex" }}>
+                      <TrashIcon />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Tax Groups ── */}
+      {showTaxList && (
+        <div className={styles.card}>
+          <div className={styles.cardTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Tax Group
+              <button
+                type="button"
+                onClick={handleOpenAddGroup}
+                style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" style={{ transition: "stroke 0.2s" }} onMouseEnter={(e) => e.currentTarget.setAttribute("stroke", "#e9315d")} onMouseLeave={(e) => e.currentTarget.setAttribute("stroke", "#bbb")}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowTaxList(false)}
+              style={{ border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" style={{ transition: "stroke 0.2s" }} onMouseEnter={(e) => e.currentTarget.setAttribute("stroke", "#333")} onMouseLeave={(e) => e.currentTarget.setAttribute("stroke", "#999")}>
+                <circle cx="12" cy="12" r="10" fill="#f0f0f0" stroke="none" />
+                <path d="M15 9l-6 6M9 9l6 6" stroke="#999" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          {loadingGroups ? (
+            <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>Loading...</div>
+          ) : apiTaxGroups.length === 0 ? (
+            <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>No tax groups added.</div>
+          ) : (
+            apiTaxGroups.map((group) => (
+              <div key={group.id} className={styles.listRow}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{group.name}</div>
+                  <div className={styles.listRowSub}>{getGroupComponentText(group)}</div>
+                </div>
+                <div className={styles.listRowActions}>
+                  <div onClick={() => handleOpenEditGroup(group)} style={{ cursor: "pointer", display: "inline-flex" }}>
                     <EditIcon />
+                  </div>
+                  <div onClick={() => confirmDeleteGroup(group)} style={{ cursor: "pointer", display: "inline-flex" }}>
                     <TrashIcon />
                   </div>
                 </div>
               </div>
-            ))}
-          </>
-        ) : (
-          taxRates.map((rate) => (
-            <div key={rate.id || rate.name} className={styles.listRow}>
-              <div>{rate.name || rate.taxName}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontWeight: 600 }}>{rate.value ?? rate.taxRate}</span>
-                <div className={styles.listRowActions}>
-                  <EditIcon />
-                  <TrashIcon />
-                </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Add/Edit Tax Rate Modal ── */}
+      {showAddRate && (
+        <div className={styles.modalOverlay} style={{ zIndex: 1100 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "420px", width: "100%", padding: 0, borderRadius: "8px", overflow: "hidden" }}>
+            <div className={styles.modalHeader} style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>
+                {editingRate ? "Edit Tax Rate" : "Add Tax Rate"}
+              </h3>
+              <button className={styles.closeBtn} onClick={() => setShowAddRate(false)} style={{ border: "none", background: "transparent", fontSize: "20px", cursor: "pointer", padding: 0, color: "#999" }}>×</button>
+            </div>
+
+            <div style={{ padding: "20px" }}>
+              <div style={{ marginBottom: "16px" }}>
+                <input
+                  type="text"
+                  placeholder="Tax Name"
+                  value={rateName}
+                  onChange={(e) => setRateName(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
+                <input
+                  type="number"
+                  placeholder="Rate"
+                  value={rateValue}
+                  onChange={(e) => setRateValue(e.target.value)}
+                  style={{ flex: 1, padding: "10px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }}
+                />
+                <select
+                  value={rateType}
+                  onChange={(e) => setRateType(e.target.value)}
+                  style={{ width: "110px", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", background: "#fff", cursor: "pointer" }}
+                >
+                  <option value="Other">Other</option>
+                  <option value="IGST">IGST</option>
+                  <option value="SGST">SGST</option>
+                  <option value="CGST">CGST</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #eee", paddingTop: "16px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddRate(false)}
+                  style={{ padding: "8px 24px", background: "#fff", border: "1px solid #e9315d", borderRadius: "6px", color: "#e9315d", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveRate}
+                  style={{ padding: "8px 24px", background: "#e9315d", border: "1.5px solid #e9315d", borderRadius: "6px", color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  SAVE
+                </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
-      {/* ── Tax Groups ── */}
-      <div className={styles.card}>
-        <div className={styles.cardTitle}>Tax Group</div>
+      {/* ── Add/Edit Tax Group Modal ── */}
+      {showAddGroup && (
+        <div className={styles.modalOverlay} style={{ zIndex: 1100 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "420px", width: "100%", padding: 0, borderRadius: "8px", overflow: "hidden" }}>
+            <div className={styles.modalHeader} style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>
+                {editingGroup ? "Edit Tax Group" : "Add Tax Group"}
+              </h3>
+              <button className={styles.closeBtn} onClick={() => setShowAddGroup(false)} style={{ border: "none", background: "transparent", fontSize: "20px", cursor: "pointer", padding: 0, color: "#999" }}>×</button>
+            </div>
 
-        {loadingTax ? (
-          <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>Loading…</div>
-        ) : taxGroups.length === 0 ? (
-          /* Fallback sample display */
-          <>
-            {[
-              { name: "GST @ 0%", components: "SGST @ 0%    CGST @ 0%" },
-              { name: "GST @ 0.25%", components: "SGST @ 0.125%    CGST @ 0.125%" },
-              { name: "GST @ 3%", components: "SGST @ 1.5%    CGST @ 1.5%" },
-              { name: "GST @ 12%", components: "SGST @ 6%    CGST @ 8%" },
-            ].map((group) => (
-              <div key={group.name} className={styles.listRow}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{group.name}</div>
-                  <div className={styles.listRowSub}>{group.components}</div>
-                </div>
-                <div className={styles.listRowActions}>
-                  <EditIcon />
-                  <TrashIcon />
+            <div style={{ padding: "20px" }}>
+              <div style={{ marginBottom: "16px" }}>
+                <input
+                  type="text"
+                  placeholder="Enter Group Name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "8px", color: "#333" }}>Select Taxes</div>
+                <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid #eee", borderRadius: "6px", padding: "8px" }}>
+                  {apiTaxRates.map((rate) => (
+                    <div key={rate.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 4px", borderBottom: "1px solid #f9f9f9" }}>
+                      <span style={{ fontSize: "13px", color: "#333" }}>{rate.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "12px", color: "#666" }}>{rate.value}%</span>
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupRates.includes(Number(rate.id))}
+                          onChange={() => handleToggleGroupRate(rate.id)}
+                          style={{ cursor: "pointer", accentColor: "#e9315d", width: "16px", height: "16px" }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {apiTaxRates.length === 0 && (
+                    <div style={{ fontSize: "12px", color: "#aaa", padding: "8px" }}>Please add tax rates first.</div>
+                  )}
                 </div>
               </div>
-            ))}
-          </>
-        ) : (
-          taxGroups.map((group) => (
-            <div key={group.id || group.name} className={styles.listRow}>
-              <div>
-                <div style={{ fontWeight: 600 }}>{group.name || group.groupName}</div>
-                <div className={styles.listRowSub}>
-                  {(group.components || []).map((c) => c.name || c).join("    ")}
-                </div>
-              </div>
-              <div className={styles.listRowActions}>
-                <EditIcon />
-                <TrashIcon />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #eee", paddingTop: "16px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddGroup(false)}
+                  style={{ padding: "8px 24px", background: "#fff", border: "1px solid #e9315d", borderRadius: "6px", color: "#e9315d", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveGroup}
+                  style={{ padding: "8px 24px", background: "#e9315d", border: "1.5px solid #e9315d", borderRadius: "6px", color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  SAVE
+                </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay} style={{ zIndex: 1200 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "360px", width: "100%", padding: 0, borderRadius: "8px", overflow: "hidden" }}>
+            <div className={styles.modalHeader} style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Confirm Delete</h3>
+              <button className={styles.closeBtn} onClick={() => setShowDeleteConfirm(false)} style={{ border: "none", background: "transparent", fontSize: "20px", cursor: "pointer", padding: 0, color: "#999" }}>×</button>
+            </div>
+            <div style={{ padding: "20px" }}>
+              <div style={{ fontSize: "14px", color: "#333", marginBottom: "20px" }}>
+                Are you sure you want to delete <strong>{rateToDelete?.name}</strong>?
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #eee", paddingTop: "16px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  style={{ padding: "8px 20px", background: "#fff", border: "1px solid #ccc", borderRadius: "6px", color: "#666", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteConfirm}
+                  style={{ padding: "8px 20px", background: "#e9315d", border: "1.5px solid #e9315d", borderRadius: "6px", color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Group Confirmation Modal ── */}
+      {showGroupDeleteConfirm && (
+        <div className={styles.modalOverlay} style={{ zIndex: 1200 }}>
+          <div className={styles.modalContent} style={{ maxWidth: "360px", width: "100%", padding: 0, borderRadius: "8px", overflow: "hidden" }}>
+            <div className={styles.modalHeader} style={{ padding: "16px 20px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 className={styles.modalTitle} style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>Confirm Delete</h3>
+              <button className={styles.closeBtn} onClick={() => setShowGroupDeleteConfirm(false)} style={{ border: "none", background: "transparent", fontSize: "20px", cursor: "pointer", padding: 0, color: "#999" }}>×</button>
+            </div>
+            <div style={{ padding: "20px" }}>
+              <div style={{ fontSize: "14px", color: "#333", marginBottom: "20px" }}>
+                Are you sure you want to delete <strong>{groupToDelete?.name}</strong>?
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #eee", paddingTop: "16px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowGroupDeleteConfirm(false)}
+                  style={{ padding: "8px 20px", background: "#fff", border: "1px solid #ccc", borderRadius: "6px", color: "#666", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteGroupConfirm}
+                  style={{ padding: "8px 20px", background: "#e9315d", border: "1.5px solid #e9315d", borderRadius: "6px", color: "#fff", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

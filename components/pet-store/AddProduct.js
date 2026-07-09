@@ -7,6 +7,7 @@ import Image from "next/image";
 import styles from "../../styles/pet-store/addProduct.module.css";
 import { FiX, FiMinus, FiSquare } from "react-icons/fi";
 import { productService } from "../../services/productService";
+import { getTaxGroups } from "../../services/settingsService";
 import useStore from "@/components/state/useStore";
 import { IMAGE_URL } from "@/components/utilities/Constants";
 
@@ -164,6 +165,24 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
   const [images, setImages] = useState([]);
   const fileInputRef = useRef(null);
 
+  const [taxGroups, setTaxGroups] = useState([]);
+
+  useEffect(() => {
+    const fetchTaxGroupsData = async () => {
+      const activeBranchId = selectedBranchId || 1;
+      if (!jwt) return;
+      try {
+        const res = await getTaxGroups(jwt, activeBranchId);
+        const payload = res?.data || res;
+        const rawGroups = Array.isArray(payload) ? payload : (payload?.data || payload?.taxGroups || []);
+        setTaxGroups(rawGroups);
+      } catch (err) {
+        console.error("Failed to fetch tax groups in pet store AddProduct form:", err);
+      }
+    };
+    fetchTaxGroupsData();
+  }, [jwt, selectedBranchId]);
+
   useEffect(() => {
     if (isEditMode) {
       fetchProductDetails();
@@ -306,8 +325,10 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
         if (key === 'petType') {
           data.append(key, JSON.stringify(formData[key]));
         } else if (key === 'gst') {
+          const selectedGroupObj = taxGroups.find((t) => t.name === formData.gst);
+          const selectedTaxGroupId = selectedGroupObj ? (selectedGroupObj.id || selectedGroupObj.taxGroupId) : 0;
           data.append('gst', formData[key] || "");
-          data.append('taxGroupId', parseFloat(formData.gst) || 0);
+          data.append('taxGroupId', selectedTaxGroupId);
         } else if (key === 'taxGroupId') {
           // Skip the stale taxGroupId key retrieved from backend to avoid overwriting our update
         } else {
@@ -642,13 +663,19 @@ const AddProduct = ({ onClose, editProductId = null, productType: initialProduct
                   same GST % will shown in sale
                 </div>
               )}
-              <input 
-                type="text" 
-                name="gst"
-                placeholder="Enter GST(%) here" 
-                value={formData.gst}
+              <select 
+                name="gst" 
+                value={formData.gst} 
                 onChange={handleInputChange}
-              />
+                className={!formData.gst ? styles.placeholderSelect : ""}
+              >
+                <option value="">Select GST Group</option>
+                {taxGroups.map(g => (
+                  <option key={g.id || g.taxGroupId} value={g.name}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className={styles.formGroup}>
               <label>HSN Code <span className={styles.required}>*</span></label>

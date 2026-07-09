@@ -33,6 +33,7 @@ const PaymentOutFormPage = () => {
 
     // Form State
     const [supplierName, setSupplierName] = useState("");
+    const [supplierAddress, setSupplierAddress] = useState("");
     const [transactionDate, setTransactionDate] = useState("");
     const [totalBalance, setTotalBalance] = useState("000");
     const [totalBillAmt, setTotalBillAmt] = useState("");
@@ -91,6 +92,9 @@ const PaymentOutFormPage = () => {
                 const sName = supplier?.supplierName || t.supplierName || "";
                 const sPhone = supplier?.phone || "";
                 setSupplierName(sName ? `${sName}${sPhone ? ` (${sPhone})` : ""}` : (t.transactionInfo || "Supplier"));
+                
+                const sAddress = supplier ? [supplier.street, supplier.landmark, supplier.city, supplier.state, supplier.country, supplier.areaPinCode].filter(Boolean).join(', ') : "";
+                setSupplierAddress(sAddress);
 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(t.overallBillAmount || totals.supplierTotalAmount || "000");
@@ -261,7 +265,8 @@ const PaymentOutFormPage = () => {
             <PrintInvoiceTemplate
                 title="PAYMENT OUT RECEIPT"
                 customerDetails={{
-                    name: supplierName || 'N/A'
+                    name: supplierName || 'N/A',
+                    address: supplierAddress || ''
                 }}
                 invoiceDetails={{
                     "Receipt No": queryRefNo || data?.userOrderId || data?.suppliersTransactionId || 'N/A',

@@ -48,7 +48,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             setTermsAndCondition("");
             return;
         }
-        
+
         // If they just typed the first character in an empty box:
         if (val.length === 1 && val !== "•" && val !== " ") {
             setTermsAndCondition("• " + val);
@@ -83,24 +83,24 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const val = textarea.value;
-            
+
             // Text before cursor and text after cursor
             const textBefore = val.substring(0, start);
             const textAfter = val.substring(end);
-            
+
             // If the textarea is completely empty, start with a bullet point
             let newValue;
             let offset = 3; // length of '\n• '
-            
+
             if (val === "") {
                 newValue = "• ";
                 offset = 2; // length of '• '
             } else {
                 newValue = textBefore + '\n• ' + textAfter;
             }
-            
+
             setTermsAndCondition(newValue);
-            
+
             // Set cursor position right after the newly inserted bullet point
             setTimeout(() => {
                 textarea.selectionStart = textarea.selectionEnd = start + offset;
@@ -440,7 +440,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
 
         const purchasePrice = parseFloat(selectedVariant?.purchasePrice || selectedVariant?.costPrice || selectedVariant?.cost || prod.purchasePrice || prod.costPrice || prod.cost || 0);
         const price = parseFloat(selectedVariant?.sellingPrice || selectedVariant?.mrp || 0);
-        const tax = parseFloat(prod.taxGroupId || 0);
+        const tax = parseFloat(prod.taxPercentage ?? prod.taxGroupId ?? 0);
         const qty = ""; // Leave blank so placeholder 0 shows
         const calcQty = getActiveQty(qty);
         const discount = 0;
@@ -1122,75 +1122,75 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                         {(!isViewOnly || (payments && payments.length > 0) || (useWallet && appliedWalletAmount > 0)) ? (
                             <div className={styles.paymentList}>
                                 <label style={{ fontWeight: '700' }}>Payment Details</label>
-                            {walletAmount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '12px', marginTop: '-4px' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={useWallet}
-                                        onChange={(e) => setUseWallet(e.target.checked)}
-                                        disabled={isViewOnly}
-                                        style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
-                                    />
-                                    <span>Use Wallet (Available: Rs {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})</span>
-                                </div>
-                            )}
-                            {useWallet && appliedWalletAmount > 0 && (
-                                <div className={styles.paymentRow} style={{ gridTemplateColumns: "1fr 1fr", gap: '12px', alignItems: 'center' }}>
-                                    <select className={styles.select} value="Wallet" disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed' }}>
-                                        <option value="Wallet">Wallet</option>
-                                    </select>
-                                    <input type="number" className={styles.input} value={appliedWalletAmount} disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed', fontWeight: '700' }} />
-                                </div>
-                            )}
-                            {payments.map((p, idx) => (
-                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", gap: '12px', alignItems: 'flex-end' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Payment Type</label>
-                                            <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }}>
-                                                <option value="Cash">Cash</option>
-                                                <option value="UPI">UPI</option>
-                                                <option value="Card">Card</option>
-                                                <option value="Cheque">Cheque</option>
-                                                <option value="Bank">Bank</option>
-                                            </select>
+                                {walletAmount > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#555', marginBottom: '12px', marginTop: '-4px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={useWallet}
+                                            onChange={(e) => setUseWallet(e.target.checked)}
+                                            disabled={isViewOnly}
+                                            style={{ cursor: isViewOnly ? 'not-allowed' : 'pointer', width: '16px', height: '16px', accentColor: '#E93E64' }}
+                                        />
+                                        <span>Use Wallet (Available: Rs {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})</span>
+                                    </div>
+                                )}
+                                {useWallet && appliedWalletAmount > 0 && (
+                                    <div className={styles.paymentRow} style={{ gridTemplateColumns: "1fr 1fr", gap: '12px', alignItems: 'center' }}>
+                                        <select className={styles.select} value="Wallet" disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed' }}>
+                                            <option value="Wallet">Wallet</option>
+                                        </select>
+                                        <input type="number" className={styles.input} value={appliedWalletAmount} disabled={true} style={{ background: '#f3f4f6', cursor: 'not-allowed', fontWeight: '700' }} />
+                                    </div>
+                                )}
+                                {payments.map((p, idx) => (
+                                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: payments.length > 1 && !isViewOnly ? "1fr 1fr 24px" : "1fr 1fr", gap: '12px', alignItems: 'flex-end' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Payment Type</label>
+                                                <select className={styles.select} value={p.method} onChange={(e) => handlePaymentChange(idx, 'method', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }}>
+                                                    <option value="Cash">Cash</option>
+                                                    <option value="UPI">UPI</option>
+                                                    <option value="Card">Card</option>
+                                                    <option value="Cheque">Cheque</option>
+                                                    <option value="Bank">Bank</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Amount Paid</label>
+                                                <input type="number" className={styles.input} placeholder="Amount" value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount} onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }} />
+                                            </div>
+                                            {payments.length > 1 && !isViewOnly && (
+                                                <div
+                                                    style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '38px' }}
+                                                    onClick={() => {
+                                                        const newPayments = [...payments];
+                                                        newPayments.splice(idx, 1);
+                                                        setPayments(newPayments);
+                                                    }}
+                                                >
+                                                    <FiTrash2 size={16} />
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Amount Paid</label>
-                                            <input type="number" className={styles.input} placeholder="Amount" value={p.amount === "" || p.amount === 0 || p.amount === "0" ? "" : p.amount} onChange={(e) => handlePaymentChange(idx, 'amount', e.target.value)} disabled={isViewOnly} style={{ border: '1px solid #ddd', padding: '10px' }} />
-                                        </div>
-                                        {payments.length > 1 && !isViewOnly && (
-                                            <div
-                                                style={{ color: '#E93E64', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '38px' }}
-                                                onClick={() => {
-                                                    const newPayments = [...payments];
-                                                    newPayments.splice(idx, 1);
-                                                    setPayments(newPayments);
-                                                }}
-                                            >
-                                                <FiTrash2 size={16} />
+                                        {(p.method === "UPI" || p.method === "Cheque") && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>{p.method === "Cheque" ? "Cheque No" : "Reference Number"}</label>
+                                                <input
+                                                    type="text"
+                                                    className={styles.input}
+                                                    placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
+                                                    value={p.referenceNumber || ""}
+                                                    onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
+                                                    disabled={isViewOnly}
+                                                    style={{ border: '1px solid #ddd', padding: '10px' }}
+                                                />
                                             </div>
                                         )}
                                     </div>
-                                    {(p.method === "UPI" || p.method === "Cheque") && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>{p.method === "Cheque" ? "Cheque No" : "Reference Number"}</label>
-                                            <input
-                                                type="text"
-                                                className={styles.input}
-                                                placeholder={p.method === "UPI" ? "Reference Number" : "Cheque No"}
-                                                value={p.referenceNumber || ""}
-                                                onChange={(e) => handlePaymentChange(idx, "referenceNumber", e.target.value)}
-                                                disabled={isViewOnly}
-                                                style={{ border: '1px solid #ddd', padding: '10px' }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            {!isViewOnly && (
-                                <span className={styles.addAnotherPayment} onClick={handleAddPayment}>+ Add another payment</span>
-                            )}
+                                ))}
+                                {!isViewOnly && (
+                                    <span className={styles.addAnotherPayment} onClick={handleAddPayment}>+ Add another payment</span>
+                                )}
                             </div>
                         ) : (
                             <div></div>

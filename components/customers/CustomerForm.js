@@ -19,6 +19,7 @@ const parseAgeStr = (ageStr) => {
 
 const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) => {
     const { jwtToken, userInfo, vendorSettings } = useStore();
+    const showCustomerShippingAddress = vendorSettings?.party?.customerShippingAddress || vendorSettings?.settings?.party?.customerShippingAddress;
     const { branches } = useDashboardData();
     const [loading, setLoading] = useState(false);
     const [errorPopupMessage, setErrorPopupMessage] = useState(null);
@@ -95,7 +96,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 (fullData.branchIds ? [Number(fullData.branchIds)] : []))
                     );
 
-                    setServiceableAddress(fullData.serviceableAddress || "");
+                    setServiceableAddress(fullData.shippingAddress || fullData.serviceableAddress || "");
                     setLocationLink(fullData.locationLink || "");
                     setEmergencyContactName(fullData.emergencyContactName || "");
                     setEmergencyMobileNumber(fullData.emergencyMobileNumber || "");
@@ -163,7 +164,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             (initialData.branchIds ? [Number(initialData.branchIds)] : []))
                 );
 
-                setServiceableAddress(initialData.serviceableAddress || "");
+                setServiceableAddress(initialData.shippingAddress || initialData.serviceableAddress || "");
                 setLocationLink(initialData.locationLink || "");
                 setEmergencyContactName(initialData.emergencyContactName || "");
                 setEmergencyMobileNumber(initialData.emergencyMobileNumber || "");
@@ -333,6 +334,7 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             uploadIDProof: typeof idProof === 'string' ? idProof : null,
             branchIds: selectedBranchIds,
             serviceableAddress,
+            shippingAddress: serviceableAddress,
             locationLink,
             emergencyContactName,
             emergencyMobileNumber,
@@ -551,21 +553,25 @@ const CustomerForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 </div>
 
                 {/* Address Details */}
-                <div className={styles.sectionTitleMargin}>
-                    <h3 className={styles.sectionTitle}>Address Details <span className={styles.optionalText}>(Optional)</span></h3>
-                </div>
-                <div className={styles.sectionContainer}>
-                    <div className={styles.flexCol}>
-                        <div>
-                            <label className={styles.labelStyle}>Serviceable Address (Optional)</label>
-                            <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
+                {showCustomerShippingAddress && (
+                    <>
+                        <div className={styles.sectionTitleMargin}>
+                            <h3 className={styles.sectionTitle}>Address Details <span className={styles.optionalText}>(Optional)</span></h3>
                         </div>
-                        <div>
-                            <label className={styles.labelStyle}>Location Link (Optional)</label>
-                            <input type="text" className={styles.inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
+                        <div className={styles.sectionContainer}>
+                            <div className={styles.flexCol}>
+                                <div>
+                                    <label className={styles.labelStyle}>Serviceable Address (Optional)</label>
+                                    <textarea className={`${styles.inputStyle} ${styles.textAreaStyle}`} placeholder="Please enter your address here for the groomer to refer to" value={serviceableAddress} onChange={e => setServiceableAddress(e.target.value)}></textarea>
+                                </div>
+                                <div>
+                                    <label className={styles.labelStyle}>Location Link (Optional)</label>
+                                    <input type="text" className={styles.inputStyle} placeholder="Paste google map location link here" value={locationLink} onChange={e => setLocationLink(e.target.value)} />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                )}
 
                 {/* Emergency Contact */}
                 <div className={styles.sectionTitleMargin}>

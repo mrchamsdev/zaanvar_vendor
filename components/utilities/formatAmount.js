@@ -15,7 +15,9 @@ export const getMinDecimalPlaces = () => {
 Number.prototype.toDynamicFixed = function() {
     const decimals = getAmountDecimalPlaces();
     const minDecimals = getMinDecimalPlaces();
-    return this.toLocaleString('en-US', {
+    const factor = Math.pow(10, decimals);
+    const rounded = Math.round((this + 1e-9) * factor) / factor;
+    return rounded.toLocaleString('en-US', {
         useGrouping: false,
         minimumFractionDigits: minDecimals,
         maximumFractionDigits: decimals
@@ -39,7 +41,9 @@ export const formatAmount = (amount) => {
     const num = Number(amount);
     if (isNaN(num)) return Number(0).toLocaleString(undefined, { minimumFractionDigits: minDecimals, maximumFractionDigits: decimals });
     
-    return num.toLocaleString(undefined, {
+    const factor = Math.pow(10, decimals);
+    const rounded = Math.round((num + 1e-9) * factor) / factor;
+    return rounded.toLocaleString(undefined, {
         minimumFractionDigits: minDecimals,
         maximumFractionDigits: decimals,
     });

@@ -6,6 +6,7 @@ import useDashboardData from '../../components/dashboard/useDashboardData';
 import { numberToWords } from '../utilities/numberToWords';
 import { IMAGE_URL } from '../utilities/Constants';
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import useStore from "../state/useStore";
 
 const PrintInvoiceTemplate = ({
   title,
@@ -23,6 +24,28 @@ const PrintInvoiceTemplate = ({
 }) => {
   const currencySymbol = useCurrencySymbol();
   const { branch, company, vendor } = useDashboardData({ skipReviews: true });
+  const { vendorSettings } = useStore();
+
+  const printShippingAddressSetting = vendorSettings?.party?.printShippingAddress !== undefined 
+    ? vendorSettings.party.printShippingAddress 
+    : (vendorSettings?.settings?.party?.printShippingAddress !== undefined 
+        ? vendorSettings.settings.party.printShippingAddress 
+        : true);
+
+  const customerPrintShippingAddressSetting = vendorSettings?.party?.customerPrintShippingAddress !== undefined 
+    ? vendorSettings.party.customerPrintShippingAddress 
+    : (vendorSettings?.settings?.party?.customerPrintShippingAddress !== undefined 
+        ? vendorSettings.settings.party.customerPrintShippingAddress 
+        : true);
+
+  const isSupplierPrint = title && (
+    title.toUpperCase().includes('PURCHASE') || 
+    title.toUpperCase().includes('RECEIVED') || 
+    title.toUpperCase().includes('PAYMENT OUT') ||
+    title.toUpperCase().includes('RECEIVE')
+  );
+
+  const showAddress = isSupplierPrint ? printShippingAddressSetting : customerPrintShippingAddressSetting;
 
   const companyName = headerDetails?.companyName || branch?.branchName || branch?.name || company?.name || vendor?.businessName || 'My Company';
   const companyPhone = headerDetails?.companyPhone || branch?.contactUs?.mobile || branch?.contactUs?.phone || branch?.mobileNo || branch?.phoneNumber || branch?.mobile || branch?.phone || company?.contactUs?.mobile || company?.contactUs?.phone || company?.mobileNo || company?.phoneNumber || company?.mobile || company?.phone || vendor?.phone || vendor?.mobile || vendor?.mobileNo || '-';
@@ -352,7 +375,7 @@ const PrintInvoiceTemplate = ({
               {customerDetails && (
                 <>
                   <h3>{customerDetails.name}</h3>
-                  {customerDetails.address && <p>{customerDetails.address}</p>}
+                  {customerDetails.address && showAddress && <p>{customerDetails.address}</p>}
                   {(customerDetails.phone || customerDetails.contact) && (
                     <p>Contact No : {customerDetails.phone || customerDetails.contact}</p>
                   )}
