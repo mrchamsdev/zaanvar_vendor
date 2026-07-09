@@ -1,9 +1,76 @@
 import React from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
 
-const InfoIcon = ({ tip }) => (
-  <span className={styles.infoIcon} title={tip || "More info"}>ⓘ</span>
-);
+const InfoIcon = ({ tip }) => {
+  const [visible, setVisible] = React.useState(false);
+  const [showBelow, setShowBelow] = React.useState(false);
+  const [alignRight, setAlignRight] = React.useState(false);
+  if (!tip) return null;
+
+  const handleMouseEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.5) {
+      setShowBelow(true);
+    } else {
+      setShowBelow(false);
+    }
+
+    const windowWidth = window.innerWidth;
+    const distanceToRight = windowWidth - rect.left;
+    if (distanceToRight < 240) {
+      setAlignRight(true);
+    } else {
+      setAlignRight(false);
+    }
+
+    setVisible(true);
+  };
+
+  const formattedContent = tip.split("\n\n").map((paragraph, index) => {
+    const lines = paragraph.split("\n");
+    return (
+      <div key={index} style={{ marginBottom: index === lines.length - 1 ? 0 : '12px' }}>
+        {lines.map((line, lIndex) => {
+          const isHeader = line.endsWith("?") || line === "What is this?" || line === "Why use it?" || line === "Why to use?" || line === "How it is used?" || line === "Why use?" || line.startsWith("GSTIN Number") || line.startsWith("Business Currency");
+          return (
+            <div key={lIndex} style={{ 
+              fontWeight: isHeader ? '700' : '400',
+              fontSize: isHeader ? '13px' : '12px',
+              color: isHeader ? '#fff' : '#e5e7eb',
+              lineHeight: '1.5',
+              marginBottom: isHeader ? '4px' : '0'
+            }}>
+              {line}
+            </div>
+          );
+        })}
+      </div>
+    );
+  });
+
+  return (
+    <span 
+      className={styles.infoIconWrapper}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setVisible(false)}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'help' }}
+    >
+      <span className={styles.infoIcon}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      </span>
+      {visible && (
+        <div className={`${showBelow ? styles.customTooltipBelow : styles.customTooltip} ${alignRight ? styles.alignRight : ''}`}>
+          {formattedContent}
+          <div className={showBelow ? styles.tooltipArrowBelow : styles.tooltipArrow}></div>
+        </div>
+      )}
+    </span>
+  );
+};
 
 const GST_TYPE_OPTIONS = [
   "Unregistered/Consumer",

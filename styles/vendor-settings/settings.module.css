@@ -847,3 +847,85 @@
   background: #9ca3af;
   cursor: not-allowed;
 }
+
+/* Custom Premium Tooltips */
+.infoIconWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.customTooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a4a4af2; /* Elegant dark gray with slight opacity */
+  color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  width: max-content;
+  max-width: 380px;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: left;
+  white-space: normal;
+}
+
+.tooltipArrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #4a4a4af2 transparent transparent transparent;
+}
+
+.customTooltipBelow {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a4a4af2;
+  color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  width: max-content;
+  max-width: 380px;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: left;
+  white-space: normal;
+}
+
+.tooltipArrowBelow {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #4a4a4af2 transparent;
+}
+
+/* Tooltip alignment for right edge of screen */
+.alignRight {
+  left: auto !important;
+  right: -12px !important;
+  transform: none !important;
+}
+
+.alignRight .tooltipArrow {
+  left: auto !important;
+  right: 12px !important;
+  transform: none !important;
+}
+
+.alignRight .tooltipArrowBelow {
+  left: auto !important;
+  right: 12px !important;
+  transform: none !important;
+}
