@@ -9,6 +9,9 @@ import TaxesGSTSettings from "../../components/vendor-settings/TaxesGSTSettings"
 import TransactionMessageSettings from "../../components/vendor-settings/TransactionMessageSettings";
 import SupplierCustomerSettings from "../../components/vendor-settings/SupplierCustomerSettings";
 import ItemSettings from "../../components/vendor-settings/ItemSettings";
+import ServicesPackagesSettings from "../../components/vendor-settings/ServicesPackagesSettings";
+import RoomsCapacitySettings from "../../components/vendor-settings/RoomsCapacitySettings";
+import roomsCapacityStyles from "../../styles/vendor-settings/rooms-capacity.module.css";
 import RolesAndPermissionsTab from "../../components/vendor-settings/RolesAndPermissionsTab";
 import ProfileSettings from "../../components/vendor-settings/ProfileSettings";
 import {
@@ -33,6 +36,8 @@ export default function VendorSettingsPage() {
   const [hasExisting, setHasExisting] = useState(false); // track POST vs PUT
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [topbarActions, setTopbarActions] = useState(null);
+  const [isAddingRoom, setIsAddingRoom] = useState(false);
 
   /* ── Fetch on mount / when branchId changes ── */
   useEffect(() => {
@@ -186,6 +191,10 @@ export default function VendorSettingsPage() {
             onChange={updateSection("item")}
           />
         );
+      case "ServicesPackages":
+        return <ServicesPackagesSettings setTopbarActions={setTopbarActions} />;
+      case "RoomsCapacity":
+        return <RoomsCapacitySettings setTopbarActions={setTopbarActions} isAddingRoom={isAddingRoom} setIsAddingRoom={setIsAddingRoom} />;
       case "RolesAndPermissions":
         return <RolesAndPermissionsTab />;
       case "ProfileSettings":
@@ -203,8 +212,45 @@ export default function VendorSettingsPage() {
     }
   };
 
+  if (activeTab === "RoomsCapacity" && isAddingRoom) {
+    return (
+      <div className={roomsCapacityStyles.fullScreenWrapper}>
+        {renderTab()}
+      </div>
+    );
+  }
+
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      customTopbarRight={topbarActions ? (
+        <div className={roomsCapacityStyles.flexTopbarGroup}>
+          {activeTab === "ServicesPackages" && (
+            <>
+              <button 
+                onClick={topbarActions.onAddRooms}
+                className={roomsCapacityStyles.btnPurpleTopbar}
+              >
+                <span>+</span> Add Rooms
+              </button>
+              <button 
+                onClick={topbarActions.onAddServiceOrPackage}
+                className={roomsCapacityStyles.btnPinkTopbar}
+              >
+                <span>+</span> {topbarActions.activeTab === "Services" ? "Add Service" : "Add Package"}
+              </button>
+            </>
+          )}
+          {activeTab === "RoomsCapacity" && (
+            <button 
+              onClick={topbarActions.onAddRooms}
+              className={roomsCapacityStyles.btnPinkTopbar}
+            >
+              <span>+</span> Add Room
+            </button>
+          )}
+        </div>
+      ) : null}
+    >
       <VendorSettingsLayout
         activeTab={activeTab}
         onTabChange={handleTabChange}

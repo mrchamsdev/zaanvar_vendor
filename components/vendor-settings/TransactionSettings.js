@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
+import TermsListPopup from "./TermsListPopup";
 
 const InfoIcon = ({ tip }) => {
   const [visible, setVisible] = React.useState(false);
@@ -94,6 +95,7 @@ const CheckRow = ({ id, checked, onChange, label, tip, children }) => (
 const TransactionSettings = ({ settings, onChange }) => {
   const t = settings;
   const [showTaxModal, setShowTaxModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const set = (field, val) => onChange({ ...t, [field]: val });
   const toggle = (field) => (e) => set(field, e.target.checked);
@@ -204,6 +206,31 @@ const TransactionSettings = ({ settings, onChange }) => {
             label="Terms and Conditions"
             tip={`What is this?\nEnables you to print Terms and Conditions on Sale Invoices, Delivery Challans, Sale Orders, Estimates/Quotations, Purchases, and Purchase Orders.\n\nHow it is used?\nAfter enabling this setting, you can set transaction-specific Terms and Conditions. These will appear on invoices, and you can also customize them for each transaction.`}
           />
+          {t.termsAndConditions && (
+            <div className={styles.subField} style={{ marginTop: 8 }}>
+              <button
+                className={styles.btnLink}
+                type="button"
+                onClick={() => setShowTermsModal(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#E93E64",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: 0
+                }}
+              >
+                Terms and Conditions List
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 4 }}>
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+          )}
 
           <CheckRow
             id="dueDatesAndPaymentNotifications"
@@ -329,6 +356,10 @@ const TransactionSettings = ({ settings, onChange }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {showTermsModal && (
+        <TermsListPopup onClose={() => setShowTermsModal(false)} />
       )}
     </div>
   );

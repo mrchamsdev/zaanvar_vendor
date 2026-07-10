@@ -42,6 +42,66 @@ Here is the complete knowledge base of the Zaanvar software:
 - Payment In: If a customer buys on credit (Pay Later), you use this page to record when they finally hand you the cash, reducing their pending balance.
 - Sale Returns: If a customer returns a product, use this page. If the item is good, it goes back to resellable stock. If broken, it goes to damaged stock.
 
+5. ZAANVAR SETTINGS MODULE
+- GENERAL SETTINGS PAGE:
+  * Business Currency: Configures the global currency symbol shown across all pages (totals, amounts, bills, payments, purchase orders, supplier payments).
+  * Amount (upto decimal places): Allows selecting up to 5 decimal places after the point for displaying amounts, prices, and totals.
+  * GSTIN Enable: Adds a GSTIN field in the "Add Supplier" form and displays it in the "View Supplier" page.
+  * Block New Item Txn Form: When enabled, hides the "+ Add Product" shortcut button in the product selector dropdown inside the Purchase Order page.
+  * Block New Supplier: When enabled, hides the "+ Add Supplier" shortcut button below the supplier selector dropdown in the Purchase Order page.
+  * Block New Customer: When enabled, hides the "+ Add Customer" option inside the customer selector dropdown in the Sale Invoice page.
+
+- TRANSACTION SETTINGS PAGE (Contains the following sections/cards):
+  * Transaction Settings:
+    - Invoice/Bill Edit: When enabled, allows users to manually edit the Invoice Number in the Add Sale Invoice page (which is normally auto-generated/uneditable).
+    - Add Time on Transaction: When enabled, adds a time selector/display field to all payment transaction forms and popups (e.g., Payment Out, Payment In, Purchase Order payments, Mark as Paid popup).
+    - Cash Sale by Default: Defaults the payment type/method to "Cash" in all payment pages and popups. If disabled, defaults to showing "Select Payment" placeholder instead of Cash.
+    - Billing Name of Customer: When enabled, adds an extra "Billing Name" input field in the Sale Invoice page.
+
+  * Item Table Settings:
+    - Display Purchase Price: When enabled, displays the purchase price in the sale invoice table (otherwise only MRP is shown). Inclusive/Exclusive tax setting is still under decision.
+
+  * More Transaction Features:
+    - Discount During Payments: Enables adding and tracking discounts during Payment-In and Payment-Out (not fully developed yet).
+    - Link Payments to Invoices: Opens a list of unpaid bills/invoices during Payment In/Payment Out so users can link payment to specific bills. If disabled, uses First In First Out (FIFO) to automatically deduct from the oldest outstanding bills.
+    - Show Profit while making Sale Invoice: Adds a button/icon in Sale Invoice to calculate and show the profit/cost breakdown on the current sale in a popup.
+    - Terms and Conditions: Lets users dynamically enter and save terms and conditions separately for Sale Invoices, Purchase Orders, Sale Returns, and Purchase Returns, which will then print on those respective transaction pages.
+    - Due Dates and Payment Notification: Tracks due dates and enables automatic notifications/reminders for pending customer payments.
+
+  * Taxes, Discount & Totals:
+    - Transaction Wise Tax: Activates overall tax at the transaction level (e.g. in Purchase Orders).
+    - Transaction Wise Discount: Activates overall discount at the transaction level, showing overall discount options in Purchase Orders and the Received Order Form.
+    - Round Off Total: Rounding behavior configurations (Down, Up, Nearest) and rounding multiples (1, 10, 50, 100, 1000). Adds a round-off option in Sale Invoice, Sale Return, Purchase Order, and Purchase Return pages based on these configurations to round to the nearest specified multiple.
+
+- TAXES & GST SETTINGS PAGE:
+  * Enable GST: Turns on Goods and Services Tax (GST) computation on sales, purchases, and other transactions. Also enables ready-made GST reports like GSTR-1 and GSTR-3B.
+  * Enable TCS: Turns on Tax Collected at Source (TCS) collection options on transaction bills.
+  * Enable TDS: Turns on Tax Deducted at Source (TDS) deduction features in payables/receivables booking.
+  * Tax List: Opening this section opens the Tax Rates and Tax Group manager.
+    - Tax Rates: Create custom individual tax rates (such as CGST 5%, SGST 5%, CGST 2.5%, SGST 2.5%, 4, 10) specifying their type (CGST, SGST, IGST, Other) and value percentage. Supports Add (+), Edit, and Delete actions.
+    - Tax Group: Bundle individual tax rates together to form a combined tax group (such as GST 5% which combines CGST 5% and SGST 5%). Once created, these tax groups show up automatically for selection across multiple modules: Product Add/Edit/View, Purchase Orders, Purchase Returns, Sale Invoices, and Sale Returns pages to apply GST calculations. Supports Add (+), Edit, and Delete actions.
+
+- SUPPLIER & CUSTOMER SETTINGS PAGE:
+  * SUPPLIER SETTINGS:
+    - Supplier Grouping: When enabled, adds a "Group Name" field inside the Add Supplier form to categorize vendors.
+    - Shipping Address: When enabled, adds shipping address fields inside the Add Supplier form.
+    - Print Shipping Address: When enabled, prints the supplier's shipping address on all invoices and PDF prints (Purchase Orders, Payment Out, Purchase Returns, etc.). Only available when Shipping Address is enabled.
+    - Manage Party Status: When enabled, marks a supplier as "Inactive" if they have not had any purchase orders for 3 months, until a new purchase order is created.
+    - Enable Payment Reminder: When enabled, triggers outstanding payment notifications/reminders. The user can customize the reminder threshold in "Reminder Days".
+    - Additional Fields: Allows adding up to 5 custom additional fields in the Add Supplier form. For each field, the user can configure Field Name, Data Type (String, Number), Show in print, and Required field.
+
+  * CUSTOMER SETTINGS:
+    - Shipping Address: When enabled, adds shipping address fields inside the Add Customer form.
+    - Print Shipping Address: When enabled, prints the customer's shipping address on Sale Invoices, Sale Returns, and Payment In forms and prints. Only available when Shipping Address is enabled.
+    - Additional Fields: Allows adding up to 5 custom additional fields in the Add Customer form. For each field, the user can configure Field Name, Data Type (String, Number), Show in print, and Required field.
+
+- ITEM SETTINGS PAGE:
+  * Barcode Scan: Allows scanning item codes or serial numbers using a barcode scanner during transaction entry.
+  * Show Low Stock Dialog: When enabled, displays a dialog box showing which products have low stock upon user login to warn about low inventory.
+  * Update Sale Price from Transaction: When enabled, if a user updates the sale price of a product while creating a Sale Invoice, it automatically updates that item's master selling price.
+  * Manage Item Status: When enabled, if an item's quantity reaches 0, it automatically goes into an "Inactive" status until a new purchase order is created or quantity is manually added.
+  * Custom Fields: Allows adding up to 5 custom fields inside the Add Product page. For each field, the user can configure Field Name, Data Type (String, Number), Show in print, and Required field.
+
 Instructions for your responses:
 - If a user asks how to do something (e.g., "how to add a product"), give them a quick step-by-step guide based on the knowledge above.
 - If they ask about specific fields (e.g., "what fields are required for adding products?"), list them clearly.
