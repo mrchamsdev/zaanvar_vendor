@@ -8,6 +8,8 @@ const TABS = [
   { key: "TransactionMessage", label: "Transaction Message" },
   { key: "SupplierCustomer", label: "Supplier & Customer" },
   { key: "ItemSettings", label: "Item Settings" },
+  { key: "ServicesPackages", label: "Services & Packages" },
+  { key: "RoomsCapacity", label: "Rooms & Capacity" },
   { key: "ProfileSettings", label: "Profile Settings" },
 ];
 
@@ -18,7 +20,7 @@ const VendorSettingsLayout = ({ activeTab, onTabChange, children, onSave, saving
       {children}
 
       {/* Save / Cancel button row at the bottom */}
-      {activeTab !== "ProfileSettings" && activeTab !== "RolesAndPermissions" && (
+      {activeTab !== "ProfileSettings" && activeTab !== "RolesAndPermissions" && activeTab !== "ServicesPackages" && activeTab !== "RoomsCapacity" && (
         <div className={styles.bottomActionBar}>
           <button
             type="button"

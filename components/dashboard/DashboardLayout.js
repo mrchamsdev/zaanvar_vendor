@@ -230,6 +230,8 @@ function buildMenuFromVendor(userInfo) {
         { label: "Transaction Message", path: "/vendor-settings?tab=TransactionMessage" },
         { label: "Supplier & Customer", path: "/vendor-settings?tab=SupplierCustomer" },
         { label: "Item Settings", path: "/vendor-settings?tab=ItemSettings" },
+        { label: "Services & Packages", path: "/vendor-settings?tab=ServicesPackages" },
+        { label: "Rooms & Capacity", path: "/vendor-settings?tab=RoomsCapacity" },
         { label: "Roles & Permissions", path: "/vendor-settings?tab=RolesAndPermissions" },
         { label: "Profile Settings", path: "/vendor-settings?tab=ProfileSettings" },
       ],
