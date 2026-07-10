@@ -1320,11 +1320,14 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                                             }}
                                                         >
                                                             <option value="">Select Batch No</option>
-                                                            {it.availableBatches.map(b => (
-                                                                <option key={b.batchNumber} value={b.batchNumber}>
-                                                                    {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
-                                                                </option>
-                                                            ))}
+                                                            {it.availableBatches
+                                                                .filter(b => !items.some((item, i) => i !== idx && item.productId === it.productId && item.batchNumber === b.batchNumber))
+                                                                .map(b => (
+                                                                    <option key={b.batchNumber} value={b.batchNumber}>
+                                                                        {b.batchNumber} {b.expiryDate && b.expiryDate !== "0000-00-00" ? `(Exp: ${b.expiryDate.substring(0, 7)})` : ''}
+                                                                    </option>
+                                                                ))
+                                                            }
                                                         </select>
                                                         <FiChevronDown size={12} style={{ pointerEvents: "none", marginLeft: "-12px", color: "#666" }} />
                                                     </div>

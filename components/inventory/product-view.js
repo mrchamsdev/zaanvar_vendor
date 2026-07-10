@@ -128,7 +128,12 @@ const ProductView = ({ data, onBack, isSplit }) => {
             </div>
             <div className={styles.infoGridItem}>
               <label>GST(%)</label>
-              <strong>{(data.taxGroupId || data.gst) && (data.taxGroupId !== "-" && data.gst !== "-") ? `${data.taxGroupId || data.gst}%` : "-"}</strong>
+              <strong>{(() => {
+                const gstVal = data.gst || data.taxPercentage || data.taxGroup?.name || data.taxGroup?.value;
+                if (!gstVal || gstVal === "-") return "-";
+                const gstStr = String(gstVal).trim();
+                return gstStr.endsWith("%") ? gstStr : `${gstStr}%`;
+              })()}</strong>
             </div>
             <div className={styles.infoGridItem}>
               <label>Pet Type</label>

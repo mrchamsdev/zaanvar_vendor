@@ -166,12 +166,22 @@ const ProductForm = ({
         const payload = res?.data || res;
         const rawGroups = Array.isArray(payload) ? payload : (payload?.data || payload?.taxGroups || []);
         setTaxGroups(rawGroups);
+
+        // Map taxGroupId to its group name if gst state is not set yet
+        if (initialData?.taxGroupId) {
+          const matched = rawGroups.find(
+            (g) => Number(g.id || g.taxGroupId) === Number(initialData.taxGroupId)
+          );
+          if (matched) {
+            setGst(matched.name);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch tax groups in product form:", err);
       }
     };
     fetchTaxGroupsData();
-  }, [jwtToken, branchId]);
+  }, [jwtToken, branchId, initialData?.taxGroupId]);
 
   console.log("[ProductForm Debug]", {
     initialDataBranchId: initialData?.branchId,
@@ -246,12 +256,13 @@ const ProductForm = ({
     initialData?.ProductCode || "",
   );
   const [gst, setGst] = useState(() => {
-    const rawGst = initialData?.taxGroupId || initialData?.gst || "";
+    const rawGst = initialData?.gst || initialData?.taxPercentage || "";
     if (rawGst === null || rawGst === undefined || rawGst === "") return "";
-    const str = String(rawGst);
-    const parts = str.split(".");
-    if (parts.length === 2 && parts[1].length > 2) {
-      return parseFloat(rawGst).toDynamicFixed();
+    const str = String(rawGst).trim();
+    if (str.endsWith("%")) return str;
+    const numeric = parseFloat(str);
+    if (!isNaN(numeric)) {
+      return `${numeric}%`;
     }
     return str;
   });

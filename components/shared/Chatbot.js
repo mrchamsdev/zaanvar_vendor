@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { FiMessageCircle, FiX, FiSend, FiZap, FiAlertCircle } from 'react-icons/fi';
 import styles from '../../styles/shared/chatbot.module.css';
 
@@ -40,6 +41,34 @@ export default function Chatbot() {
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const router = useRouter();
+
+  // Auto-collapse state & inactivity timer
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const activityTimeoutRef = useRef(null);
+
+  const startInactivityTimer = () => {
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+    }
+    if (!isOpen) {
+      activityTimeoutRef.current = setTimeout(() => {
+        setIsCollapsed(true);
+      }, 10000);
+    }
+  };
+
+  useEffect(() => {
+    setIsCollapsed(false);
+    startInactivityTimer();
+
+    return () => {
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+    };
+  }, [isOpen, router?.pathname]);
 
   const handleDragStart = (e) => {
     // Only drag on the button itself, not inside the open chat window
@@ -181,7 +210,11 @@ export default function Chatbot() {
   return (
     <div
       className={styles.chatbotContainer}
-      style={{ bottom: `${position.bottom}px`, right: `${position.right}px` }}
+      style={{ 
+        bottom: `${position.bottom}px`, 
+        right: isCollapsed && !isOpen ? '0px' : `${position.right}px`,
+        transition: 'right 0.3s ease, bottom 0.3s ease'
+      }}
     >
       {isOpen && (
         <div
@@ -285,14 +318,27 @@ export default function Chatbot() {
 
       {/* Floating Action Button */}
       <button
-        className={styles.chatButton}
-        onClick={toggleChat}
+        className={isCollapsed && !isOpen ? styles.chatButtonCollapsed : styles.chatButton}
+        onClick={() => {
+          if (isCollapsed) {
+            setIsCollapsed(false);
+            startInactivityTimer();
+          } else {
+            toggleChat();
+          }
+        }}
+        onMouseEnter={() => {
+          if (isCollapsed) {
+            setIsCollapsed(false);
+            startInactivityTimer();
+          }
+        }}
         onMouseDown={handleDragStart}
         onTouchStart={handleDragStart}
         title="Ask Zaanvar Agent"
         style={{ cursor: isOpen ? 'pointer' : 'grab' }}
       >
-        {isOpen ? <FiX /> : <FiMessageCircle />}
+        {isCollapsed && !isOpen ? null : (isOpen ? <FiX /> : <FiMessageCircle />)}
       </button>
     </div>
   );
