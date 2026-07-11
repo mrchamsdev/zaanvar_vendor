@@ -1,0 +1,1403 @@
+/* Bookings List Module Stylesheet */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: #fff;
+  min-height: auto;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Topbar Styles */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.branchSelect {
+  padding: 10px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f5f6fa;
+  color: #555;
+  font-size: 14px;
+  width: 220px;
+  cursor: pointer;
+  outline: none;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.addBookingBtn {
+  background-color: #de3151;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.addBookingBtn:hover {
+  background-color: #c92544;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation & Toggle Row */
+.navRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navArrowBtn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+}
+
+.todayBtn {
+  padding: 6px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #333;
+}
+
+.dateDisplay {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  padding: 6px 12px;
+  background: #f0f0f5;
+  border-radius: 6px;
+}
+
+.viewToggleGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.periodToggle {
+  display: flex;
+  background: #f5f6fa;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.periodBtn {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+}
+
+.periodBtnActive {
+  background: #fff;
+  color: #333;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.modeToggle {
+  display: flex;
+  background: #f5f6fa;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.modeBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+}
+
+.modeBtnActive {
+  background: #fff;
+  color: #de3151;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Filters & Search Row */
+.filterSearchRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.filterSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterTriggerBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.filterTriggerBtnActive {
+  border-color: #de3151;
+  color: #de3151;
+}
+
+.filterBadge {
+  background-color: #fdf2f4;
+  color: #de3151;
+  border: 1px solid #fbd5db;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.filterBadgeRemove {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.searchWrapper {
+  position: relative;
+  width: 320px;
+}
+
+.searchInput {
+  width: 70%;
+  padding: 10px 16px 10px 40px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: #f9f9f9;
+}
+
+.searchInput:focus {
+  border-color: #de3151;
+  background: #fff;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+}
+
+/* Filter Dropdown Popup */
+.filterDropdownPopup {
+  position: absolute;
+  top: 45px;
+  left: 0;
+  width: 250px;
+  max-height: 480px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eaeaea;
+  z-index: 100;
+  overflow-y: auto;
+  padding: 16px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+.filterDropdownPopup::-webkit-scrollbar {
+  width: 4px;
+}
+
+.filterDropdownPopup::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filterDropdownPopup::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 1px;
+}
+
+.filterDropdownPopup::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.filterGroupTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  padding: 8px 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f5f5f5;
+  margin-top: 8px;
+}
+
+.filterGroupTitle:first-of-type {
+  margin-top: 0;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.filterOption:hover {
+  background: #fafafa;
+}
+
+.radioCircle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radioCircleSelected {
+  border-color: #de3151;
+}
+
+.bulletSelected {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #de3151;
+}
+
+/* Table Design */
+.tableWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eaeaea;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.tableInner {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.bookingsTable {
+  width: 100%;
+  min-width: 1600px;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+}
+
+.bookingsTable th {
+  background-color: #f5f6fa;
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 16px 20px;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
+}
+
+.bookingsTable td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  border-right: 1px solid #eee;
+  font-size: 14px;
+  vertical-align: middle;
+  color: #444;
+  background-color: #fff;
+}
+
+.bookingsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.stickyActionsHeader {
+  position: sticky;
+  right: 0;
+  background-color: #f5f6fa !important;
+  z-index: 2;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.04);
+  border-left: none !important;
+  border-right: none !important;
+  padding: 16px 4px 16px 12px !important;
+}
+
+.stickyActionsHeader::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #aaa;
+}
+
+.stickyActionsCell {
+  position: sticky;
+  right: 0;
+  background-color: #fff !important;
+  z-index: 1;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.04);
+  border-left: none !important;
+  border-right: none !important;
+  padding: 16px 4px 16px 12px !important;
+}
+
+.stickyActionsCell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #aaa;
+}
+
+.idCell {
+  font-weight: 600;
+  color: #333;
+}
+
+.dateCell {
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.timeCell {
+  color: #555;
+  font-weight: 500;
+}
+
+.statusUpcoming {
+  color: #ff9800;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusCompleted {
+  color: #4caf50;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusUnassigned {
+  color: #777;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusCanceled {
+  color: #f44336;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.customerName {
+  font-weight: 600;
+  color: #333;
+}
+
+.contactCell {
+  color: #555;
+}
+
+.petName {
+  font-weight: 700;
+  color: #333;
+  font-size: 14px;
+}
+
+.petBreed {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.serviceBtn {
+  border: 1px solid #fbd5db;
+  background-color: #fff;
+  color: #de3151;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Action Icons Cell */
+.actionsCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.actionIconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #eaeaea;
+  background: #fbfbfb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.actionIconBtn:hover {
+  background: #f1f2f6;
+  color: #333;
+}
+
+.threeDotBtn {
+  border: none;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Dropdown Menu */
+.threeDotMenu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 190px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eaeaea;
+  z-index: 110;
+  padding: 8px 0;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 10px 20px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.menuItem:hover {
+  background: #f8f9fa;
+  color: #de3151;
+}
+
+/* Modal Styling */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modalBody {
+  background: #fff;
+  border-radius: 16px;
+  width: 480px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+  animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalEnter {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+.closeBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  color: #333;
+}
+
+/* Details Section inside Modal */
+.customerProfileRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.profileAvatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f0f0f5;
+}
+
+.profileDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.profileName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+.profileSubtitle {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Input Fields Grid */
+.inputsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.modalField {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: #fff;
+}
+
+.modalFieldActive {
+  border: 1.5px solid #de3151;
+}
+
+.fieldVal {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+  text-transform: capitalize;
+}
+
+.modalConfirmBtn {
+  width: 100%;
+  background-color: #de3151;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: center;
+}
+
+.modalConfirmBtn:hover {
+  background-color: #c92544;
+}
+
+/* Global pageContent overrides scoped to this component */
+:global(main[class*="pageContent"]) {
+  background: #fff !important;
+  overflow: visible !important;
+  min-height: calc(100vh - 70px) !important;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+}
+
+/* Layout Wrappers */
+.tableWrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  background-color: #fff;
+  border-radius: 12px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.tableInner {
+  border: none;
+  overflow: visible;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Row Stacking */
+.activeRow {
+  transform: translate3d(0, 0, 0);
+  z-index: 50;
+  position: relative;
+}
+
+.activeActionsCell {
+  z-index: 100 !important;
+}
+
+/* Column Widths */
+.colBookingId {
+  width: 110px;
+  min-width: 110px;
+}
+
+.colDate {
+  width: 140px;
+  min-width: 140px;
+}
+
+.colTime {
+  width: 185px;
+  min-width: 185px;
+}
+
+.colStatus {
+  width: 140px;
+  min-width: 140px;
+}
+
+.colCustomer {
+  width: 180px;
+  min-width: 180px;
+}
+
+.colContact {
+  width: 160px;
+  min-width: 160px;
+}
+
+.colPet {
+  width: 140px;
+  min-width: 140px;
+}
+
+.colService {
+  width: 270px;
+  min-width: 270px;
+}
+
+.colGroomer {
+  width: 130px;
+  min-width: 130px;
+}
+
+.colAmount {
+  width: 110px;
+  min-width: 110px;
+}
+
+.colPaymentStatus {
+  width: 160px;
+  min-width: 160px;
+}
+
+.colServiceStatus {
+  width: 120px;
+  min-width: 120px;
+}
+
+.colCreatedOn {
+  width: 180px;
+  min-width: 180px;
+}
+
+/* Dropdown Menu Directions */
+.menuUpward {
+  top: auto;
+  bottom: 40px;
+}
+
+.menuDownward {
+  top: 40px;
+  bottom: auto;
+}
+
+/* Badges and cell styles */
+.serviceWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.extraServiceBadge {
+  background: #f0f0f5;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+}
+
+.serviceStatusBadge {
+  background-color: #fff3e0;
+  color: #e65100;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.groomerCell {
+  font-weight: 500;
+}
+
+.amountCell {
+  font-weight: 600;
+}
+
+.createdOnCell {
+  color: #777;
+  font-size: 13px;
+}
+
+/* Payment Status Classes */
+.paymentPaid {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.paymentUnpaid {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.paymentPending {
+  color: #fbc02d;
+  font-weight: 600;
+}
+
+.paymentPartially {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.threeDotMenuAbsolute {
+  position: absolute;
+  width: 190px;
+  max-height: 210px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eaeaea;
+  z-index: 99999 !important;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+.threeDotMenuAbsolute::-webkit-scrollbar {
+  width: 1px;
+}
+
+.threeDotMenuAbsolute::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.threeDotMenuAbsolute::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 1px;
+}
+
+.threeDotMenuAbsolute::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* ══════════════════════════════════════════
+ * Modals Extended Styles
+ * ══════════════════════════════════════════ */
+
+.modalSubtitle {
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.modalSectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.detailsHeader {
+  margin-bottom: 16px;
+}
+
+.detailsPetName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.detailsService {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 4px;
+}
+
+.detailsTime {
+  font-size: 12px;
+  color: #888;
+}
+
+.detailsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.detailsRowIcon {
+  font-size: 16px;
+  color: #555;
+  width: 20px;
+}
+
+.advancePaymentLink {
+  color: #e9315d;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+  display: inline-block;
+}
+
+.modalActionsRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btnOutlinePink {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid #e9315d;
+  color: #e9315d;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btnSolidPink {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid #e9315d;
+  color: #fff;
+  background: #e9315d;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btnFullWidth {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.formGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.formInput {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+
+.radioCardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.radioCard {
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.radioCardSelected {
+  border-color: #e9315d;
+  background: #fffafb;
+}
+
+.radioPinkDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e9315d;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.radioCircleEmpty {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+}
+
+.radioCircleFilled {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e9315d;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 1px #e9315d;
+}
+
+.badgePink {
+  background: #fce8ef;
+  color: #e9315d;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.paymentRadioRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #333;
+}
+
+/* ══════════════════════════════════════════
+ * Calendar Area
+ * ══════════════════════════════════════════ */
+.calendarArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fff;
+  margin-top: 4px;
+}
+
+/* Month View */
+.monthGrid {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.monthDayHeaders {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.monthDayHeader {
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #777;
+  text-align: left;
+  letter-spacing: 0.02em;
+  border-right: 1px solid #f0f0f0;
+}
+
+.monthDayHeader:nth-child(7n) {
+  border-right: none;
+}
+
+.monthCells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, minmax(100px, 1fr));
+  flex: 1;
+}
+
+.monthCell {
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 8px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.monthCell:nth-child(7n) {
+  border-right: none;
+}
+
+.monthCellOtherMonth .monthCellDay {
+  color: #ccc;
+}
+
+.monthCellToday .monthCellDay {
+  background: #e9315d;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monthCellDay {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.calChip:hover {
+  opacity: 0.85;
+}
+
+.calChipName {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.calChipType {
+  font-size: 10px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calChipMore {
+  font-size: 11px;
+  color: #888;
+  padding-left: 4px;
+  cursor: pointer;
+}
+
+/* Week / Day View */
+.weekView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.weekHeader {
+  display: flex;
+  border-bottom: 2px solid #e8e8e8;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.weekTimeGutter {
+  width: 72px;
+  flex-shrink: 0;
+  border-right: 1px solid #e8e8e8;
+}
+
+.weekDayHeader {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  border-right: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.weekDayHeader:last-child {
+  border-right: none;
+}
+
+.weekDayHeaderToday .weekDayNum {
+  background: #e9315d;
+  color: #fff;
+}
+
+.weekDayNum {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  border-radius: 50%;
+}
+
+.weekDayName {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.weekBody {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+}
+
+.weekBody::-webkit-scrollbar {
+  width: 4px;
+}
+
+.weekBody::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.weekRow {
+  display: flex;
+  border-bottom: 1px solid #f3f3f3;
+  min-height: 48px;
+}
+
+.weekTimeLabel {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #999;
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 10px 0;
+  border-right: 1px solid #e8e8e8;
+  font-weight: 500;
+}
+
+.weekCell {
+  flex: 1;
+  border-right: 1px solid #f3f3f3;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 48px;
+}
+
+.weekCell:last-child {
+  border-right: none;
+}

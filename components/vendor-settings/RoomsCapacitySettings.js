@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/vendor-settings/rooms-capacity.module.css";
 import AddRoomForm from "./AddRoomForm";
+import useStore from "../../components/state/useStore";
+import { updateSettings } from "../../services/settingsService";
+import { toast } from "sonner";
 
 const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom }) => {
   const [activeSpace, setActiveSpace] = useState("Clinic");
@@ -11,17 +14,19 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
   const [catAreaExpanded, setCatAreaExpanded] = useState(true);
   const [dogAreaExpanded, setDogAreaExpanded] = useState(true);
 
-  // Pre-populated static rooms data matching Figma mockups
-  const [rooms, setRooms] = useState([
-    { id: "c1", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Cat", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "c2", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Cat", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "c3", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Cat", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "c4", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Cat", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "d1", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Dog", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "d2", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Dog", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "d3", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Dog", spaceType: "Clinic", roomType: "Small Room", isVacant: false },
-    { id: "d4", name: "Small Dog Room-1", capacity: 7, available: 3, petType: "Dog", spaceType: "Clinic", roomType: "Small Room", isVacant: false }
-  ]);
+  const { vendorSettings, setVendorSettings, jwtToken, selectedBranchId } = useStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    const clinicRooms = vendorSettings?.roomsAndCapacity?.clinic?.rooms || [];
+    const daycareRooms = vendorSettings?.roomsAndCapacity?.daycare?.rooms || [];
+    
+    const mappedClinicRooms = clinicRooms.map(r => ({ ...r, spaceType: "Clinic", roomType: "Custom Room", available: r.numberOfRooms, name: r.roomName, isVacant: true }));
+    const mappedDaycareRooms = daycareRooms.map(r => ({ ...r, spaceType: "Daycare", roomType: "Custom Room", available: r.numberOfRooms, name: r.roomName, isVacant: true }));
+    
+    setRooms([...mappedClinicRooms, ...mappedDaycareRooms]);
+  }, [vendorSettings]);
 
   // Register the Topbar Action "+ Add Room" (which user requested)
   useEffect(() => {
@@ -60,27 +65,43 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
   const catRooms = filteredRooms.filter(r => r.petType === "Cat");
   const dogRooms = filteredRooms.filter(r => r.petType === "Dog");
 
-  const handleSaveRoom = (newRoomData) => {
-    // Process submitted form data
-    const formattedRooms = newRoomData.rooms.map((r, i) => ({
-      id: `new_r_${Date.now()}_${i}`,
-      name: r.roomName || "New Space Room",
-      capacity: parseInt(r.capacity) || 7,
-      available: parseInt(r.capacity) || 7,
-      petType: r.petType || "Dog",
-      spaceType: newRoomData.spaceType === "Clinic" ? "Clinic" : "Daycare",
-      roomType: "Custom Room",
-      isVacant: true
-    }));
+  const handleSaveRoom = async (roomsAndCapacityPayload) => {
+    if (!selectedBranchId) {
+      toast.error("No branch selected");
+      return;
+    }
     
-    setRooms(prev => [...prev, ...formattedRooms]);
-    setIsAddingRoom(false);
+    setIsSaving(true);
+    try {
+      const payload = {
+        branchId: selectedBranchId,
+        settings: {
+          ...vendorSettings,
+          roomsAndCapacity: roomsAndCapacityPayload
+        }
+      };
+      const res = await updateSettings(jwtToken, payload);
+      if (res?.data?.status === "success" || res?.status === "success") {
+        toast.success("Rooms and Capacity updated successfully");
+        if (res?.data?.data?.settings) {
+          setVendorSettings(res.data.data.settings);
+        }
+        setIsAddingRoom(false);
+      } else {
+        toast.error("Failed to update settings");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error saving Rooms and Capacity");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isAddingRoom) {
     return (
       <div className={styles.container}>
-        <AddRoomForm onCancel={() => setIsAddingRoom(false)} onSave={handleSaveRoom} />
+        {isSaving ? <p style={{textAlign: 'center', padding: '40px'}}>Saving...</p> : <AddRoomForm onCancel={() => setIsAddingRoom(false)} onSave={handleSaveRoom} initialData={vendorSettings?.roomsAndCapacity || {}} />}
       </div>
     );
   }

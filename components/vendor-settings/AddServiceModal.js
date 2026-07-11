@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/vendor-settings/services-packages.module.css";
+import useDashboardData from "../dashboard/useDashboardData";
+import MultiSelectDropdown from "../MultiSelectDropdown";
 
 const AddServiceModal = ({ onClose, onSave, initialData }) => {
+  const { branches } = useDashboardData({ skipReviews: true });
   const [branch, setBranch] = useState(initialData?.branch || "");
   const [category, setCategory] = useState(initialData?.category || "");
   const [serviceName, setServiceName] = useState(initialData?.serviceName || "");
-  const [petType, setPetType] = useState(initialData?.petType || "");
+  const [petTypes, setPetTypes] = useState(initialData?.petType ? initialData.petType.split(",").map(p => p.trim()) : []);
   const [duration, setDuration] = useState(initialData?.duration || "");
   const [price, setPrice] = useState(initialData?.price || "");
   const [discountPercent, setDiscountPercent] = useState(initialData?.discountPercent || "");
   const [discountPrice, setDiscountPrice] = useState(initialData?.discountPrice || "");
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   // Auto-calculate discount price or percentage
   useEffect(() => {
@@ -41,17 +52,23 @@ const AddServiceModal = ({ onClose, onSave, initialData }) => {
       alert("Please enter Service Name and Price");
       return;
     }
+
+    const durationNum = parseInt(duration) || 30;
+    const petTypeArray = petTypes.length > 0 ? petTypes : ["Dog", "Cat"];
+
+    const apiPayload = {
+      serviceName,
+      category: category || "Grooming",
+      petType: petTypeArray,
+      duration: durationNum,
+      price: parseFloat(price) || 0,
+      discountPercentage: parseFloat(discountPercent) || 0,
+      discountPrice: parseFloat(discountPrice) || 0
+    };
+
     onSave({
       id: initialData?.id || Date.now().toString(),
-      serviceName,
-      petType: petType || "DOG, Cat",
-      duration: duration || "30 mins",
-      price: price ? `₹ ${price}` : "₹ 0",
-      rawPrice: price,
-      discountPercent,
-      discountPrice,
-      branch,
-      category
+      apiPayload
     });
   };
 
@@ -82,8 +99,9 @@ const AddServiceModal = ({ onClose, onSave, initialData }) => {
                   <label>Branch Assigned</label>
                   <select className={styles.formSelect} value={branch} onChange={(e) => setBranch(e.target.value)}>
                     <option value="">Select Branch here</option>
-                    <option value="B-119-004">Branch B-119-004</option>
-                    <option value="B-120-001">Branch B-120-001</option>
+                    {branches && branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -92,8 +110,7 @@ const AddServiceModal = ({ onClose, onSave, initialData }) => {
                   <select className={styles.formSelect} value={category} onChange={(e) => setCategory(e.target.value)}>
                     <option value="">Select Category here</option>
                     <option value="Grooming">Grooming</option>
-                    <option value="Spa">Spa</option>
-                    <option value="Medical">Medical</option>
+                    <option value="Day care">Day care</option>
                   </select>
                 </div>
 
@@ -108,14 +125,20 @@ const AddServiceModal = ({ onClose, onSave, initialData }) => {
                   />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Pet Type</label>
-                  <select className={styles.formSelect} value={petType} onChange={(e) => setPetType(e.target.value)}>
-                    <option value="">Select here</option>
-                    <option value="DOG, Cat">DOG, Cat</option>
-                    <option value="DOG">DOG</option>
-                    <option value="Cat">Cat</option>
-                  </select>
+                <div className={styles.formGroup} style={{ position: 'relative' }}>
+                  <MultiSelectDropdown
+                    heading="Pet Type"
+                    listItems={[
+                      { id: "Dog", name: "Dog" },
+                      { id: "Cat", name: "Cat" },
+                      { id: "Bird", name: "Bird" },
+                      { id: "Fish", name: "Fish" },
+                      { id: "Small Pets", name: "Small Pets" }
+                    ]}
+                    selectedIds={petTypes}
+                    setSelectedIds={setPetTypes}
+                    hideSearch={true}
+                  />
                 </div>
 
                 <div className={styles.formGroup}>

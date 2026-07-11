@@ -1,16 +1,51 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/vendor-settings/services-packages.module.css";
+import useDashboardData from "../dashboard/useDashboardData";
+import MultiSelectDropdown from "../MultiSelectDropdown";
+import { VENDOR_API_URL } from "../utilities/Constants";
+import useStore from "../state/useStore";
 
 const AddPackageModal = ({ onClose, onSave, initialData }) => {
+  const { branches } = useDashboardData({ skipReviews: true });
   const [branch, setBranch] = useState(initialData?.branch || "");
   const [category, setCategory] = useState(initialData?.category || "");
   const [packageName, setPackageName] = useState(initialData?.packageName || "");
-  const [serviceName, setServiceName] = useState(initialData?.serviceName || "");
-  const [petType, setPetType] = useState(initialData?.petType || "");
+  const [selectedServices, setSelectedServices] = useState(initialData?.services ? initialData.services.map(s => s.id || s) : []);
+  const [petTypes, setPetTypes] = useState(initialData?.petType ? initialData.petType.split(",").map(p => p.trim()) : []);
   const [price, setPrice] = useState(initialData?.price || "");
   const [discountPercent, setDiscountPercent] = useState(initialData?.discountPercent || "");
   const [discountPrice, setDiscountPrice] = useState(initialData?.discountPrice || "");
   const [duration, setDuration] = useState(initialData?.duration || "");
+  const [availableServices, setAvailableServices] = useState([]);
+
+  const selectedBranchId = useStore((state) => state.selectedBranchId);
+  
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
+  // Fetch available services for the dropdown
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const defaultBranchId = selectedBranchId || (branches && branches.length > 0 ? branches[0].id : 3);
+        const branchIdToFetch = branch || defaultBranchId;
+        const cleanBranchId = String(branchIdToFetch).replace(/^B-/, "");
+        const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}?type=services`);
+        const json = await res.json();
+        if (json.status === "success" && json.data && json.data.services) {
+          setAvailableServices(json.data.services.map(s => ({ id: s.id, name: s.serviceName })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch services", err);
+      }
+    };
+    fetchServices();
+  }, [branch, branches, selectedBranchId]);
 
   // Auto-calculate discount price or percentage
   useEffect(() => {
@@ -42,19 +77,24 @@ const AddPackageModal = ({ onClose, onSave, initialData }) => {
       alert("Please enter Package Name and Price");
       return;
     }
+    
+    const durationNum = parseInt(duration) || 30;
+    const petTypeArray = petTypes.length > 0 ? petTypes : ["Dog", "Cat"];
+
+    const apiPayload = {
+      serviceName: packageName,
+      services: selectedServices, // pass the array of selected service IDs
+      category: category || "Grooming",
+      petType: petTypeArray,
+      duration: durationNum,
+      price: parseFloat(price) || 0,
+      discountPercentage: parseFloat(discountPercent) || 0,
+      discountPrice: parseFloat(discountPrice) || 0
+    };
+
     onSave({
       id: initialData?.id || Date.now().toString(),
-      packageName,
-      petType: petType || "DOG, Cat",
-      duration: duration || "30 mins",
-      price: price ? `₹ ${price}` : "₹ 0",
-      rawPrice: price,
-      discountPercent,
-      discountPrice: discountPrice ? `₹ ${discountPrice}` : "₹ 0",
-      rawDiscountPrice: discountPrice,
-      branch,
-      category,
-      serviceName
+      apiPayload
     });
   };
 
@@ -85,8 +125,9 @@ const AddPackageModal = ({ onClose, onSave, initialData }) => {
                   <label>Branch Assigned</label>
                   <select className={styles.formSelect} value={branch} onChange={(e) => setBranch(e.target.value)}>
                     <option value="">Select Branch here</option>
-                    <option value="B-119-004">Branch B-119-004</option>
-                    <option value="B-120-001">Branch B-120-001</option>
+                    {branches && branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.branchName || b.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -94,8 +135,8 @@ const AddPackageModal = ({ onClose, onSave, initialData }) => {
                   <label>Category</label>
                   <select className={styles.formSelect} value={category} onChange={(e) => setCategory(e.target.value)}>
                     <option value="">Select Category here</option>
-                    <option value="Full Body Care">Full Body Care</option>
-                    <option value="Hygiene Package">Hygiene Package</option>
+                    <option value="Grooming">Grooming</option>
+                    <option value="Day care">Day care</option>
                   </select>
                 </div>
 
@@ -110,23 +151,30 @@ const AddPackageModal = ({ onClose, onSave, initialData }) => {
                   />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Service name</label>
-                  <select className={styles.formSelect} value={serviceName} onChange={(e) => setServiceName(e.target.value)}>
-                    <option value="">Select here</option>
-                    <option value="Bathing, Nail Cutting">Bathing, Nail Cutting</option>
-                    <option value="Bathing, Hair Trim, Nail Cutting">Bathing, Hair Trim, Nail Cutting</option>
-                  </select>
+                <div className={styles.formGroup} style={{ position: 'relative' }}>
+                  <MultiSelectDropdown
+                    heading="Included Services"
+                    listItems={availableServices}
+                    selectedIds={selectedServices}
+                    setSelectedIds={setSelectedServices}
+                    hideSearch={false}
+                  />
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label>Pet Type</label>
-                  <select className={styles.formSelect} value={petType} onChange={(e) => setPetType(e.target.value)}>
-                    <option value="">Select here</option>
-                    <option value="DOG, Cat">DOG, Cat</option>
-                    <option value="DOG">DOG</option>
-                    <option value="Cat">Cat</option>
-                  </select>
+                <div className={styles.formGroup} style={{ position: 'relative' }}>
+                  <MultiSelectDropdown
+                    heading="Pet Type"
+                    listItems={[
+                      { id: "Dog", name: "Dog" },
+                      { id: "Cat", name: "Cat" },
+                      { id: "Bird", name: "Bird" },
+                      { id: "Fish", name: "Fish" },
+                      { id: "Small Pets", name: "Small Pets" }
+                    ]}
+                    selectedIds={petTypes}
+                    setSelectedIds={setPetTypes}
+                    hideSearch={true}
+                  />
                 </div>
 
                 <div className={styles.formGroup}>

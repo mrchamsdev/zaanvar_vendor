@@ -1,60 +1,66 @@
 import React, { useState } from "react";
 import styles from "../../styles/vendor-settings/rooms-capacity.module.css";
 
-const AddRoomForm = ({ onCancel, onSave }) => {
+const AddRoomForm = ({ onCancel, onSave, initialData }) => {
   const [activeSubTab, setActiveSubTab] = useState("Clinic");
-  const [independentRooms, setIndependentRooms] = useState(true);
+  
+  const clinicData = initialData?.clinic || {};
+  const daycareData = initialData?.daycare || {};
+  const lateCheckOutData = initialData?.lateCheckOut || {};
+  const cancellationsData = initialData?.cancellations || {};
+
+  const [independentRooms, setIndependentRooms] = useState(clinicData.independentRooms ?? true);
 
   // Clinic spaces room rows state
-  const [clinicRooms, setClinicRooms] = useState([
+  const [clinicRooms, setClinicRooms] = useState(clinicData.rooms?.length ? clinicData.rooms.map(r => ({ ...r, numRooms: String(r.numberOfRooms || r.numRooms || "00"), capacity: String(r.capacity || "0000") })) : [
     { id: "cr1", roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000" }
   ]);
-  const [clinicRates, setClinicRates] = useState([
+  const [clinicRates, setClinicRates] = useState(clinicData.rates?.length ? clinicData.rates : [
     { id: "cl1", priceName: "", petType: "Dog", breedSize: "Large", price: "0000" }
   ]);
-  const [clinicTaxIncluded, setClinicTaxIncluded] = useState(true);
+  const [clinicTaxIncluded, setClinicTaxIncluded] = useState(clinicData.taxIncluded ?? true);
 
   // Daycare spaces room rows state
-  const [daycareCheckInFrom, setDaycareCheckInFrom] = useState("07:00 AM");
-  const [daycareCheckInTo, setDaycareCheckInTo] = useState("10:00 AM");
-  const [daycareCheckOut, setDaycareCheckOut] = useState("09:00 AM");
+  const [daycareCheckInFrom, setDaycareCheckInFrom] = useState(daycareData.checkInTimeFrom || "07:00 AM");
+  const [daycareCheckInTo, setDaycareCheckInTo] = useState(daycareData.checkInTimeTo || "10:00 AM");
+  const [daycareCheckOut, setDaycareCheckOut] = useState(daycareData.checkOutTime || "09:00 AM");
 
-  const [daycareRooms, setDaycareRooms] = useState([
+  const [daycareRooms, setDaycareRooms] = useState(daycareData.rooms?.length ? daycareData.rooms.map(r => ({ ...r, numRooms: String(r.numberOfRooms || r.numRooms || "00"), capacity: String(r.capacity || "0000") })) : [
     { id: "dr1", roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000" }
   ]);
-  const [daycareChargeBy, setDaycareChargeBy] = useState("Do you charge by number of days or number of nights?");
-  const [daycareRates, setDaycareRates] = useState([
+  const [daycareChargeBy, setDaycareChargeBy] = useState(daycareData.chargeBy || "Do you charge by number of days or number of nights?");
+  const [daycareRates, setDaycareRates] = useState(daycareData.rates?.length ? daycareData.rates : [
     { id: "dl1", priceName: "", petType: "Dog", breedSize: "Large", price: "0000" }
   ]);
-  const [daycareTaxIncluded, setDaycareTaxIncluded] = useState(true);
+  const [daycareTaxIncluded, setDaycareTaxIncluded] = useState(daycareData.taxIncluded ?? true);
 
   // Late Check Out states
-  const [lateCheckOutSame, setLateCheckOutSame] = useState(true);
-  const [lateCheckOutOptionSame, setLateCheckOutOptionSame] = useState("flat");
-  const [lateCheckOutAmountSame, setLateCheckOutAmountSame] = useState("");
+  const [lateCheckOutSame, setLateCheckOutSame] = useState(lateCheckOutData.sameForAllServices ?? true);
+  const [lateCheckOutOptionSame, setLateCheckOutOptionSame] = useState(lateCheckOutData.feeType || "flat");
+  const [lateCheckOutAmountSame, setLateCheckOutAmountSame] = useState(lateCheckOutData.amount || "");
   
-  const [lateCheckOutOptionClinic, setLateCheckOutOptionClinic] = useState("flat");
-  const [lateCheckOutAmountClinic, setLateCheckOutAmountClinic] = useState("");
+  const [lateCheckOutOptionClinic, setLateCheckOutOptionClinic] = useState(lateCheckOutData.clinic?.feeType || "flat");
+  const [lateCheckOutAmountClinic, setLateCheckOutAmountClinic] = useState(lateCheckOutData.clinic?.amount || "");
   
-  const [lateCheckOutOptionDaycare, setLateCheckOutOptionDaycare] = useState("flat");
-  const [lateCheckOutAmountDaycare, setLateCheckOutAmountDaycare] = useState("");
+  const [lateCheckOutOptionDaycare, setLateCheckOutOptionDaycare] = useState(lateCheckOutData.daycare?.feeType || "flat");
+  const [lateCheckOutAmountDaycare, setLateCheckOutAmountDaycare] = useState(lateCheckOutData.daycare?.amount || "");
 
   // Cancellations states
-  const [cancellationSame, setCancellationSame] = useState(true);
-  const [cancellationOptionSame, setCancellationOptionSame] = useState("charged");
-  const [allowanceHoursSame, setAllowanceHoursSame] = useState("");
-  const [chargeAmountSame, setChargeAmountSame] = useState("");
-  const [latePercentageSame, setLatePercentageSame] = useState("");
+  const [cancellationSame, setCancellationSame] = useState(cancellationsData.sameForAllServices ?? true);
+  const [cancellationOptionSame, setCancellationOptionSame] = useState(cancellationsData.feeType || "charged");
+  const [allowanceHoursSame, setAllowanceHoursSame] = useState(cancellationsData.hoursBeforeCheckIn || "");
+  const [chargeAmountSame, setChargeAmountSame] = useState(cancellationsData.amount || "");
+  const [latePercentageSame, setLatePercentageSame] = useState(cancellationsData.lateCancellationCharges || "");
 
-  const [cancellationOptionClinic, setCancellationOptionClinic] = useState("charged");
-  const [allowanceHoursClinic, setAllowanceHoursClinic] = useState("");
-  const [chargeAmountClinic, setChargeAmountClinic] = useState("");
-  const [latePercentageClinic, setLatePercentageClinic] = useState("");
+  const [cancellationOptionClinic, setCancellationOptionClinic] = useState(cancellationsData.clinic?.feeType || "charged");
+  const [allowanceHoursClinic, setAllowanceHoursClinic] = useState(cancellationsData.clinic?.hoursBeforeCheckIn || "");
+  const [chargeAmountClinic, setChargeAmountClinic] = useState(cancellationsData.clinic?.amount || "");
+  const [latePercentageClinic, setLatePercentageClinic] = useState(cancellationsData.clinic?.lateCancellationCharges || "");
 
-  const [cancellationOptionDaycare, setCancellationOptionDaycare] = useState("charged");
-  const [allowanceHoursDaycare, setAllowanceHoursDaycare] = useState("");
-  const [chargeAmountDaycare, setChargeAmountDaycare] = useState("");
-  const [latePercentageDaycare, setLatePercentageDaycare] = useState("");
+  const [cancellationOptionDaycare, setCancellationOptionDaycare] = useState(cancellationsData.daycare?.feeType || "charged");
+  const [allowanceHoursDaycare, setAllowanceHoursDaycare] = useState(cancellationsData.daycare?.hoursBeforeCheckIn || "");
+  const [chargeAmountDaycare, setChargeAmountDaycare] = useState(cancellationsData.daycare?.amount || "");
+  const [latePercentageDaycare, setLatePercentageDaycare] = useState(cancellationsData.daycare?.lateCancellationCharges || "");
 
   // Row Manipulation helpers
   const addClinicRoomRow = () => {
@@ -99,15 +105,59 @@ const AddRoomForm = ({ onCancel, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
-      spaceType: activeSubTab,
-      independentRooms,
-      rooms: activeSubTab === "Clinic" ? clinicRooms : daycareRooms,
-      rates: activeSubTab === "Clinic" ? clinicRates : daycareRates,
-      daycareCheckInFrom,
-      daycareCheckInTo,
-      daycareCheckOut
-    });
+    
+    const formatRooms = (rArray) => rArray.map(r => ({ ...r, numberOfRooms: parseInt(r.numRooms) || 0, capacity: parseInt(r.capacity) || 0 }));
+    const formatRates = (rArray) => rArray.map(r => ({ ...r, price: parseInt(r.price) || 0 }));
+    
+    const apiPayload = {
+      clinic: {
+        independentRooms,
+        rooms: formatRooms(clinicRooms),
+        rates: formatRates(clinicRates),
+        taxIncluded: clinicTaxIncluded
+      },
+      daycare: {
+        checkInTimeFrom: daycareCheckInFrom,
+        checkInTimeTo: daycareCheckInTo,
+        checkOutTime: daycareCheckOut,
+        independentRooms: false,
+        rooms: formatRooms(daycareRooms),
+        rates: formatRates(daycareRates),
+        chargeBy: daycareChargeBy,
+        taxIncluded: daycareTaxIncluded
+      },
+      lateCheckOut: lateCheckOutSame ? {
+        sameForAllServices: true,
+        feeType: lateCheckOutOptionSame,
+        amount: parseInt(lateCheckOutAmountSame) || 0
+      } : {
+        sameForAllServices: false,
+        clinic: { feeType: lateCheckOutOptionClinic, amount: parseInt(lateCheckOutAmountClinic) || 0 },
+        daycare: { feeType: lateCheckOutOptionDaycare, amount: parseInt(lateCheckOutAmountDaycare) || 0 }
+      },
+      cancellations: cancellationSame ? {
+        sameForAllServices: true,
+        feeType: cancellationOptionSame,
+        hoursBeforeCheckIn: parseInt(allowanceHoursSame) || 0,
+        amount: parseInt(chargeAmountSame) || 0,
+        lateCancellationCharges: parseInt(latePercentageSame) || 0
+      } : {
+        sameForAllServices: false,
+        clinic: {
+          feeType: cancellationOptionClinic,
+          hoursBeforeCheckIn: parseInt(allowanceHoursClinic) || 0,
+          amount: parseInt(chargeAmountClinic) || 0,
+          lateCancellationCharges: parseInt(latePercentageClinic) || 0
+        },
+        daycare: {
+          feeType: cancellationOptionDaycare,
+          hoursBeforeCheckIn: parseInt(allowanceHoursDaycare) || 0,
+          amount: parseInt(chargeAmountDaycare) || 0,
+          lateCancellationCharges: parseInt(latePercentageDaycare) || 0
+        }
+      }
+    };
+    onSave(apiPayload);
   };
 
   return (

@@ -11,6 +11,7 @@ const MultiSelectDropdown = ({
   mandatory = false,
   display,
   isSingleSelect = false,
+  hideSearch = false,
   customStyles = {}
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -103,15 +104,17 @@ const MultiSelectDropdown = ({
       {isOpen && (
         <div className={styles["dropdown-menu"]}>
           {/* Search Box */}
-          <div className={styles["search-box"]}>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles["search-input"]}
-            />
-          </div>
+          {!hideSearch && (
+            <div className={styles["search-box"]}>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles["search-input"]}
+              />
+            </div>
+          )}
 
           {/* Select All */}
           {!isSingleSelect && (

@@ -3,6 +3,8 @@ import styles from "../../styles/vendor-settings/services-packages.module.css";
 import AddServiceModal from "./AddServiceModal";
 import AddPackageModal from "./AddPackageModal";
 import ConfirmationModal from "../inventory/confirmation-modal";
+import useStore from "../state/useStore";
+import { VENDOR_API_URL } from "../utilities/Constants";
 
 const ServicesPackagesSettings = ({ setTopbarActions }) => {
   const [activeTab, setActiveTab] = useState("Services");
@@ -38,25 +40,61 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
     };
   }, [activeTab, setTopbarActions]);
 
-  // Static services data matching screenshots
-  const [services, setServices] = useState([
-    { id: "s1", serviceName: "Bathing", petType: "DOG , Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", branch: "B-119-004", category: "Grooming" },
-    { id: "s2", serviceName: "Nail Cutting", petType: "DOG , Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", branch: "B-119-004", category: "Grooming" },
-    { id: "s3", serviceName: "Hair Trim", petType: "DOG , Cat", duration: "1 hour", price: "₹ 600", rawPrice: "600", branch: "B-119-004", category: "Grooming" },
-    { id: "s4", serviceName: "Bathing", petType: "DOG", duration: "30 mins", price: "₹ 500", rawPrice: "500", branch: "B-119-004", category: "Grooming" },
-    { id: "s5", serviceName: "Nail cutting", petType: "Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", branch: "B-119-004", category: "Grooming" },
-    { id: "s6", serviceName: "Hair Trim", petType: "DOG , Cat", duration: "1 hour", price: "₹ 600", rawPrice: "600", branch: "B-119-004", category: "Grooming" }
-  ]);
+  const selectedBranchId = useStore((state) => state.selectedBranchId);
+  const branchId = selectedBranchId || 3;
 
-  // Static packages data matching screenshots
-  const [packages, setPackages] = useState([
-    { id: "p1", packageName: "Full Grooming Package", petType: "DOG , Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", discountPrice: "₹ 400", rawDiscountPrice: "400", branch: "B-119-004", category: "Full Body Care" },
-    { id: "p2", packageName: "Full Grooming Package", petType: "DOG , Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", discountPrice: "₹ 200", rawDiscountPrice: "200", branch: "B-119-004", category: "Full Body Care" },
-    { id: "p3", packageName: "Full Grooming Package", petType: "DOG , Cat", duration: "1 hour", price: "₹ 600", rawPrice: "600", discountPrice: "₹ 300", rawDiscountPrice: "300", branch: "B-119-004", category: "Full Body Care" },
-    { id: "p4", packageName: "Full Grooming Package", petType: "DOG", duration: "30 mins", price: "₹ 500", rawPrice: "500", discountPrice: "₹ 200", rawDiscountPrice: "200", branch: "B-119-004", category: "Full Body Care" },
-    { id: "p5", packageName: "Full Grooming Package", petType: "Cat", duration: "30 mins", price: "₹ 500", rawPrice: "500", discountPrice: "₹ 250", rawDiscountPrice: "250", branch: "B-119-004", category: "Full Body Care" },
-    { id: "p6", packageName: "Full Grooming Package", petType: "DOG , Cat", duration: "1 hour", price: "₹ 600", rawPrice: "600", discountPrice: "₹ 300", rawDiscountPrice: "300", branch: "B-119-004", category: "Full Body Care" }
-  ]);
+  const [services, setServices] = useState([]);
+  const [packages, setPackages] = useState([]);
+
+  // Fetch data
+  const fetchOfferings = async () => {
+    try {
+      const typeStr = activeTab === "Services" ? "services" : "packages";
+      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}?type=${typeStr}`);
+      const json = await res.json();
+      
+      if (json.status === "success" && json.data) {
+        if (activeTab === "Services") {
+          const apiServices = json.data.services || [];
+          setServices(apiServices.map(s => ({
+            id: s.id,
+            serviceName: s.serviceName,
+            petType: Array.isArray(s.petType) ? s.petType.join(", ") : s.petType,
+            duration: `${s.duration} mins`,
+            price: `₹ ${s.price}`,
+            rawPrice: s.price,
+            discountPrice: `₹ ${s.discountPrice}`,
+            rawDiscountPrice: s.discountPrice,
+            discountPercent: s.discountPercentage,
+            category: s.category,
+            branch: branchId
+          })));
+        } else {
+          const apiPackages = json.data.packages || [];
+          setPackages(apiPackages.map(p => ({
+            id: p.id,
+            packageName: p.packageName || p.serviceName,
+            petType: Array.isArray(p.petType) ? p.petType.join(", ") : p.petType,
+            duration: `${p.duration} mins`,
+            price: `₹ ${p.price}`,
+            rawPrice: p.price,
+            discountPrice: `₹ ${p.discountPrice}`,
+            rawDiscountPrice: p.discountPrice,
+            discountPercent: p.discountPercentage,
+            category: p.category,
+            services: p.services || [],
+            branch: branchId
+          })));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch offerings:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchOfferings();
+  }, [activeTab, branchId]);
 
   // Search filtering
   const filteredServices = services.filter(s =>
@@ -100,32 +138,77 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
     setShowDeleteConfirm(true);
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!itemToDelete) return;
-    if (itemToDelete.type === "service") {
-      setServices(prev => prev.filter(s => s.id !== itemToDelete.id));
-    } else {
-      setPackages(prev => prev.filter(p => p.id !== itemToDelete.id));
+    try {
+      const typeStr = itemToDelete.type === "service" ? "services" : "packages";
+      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${itemToDelete.id}?type=${typeStr}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        if (itemToDelete.type === "service") {
+          setServices(prev => prev.filter(s => s.id !== itemToDelete.id));
+        } else {
+          setPackages(prev => prev.filter(p => p.id !== itemToDelete.id));
+        }
+      } else {
+        alert("Failed to delete offering.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting offering.");
     }
     setShowDeleteConfirm(false);
     setItemToDelete(null);
   };
 
-  const handleSaveService = (saved) => {
-    if (services.some(s => s.id === saved.id)) {
-      setServices(prev => prev.map(s => s.id === saved.id ? saved : s));
-    } else {
-      setServices(prev => [...prev, saved]);
+  const handleSaveService = async (saved) => {
+    try {
+      const isEdit = String(saved.id).startsWith("off-");
+      const url = isEdit 
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${saved.id}` 
+        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}`;
+        
+      const res = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "services", data: saved.apiPayload })
+      });
+
+      if (res.ok) {
+        fetchOfferings(); // Refresh the list
+      } else {
+        alert("Failed to save service.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving service.");
     }
     setShowAddService(false);
     setEditingItem(null);
   };
 
-  const handleSavePackage = (saved) => {
-    if (packages.some(p => p.id === saved.id)) {
-      setPackages(prev => prev.map(p => p.id === saved.id ? saved : p));
-    } else {
-      setPackages(prev => [...prev, saved]);
+  const handleSavePackage = async (saved) => {
+    try {
+      const isEdit = String(saved.id).startsWith("off-");
+      const url = isEdit 
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${saved.id}` 
+        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}`;
+        
+      const res = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "packages", data: saved.apiPayload })
+      });
+
+      if (res.ok) {
+        fetchOfferings(); // Refresh the list
+      } else {
+        alert("Failed to save package.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error saving package.");
     }
     setShowAddPackage(false);
     setEditingItem(null);
