@@ -1,65 +1,37 @@
-import Layout from "@/components/pet-sales/layout";
-import Topbar from "@/components/pet-sales/Topbar";
-import styles from "../../styles/grooming/bookings.module.css";
-import { BackButton, Calender3, FourDots } from "@/public/images/SVG";
 import React, { useState } from "react";
-import UpcomingBookings from "@/components/grooming/upcomingBookings";
-import PendingBookings from "@/components/grooming/pending";
-import CompletedBookings from "@/components/grooming/completedBookings";
-import CancelledBookings from "@/components/grooming/cancelled";
+import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import BookingsList from "../../components/grooming/BookingsList";
+import AddBookingGrooming from "../../components/grooming/AddBookingGrooming";
+import ViewBookingDetails from "../../components/grooming/ViewBookingDetails";
 
 const Booking = () => {
-  const [activeTab, setActiveTab] = useState("Upcoming"); 
-  const tabs = ["Upcoming", "Pending", "Completed", "Cancelled"];
+  const [isAddingBooking, setIsAddingBooking] = useState(false);
+  const [isViewingDetails, setIsViewingDetails] = useState(false);
 
-  const menuItems = [
-        { name: "Dashboard", icon: <Calender3 />, path: "/grooming" },
-        { name: "Bookings", icon: <FourDots />, path: "/grooming/booking" },
-        { name: "Invoice Generation", icon: <Calender3 />, path: "/grooming/invoice-generation" },
+  const topbarButtons = [
+    { label: "+ Add Bookings", color: "pink", action: "addBookings" }
+  ];
 
-        { name: "Parties & Purchases", icon: <Calender3 />, path: "/grooming/parties-purchases" },
-        // { name: "Expenses", icon: <Calender3 />, path: "/grooming/expenses" },
-        // { name: "Inventory", icon: <Calender3 />, path: "/grooming/inventory" },
-        { name: "Staff Management", icon: <Calender3 />, path: "/grooming/staff-management" },
-        // { name: "Reports", icon: <Calender3 />, path: "/grooming/reports" },
-        // { name: "Settings", icon: <Calender3 />, path: "/settings" },
-        // { name: "Logout", icon: <Calender3 />, path: "/logout" },
-      ];
-  const tabComponents = {
-    Upcoming: <UpcomingBookings />,
-    Pending: <PendingBookings />,
-    Completed: <CompletedBookings />,
-    Cancelled: <CancelledBookings />,
+  const handleTopbarAction = (action) => {
+    if (action === "addBookings") {
+      setIsAddingBooking(true);
+      setIsViewingDetails(false);
+    } else if (action === "viewDetails") {
+      setIsViewingDetails(true);
+      setIsAddingBooking(false);
+    }
   };
-  
-
-
 
   return (
-    <>
-      <Layout menuItems={menuItems} sidebarToggleButton={<BackButton />}>
-        <Topbar
-          buttons={[
-            // { label: "+ Add Rooms", color: "purple", action: "addRoom" },
-            // { label: "+ Add Bookings", color: "red", action: "addBooking" },
-            // { label: "+ Add More", color: "gray", action: "addMore" },
-          ]}
-        />
-        <div className={styles["top-button"]}>
-          {tabs.map((tab) => (
-            <button 
-              key={tab}
-              className={activeTab === tab ? styles.active : ""}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className={styles["tab-content"]}>{tabComponents[activeTab]}</div>
-
-      </Layout>
-    </>
+    <DashboardLayout topbarButtons={topbarButtons} onTopbarAction={handleTopbarAction}>
+      {isAddingBooking ? (
+        <AddBookingGrooming onClose={() => setIsAddingBooking(false)} />
+      ) : isViewingDetails ? (
+        <ViewBookingDetails onClose={() => setIsViewingDetails(false)} />
+      ) : (
+        <BookingsList onViewDetails={() => setIsViewingDetails(true)} />
+      )}
+    </DashboardLayout>
   );
 };
 

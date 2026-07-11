@@ -155,7 +155,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
 
     const fetchProducts = async () => {
         try {
-            const res = await productService.getProducts(jwtToken, branchId, "Retail", "");
+            const res = await productService.getProducts(jwtToken, branchId, "", "");
             setAllProducts(res.products || []);
         } catch (e) { console.error(e); }
     };

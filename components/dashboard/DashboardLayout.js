@@ -199,6 +199,13 @@ function buildMenuFromVendor(userInfo) {
     { label: "Reviews", path: "/reviews", icon: <IconStar /> },
     { label: "Profile", path: "/profile", icon: <IconUser /> },
     {
+      label: "Bookings",
+      path: "/bookings",
+      icon: <IconProducts />,
+      subItems: [
+        { label: "Grooming", path: "/grooming/booking" }]
+    },
+    {
       label: "Inventory",
       path: "/inventory",
       icon: <IconPackage />,
@@ -321,6 +328,9 @@ const DashboardLayout = ({
     if (parts.length > 0) {
       const parentPath = "/" + parts[0];
       setExpandedMenus(prev => ({ ...prev, [parentPath]: true }));
+      if (parentPath === "/grooming") {
+        setExpandedMenus(prev => ({ ...prev, ["/bookings"]: true }));
+      }
     }
   }, [router.pathname]);
 
@@ -399,7 +409,13 @@ const DashboardLayout = ({
         {/* Nav items */}
         <ul className={styles.sidebarNav}>
           {menuItems.map((item) => {
-            const isActive = router.pathname === item.path || router.pathname.startsWith(item.path + '/');
+            const subMatch = item.subItems
+              ? item.subItems.some(sub => {
+                  const subBase = sub.path.split('?')[0];
+                  return router.pathname === subBase || router.pathname.startsWith(subBase + '/');
+                })
+              : false;
+            const isActive = router.pathname === item.path || router.pathname.startsWith(item.path + '/') || subMatch;
             const hasSub = !!item.subItems;
             const isExpanded = expandedMenus[item.path];
 
@@ -554,7 +570,9 @@ const DashboardLayout = ({
                   ? styles.topBtnPurple
                   : btn.color === "red"
                     ? styles.topBtnRed
-                    : styles.topBtnGray
+                    : btn.color === "pink"
+                      ? styles.topBtnPink
+                      : styles.topBtnGray
                   }`}
                 onClick={() => onTopbarAction && onTopbarAction(btn.action)}
               >
