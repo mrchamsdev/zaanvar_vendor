@@ -220,6 +220,9 @@
   border-radius: 8px;
   width: 90%;
   max-width: 960px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   overflow: hidden;
   animation: modalFadeIn 0.25s ease-out;
@@ -275,6 +278,8 @@
 .modalBody {
   padding: 20px 32px;
   background-color: #ffffff;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .sectionTitle {

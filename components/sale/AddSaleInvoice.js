@@ -806,6 +806,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     onFocus={() => setShowCustomerDropdown(true)}
                                     disabled={isViewOnly}
                                 />
+                                <FiChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
                                 {showCustomerDropdown && !isViewOnly && (
                                     <div className={styles.dropdownList}>
                                         {customers

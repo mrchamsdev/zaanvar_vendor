@@ -22,9 +22,6 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
     if (setTopbarActions) {
       setTopbarActions({
         activeTab,
-        onAddRooms: () => {
-          alert("Add Room clicked!");
-        },
         onAddServiceOrPackage: () => {
           setEditingItem(null);
           if (activeTab === "Services") {
@@ -56,9 +53,9 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
       if (json.status === "success" && json.data) {
         if (activeTab === "Services") {
           const apiServices = json.data.services || [];
-          setServices(apiServices.map(s => ({
+          setServices(apiServices.filter(s => s.id).map(s => ({
             id: s.id,
-            serviceName: s.serviceName,
+            serviceName: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName,
             petType: Array.isArray(s.petType) ? s.petType.join(", ") : s.petType,
             duration: `${s.duration} mins`,
             price: `₹ ${s.price}`,
@@ -71,7 +68,7 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
           })));
         } else {
           const apiPackages = json.data.packages || [];
-          setPackages(apiPackages.map(p => ({
+          setPackages(apiPackages.filter(p => p.id).map(p => ({
             id: p.id,
             packageName: p.packageName || p.serviceName,
             petType: Array.isArray(p.petType) ? p.petType.join(", ") : p.petType,
@@ -98,13 +95,13 @@ const ServicesPackagesSettings = ({ setTopbarActions }) => {
 
   // Search filtering
   const filteredServices = services.filter(s =>
-    s.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.petType.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.serviceName ? String(s.serviceName) : "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.petType ? String(s.petType) : "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredPackages = packages.filter(p =>
-    p.packageName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.petType.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.packageName ? String(p.packageName) : "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.petType ? String(p.petType) : "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Edit / Delete Actions

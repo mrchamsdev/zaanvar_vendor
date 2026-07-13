@@ -1034,6 +1034,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 onFocus={() => setShowCustomerDropdown(true)}
                                 disabled={isViewOnly}
                             />
+                            <FiChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
                             {showCustomerDropdown && !isViewOnly && (
                                 <div className={styles.dropdownList}>
                                     {customers

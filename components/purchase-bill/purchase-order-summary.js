@@ -126,13 +126,58 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
         let calculatedDamagedAmountTotal = 0;
         let calculatedShortfallAmountTotal = 0;
 
+        // Group items by variant to avoid double counting ordered quantities
+        const groups = {};
+        itemsList.forEach(item => {
+            const itemKey = item.variantId || `${item.productName}_${item.productCode || item.ProductCode || ''}_${[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}`;
+            if (!groups[itemKey]) {
+                groups[itemKey] = [];
+            }
+            groups[itemKey].push(item);
+        });
+
+        const groupTotals = {};
+        Object.keys(groups).forEach(itemKey => {
+            const groupItems = groups[itemKey];
+            const firstItem = groupItems[0];
+            const ordered = parseFloat(firstItem.qty || firstItem.orderQuantity) || 0;
+            const totalReceived = groupItems.reduce((sum, it) => sum + (parseFloat(it.receivedQty) || 0), 0);
+            
+            // Calculate the weighted average cost price of the received items
+            const totalReceivedValue = groupItems.reduce((sum, it) => sum + ((parseFloat(it.receivedQty) || 0) * (parseFloat(it.costPrice) || 0)), 0);
+            const averageCost = totalReceived > 0 ? (totalReceivedValue / totalReceived) : (parseFloat(firstItem.costPrice) || 0);
+
+            groupTotals[itemKey] = {
+                ordered,
+                totalReceived,
+                originalCost: averageCost
+            };
+
+            // Calculate totalOrderValue: weighted average cost * ordered quantity
+            totalOrderValue += (ordered * averageCost);
+
+            // Calculate shortfall by comparing total ordered vs total received for the variant group using the weighted average cost
+            if (ordered > totalReceived) {
+                calculatedShortfallAmountTotal += (ordered - totalReceived) * averageCost;
+            }
+        });
+
         const pdfItems = items.map((item, idx) => {
             const cost = parseFloat(item.costPrice) || 0;
             const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
             const received = parseFloat(item.receivedQty) || 0;
             const damaged = parseFloat(item.damagedQty) || 0;
 
-            const baseQty = payBasedOnOrdered ? ordered : received;
+            const itemKey = item.variantId || `${item.productName}_${item.productCode || item.ProductCode || ''}_${[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}`;
+            const gTotal = groupTotals[itemKey];
+
+            // Allocate ordered qty proportionally if paying based on ordered
+            let baseQty = received;
+            if (payBasedOnOrdered) {
+                const ratio = gTotal.totalReceived > 0 ? (received / gTotal.totalReceived) : (1 / groups[itemKey].length);
+                baseQty = gTotal.ordered * ratio;
+            }
+
             const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
             const billableSubtotal = billingQty * cost;
@@ -159,15 +204,21 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
 
         itemsList.forEach(item => {
             const cost = parseFloat(item.costPrice) || 0;
-            const ordered = parseFloat(item.qty || item.orderQuantity) || 0;
             const received = parseFloat(item.receivedQty) || 0;
             const damaged = parseFloat(item.damagedQty) || 0;
             const discountPercent = parseFloat(item.discount) || 0;
             const taxPercent = parseFloat(item.taxGroupId) || parseFloat(item.tax) || 0;
 
-            totalOrderValue += (ordered * cost);
+            const itemKey = item.variantId || `${item.productName}_${item.productCode || item.ProductCode || ''}_${[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}`;
+            const gTotal = groupTotals[itemKey];
 
-            const baseQty = payBasedOnOrdered ? ordered : received;
+            // Allocate ordered qty proportionally if paying based on ordered
+            let baseQty = received;
+            if (payBasedOnOrdered) {
+                const ratio = gTotal.totalReceived > 0 ? (received / gTotal.totalReceived) : (1 / groups[itemKey].length);
+                baseQty = gTotal.ordered * ratio;
+            }
+
             const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
             const billableSubtotal = billingQty * cost;
@@ -180,9 +231,6 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
             calculatedItemTaxTotal += taxAmount;
             grandTotal += finalProductAmount;
 
-            if (ordered > received) {
-                calculatedShortfallAmountTotal += (ordered - received) * cost;
-            }
             calculatedDamagedAmountTotal += (damaged * cost);
         });
 
@@ -396,7 +444,26 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                             const received = parseFloat(item.receivedQty) || 0;
                             const damaged = parseFloat(item.damagedQty) || 0;
 
-                            const baseQty = breakdown.payBasedOnOrdered ? ordered : received;
+                            const itemKey = item.variantId || `${item.productName}_${item.productCode || item.ProductCode || ''}_${[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}`;
+                            
+                            const groupItems = items.filter(it => {
+                                const k = it.variantId || `${it.productName}_${it.productCode || it.ProductCode || ''}_${[formatVariantSize(it.variantType?.size), it.variantType?.type, it.variantType?.packType, it.variantMeasure].filter(Boolean)[0] || "--"}`;
+                                return k === itemKey;
+                            });
+                            
+                            const totalReceived = groupItems.reduce((sum, it) => sum + (parseFloat(it.receivedQty) || 0), 0);
+                            
+                            const isFirstInGroup = items.findIndex(it => {
+                                const k = it.variantId || `${it.productName}_${it.productCode || it.ProductCode || ''}_${[formatVariantSize(it.variantType?.size), it.variantType?.type, it.variantType?.packType, it.variantMeasure].filter(Boolean)[0] || "--"}`;
+                                return k === itemKey;
+                            }) === idx;
+
+                            let baseQty = received;
+                            if (breakdown.payBasedOnOrdered) {
+                                const ratio = totalReceived > 0 ? (received / totalReceived) : (1 / groupItems.length);
+                                baseQty = ordered * ratio;
+                            }
+
                             const billingQty = returnsApplicable ? Math.max(0, baseQty - damaged) : baseQty;
 
                             const billableSubtotal = billingQty * cost;
@@ -412,14 +479,20 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                                     </td>
                                     <td>{item.productCode || "--"}</td>
                                     <td>{[formatVariantSize(item.variantType?.size), item.variantType?.type, item.variantType?.packType, item.variantMeasure].filter(Boolean)[0] || "--"}</td>
-                                    <td style={{ textAlign: 'center', fontWeight: '700' }}>{item.qty || item.orderQuantity || 0}</td>
+                                    <td style={{ textAlign: 'center', fontWeight: '700' }}>
+                                        {isFirstInGroup ? (item.qty || item.orderQuantity || 0) : "-"}
+                                    </td>
                                     <td>
                                         <div className={styles.qtyCell}>
                                             <span className={styles.value}>{item.receivedQty}</span>
                                             {/* <span className={styles.orderedQtySub}>Current Qty - {item.currentQty || item.currentStock || 0}</span> */}
                                         </div>
                                     </td>
-                                    {!returnsApplicable && <td>{Math.max(0, (parseFloat(item.qty || item.orderQuantity || 0) - received))}</td>}
+                                    {!returnsApplicable && (
+                                        <td style={{ textAlign: 'center' }}>
+                                            {isFirstInGroup ? Math.max(0, ordered - totalReceived) : "-"}
+                                        </td>
+                                    )}
                                     <td>{damaged}</td>
                                     <td>{item.batchNumber || "------"}</td>
                                     <td>{(() => { const d = item.expDate || item.expiryDate; return (d && !/^0+[-/]0+[-/]0+$/.test(d)) ? formatDate(d) : "–"; })()}</td>

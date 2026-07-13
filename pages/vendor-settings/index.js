@@ -227,12 +227,6 @@ export default function VendorSettingsPage() {
           {activeTab === "ServicesPackages" && (
             <>
               <button 
-                onClick={topbarActions.onAddRooms}
-                className={roomsCapacityStyles.btnPurpleTopbar}
-              >
-                <span>+</span> Add Rooms
-              </button>
-              <button 
                 onClick={topbarActions.onAddServiceOrPackage}
                 className={roomsCapacityStyles.btnPinkTopbar}
               >

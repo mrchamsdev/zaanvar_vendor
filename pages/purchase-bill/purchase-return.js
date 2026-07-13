@@ -120,7 +120,13 @@ const PurchaseReturnPage = () => {
                 isOpen={router.query.add === 'true' || router.query.view === 'true' || router.query.edit === 'true'}
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 returnId={router.query.id}
-                onClose={() => router.push({ pathname: router.pathname, query: { branchId: currentBranchId } }, undefined, { shallow: true })}
+                onClose={() => {
+                    if (router.query.returnUrl) {
+                        router.push(router.query.returnUrl);
+                    } else {
+                        router.push({ pathname: router.pathname, query: { branchId: currentBranchId } }, undefined, { shallow: true });
+                    }
+                }}
                 onRefresh={() => {
                     setRefreshKey(prev => prev + 1);
                 }}

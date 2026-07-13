@@ -3,6 +3,8 @@ import styles from "../../styles/grooming/addBooking.module.css";
 import Image from "next/image";
 import { customerService } from "../../services/customerService";
 import useStore from "../state/useStore";
+import { VENDOR_API_URL } from "../utilities/Constants";
+import MultiSelectDropdown from "../MultiSelectDropdown";
 
 // Removed mockCustomers, using dynamic fetching
 
@@ -30,6 +32,30 @@ const AddBookingGrooming = ({ onClose }) => {
   const [customerSearchText, setCustomerSearchText] = useState("");
   const [showAddPetModal, setShowAddPetModal] = useState(false);
   const [newPetImagePreview, setNewPetImagePreview] = useState(null);
+  const [availableServices, setAvailableServices] = useState([]);
+  const [groomersList, setGroomersList] = useState([]);
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=services`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data && data.data.services) {
+            setAvailableServices(data.data.services.filter(s => s.id));
+          }
+        })
+        .catch(err => console.error("Error fetching services:", err));
+
+      fetch(`${VENDOR_API_URL}vendor-users/branch-staff?branchId=${selectedBranchId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data) {
+            setGroomersList(data.data.filter(staff => staff.role && staff.role.toLowerCase() === 'groomer'));
+          }
+        })
+        .catch(err => console.error("Error fetching staff:", err));
+    }
+  }, [selectedBranchId]);
 
   useEffect(() => {
     if (jwtToken) {
@@ -41,27 +67,80 @@ const AddBookingGrooming = ({ onClose }) => {
       });
     }
   }, [jwtToken, selectedBranchId]);
-  
+
   // Service Details State (mapping pet index/id to state object)
   const [petServiceDetails, setPetServiceDetails] = useState({});
 
   const getPetState = (petId) => {
     return petServiceDetails[petId] || {
-      assignedGroomer: mockGroomers[0].id,
+      assignedGroomer: "",
       unassigned: false,
       selectedTime: "",
-      groomingType: "Services"
+      groomingType: "Services",
+      selectedServices: [],
+      hours: "",
+      minutes: "",
+      bufferTime: ""
     };
   };
 
   const updatePetState = (petId, field, value) => {
-    setPetServiceDetails(prev => ({
-      ...prev,
-      [petId]: {
-        ...getPetState(petId),
-        [field]: value
-      }
-    }));
+    setPetServiceDetails(prev => {
+      const currentState = prev[petId] || {
+        assignedGroomer: "",
+        unassigned: false,
+        selectedTime: "",
+        groomingType: "Services",
+        selectedServices: [],
+        serviceType: [],
+        hours: "",
+        minutes: "",
+        bufferTime: ""
+      };
+      return {
+        ...prev,
+        [petId]: {
+          ...currentState,
+          [field]: value
+        }
+      };
+    });
+  };
+
+  const handleServicesChange = (petId, ids) => {
+    const selectedServicesData = availableServices.filter(s => ids.includes(s.id));
+    const totalDuration = selectedServicesData.reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
+    
+    const calculatedHours = Math.floor(totalDuration / 60);
+    const calculatedMinutes = totalDuration % 60;
+    
+    const hasApiBufferTime = selectedServicesData.some(s => s.bufferTime !== undefined && s.bufferTime !== null && s.bufferTime !== "");
+    const apiBufferTime = hasApiBufferTime ? selectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || 0), 0) : "";
+
+    setPetServiceDetails(prev => {
+      const currentState = prev[petId] || {
+        assignedGroomer: "",
+        unassigned: false,
+        selectedTime: "",
+        groomingType: "Services",
+        selectedServices: [],
+        serviceType: [],
+        hours: "",
+        minutes: "",
+        bufferTime: ""
+      };
+      
+      return {
+        ...prev,
+        [petId]: {
+          ...currentState,
+          selectedServices: ids,
+          hours: totalDuration > 0 ? calculatedHours : "",
+          minutes: totalDuration > 0 ? calculatedMinutes : "",
+          bufferTime: hasApiBufferTime ? apiBufferTime : (currentState.bufferTime || "")
+        }
+      };
+    });
   };
 
   const handleNext = () => {
@@ -115,106 +194,110 @@ const AddBookingGrooming = ({ onClose }) => {
                 </div>
 
                 {customerType === "Existed" ? (
-                <>
-                  <div className={styles.formGrid}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Customer Name</label>
-                      <div className={styles.dropdownWrapper}>
-                        <input 
-                          type="text" 
-                          className={styles.input} 
-                          placeholder="Search or choose customer..." 
-                          value={showCustomerDropdown ? customerSearchText : (selectedCustomer ? (selectedCustomer.firstName + ' ' + (selectedCustomer.lastName || '')).trim() || selectedCustomer.vendorCustomerName || selectedCustomer.name : "")}
-                          onClick={() => setShowCustomerDropdown(true)}
+                  <>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Customer Name</label>
+                        <div className={styles.dropdownWrapper}>
+                          <input
+                            type="text"
+                            className={styles.input}
+                            placeholder="Search or choose customer..."
+                            value={showCustomerDropdown ? customerSearchText : (selectedCustomer ? (selectedCustomer.firstName + ' ' + (selectedCustomer.lastName || '')).trim() || selectedCustomer.vendorCustomerName || selectedCustomer.name : "")}
+                            onClick={() => setShowCustomerDropdown(true)}
+                            onChange={(e) => {
+                              setCustomerSearchText(e.target.value);
+                              setShowCustomerDropdown(true);
+                            }}
+                          />
+                          {showCustomerDropdown && (
+                            <div className={styles.customerDropdown}>
+                              {customers
+                                .filter(c => {
+                                  const name = ((c.firstName || '') + ' ' + (c.lastName || '')).toLowerCase();
+                                  const phone = (c.phoneNumber || c.phone || '').toLowerCase();
+                                  const search = customerSearchText.toLowerCase();
+                                  return name.includes(search) || phone.includes(search);
+                                })
+                                .map(c => (
+                                  <div
+                                    key={c.id || c.vendorCustomerId}
+                                    className={styles.customerItem}
+                                    onClick={() => {
+                                      setSelectedCustomer(c);
+                                      setCustomerSearchText("");
+                                      setShowCustomerDropdown(false);
+                                    }}
+                                  >
+                                    <span>{(c.firstName + ' ' + (c.lastName || '')).trim() || c.vendorCustomerName || c.name}</span>
+                                    <span style={{ color: '#666' }}>{c.phoneNumber || c.phone}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                          Pet Name {selectedCustomer && `(${(selectedCustomer.pets || selectedCustomer.customerPets || []).length})`}
+                        </label>
+                        <select
+                          className={styles.select}
+                          value=""
                           onChange={(e) => {
-                            setCustomerSearchText(e.target.value);
-                            setShowCustomerDropdown(true);
+                            const petId = e.target.value;
+                            if (petId) {
+                              const petsList = selectedCustomer.pets || selectedCustomer.customerPets || [];
+                              const pet = petsList.find(p => (p.id == petId || p.vendorCustomerPetId == petId || p.petId == petId));
+                              if (pet && !selectedPets.find(sp => (sp.id || sp.vendorCustomerPetId || sp.petId) === (pet.id || pet.vendorCustomerPetId || pet.petId))) {
+                                setSelectedPets([...selectedPets, pet]);
+                              }
+                            }
                           }}
-                        />
-                        {showCustomerDropdown && (
-                          <div className={styles.customerDropdown}>
-                            {customers
-                              .filter(c => {
-                                const name = ((c.firstName || '') + ' ' + (c.lastName || '')).toLowerCase();
-                                const phone = (c.phoneNumber || c.phone || '').toLowerCase();
-                                const search = customerSearchText.toLowerCase();
-                                return name.includes(search) || phone.includes(search);
-                              })
-                              .map(c => (
-                              <div 
-                                key={c.id || c.vendorCustomerId} 
-                                className={styles.customerItem}
-                                onClick={() => { 
-                                  setSelectedCustomer(c); 
-                                  setCustomerSearchText("");
-                                  setShowCustomerDropdown(false); 
-                                }}
-                              >
-                                <span>{(c.firstName + ' ' + (c.lastName || '')).trim() || c.vendorCustomerName || c.name}</span>
-                                <span style={{color: '#666'}}>{c.phoneNumber || c.phone}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        >
+                          <option value="">
+                            {selectedPets.length > 0
+                              ? selectedPets.map(pet => pet.petName || pet.name || 'Unnamed Pet').join(", ")
+                              : "Choose here"}
+                          </option>
+                          {selectedCustomer && (selectedCustomer.pets || selectedCustomer.customerPets || []).map(pet => (
+                            <option key={pet.id || pet.vendorCustomerPetId || pet.petId} value={pet.id || pet.vendorCustomerPetId || pet.petId}>
+                              {pet.petName || pet.name || 'Unnamed Pet'}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
+                  </>
+                ) : (
+                  <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>
-                        Pet Name {selectedCustomer && `(${(selectedCustomer.pets || selectedCustomer.customerPets || []).length})`}
-                      </label>
-                      <select 
-                        className={styles.select}
-                        value=""
-                        onChange={(e) => {
-                          const petId = e.target.value;
-                          if (petId) {
-                            const petsList = selectedCustomer.pets || selectedCustomer.customerPets || [];
-                            const pet = petsList.find(p => (p.id == petId || p.vendorCustomerPetId == petId || p.petId == petId));
-                            if (pet && !selectedPets.find(sp => (sp.id || sp.vendorCustomerPetId || sp.petId) === (pet.id || pet.vendorCustomerPetId || pet.petId))) {
-                              setSelectedPets([...selectedPets, pet]);
-                            }
-                          }
-                        }}
-                      >
-                        <option value="">Choose here</option>
-                        {selectedCustomer && (selectedCustomer.pets || selectedCustomer.customerPets || []).map(pet => (
-                          <option key={pet.id || pet.vendorCustomerPetId || pet.petId} value={pet.id || pet.vendorCustomerPetId || pet.petId}>
-                            {pet.petName || pet.name || 'Unnamed Pet'}
-                          </option>
-                        ))}
+                      <label className={styles.label}>First Name</label>
+                      <input type="text" className={styles.input} placeholder="Enter your first name here" />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Last Name</label>
+                      <input type="text" className={styles.input} placeholder="Enter your last name here" />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Gender</label>
+                      <select className={styles.select}>
+                        <option value="">Select Your Gender here</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
                       </select>
                     </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Mobile Number</label>
+                      <input type="text" className={styles.input} placeholder="Enter your number here" />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Email Id <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
+                      <input type="email" className={styles.input} placeholder="Enter your id here" />
+                    </div>
                   </div>
-                </>
-              ) : (
-                <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>First Name</label>
-                    <input type="text" className={styles.input} placeholder="Enter your first name here" />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Last Name</label>
-                    <input type="text" className={styles.input} placeholder="Enter your last name here" />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Gender</label>
-                    <select className={styles.select}>
-                      <option value="">Select Your Gender here</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Mobile Number</label>
-                    <input type="text" className={styles.input} placeholder="Enter your number here" />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Email Id <span style={{fontSize: '0.75rem', color: '#888'}}>(optional)</span></label>
-                    <input type="email" className={styles.input} placeholder="Enter your id here" />
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             </div>
 
             {/* Selected Pets Section (Always visible for existed customers, or if we want it generally) */}
@@ -222,7 +305,7 @@ const AddBookingGrooming = ({ onClose }) => {
               <div style={{ marginBottom: '2rem' }}>
                 <h3 className={styles.sectionTitle}>
                   Selected pets
-                  <span 
+                  <span
                     style={{ color: '#ff4757', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
                     onClick={() => setShowAddPetModal(true)}
                   >
@@ -266,9 +349,9 @@ const AddBookingGrooming = ({ onClose }) => {
                 </h3>
                 <div className={styles.card}>
                   <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <div 
-                      style={{ 
-                        width: '80px', height: '80px', borderRadius: '50%', 
+                    <div
+                      style={{
+                        width: '80px', height: '80px', borderRadius: '50%',
                         background: '#f5f5f5', border: '1px dashed #ccc',
                         display: 'flex', justifyContent: 'center', alignItems: 'center',
                         overflow: 'hidden', cursor: 'pointer', position: 'relative'
@@ -282,8 +365,8 @@ const AddBookingGrooming = ({ onClose }) => {
                       )}
                     </div>
                     <div>
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         id="petImageInput"
                         accept="image/*"
                         style={{ display: 'none' }}
@@ -352,6 +435,9 @@ const AddBookingGrooming = ({ onClose }) => {
               selectedPets.map((pet, idx) => {
                 const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
                 const petState = getPetState(petId);
+                const petSelectedServicesData = availableServices.filter(s => petState.selectedServices?.includes(s.id));
+                const petHasApiBufferTime = petSelectedServicesData.some(s => s.bufferTime !== undefined && s.bufferTime !== null && s.bufferTime !== "");
+                const petApiBufferTime = petHasApiBufferTime ? petSelectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || 0), 0) : 0;
                 const isFirst = idx === 0;
 
                 return (
@@ -361,10 +447,17 @@ const AddBookingGrooming = ({ onClose }) => {
                     </h3>
                     <div className={styles.card}>
                       <div className={styles.formGroup} style={{ maxWidth: '400px', marginBottom: '2rem' }}>
-                        <label className={styles.label}>Service Type</label>
-                        <select className={styles.select}>
-                          <option value="Grooming, Clinic">Grooming, Clinic</option>
-                        </select>
+                        {/* <label className={styles.label}>Service Type</label> */}
+                        <MultiSelectDropdown
+                          heading="Service Type"
+                          listItems={[
+                            { id: "Grooming", name: "Grooming" },
+                            { id: "Day Care", name: "Day Care" },
+                            { id: "Clinic", name: "Clinic" }
+                          ]}
+                          selectedIds={petState.serviceType || []}
+                          setSelectedIds={(ids) => updatePetState(petId, 'serviceType', ids)}
+                        />
                       </div>
 
                       <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
@@ -373,21 +466,21 @@ const AddBookingGrooming = ({ onClose }) => {
                       </h3>
 
                       <div style={{ marginBottom: '1.5rem' }}>
-                        <label className={styles.label} style={{display: 'block', marginBottom: '1rem'}}>Assigned Groomer for the service</label>
+                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Assigned Groomer for the service</label>
                         <div className={styles.groomerGrid}>
-                          {mockGroomers.map(g => (
-                            <div 
-                              key={g.id} 
-                              className={`${styles.groomerChip} ${petState.assignedGroomer === g.id && !petState.unassigned ? styles.groomerChipActive : ""}`}
-                              onClick={() => { 
-                                updatePetState(petId, 'assignedGroomer', g.id); 
-                                updatePetState(petId, 'unassigned', false); 
+                          {groomersList.length > 0 ? groomersList.map(g => (
+                            <div
+                              key={g.userId}
+                              className={`${styles.groomerChip} ${petState.assignedGroomer === g.userId && !petState.unassigned ? styles.groomerChipActive : ""}`}
+                              onClick={() => {
+                                updatePetState(petId, 'assignedGroomer', g.userId);
+                                updatePetState(petId, 'unassigned', false);
                               }}
                             >
-                              <Image src={g.avatar} width={32} height={32} className={styles.avatar} alt="Avatar" />
-                              {g.name}
+                              <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={32} height={32} className={styles.avatar} alt="Avatar" />
+                              {g.staffName}
                             </div>
-                          ))}
+                          )) : <div style={{ color: '#888', fontSize: '14px', fontStyle: 'italic' }}>No groomers found for this branch.</div>}
                         </div>
                         <label className={styles.checkboxLabel}>
                           <input type="checkbox" checked={petState.unassigned} onChange={(e) => updatePetState(petId, 'unassigned', e.target.checked)} />
@@ -400,6 +493,8 @@ const AddBookingGrooming = ({ onClose }) => {
                           <label className={styles.label}>Booking Type</label>
                           <select className={styles.select}>
                             <option value="In House Grooming">In House Grooming</option>
+                            <option value="In Store Grooming">In Store Grooming</option>
+                            <option value="Mobile Grooming">Mobile Grooming</option>
                           </select>
                         </div>
                         <div className={styles.formGroup}>
@@ -409,11 +504,11 @@ const AddBookingGrooming = ({ onClose }) => {
                       </div>
 
                       <div style={{ marginBottom: '2rem' }}>
-                        <label className={styles.label} style={{display: 'block', marginBottom: '1rem'}}>Select Appointment Time Slots</label>
+                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Select Appointment Time Slots</label>
                         <div className={styles.timeGrid}>
                           {timeSlots.map(time => (
-                            <button 
-                              key={time} 
+                            <button
+                              key={time}
                               className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
                               onClick={() => updatePetState(petId, 'selectedTime', time)}
                             >
@@ -424,7 +519,7 @@ const AddBookingGrooming = ({ onClose }) => {
                       </div>
 
                       <div style={{ marginBottom: '2rem' }}>
-                        <label className={styles.label} style={{display: 'block', marginBottom: '1rem'}}>Grooming Type</label>
+                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Grooming Type</label>
                         <div className={styles.radioGroup}>
                           <label className={styles.radioLabel}>
                             <input type="radio" name={`groomingType-${petId}`} value="Services" className={styles.radioInput} checked={petState.groomingType === "Services"} onChange={() => updatePetState(petId, 'groomingType', "Services")} />
@@ -441,11 +536,14 @@ const AddBookingGrooming = ({ onClose }) => {
                         </div>
 
                         {petState.groomingType === "Services" && (
-                          <div className={styles.formGroup} style={{ maxWidth: '400px' }}>
-                            <label className={styles.label}>Grooming Services <span style={{color: '#888', fontSize: '0.75rem'}}>(Multiple selections)</span></label>
-                            <select className={styles.select}>
-                              <option value="">Choose your services here</option>
-                            </select>
+                          <div className={styles.formGroup} style={{ maxWidth: '650px' }}>
+                            <label className={styles.label}>Grooming Services <span style={{ color: '#888', fontSize: '0.75rem' }}>(Multiple Selections)</span></label>
+                            <MultiSelectDropdown
+                              heading="Choose your services here"
+                              listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                              selectedIds={petState.selectedServices || []}
+                              setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                            />
                           </div>
                         )}
                         {petState.groomingType === "Package" && (
@@ -457,10 +555,12 @@ const AddBookingGrooming = ({ onClose }) => {
                               </select>
                             </div>
                             <div className={styles.formGroup}>
-                              <label className={styles.label}>Add on Grooming Services <span style={{color: '#888', fontSize: '0.75rem'}}>(Multiple selections)</span></label>
-                              <select className={styles.select}>
-                                <option value="">Choose your services here</option>
-                              </select>
+                              <MultiSelectDropdown
+                                heading="Choose your services here"
+                                listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                                selectedIds={petState.selectedServices || []}
+                                setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                              />
                             </div>
                           </div>
                         )}
@@ -473,38 +573,70 @@ const AddBookingGrooming = ({ onClose }) => {
                               </select>
                             </div>
                             <div className={styles.formGroup}>
-                              <label className={styles.label}>Add on Grooming Services <span style={{color: '#888', fontSize: '0.75rem'}}>(Multiple selections)</span></label>
-                              <select className={styles.select}>
-                                <option value="">Choose your services here</option>
-                              </select>
+                              <MultiSelectDropdown
+                                heading="Choose your services here"
+                                listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                                selectedIds={petState.selectedServices || []}
+                                setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                              />
                             </div>
                           </div>
                         )}
                       </div>
 
                       <div>
-                        <h4 className={styles.label} style={{display: 'block', marginBottom: '1rem'}}>Time taken for appointment</h4>
-                        <div className={styles.formGrid} style={{ alignItems: 'flex-end', gap: '2rem' }}>
+                        <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '16px', fontWeight: '600', color: '#666' }}>Time taken for appointment</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-start', gap: '2rem' }}>
                           <div className={styles.formGroup}>
                             <label className={styles.label}>Hours</label>
-                            <select className={styles.select}>
+                            <select
+                              className={styles.select}
+                              value={petState.hours !== undefined && petState.hours !== null ? petState.hours : ""}
+                              onChange={(e) => updatePetState(petId, 'hours', e.target.value)}
+                            >
                               <option value="">Choose Hours here</option>
+                              {Array.from({ length: 15 }, (_, i) => (
+                                <option key={`h-${i}`} value={i}>{String(i).padStart(2, "0")} hr</option>
+                              ))}
                             </select>
                           </div>
                           <div className={styles.formGroup}>
                             <label className={styles.label}>Minutes</label>
-                            <select className={styles.select}>
+                            <select
+                              className={styles.select}
+                              value={petState.minutes !== undefined && petState.minutes !== null ? petState.minutes : ""}
+                              onChange={(e) => updatePetState(petId, 'minutes', e.target.value)}
+                            >
                               <option value="">Choose Mins here</option>
+                              {Array.from({ length: 60 }, (_, i) => i).map(m => (
+                                <option key={`m-${m}`} value={m}>{String(m).padStart(2, "0")} minutes</option>
+                              ))}
                             </select>
                           </div>
-                          <div className={styles.formGroup} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ flex: 1 }}>
-                              <label className={styles.label}>Add buffer for extra time required</label>
-                              <select className={styles.select}>
-                                <option value="">Choose Hours here</option>
-                              </select>
-                            </div>
-                            <span style={{ fontSize: '0.85rem', color: '#333', marginBottom: '4px' }}>Mins</span>
+                          <div className={styles.formGroup}>
+                            <label className={styles.label}>Add Buffer for extra time required</label>
+                            {petHasApiBufferTime ? (
+                              <input
+                                type="text"
+                                className={styles.input}
+                                value={`${petApiBufferTime} minutes`}
+                                readOnly
+                                style={{ backgroundColor: '#f5f6fa', cursor: 'not-allowed' }}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                className={styles.input}
+                                placeholder="Enter Mins here"
+                                value={petState.bufferTime || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (/^\d*$/.test(val)) {
+                                    updatePetState(petId, 'bufferTime', val);
+                                  }
+                                }}
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
@@ -586,7 +718,7 @@ const AddBookingGrooming = ({ onClose }) => {
 
               <div className={styles.costBreakdownSection}>
                 <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
-                
+
                 <div className={styles.costRow}>
                   <span className={styles.costLabel}>Total</span>
                   <strong>₹ 1500</strong>
@@ -603,7 +735,7 @@ const AddBookingGrooming = ({ onClose }) => {
                   <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
                   <input type="text" className={styles.costInput} defaultValue="10%" />
                 </div>
-                
+
                 <div className={styles.costRow}>
                   <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
                   <strong>₹ 1650</strong>
@@ -620,7 +752,7 @@ const AddBookingGrooming = ({ onClose }) => {
                   <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
                   <input type="text" className={styles.costInput} defaultValue="05%" />
                 </div>
-                
+
                 <div className={styles.costRow}>
                   <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
                   <strong>₹ 1600</strong>

@@ -90,7 +90,7 @@ const SuppliersPage = () => {
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const res = await purchaseService.getSuppliers(jwtToken, currentBranchId);
+      const res = await purchaseService.getSuppliers(jwtToken, currentBranchId, { t: Date.now() });
       if (res.status === "success") {
         setSuppliers(res.data || []);
       }
@@ -119,7 +119,7 @@ const SuppliersPage = () => {
       let errorMsg = null;
       for (const id of selectedIds) {
         const res = await purchaseService.deleteSupplier(jwtToken, id);
-        if (res.status === "success" || res.status === 200 || res.data?.status === "success") {
+        if (res.status === "success" || (typeof res.status === 'number' && res.status >= 200 && res.status < 300) || res.data?.status === "success") {
           successCount++;
         } else {
           const msg = res.msg || res.message || (res.data && (res.data.msg || res.data.message));

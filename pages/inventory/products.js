@@ -451,7 +451,7 @@ const ProductsPage = () => {
                           <td>
                             <span className={styles.productCodeCell}>
                               <span className={styles.productCodeText}>{product.ProductCode || product.productCode || "-"}</span>
-                              {product.productActiveStatus ? <ActiveProductIcon /> : <InactiveProductIcon />}
+                              {manageItemStatus && (product.productActiveStatus ? <ActiveProductIcon /> : <InactiveProductIcon />)}
                             </span>
                           </td>
                           <td>{product.productName || product.name || "-"}</td>
