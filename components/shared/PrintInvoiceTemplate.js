@@ -175,18 +175,18 @@ const PrintInvoiceTemplate = ({
 
                 let discAmt = 0;
                 if (item.discountAmount !== undefined) {
-                  discAmt = parseFloat(item.discountAmount) || 0;
+                  discAmt = getNumericVal(item.discountAmount);
                 } else if (item.discountAmt !== undefined) {
-                  discAmt = parseFloat(item.discountAmt) || 0;
+                  discAmt = getNumericVal(item.discountAmt);
                 } else {
                   discAmt = subtotal * (discPercentVal / 100);
                 }
 
                 let taxAmt = 0;
                 if (item.taxAmount !== undefined) {
-                  taxAmt = parseFloat(item.taxAmount) || 0;
+                  taxAmt = getNumericVal(item.taxAmount);
                 } else if (item.taxAmt !== undefined) {
-                  taxAmt = parseFloat(item.taxAmt) || 0;
+                  taxAmt = getNumericVal(item.taxAmt);
                 } else {
                   const amtAfterDiscount = subtotal - discAmt;
                   taxAmt = amtAfterDiscount * (taxPercentVal / 100);
@@ -197,15 +197,15 @@ const PrintInvoiceTemplate = ({
 
                 let amtVal = 0;
                 if (item.itemTotal !== undefined) {
-                  amtVal = parseFloat(item.itemTotal) || 0;
+                  amtVal = getNumericVal(item.itemTotal);
                 } else if (item.amount !== undefined) {
-                  amtVal = parseFloat(item.amount) || 0;
+                  amtVal = getNumericVal(item.amount);
                 } else if (item.total !== undefined) {
-                  amtVal = parseFloat(item.total) || 0;
+                  amtVal = getNumericVal(item.total);
                 } else if (item.totalValue !== undefined) {
-                  amtVal = parseFloat(item.totalValue) || 0;
+                  amtVal = getNumericVal(item.totalValue);
                 } else if (item.netAmount !== undefined) {
-                  amtVal = parseFloat(item.netAmount) || 0;
+                  amtVal = getNumericVal(item.netAmount);
                 } else {
                   amtVal = amtCol ? getNumericVal(getVal(amtCol, item, rowIdx)) : (subtotal - discAmt + taxAmt);
                 }

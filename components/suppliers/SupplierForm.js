@@ -466,7 +466,17 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 Supplier name <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <input
-                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Supplier Name"
+                                type="text" style={{
+                                    boxSizing: 'border-box',
+                                    width: '100%',
+                                    padding: '14px 16px',
+                                    borderRadius: '8px',
+                                    border: supplierNameError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                    background: supplierNameError ? '#FFF1F0' : '#fff',
+                                    fontSize: '14px',
+                                    color: '#333',
+                                    outline: 'none'
+                                }} placeholder="Enter Supplier Name"
                                 value={supplierName} onChange={(e) => { setSupplierName(e.target.value); if (supplierNameError) setSupplierNameError(""); }}
                             />
                             {supplierNameError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{supplierNameError}</span>}
@@ -484,7 +494,14 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     if (branchError) setBranchError("");
                                 }}
                                 placeholder="Select Branch Name here"
-                                customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
+                                customStyles={{
+                                    dropdown: {
+                                        background: branchError ? '#FFF1F0' : '#fff',
+                                        border: branchError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px'
+                                    }
+                                }}
                             />
                             {branchError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{branchError}</span>}
                         </div>
@@ -497,7 +514,14 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 selectedIds={supplierType}
                                 setSelectedIds={(ids) => { setSupplierType(ids); if (supplierTypeError) setSupplierTypeError(""); }}
                                 placeholder="Select Supplier Type here"
-                                customStyles={{ background: '#fff', border: '1px solid #E5E7EB', padding: '8px 16px', borderRadius: '8px' }}
+                                customStyles={{
+                                    dropdown: {
+                                        background: supplierTypeError ? '#FFF1F0' : '#fff',
+                                        border: supplierTypeError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px'
+                                    }
+                                }}
                             />
                             {supplierTypeError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{supplierTypeError}</span>}
                         </div>
@@ -506,7 +530,17 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 Phone Number <span style={{ color: '#FF4D4F' }}>*</span>
                             </label>
                             <input
-                                type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Phone Number"
+                                type="text" style={{
+                                    boxSizing: 'border-box',
+                                    width: '100%',
+                                    padding: '14px 16px',
+                                    borderRadius: '8px',
+                                    border: phoneError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                    background: phoneError ? '#FFF1F0' : '#fff',
+                                    fontSize: '14px',
+                                    color: '#333',
+                                    outline: 'none'
+                                }} placeholder="Enter Phone Number"
                                 value={phone}
                                 maxLength={10}
                                 onChange={(e) => {
@@ -522,7 +556,17 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         <div className={styles.field}>
                             <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>E-mail ID <span style={{ color: '#FF4D4F' }}>*</span></label>
                             <input
-                                type="email" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Email ID here"
+                                type="email" style={{
+                                    boxSizing: 'border-box',
+                                    width: '100%',
+                                    padding: '14px 16px',
+                                    borderRadius: '8px',
+                                    border: emailError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                    background: emailError ? '#FFF1F0' : '#fff',
+                                    fontSize: '14px',
+                                    color: '#333',
+                                    outline: 'none'
+                                }} placeholder="Enter Email ID here"
                                 value={email}
                                 onChange={(e) => {
                                     setEmail(e.target.value);
@@ -535,7 +579,17 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             <div className={styles.field}>
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>GSTIN</label>
                                 <input
-                                    type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter GSTIN"
+                                    type="text" style={{
+                                        boxSizing: 'border-box',
+                                        width: '100%',
+                                        padding: '14px 16px',
+                                        borderRadius: '8px',
+                                        border: gstinError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        background: gstinError ? '#FFF1F0' : '#fff',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        outline: 'none'
+                                    }} placeholder="Enter GSTIN"
                                     value={gstin}
                                     onChange={(e) => {
                                         setGstin(e.target.value);
@@ -586,7 +640,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         padding: '14px 16px',
                                         borderRadius: '8px',
                                         border: additionalErrors[field.label] ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
-                                        background: additionalErrors[field.label] ? '#FFF1F4' : '#fff',
+                                        background: additionalErrors[field.label] ? '#FFF1F0' : '#fff',
                                         fontSize: '14px',
                                         color: '#333',
                                         outline: 'none'
@@ -629,7 +683,18 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Country <span style={{ color: '#FF4D4F' }}>*</span></label>
                                 <div style={{ position: 'relative' }}>
                                     <select
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: country ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                        style={{
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            borderRadius: '8px',
+                                            border: countryError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                            background: countryError ? '#FFF1F0' : '#fff',
+                                            fontSize: '14px',
+                                            color: country ? '#333' : '#777',
+                                            appearance: 'none',
+                                            outline: 'none'
+                                        }}
                                         value={selectedCountryCode}
                                         onChange={(e) => {
                                             const code = e.target.value;
@@ -657,7 +722,18 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>State <span style={{ color: '#FF4D4F' }}>*</span></label>
                                 <div style={{ position: 'relative' }}>
                                     <select
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: state ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                        style={{
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            borderRadius: '8px',
+                                            border: stateError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                            background: stateError ? '#FFF1F0' : '#fff',
+                                            fontSize: '14px',
+                                            color: state ? '#333' : '#777',
+                                            appearance: 'none',
+                                            outline: 'none'
+                                        }}
                                         value={selectedStateCode}
                                         onChange={(e) => {
                                             const code = e.target.value;
@@ -683,7 +759,18 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>City <span style={{ color: '#FF4D4F' }}>*</span></label>
                                 <div style={{ position: 'relative' }}>
                                     <select
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: city ? '#333' : '#777', appearance: 'none', outline: 'none' }}
+                                        style={{
+                                            boxSizing: 'border-box',
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            borderRadius: '8px',
+                                            border: cityError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                            background: cityError ? '#FFF1F0' : '#fff',
+                                            fontSize: '14px',
+                                            color: city ? '#333' : '#777',
+                                            appearance: 'none',
+                                            outline: 'none'
+                                        }}
                                         value={city}
                                         onChange={(e) => {
                                             setCity(e.target.value);
@@ -717,7 +804,17 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             <div className={styles.field}>
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Pin Code <span style={{ color: '#FF4D4F' }}>*</span></label>
                                 <input
-                                    type="text" style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', outline: 'none' }} placeholder="Enter Pin Code here"
+                                    type="text" style={{
+                                        boxSizing: 'border-box',
+                                        width: '100%',
+                                        padding: '14px 16px',
+                                        borderRadius: '8px',
+                                        border: pinCodeError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        background: pinCodeError ? '#FFF1F0' : '#fff',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        outline: 'none'
+                                    }} placeholder="Enter Pin Code here"
                                     value={areaPinCode}
                                     maxLength={6}
                                     onChange={(e) => {

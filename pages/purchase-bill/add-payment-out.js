@@ -99,19 +99,23 @@ const PaymentOutFormPage = () => {
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
                 setTotalBalance(t.overallBillAmount || totals.supplierTotalAmount || "000");
                 setTotalBillAmt(t.overallBillAmount || totals.overallBillAmount || totals.totalBillAmount || "");
-                setTotalBalanceAmt(t.totalBalanceAmount || totals.totalBalanceAmount || "");
+                const finalBalanceAmount = (t.splitTransactions && t.splitTransactions.length > 0)
+                    ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount
+                    : (t.totalBalanceAmount || totals.totalBalanceAmount || "");
+                setTotalBalanceAmt(finalBalanceAmount);
                 setDescription(t.transactionInfo || "");
 
                 const splitList = t.splitTransactions || [];
+                const decPlaces = getAmountDecimalPlaces();
                 const allPayments = [
                     {
-                        amountPaid: t.amount || "",
+                        amountPaid: t.amount !== undefined && t.amount !== null && t.amount !== "" ? Number(t.amount).toFixed(decPlaces) : "",
                         paymentType: t.paymentType || "Cash",
                         refNo: t.referenceNumber || t.refNo || "",
                         id: t.suppliersTransactionId || Date.now()
                     },
                     ...splitList.map((st, idx) => ({
-                        amountPaid: st.amount || "",
+                        amountPaid: st.amount !== undefined && st.amount !== null && st.amount !== "" ? Number(st.amount).toFixed(decPlaces) : "",
                         paymentType: st.paymentType || "Cash",
                         refNo: st.referenceNumber || st.refNo || "",
                         id: st.suppliersTransactionId || (Date.now() + idx + 1)
@@ -120,7 +124,7 @@ const PaymentOutFormPage = () => {
 
                 setPayments(allPayments);
                 const totalPaid = allPayments.reduce((sum, p) => sum + Number(p.amountPaid || 0), 0);
-                setPaidAmount(String(totalPaid));
+                setPaidAmount(Number(totalPaid).toFixed(decPlaces));
             } else {
                 toast.error("Failed to fetch transaction details");
             }
@@ -276,7 +280,7 @@ const PaymentOutFormPage = () => {
                 columns={columns}
                 items={payments.map(p => ({
                     ...p,
-                    refNo: p.refNo || queryRefNo || data?.userOrderId || data?.suppliersTransactionId || data?.referenceNumber || "-"
+                    refNo: p.refNo || "-"
                 }))}
                 summary={summary}
                 notes={description}
@@ -351,7 +355,7 @@ const PaymentOutFormPage = () => {
                             <input
                                 type="text"
                                 className={`${styles.input} ${isView ? styles.readOnly : ""} ${errors.paidAmount ? styles.inputError : ""}`}
-                                value={paidAmount}
+                                value={isView ? Number(paidAmount || 0).toFixed(getAmountDecimalPlaces()) : paidAmount}
                                 onChange={(e) => {
                                     setPaidAmount(e.target.value);
                                     setErrors(prev => {
@@ -402,9 +406,9 @@ const PaymentOutFormPage = () => {
                                         <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                                             <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>{currencySymbol}</span>
                                             <input
-                                                type="number"
+                                                type={isView ? "text" : "number"}
                                                 className={`${styles.input} ${isView ? styles.readOnly : ""} ${(!isView && Number(payments.reduce((sum, pay) => sum + Number(pay.amountPaid || 0), 0)) > Number(paidAmount || 0)) || errors[`payment_${p.id}`] ? styles.inputError : ""}`}
-                                                value={p.amountPaid}
+                                                value={isView ? Number(p.amountPaid || 0).toFixed(getAmountDecimalPlaces()) : p.amountPaid}
                                                 onChange={(e) => {
                                                     const newPayments = [...payments];
                                                     newPayments[idx].amountPaid = e.target.value;

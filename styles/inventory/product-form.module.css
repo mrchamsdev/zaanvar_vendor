@@ -457,7 +457,7 @@
 }
 
 .optionItem:hover {
-  background-color: var(--color-primary) !important;
+  background-color: #0078d7 !important;
   color: var(--color-white) !important;
 }
 

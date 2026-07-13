@@ -11,7 +11,7 @@ import useDashboardData from "../dashboard/useDashboardData";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const queryBranchId = router.query.branchId || "";
@@ -323,7 +323,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                             <p style={{ color: '#888', fontSize: '13px' }}>Balance Amount</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>{currencySymbol} {supplier?.totalReturnAmount ?? '408.00'}</p>
+                                            <p style={{ fontWeight: '500', fontSize: '16px', color: '#111', marginBottom: '8px' }}>{currencySymbol} {supplier?.totalReturnAmount ?? '0'}</p>
                                             <p style={{ color: '#888', fontSize: '13px' }}>Return Amount</p>
                                         </div>
                                     </div>

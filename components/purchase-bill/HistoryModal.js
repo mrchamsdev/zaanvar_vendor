@@ -46,12 +46,12 @@ const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
         const changes = entry.description
             ? entry.description.split("\n").map(line => line.trim()).filter(Boolean)
             : [];
-        
+
         return {
             date: new Date(entry.createdDate || entry.timestamp || new Date()).toLocaleString('en-GB', {
                 day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
             }),
-            user: entry.createdBy ? `User #${entry.createdBy}` : (entry.userName || userInfo?.userName || "Unknown"),
+            user: entry.createdBy ? `User {entry.createdBy}` : (entry.userName || userInfo?.userName || "Unknown"),
             role: entry.actionPerformed || "Updated",
             changes,
         };
@@ -72,7 +72,7 @@ const HistoryModal = ({ isOpen, onClose, data, userInfo }) => {
         <div className={styles.overlay} style={{ background: 'rgba(0,0,0,0.5)' }}>
             <div className={styles.historyCard}>
                 <div className={styles.historyHeader}>
-                    <h3>Edit History for {data.suppliersTransactionId ? `Payment-Out #${data.suppliersTransactionId}` : `Payment-In #${data.paymentId}`}</h3>
+                    <h3>Edit History for {data.suppliersTransactionId ? `Payment-Out ${data.suppliersTransactionId}` : `Payment-In #${data.paymentId}`}</h3>
                     <FiX className={styles.closeIcon} onClick={onClose} />
                 </div>
                 <div className={styles.historyContent}>

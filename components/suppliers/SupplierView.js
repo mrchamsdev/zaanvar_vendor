@@ -12,7 +12,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
 const SupplierView = ({ data, onBack, isSplit }) => {
-  const currencySymbol = useCurrencySymbol();
+    const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
     const branchId = router.query.branchId || "";
@@ -247,7 +247,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                             <td className={styles.td}></td>
                                             <td className={styles.td}></td>
                                             <td className={styles.td}>
-                                                {typeof split.paymentType === 'object' && split.paymentType !== null 
+                                                {typeof split.paymentType === 'object' && split.paymentType !== null
                                                     ? (split.paymentType.paymentType || split.paymentType.type || JSON.stringify(split.paymentType))
                                                     : split.paymentType}
                                             </td>
@@ -300,7 +300,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoValue}>{supplier?.country || "India"}</p>
                                     <p className={styles.infoLabel}>Country</p>
                                 </div>
-                                {supplier?.customFields && typeof supplier.customFields === 'object' && 
+                                {supplier?.customFields && typeof supplier.customFields === 'object' &&
                                     Object.entries(supplier.customFields).map(([key, val]) => (
                                         <div key={key}>
                                             <p className={styles.infoValue}>{val || "--"}</p>
@@ -335,7 +335,7 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoLabel}>Balance Amount</p>
                                 </div>
                                 <div>
-                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 408).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
+                                    <p className={styles.infoValue}>{currencySymbol} {Number(supplier?.totalReturnAmount || supplier?.totals?.[0]?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</p>
                                     <p className={styles.infoLabel}>Return Amount</p>
                                 </div>
                             </div>

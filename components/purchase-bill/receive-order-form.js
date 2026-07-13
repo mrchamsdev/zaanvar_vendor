@@ -10,6 +10,27 @@ import { FiChevronDown, FiCheckCircle, FiCalendar, FiInfo } from "react-icons/fi
 import PurchaseOrderSummary from "./purchase-order-summary";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { getTaxGroups, getTaxRates } from "../../services/settingsService";
+
+const findMatchingTaxGroup = (batch, groups) => {
+    if (!groups || groups.length === 0) return null;
+    const groupId = batch.taxGroupId != null && batch.taxGroupId !== "" ? Number(batch.taxGroupId) : null;
+    const taxVal = batch.tax !== undefined && batch.tax !== "" && batch.tax !== null ? Number(batch.tax) : null;
+
+    if (groupId !== null) {
+        const matchById = groups.find(g => Number(g.id) === groupId);
+        if (matchById) return matchById;
+    }
+    if (taxVal !== null && !isNaN(taxVal)) {
+        const matchByPercent = groups.find(g => Number(g.percentage) === taxVal);
+        if (matchByPercent) return matchByPercent;
+    }
+    if (groupId !== null) {
+        const matchByGroupIdAsPercent = groups.find(g => Number(g.percentage) === groupId);
+        if (matchByGroupIdAsPercent) return matchByGroupIdAsPercent;
+    }
+    return null;
+};
 
 const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialData }) => {
     const currencySymbol = useCurrencySymbol();
@@ -73,6 +94,72 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const [duedate, setDuedate] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
 
+    const [taxGroups, setTaxGroups] = useState([]);
+
+    useEffect(() => {
+        const fetchTaxData = async () => {
+            const activeBranchId = orderData?.branchId || 91;
+            if (!jwtToken) return;
+            try {
+                const groupsRes = await getTaxGroups(jwtToken, activeBranchId);
+                const ratesRes = await getTaxRates(jwtToken, activeBranchId);
+
+                const groupsPayload = groupsRes?.data || groupsRes;
+                const rawGroups = Array.isArray(groupsPayload) ? groupsPayload : (groupsPayload?.data || groupsPayload?.taxGroups || []);
+
+                const ratesPayload = ratesRes?.data || ratesRes;
+                const rawRates = Array.isArray(ratesPayload) ? ratesPayload : (ratesPayload?.data || ratesPayload?.taxes || []);
+                const mappedRates = rawRates.map((r) => ({
+                    ...r,
+                    id: r.taxTableId || r.id,
+                    value: parseFloat(r.value) || 0,
+                }));
+
+                const mappedGroups = rawGroups.map((group) => {
+                    const ratesArray = group.rates || group.taxTableId || [];
+                    const selectedRates = ratesArray
+                        .map(rId => mappedRates.find(r => Number(r.id) === Number(rId)))
+                        .filter(Boolean);
+                    const percentage = selectedRates.reduce((sum, r) => sum + r.value, 0);
+
+                    return {
+                        ...group,
+                        id: group.taxGroupId || group.id,
+                        percentage
+                    };
+                });
+
+                setTaxGroups(mappedGroups);
+
+                setItems(prevItems => {
+                    if (!prevItems || prevItems.length === 0) return prevItems;
+                    return prevItems.map(item => {
+                        const newBatches = item.batches.map(batch => {
+                            const matchingGroup = findMatchingTaxGroup(batch, mappedGroups);
+                            if (matchingGroup) {
+                                return {
+                                    ...batch,
+                                    taxGroupId: matchingGroup.id,
+                                    tax: matchingGroup.percentage
+                                };
+                            }
+                            return batch;
+                        });
+                        return {
+                            ...item,
+                            batches: newBatches
+                        };
+                    });
+                });
+            } catch (err) {
+                console.error("Failed to fetch tax groups in receive order form:", err);
+            }
+        };
+        if (jwtToken && (orderData?.branchId || loading === false)) {
+            fetchTaxData();
+        }
+    }, [jwtToken, orderData?.branchId, loading]);
+
     useEffect(() => {
         if (jwtToken && requestId) {
             fetchOrderDetails();
@@ -105,7 +192,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             mrp: savedItem.mrp !== undefined && savedItem.mrp !== null && savedItem.mrp !== "" ? Number(savedItem.mrp).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: savedItem.receivedQty ?? "",
                             damagedQty: savedItem.damagedQty ?? "",
-                            tax: savedItem.taxPercentage ?? savedItem.tax ?? savedItem.taxGroupId ?? 0,
+                            tax: savedItem.taxPercentage ?? savedItem.tax ?? 0,
+                            taxGroupId: savedItem.taxGroupId ?? savedItem.gst ?? null,
                             discount: savedItem.discount || 0,
                         }));
                     } else {
@@ -116,7 +204,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             mrp: (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== undefined && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== null && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== "" ? Number(item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: "",
                             damagedQty: "",
-                            tax: item.taxPercentage ?? productInfo.taxPercentage ?? item.tax ?? productInfo.tax ?? item.taxGroupId ?? productInfo.taxGroupId ?? 0,
+                            tax: item.taxPercentage ?? productInfo.taxPercentage ?? item.tax ?? productInfo.tax ?? 0,
+                            taxGroupId: item.taxGroupId ?? productInfo.taxGroupId ?? item.gst ?? productInfo.gst ?? null,
                             discount: 0,
                         }];
                     }
@@ -229,6 +318,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
         items.forEach(item => {
             const ordered = parseFloat(item.qty) || 0;
+            let totalCostOfReceived = 0;
             let totalReceived = 0;
             let firstCost = 0;
             let hasEnteredBatch = false;
@@ -247,6 +337,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                 const taxPercent = parseFloat(batch.tax) || 0;
 
                 totalReceived += received;
+                totalCostOfReceived += (received * cost);
 
                 // 3. Damage Amount = Damaged Qty × Cost Price
                 damagedAmount += (damaged * cost);
@@ -278,9 +369,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
             });
 
             if (hasEnteredBatch) {
-                totalOrderValue += (ordered * firstCost);
+                const averageCost = totalReceived > 0 ? (totalCostOfReceived / totalReceived) : firstCost;
+                totalOrderValue += (ordered * averageCost);
                 if (ordered > totalReceived) {
-                    shortfallAmount += (ordered - totalReceived) * firstCost;
+                    shortfallAmount += (ordered - totalReceived) * averageCost;
                 }
             }
         });
@@ -762,16 +854,27 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
                                                         <div className={styles.fieldGroup}>
                                                             <label className={styles.fieldLabel}>TAX (%)</label>
-                                                            <div className={styles.inputWrapper}>
-                                                                <span className={styles.currencySymbol}>%</span>
-                                                                <input
-                                                                    type="number"
-                                                                    className={`${styles.input} ${styles.inputWithSymbol}`}
-                                                                    value={batch.tax ?? ""}
-                                                                    onFocus={(e) => e.target.select()}
-                                                                    onChange={(e) => handleBatchChange(index, bIdx, "tax", e.target.value)}
-                                                                />
-                                                            </div>
+                                                            <select
+                                                                className={styles.input}
+                                                                value={batch.taxGroupId ?? ""}
+                                                                onChange={(e) => {
+                                                                    const selectedGroup = taxGroups.find(g => Number(g.id) === Number(e.target.value));
+                                                                    if (selectedGroup) {
+                                                                        handleBatchChange(index, bIdx, "taxGroupId", selectedGroup.id);
+                                                                        handleBatchChange(index, bIdx, "tax", selectedGroup.percentage);
+                                                                    } else {
+                                                                        handleBatchChange(index, bIdx, "taxGroupId", null);
+                                                                        handleBatchChange(index, bIdx, "tax", "");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="">Select Tax Group</option>
+                                                                {taxGroups.map((g) => (
+                                                                    <option key={g.id} value={g.id}>
+                                                                        {g.name} ({g.percentage}%)
+                                                                    </option>
+                                                                ))}
+                                                            </select>
                                                         </div>
 
                                                         <div className={styles.fieldGroup}>

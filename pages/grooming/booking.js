@@ -22,15 +22,17 @@ const Booking = () => {
     }
   };
 
+  if (isAddingBooking) {
+    return <AddBookingGrooming onClose={() => setIsAddingBooking(false)} />;
+  }
+
+  if (isViewingDetails) {
+    return <ViewBookingDetails onClose={() => setIsViewingDetails(false)} />;
+  }
+
   return (
     <DashboardLayout topbarButtons={topbarButtons} onTopbarAction={handleTopbarAction}>
-      {isAddingBooking ? (
-        <AddBookingGrooming onClose={() => setIsAddingBooking(false)} />
-      ) : isViewingDetails ? (
-        <ViewBookingDetails onClose={() => setIsViewingDetails(false)} />
-      ) : (
-        <BookingsList onViewDetails={() => setIsViewingDetails(true)} />
-      )}
+      <BookingsList onViewDetails={() => setIsViewingDetails(true)} />
     </DashboardLayout>
   );
 };

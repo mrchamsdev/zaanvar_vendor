@@ -1,4 +1,4 @@
-.container {
+﻿.container {
   position: fixed;
   top: 0;
   left: 0;
@@ -92,7 +92,7 @@
 }
 
 .sectionTitleRed {
-  color: #ff4757;
+  color: #e9315d;
 }
 
 .radioGroup {
@@ -111,7 +111,7 @@
 }
 
 .radioInput {
-  accent-color: #ff4757;
+  accent-color: #e9315d;
   width: 16px;
   height: 16px;
 }
@@ -234,11 +234,11 @@
 }
 
 .petPillRemove:hover {
-  color: #ff4757;
+  color: #e9315d;
 }
 
 .addPetBtn {
-  color: #ff4757;
+  color: #e9315d;
   background: none;
   border: none;
   font-weight: 600;
@@ -268,9 +268,9 @@
 }
 
 .groomerChipActive {
-  border-color: #ff4757;
+  border-color: #e9315d;
   background: #fce8ea;
-  color: #ff4757;
+  color: #e9315d;
 }
 
 .avatar {
@@ -306,8 +306,8 @@
 }
 
 .timeBtnActive {
-  border-color: #ff4757;
-  background: #ff4757;
+  border-color: #e9315d;
+  background: #e9315d;
   color: #fff;
 }
 
@@ -494,7 +494,7 @@
 }
 
 .totalPending span:last-child {
-  color: #ff4757;
+  color: #e9315d;
 }
 
 .btnPrimary {

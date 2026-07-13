@@ -1032,10 +1032,10 @@ const SalesReturnList = ({ onAddClick }) => {
             {returns.length > 0 && (
                 <div className={styles.bottomSummary}>
                     <div className={styles.summaryItem}>
-                        Total Return Amount : Rs {Number(computedTotals.totalReturnAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
+                        Total Return Amount : {currencySymbol} {Number(computedTotals.totalReturnAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                     </div>
                     <div className={styles.summaryItem}>
-                        Total Balance Amount : Rs {Number(computedTotals.dueAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
+                        Total Balance Amount : {currencySymbol} {Number(computedTotals.dueAmount).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                     </div>
                 </div>
             )}

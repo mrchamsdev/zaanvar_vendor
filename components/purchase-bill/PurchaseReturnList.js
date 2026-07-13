@@ -634,8 +634,8 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 ]}
                 items={filteredReturns}
                 summary={[
-                    { label: 'Total Return Amount', value: `Rs ${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
-                    { label: 'Total Balance Amount', value: `Rs ${Number(totals.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
+                    { label: 'Total Return Amount', value: `${currencySymbol} ${Number(totals.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}` },
+                    { label: 'Total Balance Amount', value: `${currencySymbol} ${Number(totals.totalBalance || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`, isTotal: true }
                 ]}
             />
         );
@@ -946,12 +946,12 @@ const PurchaseReturnList = ({ onAddClick }) => {
             {returns.length > 0 && (
                 <div className={styles.bottomSummary} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', boxSizing: 'border-box' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
-                        <span>Total Return Amount : Rs {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                        <span>Total Return Amount : {currencySymbol} {Number(totals?.totalAmount || totals?.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap', fontWeight: '600' }}>
                         <span>Total Balance Amount : </span>
                         <span style={{ color: Number(totals?.totalBalance) > 0 ? '#FF4D4F' : Number(totals?.totalBalance) < 0 ? '#52c41a' : 'inherit', marginLeft: '6px' }}>
-                            Rs {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
+                            {currencySymbol} {Math.abs(Number(totals?.totalBalance || 0)).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}
                         </span>
                     </div>
                 </div>
