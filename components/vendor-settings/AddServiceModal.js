@@ -84,7 +84,7 @@ const AddServiceModal = ({ onClose, onSave, initialData }) => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
           <div className={styles.modalBody}>
             <h4 className={styles.sectionTitle}>Enter Service Details</h4>
             <div className={styles.formCard}>
