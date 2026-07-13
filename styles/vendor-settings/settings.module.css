@@ -283,6 +283,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  justify-content: space-between
 }
 
 .fieldWrap {
@@ -862,7 +863,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #4a4a4af2; /* Elegant dark gray with slight opacity */
+  background: #4a4a4af2;
+  /* Elegant dark gray with slight opacity */
   color: #fff;
   padding: 16px;
   border-radius: 8px;
