@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Progress</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <section class="booking-progress-section">
+        
+        <div class="header">
+            <button class="view-all-btn">VIEW ALL &rarr;</button>
+            <div class="tag">BOOKING PROGRESS</div>
+            <h2>BOOK IN MINUTES. RELAX THE WHOLE WAY.</h2>
+            <p>Five simple steps from tap to safe arrival.</p>
+        </div>
+
+        <div class="progress-container">
+            <!-- Dashed Line SVG -->
+            <!-- A perfectly smooth, C1 continuous background curve that weaves BETWEEN and AROUND the steps without touching the pins -->
+            <svg class="dashed-line" viewBox="0 0 1200 900" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="
+                    M 100 220 
+                    C 250 300, 450 300, 600 220 
+                    C 750 140, 200 350, 300 550 
+                    C 400 750, 800 400, 1050 450 
+                    C 1300 500, 1100 850, 850 800" 
+                    stroke="#999" stroke-width="2" stroke-dasharray="8 8"/>
+            </svg>
+
+            <!-- Step 1 (150/1200 = 12.5%, 250/900 = 27.777%) -->
+            <div class="step" style="left: 12.5%; top: 27.777%;">
+                <div class="pin">
+                    <div class="pin-head"></div>
+                    <div class="pin-base"></div>
+                </div>
+                <div class="step-text-container">
+                    <div class="step-num">STEP 01</div>
+                    <div class="step-title">Choose Service</div>
+                </div>
+                <div class="illustration">
+                    <img src="https://via.placeholder.com/90x140/f0f4f8/555?text=Service" alt="Choose Service">
+                </div>
+            </div>
+
+            <!-- Step 2 (550/1200 = 45.833%, 250/900 = 27.777%) -->
+            <div class="step" style="left: 45.833%; top: 27.777%;">
+                <div class="pin">
+                    <div class="pin-head"></div>
+                    <div class="pin-base"></div>
+                </div>
+                <div class="step-text-container">
+                    <div class="step-num">STEP 02</div>
+                    <div class="step-title">Schedule Ride</div>
+                </div>
+                <div class="illustration">
+                    <img src="https://via.placeholder.com/120x90/f0f4f8/555?text=Schedule" alt="Schedule Ride">
+                </div>
+            </div>
+
+            <!-- Step 3 (350/1200 = 29.166%, 500/900 = 55.555%) -->
+            <div class="step" style="left: 29.166%; top: 55.555%;">
+                <div class="pin">
+                    <div class="pin-head"></div>
+                    <div class="pin-base"></div>
+                </div>
+                <div class="step-text-container">
+                    <div class="step-num">STEP 03</div>
+                    <div class="step-title">Driver Assigned</div>
+                </div>
+                <div class="illustration">
+                    <img src="https://via.placeholder.com/100x150/f0f4f8/555?text=Driver" alt="Driver Assigned">
+                </div>
+            </div>
+
+            <!-- Step 4 (1000/1200 = 83.333%, 500/900 = 55.555%) -->
+            <div class="step" style="left: 83.333%; top: 55.555%;">
+                <div class="pin">
+                    <div class="pin-head"></div>
+                    <div class="pin-base"></div>
+                </div>
+                <div class="step-text-container">
+                    <div class="step-num">STEP 04</div>
+                    <div class="step-title">Track Live</div>
+                </div>
+                <div class="illustration">
+                    <img src="https://via.placeholder.com/100x150/f0f4f8/555?text=Track" alt="Track Live">
+                </div>
+            </div>
+
+            <!-- Step 5 (850/1200 = 70.833%, 750/900 = 83.333%) -->
+            <div class="step" style="left: 70.833%; top: 83.333%;">
+                <div class="pin">
+                    <div class="pin-head"></div>
+                    <div class="pin-base"></div>
+                </div>
+                <div class="step-text-container">
+                    <div class="step-num">STEP 05</div>
+                    <div class="step-title">Safe Arrival</div>
+                </div>
+                <div class="illustration">
+                    <img src="https://via.placeholder.com/140x100/f0f4f8/555?text=Arrival" alt="Safe Arrival">
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</body>
+</html>

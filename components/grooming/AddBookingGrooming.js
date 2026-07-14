@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/grooming/addBooking.module.css";
+import { toast } from "sonner";
 import Image from "next/image";
 import { customerService } from "../../services/customerService";
 import useStore from "../state/useStore";
@@ -21,8 +22,9 @@ const timeSlots = [
   "04:30 PM", "05:30 PM", "06:30 PM", "07:30 PM", "08:30 PM"
 ];
 
-const AddBookingGrooming = ({ onClose }) => {
+const AddBookingGrooming = ({ bookingId, onClose }) => {
   const [activeTab, setActiveTab] = useState("Basic Details");
+  const [bookingDetails, setBookingDetails] = useState(null);
   const [customerType, setCustomerType] = useState("Existed"); // 'Existed' or 'New'
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -33,6 +35,7 @@ const AddBookingGrooming = ({ onClose }) => {
   const [showAddPetModal, setShowAddPetModal] = useState(false);
   const [newPetImagePreview, setNewPetImagePreview] = useState(null);
   const [availableServices, setAvailableServices] = useState([]);
+  const [availablePackages, setAvailablePackages] = useState([]);
   const [groomersList, setGroomersList] = useState([]);
 
   useEffect(() => {
@@ -45,6 +48,15 @@ const AddBookingGrooming = ({ onClose }) => {
           }
         })
         .catch(err => console.error("Error fetching services:", err));
+
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=packages`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data && data.data.packages) {
+            setAvailablePackages(data.data.packages.filter(p => p.id));
+          }
+        })
+        .catch(err => console.error("Error fetching packages:", err));
 
       fetch(`${VENDOR_API_URL}vendor-users/branch-staff?branchId=${selectedBranchId}`)
         .then(res => res.json())
@@ -68,8 +80,248 @@ const AddBookingGrooming = ({ onClose }) => {
     }
   }, [jwtToken, selectedBranchId]);
 
+  // Fetch Booking details if editing
+  useEffect(() => {
+    if (bookingId && jwtToken) {
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`, {
+        headers: {
+          "Authorization": `Bearer ${jwtToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === "success" && res.data) {
+            setBookingDetails(res.data);
+          }
+        })
+        .catch(err => console.error("Error loading booking details for edit:", err));
+    }
+  }, [bookingId, jwtToken]);
+
+  // Match customer with full pet details once both bookingDetails and customer list are ready
+  useEffect(() => {
+    if (bookingDetails && customers.length > 0) {
+      const b = bookingDetails;
+      
+      // Find customer in list to get the pets array
+      const matchedCustomer = customers.find(c => (c.id == b.customerId || c.vendorCustomerId == b.customerId));
+      if (matchedCustomer) {
+        setSelectedCustomer(matchedCustomer);
+        setCustomerType("Existed");
+      } else if (b.customer) {
+        setSelectedCustomer({
+          id: b.customer.vendorCustomerId || b.customerId,
+          vendorCustomerId: b.customer.vendorCustomerId,
+          customerId: b.customer.vendorCustomerId,
+          firstName: b.customer.firstName,
+          lastName: b.customer.lastName,
+          phoneNumber: b.customer.phoneNumber,
+          pets: b.customer.pets || []
+        });
+        setCustomerType("Existed");
+      }
+
+      const fetchedPets = [];
+      const details = {};
+      b.appointments?.forEach(app => {
+        app.pets?.forEach(pet => {
+          const petProfile = pet.petProfile || {};
+          const pId = pet.customerPetId || petProfile.petId;
+          fetchedPets.push({
+            id: pId,
+            vendorCustomerPetId: pId,
+            petId: pId,
+            petName: petProfile.petName || pet.petName || "Unnamed",
+            breed: petProfile.breed || "N/A",
+            photo: petProfile.photo
+          });
+          const srv = pet.services?.[0] || {};
+          const hours = Math.floor((pet.durationMinutes || 60) / 60);
+          const minutes = (pet.durationMinutes || 60) % 60;
+          
+          const formatTime = (timeStr) => {
+            if (!timeStr) return "";
+            const [h, m] = timeStr.split(':');
+            const hr = parseInt(h);
+            const ampm = hr >= 12 ? "PM" : "AM";
+            const hr12 = hr % 12 || 12;
+            return `${String(hr12).padStart(2, '0')}:${m} ${ampm}`;
+          };
+          const displaySlotTime = app.startTime && app.endTime ? `${formatTime(app.startTime)} - ${formatTime(app.endTime)}` : "";
+
+          details[pId] = {
+            groomingType: srv.serviceType === "Package" ? "Package" : (srv.serviceType === "Subscription" ? "Subscription" : "Services"),
+            selectedPackage: srv.selectedPackage || "",
+            serviceType: srv.serviceType || "Individual",
+            selectedServices: srv.selectedServices || [],
+            assignedGroomer: app.groomerID || "",
+            appointmentDate: app.appointmentDate || "",
+            selectedSlotId: app.slotId || "",
+            selectedTime: displaySlotTime,
+            startTime: app.startTime || "",
+            endTime: app.endTime || "",
+            unassigned: app.isUnassigned || false,
+            hours: String(hours),
+            minutes: String(minutes),
+            bufferTime: String(pet.bufferMinutes !== undefined && pet.bufferMinutes !== null ? pet.bufferMinutes : 0),
+            petConditionNotes: pet.petConditionNotes || "Mild skin allergies."
+          };
+        });
+      });
+      setSelectedPets(fetchedPets);
+      setPetServiceDetails(details);
+
+      setTaxToggled(parseFloat(b.taxAmount) > 0);
+      if (parseFloat(b.subTotal) > 0) {
+        setTaxPercentInput(String(Math.round(parseFloat(b.taxAmount) / parseFloat(b.subTotal) * 100)));
+        setDiscountPercentInput(String(Math.round(parseFloat(b.discountAmount) / parseFloat(b.subTotal) * 100)));
+      }
+      setDiscountToggled(parseFloat(b.discountAmount) > 0);
+      setPaidAmount(String(Math.round(parseFloat(b.paidAmount))));
+      setRoundOffToggled(true);
+    }
+  }, [bookingDetails, customers]);
+
   // Service Details State (mapping pet index/id to state object)
   const [petServiceDetails, setPetServiceDetails] = useState({});
+  const [petSlotsData, setPetSlotsData] = useState({});
+
+  const [taxToggled, setTaxToggled] = useState(false);
+  const [discountToggled, setDiscountToggled] = useState(false);
+  const [taxPercentInput, setTaxPercentInput] = useState("0");
+  const [discountPercentInput, setDiscountPercentInput] = useState("0");
+  const [roundOffToggled, setRoundOffToggled] = useState(false);
+  const [paidAmount, setPaidAmount] = useState("0");
+
+  const getSelectedServicesWithDetails = () => {
+    const list = [];
+    selectedPets.forEach((pet, idx) => {
+      const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+      const petState = petServiceDetails[petId];
+      if (petState) {
+        if (petState.groomingType === "Package" && petState.selectedPackage) {
+          const pkg = availablePackages.find(p => p.id === petState.selectedPackage);
+          if (pkg) {
+            list.push({
+              id: pkg.id,
+              petName: pet.petName,
+              serviceName: pkg.serviceName || pkg.packageName || "Package",
+              price: Number(pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price) || 0,
+              discountPercentage: Number(pkg.discountPercentage) || 0,
+              discountPrice: Number(pkg.discountPrice) || 0,
+              taxPercentage: Number(pkg.taxPercentage) || Number(pkg.tax) || 0
+            });
+          }
+        }
+        if (petState.selectedServices) {
+          petState.selectedServices.forEach(sId => {
+            const service = availableServices.find(s => s.id === sId);
+            if (service) {
+              const pkg = petState.selectedPackage ? availablePackages.find(p => p.id === petState.selectedPackage) : null;
+              const isIncludedInPkg = pkg && pkg.services?.filter(Boolean).includes(sId);
+              list.push({
+                id: service.id,
+                petName: pet.petName,
+                serviceName: Array.isArray(service.serviceName) ? service.serviceName.join(", ") : service.serviceName,
+                price: isIncludedInPkg ? 0 : (Number(service.price) || 0),
+                isIncludedInPkg: !!isIncludedInPkg,
+                discountPercentage: isIncludedInPkg ? 0 : (Number(service.discountPercentage) || 0),
+                discountPrice: isIncludedInPkg ? 0 : (Number(service.discountPrice) || 0),
+                taxPercentage: isIncludedInPkg ? 0 : (Number(service.taxPercentage) || Number(service.tax) || 0)
+              });
+            }
+          });
+        }
+      }
+    });
+    return list;
+  };
+
+  const handlePackageChange = (petId, packageId) => {
+    const pkg = availablePackages.find(p => p.id === packageId);
+    let calculatedHours = "";
+    let calculatedMinutes = "";
+    if (pkg && pkg.duration) {
+      calculatedHours = String(Math.floor(Number(pkg.duration) / 60));
+      calculatedMinutes = String(Number(pkg.duration) % 60);
+    }
+    setPetServiceDetails(prev => {
+      const currentState = prev[petId] || {
+        assignedGroomer: "",
+        unassigned: false,
+        selectedTime: "",
+        groomingType: "Package",
+        selectedServices: [],
+        serviceType: [],
+        hours: "",
+        minutes: "",
+        bufferTime: ""
+      };
+      return {
+        ...prev,
+        [petId]: {
+          ...currentState,
+          selectedPackage: packageId,
+          selectedServices: pkg?.services?.filter(Boolean) || currentState.selectedServices || [],
+          hours: calculatedHours || currentState.hours || "",
+          minutes: calculatedMinutes || currentState.minutes || ""
+        }
+      };
+    });
+  };
+
+  const convertTimeTo24h = (timeStr) => {
+    if (!timeStr) return "10:00:00";
+    const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+    if (!match) return timeStr;
+    let [_, h, m, meridiem] = match;
+    let hours = parseInt(h);
+    if (meridiem.toUpperCase() === "PM" && hours < 12) hours += 12;
+    if (meridiem.toUpperCase() === "AM" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${m}:00`;
+  };
+
+  useEffect(() => {
+    const services = getSelectedServicesWithDetails();
+    if (services.length > 0) {
+      if (taxToggled) {
+        const serviceTax = services.find(s => s.taxPercentage > 0)?.taxPercentage || 0;
+        setTaxPercentInput(String(serviceTax));
+      } else {
+        setTaxPercentInput("0");
+      }
+      if (discountToggled) {
+        const serviceDiscount = services.find(s => s.discountPercentage > 0)?.discountPercentage || 0;
+        setDiscountPercentInput(String(serviceDiscount));
+      } else {
+        setDiscountPercentInput("0");
+      }
+    }
+  }, [taxToggled, discountToggled, petServiceDetails, selectedPets, availableServices]);
+
+
+  useEffect(() => {
+    selectedPets.forEach((pet, idx) => {
+      const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+      const petState = petServiceDetails[petId];
+      if (petState && petState.appointmentDate && petState.assignedGroomer && !petState.unassigned) {
+        const cacheKey = `${petState.appointmentDate}_${petState.assignedGroomer}`;
+        if (!petSlotsData[petId] || petSlotsData[petId].cacheKey !== cacheKey) {
+          fetch(`${VENDOR_API_URL}vendor/grooming-booking/slots/branch/${selectedBranchId}?date=${petState.appointmentDate}&groomerID=${petState.assignedGroomer}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.status === "success" && data.data) {
+                setPetSlotsData(prev => ({
+                  ...prev,
+                  [petId]: { cacheKey, slots: data.data }
+                }));
+              }
+            })
+            .catch(err => console.error("Error fetching slots", err));
+        }
+      }
+    });
+  }, [petServiceDetails, selectedPets, selectedBranchId, petSlotsData]);
 
   const getPetState = (petId) => {
     return petServiceDetails[petId] || {
@@ -80,7 +332,11 @@ const AddBookingGrooming = ({ onClose }) => {
       selectedServices: [],
       hours: "",
       minutes: "",
-      bufferTime: ""
+      bufferTime: "",
+      appointmentDate: (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })()
     };
   };
 
@@ -95,7 +351,11 @@ const AddBookingGrooming = ({ onClose }) => {
         serviceType: [],
         hours: "",
         minutes: "",
-        bufferTime: ""
+        bufferTime: "0",
+        appointmentDate: (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })()
       };
       return {
         ...prev,
@@ -137,15 +397,114 @@ const AddBookingGrooming = ({ onClose }) => {
           selectedServices: ids,
           hours: totalDuration > 0 ? calculatedHours : "",
           minutes: totalDuration > 0 ? calculatedMinutes : "",
-          bufferTime: hasApiBufferTime ? apiBufferTime : (currentState.bufferTime || "")
+          bufferTime: hasApiBufferTime ? apiBufferTime : (currentState.bufferTime || "0")
         }
       };
     });
   };
 
-  const handleNext = () => {
-    if (activeTab === "Basic Details") setActiveTab("Service Details");
-    else if (activeTab === "Service Details") setActiveTab("Service Agreement");
+  const handleNext = async () => {
+    if (activeTab === "Basic Details") {
+      setActiveTab("Service Details");
+    } else if (activeTab === "Service Details") {
+      setActiveTab("Service Agreement");
+    } else if (activeTab === "Service Agreement") {
+      try {
+        const firstPetId = selectedPets[0]?.id || selectedPets[0]?.vendorCustomerPetId || selectedPets[0]?.petId || 0;
+        const firstPetState = petServiceDetails[firstPetId] || {};
+        
+        const selectedServicesList = getSelectedServicesWithDetails();
+        const baseTotal = selectedServicesList.reduce((sum, item) => sum + item.price, 0);
+
+        const taxPercent = taxToggled ? (parseFloat(taxPercentInput) || 0) : 0;
+        const taxAmount = Math.round(baseTotal * taxPercent / 100);
+        const afterTaxTotal = baseTotal + taxAmount;
+
+        const discountPercent = discountToggled ? (parseFloat(discountPercentInput) || 0) : 0;
+        const discountAmount = Math.round(afterTaxTotal * discountPercent / 100);
+        const unroundedTotal = afterTaxTotal - discountAmount;
+
+        const finalTotal = roundOffToggled ? Math.round(unroundedTotal) : unroundedTotal;
+        const parsedPaidAmount = parseFloat(paidAmount) || 0;
+
+        const payload = {
+          customerId: selectedCustomer?.id || selectedCustomer?.vendorCustomerId || selectedCustomer?.customerId || 10,
+          branchId: parseInt(selectedBranchId),
+          serviceType: "Grooming",
+          bookingSource: "Walk-in",
+          bookingMode: firstPetState.bookingMode || "AtStore",
+          notes: firstPetState.notes || "Special care needed around ears.",
+          createdBy: 1,
+          appointment: {
+            slotId: firstPetState.selectedSlotId || 25,
+            groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
+            appointmentDate: firstPetState.appointmentDate,
+            startTime: firstPetState.startTime || "10:00:00",
+            endTime: firstPetState.endTime || "11:00:00",
+            agreementType: "None"
+          },
+          pets: selectedPets.map((pet, idx) => {
+            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const petState = petServiceDetails[petId] || {};
+            const petServices = petState.selectedServices || [];
+            const servicesWithDetails = getSelectedServicesWithDetails().filter(s => 
+              petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
+            );
+            const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
+            
+            return {
+              customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
+              groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
+              slotId: petState.selectedSlotId || 25,
+              petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
+              durationMinutes: (parseInt(petState.hours) * 60 + parseInt(petState.minutes)) || 60,
+              bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
+              sequenceOrder: idx + 1,
+              services: {
+                serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
+                selectedServices: petServices,
+                selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
+                selectedSubscription: null,
+                addOns: [],
+                basePrice: petBasePrice,
+                discountAmount: 0,
+                price: petBasePrice
+              }
+            };
+          }),
+          subTotal: baseTotal,
+          discountAmount: discountAmount,
+          taxAmount: taxAmount,
+          totalAmount: finalTotal,
+          paidAmount: parsedPaidAmount,
+          paymentMethod: "Cash"
+        };
+
+        const url = bookingId 
+          ? `${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}` 
+          : `${VENDOR_API_URL}vendor/grooming-booking/bookings`;
+        const method = bookingId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${jwtToken}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const resData = await response.json();
+        if (resData.status === "success" || resData.message === "success") {
+          toast.success(bookingId ? "Booking updated successfully!" : "Booking created successfully!");
+          onClose();
+        } else {
+          toast.error("Failed to save booking: " + (resData.message || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Error creating booking:", err);
+        toast.error("Error creating booking. Please try again.");
+      }
+    }
   };
 
   const handleBack = () => {
@@ -499,22 +858,72 @@ const AddBookingGrooming = ({ onClose }) => {
                         </div>
                         <div className={styles.formGroup}>
                           <label className={styles.label}>Appointment Date</label>
-                          <input type="date" className={styles.input} />
+                          <input 
+                            type="date" 
+                            className={styles.input} 
+                            value={petState.appointmentDate || ""}
+                            min={(() => {
+                              const d = new Date();
+                              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                            })()}
+                            max={(() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 6);
+                              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                            })()}
+                            onChange={(e) => updatePetState(petId, 'appointmentDate', e.target.value)}
+                          />
                         </div>
                       </div>
 
                       <div style={{ marginBottom: '2rem' }}>
                         <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Select Appointment Time Slots</label>
                         <div className={styles.timeGrid}>
-                          {timeSlots.map(time => (
-                            <button
-                              key={time}
-                              className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
-                              onClick={() => updatePetState(petId, 'selectedTime', time)}
-                            >
-                              {time}
-                            </button>
-                          ))}
+                          {petSlotsData[petId]?.slots ? (
+                            petSlotsData[petId].slots.map(slot => {
+                              const [h, m] = slot.startTime.split(':');
+                              const isPM = parseInt(h) >= 12;
+                              const displayH = (parseInt(h) % 12) || 12;
+                              const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
+                              const isFull = slot.status === 'Full';
+                              return (
+                                <button
+                                  key={slot.slotID}
+                                  className={`${styles.timeBtn} ${petState.selectedTime === formattedTime ? styles.timeBtnActive : ""}`}
+                                  style={isFull ? { borderColor: 'red', color: 'red', background: '#ffe6e6', cursor: 'not-allowed' } : {}}
+                                  disabled={isFull}
+                                  onClick={() => {
+                                    if (!isFull) {
+                                      updatePetState(petId, 'selectedTime', formattedTime);
+                                      updatePetState(petId, 'selectedSlotId', slot.slotID);
+                                      updatePetState(petId, 'startTime', slot.startTime);
+                                      updatePetState(petId, 'endTime', slot.endTime);
+                                    }
+                                  }}
+                                >
+                                  {formattedTime}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            timeSlots.map(time => (
+                              <button
+                                key={time}
+                                className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
+                                onClick={() => {
+                                  updatePetState(petId, 'selectedTime', time);
+                                  const startTime = convertTimeTo24h(time);
+                                  const [h, m, s] = startTime.split(':');
+                                  let endHours = (parseInt(h) + 1) % 24;
+                                  const endTime = `${String(endHours).padStart(2, '0')}:${m}:${s}`;
+                                  updatePetState(petId, 'startTime', startTime);
+                                  updatePetState(petId, 'endTime', endTime);
+                                }}
+                              >
+                                {time}
+                              </button>
+                            ))
+                          )}
                         </div>
                       </div>
 
@@ -550,8 +959,17 @@ const AddBookingGrooming = ({ onClose }) => {
                           <div className={styles.formGrid}>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Grooming Packages</label>
-                              <select className={styles.select}>
+                              <select 
+                                className={styles.select}
+                                value={petState.selectedPackage || ""}
+                                onChange={(e) => handlePackageChange(petId, e.target.value)}
+                              >
                                 <option value="">Choose here</option>
+                                {availablePackages.map(pkg => (
+                                  <option key={pkg.id} value={pkg.id}>
+                                    {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div className={styles.formGroup}>
@@ -568,8 +986,17 @@ const AddBookingGrooming = ({ onClose }) => {
                           <div className={styles.formGrid}>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Grooming Packages</label>
-                              <select className={styles.select}>
+                              <select 
+                                className={styles.select}
+                                value={petState.selectedPackage || ""}
+                                onChange={(e) => handlePackageChange(petId, e.target.value)}
+                              >
                                 <option value="">Choose here</option>
+                                {availablePackages.map(pkg => (
+                                  <option key={pkg.id} value={pkg.id}>
+                                    {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div className={styles.formGroup}>
@@ -648,138 +1075,209 @@ const AddBookingGrooming = ({ onClose }) => {
           </>
         )}
 
-        {activeTab === "Service Agreement" && (
-          <div>
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryCard}>
-                <h4 className={styles.summaryTitle}>Customer Details</h4>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Customer Name</span>
-                  <span className={styles.summaryValue}>{selectedCustomer ? ((selectedCustomer.firstName || "") + " " + (selectedCustomer.lastName || "")).trim() : "Phani Araja"}</span>
-                </div>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Customer Phone Number</span>
-                  <span className={styles.summaryValue}>{selectedCustomer?.phoneNumber || "+91 9347992753"}</span>
-                </div>
-              </div>
+        {activeTab === "Service Agreement" && (() => {
+          const selectedServicesList = getSelectedServicesWithDetails();
+          const baseTotal = selectedServicesList.reduce((sum, item) => sum + item.price, 0);
 
-              {selectedPets.length > 0 ? selectedPets.map((pet, idx) => (
-                <div key={idx} className={styles.summaryCard}>
-                  <h4 className={styles.summaryTitle}>Pet {idx + 1} Details</h4>
-                  <div className={styles.petAvatarWrapper}>
-                    <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                    <span className={styles.summaryValue}>{(pet.petName || 'Unnamed').toUpperCase()}</span>
-                  </div>
-                </div>
-              )) : (
+          const taxPercent = taxToggled ? (parseFloat(taxPercentInput) || 0) : 0;
+          const taxAmount = Math.round(baseTotal * taxPercent / 100);
+          const afterTaxTotal = baseTotal + taxAmount;
+
+          const discountPercent = discountToggled ? (parseFloat(discountPercentInput) || 0) : 0;
+          const discountAmount = Math.round(afterTaxTotal * discountPercent / 100);
+          const unroundedTotal = afterTaxTotal - discountAmount;
+
+          const finalTotal = roundOffToggled ? Math.round(unroundedTotal) : unroundedTotal;
+          const roundOffValue = (finalTotal - unroundedTotal).toFixed(2);
+          const parsedPaidAmount = parseFloat(paidAmount) || 0;
+          const pendingAmount = Math.max(0, finalTotal - parsedPaidAmount);
+
+          const firstPetId = selectedPets[0]?.id || selectedPets[0]?.vendorCustomerPetId || selectedPets[0]?.petId || 0;
+          const firstPetState = petServiceDetails[firstPetId] || {};
+          const firstGroomer = groomersList.find(g => g.userId === firstPetState.assignedGroomer);
+
+          return (
+            <div>
+              <div className={styles.summaryGrid}>
                 <div className={styles.summaryCard}>
-                  <h4 className={styles.summaryTitle}>Pet One Details</h4>
-                  <div className={styles.petAvatarWrapper}>
-                    <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                    <span className={styles.summaryValue}>VICTORIA</span>
+                  <h4 className={styles.summaryTitle}>Customer Details</h4>
+                  <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Customer Name</span>
+                    <span className={styles.summaryValue}>{selectedCustomer ? ((selectedCustomer.firstName || "") + " " + (selectedCustomer.lastName || "")).trim() : "Phani Araja"}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Customer Phone Number</span>
+                    <span className={styles.summaryValue}>{selectedCustomer?.phoneNumber || "+91 9347992753"}</span>
                   </div>
                 </div>
-              )}
 
-              <div className={styles.summaryCard}>
-                <h4 className={styles.summaryTitle}>Grooming Details</h4>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>22/05/2026</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>9:00 AM</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>Mobile Grooming</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>Service</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>Ravi Bishnoi</span></div>
+                {selectedPets.length > 0 ? selectedPets.map((pet, idx) => (
+                  <div key={idx} className={styles.summaryCard}>
+                    <h4 className={styles.summaryTitle}>Pet {idx + 1} Details</h4>
+                    <div className={styles.petAvatarWrapper}>
+                      <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                      <span className={styles.summaryValue}>{(pet.petName || 'Unnamed').toUpperCase()}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <div className={styles.summaryCard}>
+                    <h4 className={styles.summaryTitle}>Pet One Details</h4>
+                    <div className={styles.petAvatarWrapper}>
+                      <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                      <span className={styles.summaryValue}>VICTORIA</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.summaryCard}>
+                  <h4 className={styles.summaryTitle}>Grooming Details</h4>
+                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{firstPetState.appointmentDate || "22/05/2026"}</span></div>
+                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{firstPetState.selectedTime || "9:00 AM"}</span></div>
+                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{firstPetState.bookingMode || "In House Grooming"}</span></div>
+                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>Service</span></div>
+                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{firstGroomer ? firstGroomer.staffName : "Unassigned"}</span></div>
+                </div>
+
+                <div className={styles.summaryCard}>
+                  <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
+                  {selectedServicesList.map((item, idx) => (
+                    <div key={idx} className={styles.summaryRow}>
+                      <span className={styles.summaryLabel}>{item.serviceName}</span>
+                      <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `₹ ${item.price}`}</span>
+                    </div>
+                  ))}
+                  <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Total Amount</span>
+                    <span className={styles.summaryValue}>₹ {baseTotal}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className={styles.summaryCard}>
-                <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Bathing</span><span className={styles.summaryValue}>₹ 500</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Nail Cutting</span><span className={styles.summaryValue}>₹ 250</span></div>
-                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Total Amount</span><span className={styles.summaryValue}>₹ 750</span></div>
+              <div className={styles.summaryGrid} style={{ alignItems: 'flex-start' }}>
+                <div className={styles.paymentSection}>
+                  <h4 className={styles.summaryTitle} style={{ fontSize: '0.85rem', color: '#666' }}>Payment Details</h4>
+                  <div className={styles.formGrid}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Payment Type</label>
+                      <select className={styles.select}>
+                        <option>Cash</option>
+                      </select>
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Paid Amount</label>
+                      <input 
+                        type="number" 
+                        className={styles.input} 
+                        value={paidAmount} 
+                        onChange={(e) => setPaidAmount(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                  <button className={styles.addPetBtn} style={{ alignSelf: 'flex-start', marginTop: '1rem', fontSize: '0.75rem' }}>+ADD ANOTHER PAYMENT</button>
+                </div>
+
+                <div className={styles.costBreakdownSection}>
+                  <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel}>Total</span>
+                    <strong>₹ {baseTotal}</strong>
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel}>Whole Tax Details</span>
+                    <div className={styles.toggleWrapper}>
+                      <input 
+                        type="checkbox" 
+                        className={styles.toggle} 
+                        checked={taxToggled} 
+                        onChange={(e) => setTaxToggled(e.target.checked)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Tax in % percentage</span>
+                    <input 
+                      type="text" 
+                      className={styles.costInput} 
+                      value={taxPercentInput + "%"} 
+                      onChange={(e) => {
+                        const val = e.target.value.replace('%', '');
+                        if (/^\d*$/.test(val)) setTaxPercentInput(val);
+                      }} 
+                    />
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
+                    <strong>₹ {afterTaxTotal}</strong>
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel}>Whole Discount Details</span>
+                    <div className={styles.toggleWrapper}>
+                      <input 
+                        type="checkbox" 
+                        className={styles.toggle} 
+                        checked={discountToggled} 
+                        onChange={(e) => setDiscountToggled(e.target.checked)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
+                    <input 
+                      type="text" 
+                      className={styles.costInput} 
+                      value={discountPercentInput + "%"} 
+                      onChange={(e) => {
+                        const val = e.target.value.replace('%', '');
+                        if (/^\d*$/.test(val)) setDiscountPercentInput(val);
+                      }} 
+                    />
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
+                    <strong>₹ {finalTotal}</strong>
+                  </div>
+
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Round Off</span>
+                    <div className={styles.toggleWrapper}>
+                      <input 
+                        type="checkbox" 
+                        className={styles.checkboxInput} 
+                        checked={roundOffToggled} 
+                        onChange={(e) => setRoundOffToggled(e.target.checked)} 
+                      />
+                      <input 
+                        type="text" 
+                        className={styles.costInput} 
+                        value={roundOffValue} 
+                        readOnly 
+                        style={{ marginLeft: '1rem' }} 
+                      />
+                    </div>
+                  </div>
+
+                  <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
+                  <div className={styles.costRow}>
+                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
+                    <strong>₹ {parsedPaidAmount}</strong>
+                  </div>
+
+                  <div className={styles.totalPending}>
+                    <span>Total Pending Amount</span>
+                    <span>₹ {pendingAmount}</span>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className={styles.summaryGrid} style={{ alignItems: 'flex-start' }}>
-              <div className={styles.paymentSection}>
-                <h4 className={styles.summaryTitle} style={{ fontSize: '0.85rem', color: '#666' }}>Payment Details</h4>
-                <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Payment Type</label>
-                    <select className={styles.select}>
-                      <option>Cash</option>
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Paid Amount</label>
-                    <input type="text" className={styles.input} defaultValue="1500" />
-                  </div>
-                </div>
-                <button className={styles.addPetBtn} style={{ alignSelf: 'flex-start', marginTop: '1rem', fontSize: '0.75rem' }}>+ADD ANOTHER PAYMENT</button>
-              </div>
-
-              <div className={styles.costBreakdownSection}>
-                <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel}>Total</span>
-                  <strong>₹ 1500</strong>
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel}>Whole Tax Details</span>
-                  <div className={styles.toggleWrapper}>
-                    <input type="checkbox" className={styles.toggle} defaultChecked />
-                  </div>
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
-                  <input type="text" className={styles.costInput} defaultValue="10%" />
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
-                  <strong>₹ 1650</strong>
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel}>Whole Discount Details</span>
-                  <div className={styles.toggleWrapper}>
-                    <input type="checkbox" className={styles.toggle} defaultChecked />
-                  </div>
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
-                  <input type="text" className={styles.costInput} defaultValue="05%" />
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
-                  <strong>₹ 1600</strong>
-                </div>
-
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>Round Off</span>
-                  <div className={styles.toggleWrapper}>
-                    <input type="checkbox" className={styles.checkboxInput} defaultChecked />
-                    <input type="text" className={styles.costInput} defaultValue="0.02" style={{ marginLeft: '1rem' }} />
-                  </div>
-                </div>
-
-                <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
-                <div className={styles.costRow}>
-                  <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
-                  <strong>₹ 1000</strong>
-                </div>
-
-                <div className={styles.totalPending}>
-                  <span>Total Pending Amount</span>
-                  <span>₹ 600</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <div className={styles.footer}>

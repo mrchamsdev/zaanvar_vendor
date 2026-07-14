@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/staff-management.module.css";
 import useDashboardData from "../dashboard/useDashboardData";
-import { getStaffDetailsById, updateStaffDetails, addBranchStaff } from "../../services/staffService";
+import { getStaffDetailsById, updateStaffDetails, addBranchStaff, generateGroomerSlots } from "../../services/staffService";
 import { getRoles } from "../../services/rolesService";
 import { dateOnlyWithTimeZone } from "../../utilities/date-time-utils";
 import { Country, State, City } from "country-state-city";
@@ -719,11 +719,39 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                       staffDetails?.dateOfBirth ? dateOnlyWithTimeZone('dateOfBirth', staffDetails?.dateOfBirth) : {}
                     );
 
+                    let newGroomerId = null;
+
                     if (mode === "edit" && staffId) {
                       await updateStaffDetails(staffId, payload);
+                      newGroomerId = staffId;
                     } else {
-                      await addBranchStaff(payload);
+                      const res = await addBranchStaff(payload);
+                      const resData = res?.data || res || {};
+                      newGroomerId = resData.groomerID || resData.id || resData.userId || resData.staffId || null;
                     }
+
+                    if (newGroomerId && payload.role && payload.role.toLowerCase() === 'groomer') {
+                      const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                      const workingDaysList = daysOrder.filter(d => !workingHours[d]?.isNotAvailable);
+                      const exceptDaysList = daysOrder.filter(d => workingHours[d]?.isNotAvailable);
+                      
+                      const slotsPayload = {
+                        branchId: parseInt(selectedBranchId),
+                        groomerID: parseInt(newGroomerId),
+                        days: 7,
+                        fromDay: workingDaysList.length > 0 ? workingDaysList[0] : "Monday",
+                        toDay: workingDaysList.length > 0 ? workingDaysList[workingDaysList.length - 1] : "Friday",
+                        except: exceptDaysList.length > 0 ? exceptDaysList.join(", ") : "None"
+                      };
+                      
+                      try {
+                        await generateGroomerSlots(slotsPayload);
+                        console.log("Slots generated successfully");
+                      } catch (slotErr) {
+                        console.error("Failed to generate slots:", slotErr);
+                      }
+                    }
+
                     // On success, close or show toast
                     toast.success(`Staff ${mode === "edit" ? "updated" : "added"} successfully!`);
                     onClose();
