@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "../../styles/grooming/bookingsList.module.css";
+import useStore from "../state/useStore";
+import { VENDOR_API_URL } from "../utilities/Constants";
 
 // SVG Icons
 const IconPlus = () => (
@@ -100,89 +102,78 @@ const IconClose = () => (
   </svg>
 );
 
-const mockMonth = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
-const mockYear = new Date().getFullYear();
-
-// Mock data matching the new screenshot exactly
-const INITIAL_BOOKINGS = [
-  {
-    id: "00000",
-    date: `05 ${mockMonth} ${mockYear}`,
-    time: "11:00 AM - 12:15 PM",
-    status: "UPCOMING",
-    customerName: "HARIKA",
-    contact: "+91 9874561230",
-    petName: "CHIKU",
-    petBreed: "AKITA",
-    service: "Bath Package",
-    hasExtraService: false,
-    groomer: "MOHIT",
-    amount: "₹ 98",
-    paymentStatus: "Paid (online)",
-    serviceStatus: "SKIPPED",
-    createdOn: "18 APR 2026, 4:30PM",
-    type: "In House Grooming"
-  },
-  {
-    id: "00001",
-    date: `18 ${mockMonth} ${mockYear}`,
-    time: "11:00 AM - 12:15 PM",
-    status: "COMPLETED",
-    customerName: "PRIYA SINGARAM",
-    contact: "+91 9874561230",
-    petName: "CHIKU",
-    petBreed: "AKITA",
-    service: "Full Grooming Package + Styling",
-    hasExtraService: true,
-    groomer: "RAVI",
-    amount: "₹ 900",
-    paymentStatus: "Pending",
-    serviceStatus: "SKIPPED",
-    createdOn: "18 APR 2026, 4:30PM",
-    type: "Mobile Grooming"
-  },
-  {
-    id: "00002",
-    date: `18 ${mockMonth} ${mockYear}`,
-    time: "11:00 AM - 12:15 PM",
-    status: "UNASSIGNED",
-    customerName: "PALLAVI",
-    contact: "+91 9874561230",
-    petName: "CHIKU",
-    petBreed: "AKITA",
-    service: "Bath Package",
-    hasExtraService: false,
-    groomer: "TEJA",
-    amount: "₹ 850",
-    paymentStatus: "Unpaid",
-    serviceStatus: "SKIPPED",
-    createdOn: "18 APR 2026, 4:30PM",
-    type: "In Store Grooming"
-  },
-  {
-    id: "00003",
-    date: `24 ${mockMonth} ${mockYear}`,
-    time: "11:00 AM - 12:15 PM",
-    status: "CANCELED",
-    customerName: "RIYA",
-    contact: "+91 9874561230",
-    petName: "CHIKU",
-    petBreed: "AKITA",
-    service: "Full Grooming Package + Styling",
-    hasExtraService: false,
-    groomer: "----",
-    amount: "₹ 1000",
-    paymentStatus: "Partially paid",
-    serviceStatus: "SKIPPED",
-    createdOn: "18 APR 2026, 4:30PM",
-    type: "In House Grooming"
-  }
-];
-
-export default function BookingsList({ onViewDetails }) {
-  const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
+export default function BookingsList({ onViewDetails, onEdit }) {
+  const { jwtToken, selectedBranchId } = useStore();
+  const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("Select Branch");
+
+  useEffect(() => {
+    if (selectedBranchId) {
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`, {
+        headers: {
+          "Authorization": `Bearer ${jwtToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data) {
+            const transformed = data.data.map(b => {
+              const appointment = b.appointments?.[0] || {};
+              const groomerObj = appointment.groomer || {};
+              const customerObj = b.customer || {};
+
+              let formattedDate = "";
+              if (appointment.appointmentDate) {
+                const d = new Date(appointment.appointmentDate);
+                const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+                formattedDate = `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+              }
+
+              const formatTime = (timeStr) => {
+                if (!timeStr) return "";
+                const [h, m] = timeStr.split(':');
+                const hours = parseInt(h);
+                const displayH = hours % 12 || 12;
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
+              };
+
+              const startTimeFormatted = formatTime(appointment.startTime);
+              const endTimeFormatted = formatTime(appointment.endTime);
+              const timeRange = startTimeFormatted && endTimeFormatted ? `${startTimeFormatted} - ${endTimeFormatted}` : "11:00 AM - 12:15 PM";
+
+              const petObj = appointment.pets?.[0] || appointment.customerPet || appointment.pet || b.pets?.[0] || b.bookingPets?.[0] || {};
+              const petProfile = petObj.petProfile || {};
+              const petName = petObj.petName || petObj.name || "----";
+              const petBreed = petProfile.breed || petObj.breed || petObj.petBreed || "----";
+
+              return {
+                id: String(b.bookingID).padStart(5, '0'),
+                rawId: b.bookingID,
+                date: formattedDate || "14 JUL 2026",
+                time: timeRange,
+                status: (b.bookingStatus || b.status || "Pending").toUpperCase(),
+                customerName: ((customerObj.firstName || "") + " " + (customerObj.lastName || "")).trim() || "Customer",
+                contact: customerObj.phoneNumber ? `+91 ${customerObj.phoneNumber}` : "+91 9874561230",
+                petName,
+                petBreed,
+                service: b.serviceType || "Bath Package",
+                hasExtraService: b.isMultiPet || false,
+                groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "----",
+                amount: `₹ ${Math.round(parseFloat(b.totalAmount))}`,
+                paymentStatus: b.paymentStatus || "Unpaid",
+                serviceStatus: appointment.status || "SKIPPED",
+                createdOn: b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : "18 APR 2026 4:30 PM",
+                type: b.bookingMode === "AtStore" ? "In Store Grooming" : "In House Grooming"
+              };
+            });
+            setBookings(transformed);
+          }
+        })
+        .catch(err => console.error("Error fetching bookings:", err));
+    }
+  }, [selectedBranchId, jwtToken]);
 
   // Filters State
   const [filterType, setFilterType] = useState("");
@@ -251,14 +242,14 @@ export default function BookingsList({ onViewDetails }) {
   // Modals
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
-  
+
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
   const [showAssignGroomer, setShowAssignGroomer] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showAdvancedPaymentModal, setShowAdvancedPaymentModal] = useState(false);
-  
+
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   const filterRef = useRef(null);
@@ -316,7 +307,7 @@ export default function BookingsList({ onViewDetails }) {
     } else if (action === "View Details") {
       if (onViewDetails) onViewDetails(booking);
     } else if (action === "Edit") {
-      setShowAppointmentDetails(true); // Assuming Edit opens details
+      if (onEdit) onEdit(booking);
     } else {
       alert(`Action "${action}" triggered for Booking #${booking.id}`);
     }
@@ -534,11 +525,11 @@ export default function BookingsList({ onViewDetails }) {
                   <th className={styles.colCustomer}>Customer Name</th>
                   <th className={styles.colContact}>Contact</th>
                   <th className={styles.colPet}>Pet</th>
-                  <th className={styles.colService}>Service</th>
+                  <th className={styles.colService}>Service Type</th>
                   <th className={styles.colGroomer}>Groomer</th>
                   <th className={styles.colAmount}>Amount</th>
                   <th className={styles.colPaymentStatus}>Payment Status</th>
-                  <th className={styles.colServiceStatus}>Service</th>
+                  <th className={styles.colServiceStatus}>Services</th>
                   <th className={styles.colCreatedOn}>Created On</th>
                   <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>Actions</th>
                 </tr>
@@ -555,7 +546,7 @@ export default function BookingsList({ onViewDetails }) {
                     <td>
                       <span
                         className={
-                          b.status === "UPCOMING"
+                          b.status === "UPCOMING" || b.status === "PENDING" || b.status === "CONFIRMED" || b.status === "SCHEDULED"
                             ? styles.statusUpcoming
                             : b.status === "COMPLETED"
                               ? styles.statusCompleted
@@ -595,7 +586,7 @@ export default function BookingsList({ onViewDetails }) {
                           <IconPhone />
                         </button>
                         {/* Eye */}
-                        <button className={styles.actionIconBtn} onClick={() => handleActionClick("Check-In", b)}>
+                        <button className={styles.actionIconBtn} onClick={() => handleActionClick("View Details", b)}>
                           <IconEye />
                         </button>
                         {/* WhatsApp */}
@@ -633,32 +624,32 @@ export default function BookingsList({ onViewDetails }) {
             <div className={styles.customerProfileRow}>
               <img
                 src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"
-                alt="Eleanor Avatar"
+                alt="Avatar"
                 className={styles.profileAvatar}
               />
               <div className={styles.profileDetails}>
-                <span className={styles.profileName}>Eleanor Shellstrop</span>
+                <span className={styles.profileName}>{selectedBooking.customerName}</span>
                 <span className={styles.profileSubtitle}>
-                  🐾 In-house Grooming: Teddy (Golden Retriever)
+                  🐾 {selectedBooking.type}: {selectedBooking.petName} ({selectedBooking.petBreed})
                 </span>
               </div>
             </div>
 
             <div className={styles.inputsGrid}>
               <div className={styles.modalField}>
-                <div className={styles.fieldVal}>Oct 25, 2023</div>
-                <div className={styles.fieldLabel}>08:00 AM — 05:00 PM</div>
+                <div className={styles.fieldVal}>{selectedBooking.date}</div>
+                <div className={styles.fieldLabel}>{selectedBooking.time}</div>
               </div>
               <div className={styles.modalField}>
-                <div className={styles.fieldVal}>Phani</div>
+                <div className={styles.fieldVal}>{selectedBooking.groomer}</div>
                 <div className={styles.fieldLabel}>Assigned Groomer</div>
               </div>
               <div className={`${styles.modalField} ${styles.modalFieldActive}`}>
-                <div className={styles.fieldVal}>Oct 26, 2023</div>
+                <div className={styles.fieldVal}>{new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                 <div className={styles.fieldLabel}>Check-IN Date</div>
               </div>
               <div className={`${styles.modalField} ${styles.modalFieldActive}`}>
-                <div className={styles.fieldVal}>02:45PM</div>
+                <div className={styles.fieldVal}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(' ', '')}</div>
                 <div className={styles.fieldLabel}>Check-IN Time</div>
               </div>
             </div>
@@ -700,26 +691,26 @@ export default function BookingsList({ onViewDetails }) {
                 className={styles.profileImg}
               />
               <div className={styles.customerProfileInfo}>
-                <div className={styles.customerName}>Max(India Spitz)</div>
-                <div className={styles.customerPhone}>Deepak : (9347992753)</div>
+                <div className={styles.customerName}>{selectedBooking.petName} ({selectedBooking.petBreed})</div>
+                <div className={styles.customerPhone}>{selectedBooking.customerName} : ({selectedBooking.contact})</div>
               </div>
             </div>
 
             <div className={styles.inputsGrid}>
               <div className={styles.modalField}>
-                <div className={styles.fieldVal}>Oct 25, 2023</div>
-                <div className={styles.fieldLabel}>08:00 AM — 05:00 PM</div>
+                <div className={styles.fieldVal}>{selectedBooking.date}</div>
+                <div className={styles.fieldLabel}>{selectedBooking.time}</div>
               </div>
               <div className={styles.modalField}>
-                <div className={styles.fieldVal}>Phani</div>
+                <div className={styles.fieldVal}>{selectedBooking.groomer}</div>
                 <div className={styles.fieldLabel}>Assigned Groomer</div>
               </div>
               <div className={`${styles.modalField} ${styles.modalFieldActive}`}>
-                <div className={styles.fieldVal}>Oct 26, 2023</div>
+                <div className={styles.fieldVal}>{new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                 <div className={styles.fieldLabel}>Check-Out Date</div>
               </div>
               <div className={`${styles.modalField} ${styles.modalFieldActive}`}>
-                <div className={styles.fieldVal}>02:45PM</div>
+                <div className={styles.fieldVal}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(' ', '')}</div>
                 <div className={styles.fieldLabel}>Check-Out Time</div>
               </div>
             </div>
@@ -822,7 +813,7 @@ export default function BookingsList({ onViewDetails }) {
               <h3 className={styles.modalTitle}>Do you want to Approve this appointment?</h3>
               <button className={styles.closeBtn} onClick={() => setShowApproveModal(false)}><IconClose /></button>
             </div>
-            <p className={styles.modalSubtitle}>Please confirm if you want to <span style={{color: '#e9315d'}}>Approve</span> this appointment? This action will notify the customer and update your records accordingly.</p>
+            <p className={styles.modalSubtitle}>Please confirm if you want to <span style={{ color: '#e9315d' }}>Approve</span> this appointment? This action will notify the customer and update your records accordingly.</p>
             <div className={styles.modalActionsRow}>
               <button className={styles.btnOutlinePink} onClick={() => setShowApproveModal(false)}>Close</button>
               <button className={styles.btnSolidPink} onClick={() => setShowApproveModal(false)}>Approve</button>
@@ -868,7 +859,7 @@ export default function BookingsList({ onViewDetails }) {
                 </select>
               </div>
             </div>
-            <div className={styles.formGroup} style={{marginBottom: 16}}>
+            <div className={styles.formGroup} style={{ marginBottom: 16 }}>
               <label className={styles.formLabel}>Reminder for</label>
               <div><span className={styles.badgePink}><div className={styles.radioPinkDot}>M</div> Mohit</span></div>
             </div>
@@ -907,7 +898,7 @@ export default function BookingsList({ onViewDetails }) {
               <div className={styles.radioCircleFilled}></div>
               <span>Partial Amount</span>
             </div>
-            <div className={styles.formGroup} style={{marginBottom: 16}}>
+            <div className={styles.formGroup} style={{ marginBottom: 16 }}>
               <label className={styles.formLabel}>Date</label>
               <input type="text" className={styles.formInput} placeholder="₹ Enter amount" />
             </div>
@@ -944,7 +935,6 @@ export default function BookingsList({ onViewDetails }) {
           }}
         >
           {[
-            "View Details",
             "Edit",
             "Reschedule",
             "Cancel",

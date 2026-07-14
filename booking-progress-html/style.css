@@ -1,0 +1,183 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: #ffffff;
+    color: #333;
+    padding: 40px 20px;
+}
+
+.booking-progress-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.header {
+    margin-bottom: 60px;
+}
+
+.view-all-btn {
+    background: transparent;
+    border: 1px solid #f19b55;
+    color: #f19b55;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+}
+
+.view-all-btn:hover {
+    background: #f19b55;
+    color: #fff;
+}
+
+.tag {
+    background-color: #fcf1e8;
+    color: #f19b55;
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.header h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+
+.header p {
+    color: #777;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.progress-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 900px;
+    margin: 0 auto;
+}
+
+.dashed-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.step {
+    position: absolute;
+    /* 48px is the height of the pin from top of head to bottom of base. */
+    transform: translate(-50%, -48px);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 180px;
+}
+
+.pin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.pin-head {
+    width: 26px;
+    height: 26px;
+    background-color: #ee4136;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px rgba(238, 65, 54, 0.3);
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* White dot inside the red pin */
+.pin-head::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 50%;
+}
+
+.pin-base {
+    width: 2px;
+    height: 22px;
+    background-color: #aaa;
+    z-index: 1;
+}
+
+/* The concentric rings on the ground, centered exactly at the bottom of pin-base */
+.pin::after {
+    content: '';
+    width: 32px;
+    height: 10px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin-top: -5px; /* Half of height, pulls center to the bottom edge of pin-base */
+    box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 1px #ddd;
+    background-color: #fff;
+}
+
+.step-text-container {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-align: center;
+    position: relative;
+    z-index: 3;
+    margin-bottom: 12px;
+}
+
+.step-num {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.step-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f19b55;
+}
+
+.illustration {
+    background: #fff;
+    border-radius: 12px;
+    padding: 5px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    z-index: 3;
+}
+
+.illustration img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
