@@ -6,7 +6,8 @@ import { VENDOR_API_URL } from "../utilities/Constants";
 
 const menuActions = [
   "Edit", "Reschedule", "Cancel", "Check-In", "Check-Out", 
-  "Print", "Assign Groomer", "Approve", 
+  "Print", // "Assign Groomer", 
+  "Approve", 
   "Update Payment status", "Generate Invoice"
 ];
 
@@ -157,7 +158,7 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
               </div>
               <div style={{ textAlign: 'center' }}>
                 <span className={status === "COMPLETED" ? styles.badgeCheckedIn : styles.badgePending}>
-                  {status}
+                  {status ? status.replace(/_/g, ' ') : ""}
                 </span>
                 <span className={styles.badgeDue}>{mainAppointmentDate || "N/A"}</span>
               </div>

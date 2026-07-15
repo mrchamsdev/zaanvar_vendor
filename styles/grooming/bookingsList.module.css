@@ -453,39 +453,38 @@
 }
 
 .statusUpcoming {
-  color: #ff9800;
+  color: #ff9800; /* PENDING / UPCOMING: Orange */
   font-weight: 700;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 13px;
+  display: inline-block;
 }
 
 .statusCompleted {
-  color: #4caf50;
+  color: #33a103; /* COMPLETED: Green */
   font-weight: 700;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 13px;
+  display: inline-block;
+}
+
+.statusOngoing {
+  color: #d6c811; /* ONGOING: Yellow/Gold */
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-block;
 }
 
 .statusUnassigned {
   color: #777;
   font-weight: 700;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 13px;
+  display: inline-block;
 }
 
 .statusCanceled {
-  color: #f44336;
+  color: #ff3b30; /* CANCELED: Red */
   font-weight: 700;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 13px;
+  display: inline-block;
 }
 
 .customerName {
@@ -896,6 +895,76 @@
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
+}
+
+.serviceBadgePink {
+  background-color: #fdf2f4;
+  color: #de3151;
+  border: 1px solid #fbd5db;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.extraServiceCountBadge {
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.extraServiceCountBadge:hover {
+  background: #fdf2f4;
+  border-color: #fbd5db;
+  color: #de3151;
+}
+
+.servicesPopupAbsolute {
+  position: absolute;
+  width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eaeaea;
+  z-index: 99999 !important;
+  padding: 12px;
+}
+
+.servicesPopupTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.servicesPopupList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.servicesPopupItem {
+  background-color: #fdf2f4;
+  color: #de3151;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
 }
 
 .groomerCell {
@@ -1400,4 +1469,44 @@
 
 .weekCell:last-child {
   border-right: none;
+}
+
+/* Lined Notes Box Style */
+.notesContainer {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notesLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notesTextarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 24px;
+  color: #222;
+  outline: none;
+  resize: vertical;
+  background-image: linear-gradient(rgba(0, 0, 0, 0) 23px, #e9ecef 23px);
+  background-size: 100% 24px;
+  background-origin: content-box;
+  background-attachment: local;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notesTextarea:focus {
+  border-color: #de3151;
+  box-shadow: 0 0 0 3px rgba(222, 49, 81, 0.1);
 }

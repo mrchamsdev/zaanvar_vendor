@@ -103,10 +103,105 @@ const IconClose = () => (
 );
 
 export default function BookingsList({ onViewDetails, onEdit }) {
-  const { jwtToken, selectedBranchId } = useStore();
+  const { jwtToken, selectedBranchId, userInfo } = useStore();
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("Select Branch");
+
+  const [branchStaff, setBranchStaff] = useState([]);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleGroomerId, setRescheduleGroomerId] = useState("");
+  const [rescheduleSlots, setRescheduleSlots] = useState([]);
+  const [rescheduleSlotId, setRescheduleSlotId] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleEndTime, setRescheduleEndTime] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const transformBookingsData = (rawBookings) => {
+    if (!Array.isArray(rawBookings)) return [];
+    return rawBookings.map(b => {
+      const appointment = b.appointments?.[0] || {};
+      const groomerObj = appointment.groomer || {};
+      const customerObj = b.customer || {};
+
+      let formattedDate = "";
+      if (appointment.appointmentDate) {
+        const d = new Date(appointment.appointmentDate);
+        const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        formattedDate = `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      }
+
+      const formatTime = (timeStr) => {
+        if (!timeStr) return "";
+        const [h, m] = timeStr.split(':');
+        const hours = parseInt(h);
+        const displayH = hours % 12 || 12;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
+      };
+
+      const startTimeFormatted = formatTime(appointment.startTime);
+      const endTimeFormatted = formatTime(appointment.endTime);
+      const timeRange = startTimeFormatted && endTimeFormatted ? `${startTimeFormatted} - ${endTimeFormatted}` : "----";
+
+      const petObj = appointment.pets?.[0] || appointment.customerPet || appointment.pet || b.pets?.[0] || b.bookingPets?.[0] || {};
+      const petProfile = petObj.petProfile || {};
+      const petName = petObj.petName || petObj.name || "----";
+      const petBreed = petProfile.breed || petObj.breed || petObj.petBreed || "----";
+
+      const servicesList = [];
+      if (b.appointments && Array.isArray(b.appointments)) {
+        b.appointments.forEach(app => {
+          if (app.pets && Array.isArray(app.pets)) {
+            app.pets.forEach(pet => {
+              if (pet.services && Array.isArray(pet.services)) {
+                pet.services.forEach(srv => {
+                  if (srv.serviceNames && Array.isArray(srv.serviceNames)) {
+                    srv.serviceNames.forEach(name => {
+                      if (name && !servicesList.includes(name)) {
+                        servicesList.push(name);
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+
+      const startHour = appointment.startTime ? parseInt(appointment.startTime.split(':')[0]) : 11;
+
+      return {
+        id: String(b.bookingID).padStart(5, '0'),
+        rawId: b.bookingID,
+        appointmentId: appointment.appointmentID || appointment.appointmentId,
+        date: formattedDate || "----",
+        time: timeRange,
+        bookingStatus: b.bookingStatus || b.status || "",
+        status: (b.bookingStatus || b.status || "Pending").replace(/_/g, ' ').toUpperCase(),
+        customerName: ((customerObj.firstName || "") + " " + (customerObj.lastName || "")).trim() || "----",
+        contact: customerObj.phoneNumber ? `+91 ${customerObj.phoneNumber}` : "----",
+        petName,
+        petBreed,
+        service: b.serviceType || "----",
+        hasExtraService: b.isMultiPet || false,
+        groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "----",
+        groomerId: appointment.groomerID || groomerObj.groomerID || groomerObj.userId,
+        rawDate: appointment.appointmentDate,
+        slotId: appointment.slotId || appointment.slotID,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        amount: `₹ ${Math.round(parseFloat(b.totalAmount))}`,
+        paymentStatus: b.paymentStatus || "Unpaid",
+        serviceStatus: appointment.status || "----",
+        servicesList,
+        startHour,
+        createdOn: b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : "----",
+        type: b.bookingMode === "AtStore" ? "In Store Grooming" : "In House Grooming"
+      };
+    });
+  };
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -118,62 +213,92 @@ export default function BookingsList({ onViewDetails, onEdit }) {
         .then(res => res.json())
         .then(data => {
           if (data.status === "success" && data.data) {
-            const transformed = data.data.map(b => {
-              const appointment = b.appointments?.[0] || {};
-              const groomerObj = appointment.groomer || {};
-              const customerObj = b.customer || {};
-
-              let formattedDate = "";
-              if (appointment.appointmentDate) {
-                const d = new Date(appointment.appointmentDate);
-                const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-                formattedDate = `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-              }
-
-              const formatTime = (timeStr) => {
-                if (!timeStr) return "";
-                const [h, m] = timeStr.split(':');
-                const hours = parseInt(h);
-                const displayH = hours % 12 || 12;
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
-              };
-
-              const startTimeFormatted = formatTime(appointment.startTime);
-              const endTimeFormatted = formatTime(appointment.endTime);
-              const timeRange = startTimeFormatted && endTimeFormatted ? `${startTimeFormatted} - ${endTimeFormatted}` : "11:00 AM - 12:15 PM";
-
-              const petObj = appointment.pets?.[0] || appointment.customerPet || appointment.pet || b.pets?.[0] || b.bookingPets?.[0] || {};
-              const petProfile = petObj.petProfile || {};
-              const petName = petObj.petName || petObj.name || "----";
-              const petBreed = petProfile.breed || petObj.breed || petObj.petBreed || "----";
-
-              return {
-                id: String(b.bookingID).padStart(5, '0'),
-                rawId: b.bookingID,
-                date: formattedDate || "14 JUL 2026",
-                time: timeRange,
-                status: (b.bookingStatus || b.status || "Pending").toUpperCase(),
-                customerName: ((customerObj.firstName || "") + " " + (customerObj.lastName || "")).trim() || "Customer",
-                contact: customerObj.phoneNumber ? `+91 ${customerObj.phoneNumber}` : "+91 9874561230",
-                petName,
-                petBreed,
-                service: b.serviceType || "Bath Package",
-                hasExtraService: b.isMultiPet || false,
-                groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "----",
-                amount: `₹ ${Math.round(parseFloat(b.totalAmount))}`,
-                paymentStatus: b.paymentStatus || "Unpaid",
-                serviceStatus: appointment.status || "SKIPPED",
-                createdOn: b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : "18 APR 2026 4:30 PM",
-                type: b.bookingMode === "AtStore" ? "In Store Grooming" : "In House Grooming"
-              };
-            });
-            setBookings(transformed);
+            setBookings(transformBookingsData(data.data));
           }
         })
         .catch(err => console.error("Error fetching bookings:", err));
     }
   }, [selectedBranchId, jwtToken]);
+
+  useEffect(() => {
+    if (selectedBranchId && jwtToken) {
+      fetch(`${VENDOR_API_URL}vendor-users/branch-staff?branchId=${selectedBranchId}`, {
+        headers: {
+          "Authorization": `Bearer ${jwtToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data) {
+            const groomers = data.data.filter(s => s.role?.toLowerCase() === 'groomer');
+            setBranchStaff(groomers);
+          }
+        })
+        .catch(err => console.error("Error fetching branch staff:", err));
+    }
+  }, [selectedBranchId, jwtToken]);
+
+  useEffect(() => {
+    if (rescheduleDate && rescheduleGroomerId && selectedBranchId && jwtToken) {
+      setLoadingSlots(true);
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/slots/branch/${selectedBranchId}?date=${rescheduleDate}&groomerID=${rescheduleGroomerId}`, {
+        headers: {
+          "Authorization": `Bearer ${jwtToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success" && data.data) {
+            setRescheduleSlots(Array.isArray(data.data) ? data.data : (data.data.slots || []));
+          } else {
+            setRescheduleSlots([]);
+          }
+          setLoadingSlots(false);
+        })
+        .catch(err => {
+          console.error("Error fetching reschedule slots:", err);
+          setRescheduleSlots([]);
+          setLoadingSlots(false);
+        });
+    } else {
+      setRescheduleSlots([]);
+    }
+  }, [rescheduleDate, rescheduleGroomerId, selectedBranchId, jwtToken]);
+
+  useEffect(() => {
+    if (rescheduleDate && rescheduleGroomerId && branchStaff.length > 0) {
+      const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+      const [year, month, day] = rescheduleDate.split('-').map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      const dayName = daysOfWeek[dateObj.getDay()];
+      
+      const currentGroomer = branchStaff.find(staff => String(staff.userId) === String(rescheduleGroomerId));
+      if (currentGroomer && currentGroomer.weekOffDay) {
+        const offDays = currentGroomer.weekOffDay.split(',').map(d => d.trim().toUpperCase());
+        if (offDays.includes(dayName)) {
+          setRescheduleGroomerId("");
+        }
+      }
+    }
+  }, [rescheduleDate, rescheduleGroomerId, branchStaff]);
+
+  const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  let selectedDayName = "";
+  if (rescheduleDate) {
+    const [year, month, day] = rescheduleDate.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    selectedDayName = daysOfWeek[dateObj.getDay()];
+  }
+
+  const availableRescheduleGroomers = branchStaff.filter(staff => {
+    if (selectedDayName && staff.weekOffDay) {
+      const offDays = staff.weekOffDay.split(',').map(d => d.trim().toUpperCase());
+      if (offDays.includes(selectedDayName)) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   // Filters State
   const [filterType, setFilterType] = useState("");
@@ -218,6 +343,31 @@ export default function BookingsList({ onViewDetails, onEdit }) {
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
+  // Services Popup
+  const [activeServicesPopupId, setActiveServicesPopupId] = useState(null);
+  const [servicesPopupPosition, setServicesPopupPosition] = useState({ top: 0, left: 0 });
+
+  const handlePlusClick = (e, booking) => {
+    e.stopPropagation();
+    if (activeServicesPopupId === booking.id) {
+      setActiveServicesPopupId(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const popupHeight = 150; // approximate height
+      const viewportHeight = window.innerHeight;
+
+      // Check if popup would go below the visible screen
+      const openUpward = (rect.bottom + popupHeight) > viewportHeight;
+
+      setServicesPopupPosition({
+        top: openUpward ? (rect.top - popupHeight - 8) : (rect.bottom + 4),
+        left: rect.left - 100 // adjust left to center/align
+      });
+      setSelectedBooking(booking);
+      setActiveServicesPopupId(booking.id);
+    }
+  };
+
   const handleThreeDotClick = (e, booking) => {
     e.stopPropagation();
     if (activeMenuId === booking.id) {
@@ -251,6 +401,282 @@ export default function BookingsList({ onViewDetails, onEdit }) {
   const [showAdvancedPaymentModal, setShowAdvancedPaymentModal] = useState(false);
 
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState("Customer requested cancellation via phone");
+  const [approveReason, setApproveReason] = useState("Approved by manager");
+  const [checkoutNotes, setCheckoutNotes] = useState("Grooming done, pet was happy.");
+
+  const handleCancelBooking = async () => {
+    try {
+      const bookingId = selectedBooking.rawId || selectedBooking.id;
+      const userId = userInfo?.id || userInfo?._id || userInfo?.userId || userInfo?.vendorId;
+
+      const response = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          cancellationReason: cancellationReason,
+          cancelledBy: userId
+        })
+      });
+
+      const resData = await response.json();
+      if (resData.status === "success") {
+        if (selectedBranchId) {
+          const fetchUrl = `${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`;
+          const listRes = await fetch(fetchUrl, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          });
+          const listData = await listRes.json();
+          if (listData.status === "success" && listData.data) {
+            setBookings(transformBookingsData(listData.data));
+          }
+        }
+        setShowCancelModal(false);
+      } else {
+        alert(resData.message || "Failed to cancel the booking.");
+      }
+    } catch (err) {
+      console.error("Error canceling booking:", err);
+      alert("Error canceling booking. Please try again.");
+    }
+  };
+
+  const handleApproveBooking = async () => {
+    try {
+      const bookingId = selectedBooking.rawId || selectedBooking.id;
+      const userId = userInfo?.id || userInfo?._id || userInfo?.userId || userInfo?.vendorId;
+
+      const response = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          status: "Confirmed",
+          reason: approveReason,
+          changedBy: userId
+        })
+      });
+
+      const resData = await response.json();
+      if (resData.status === "success") {
+        if (selectedBranchId) {
+          const fetchUrl = `${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`;
+          const listRes = await fetch(fetchUrl, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          });
+          const listData = await listRes.json();
+          if (listData.status === "success" && listData.data) {
+            setBookings(transformBookingsData(listData.data));
+          }
+        }
+        setShowApproveModal(false);
+      } else {
+        alert(resData.message || "Failed to approve the booking.");
+      }
+    } catch (err) {
+      console.error("Error approving booking:", err);
+      alert("Error approving booking. Please try again.");
+    }
+  };
+
+  const handleCheckInBooking = async () => {
+    try {
+      const appointmentId = selectedBooking?.appointmentId;
+      if (!appointmentId) {
+        alert("Appointment ID not found.");
+        return;
+      }
+      const userId = userInfo?.id || userInfo?._id || userInfo?.userId || userInfo?.vendorId || 1;
+      
+      const response = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/appointments/${appointmentId}/checkin`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          checkinBy: userId
+        })
+      });
+      
+      const resData = await response.json();
+      if (resData.status === "success") {
+        if (selectedBranchId) {
+          const fetchUrl = `${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`;
+          const listRes = await fetch(fetchUrl, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          });
+          const listData = await listRes.json();
+          if (listData.status === "success" && listData.data) {
+            setBookings(transformBookingsData(listData.data));
+          }
+        }
+        setShowCheckInModal(false);
+      } else {
+        alert(resData.message || "Failed to check-in appointment.");
+      }
+    } catch (err) {
+      console.error("Error checking in booking:", err);
+      alert("Error checking in booking. Please try again.");
+    }
+  };
+
+  const handleCheckOutBooking = async () => {
+    try {
+      const appointmentId = selectedBooking?.appointmentId;
+      if (!appointmentId) {
+        alert("Appointment ID not found.");
+        return;
+      }
+      const userId = userInfo?.id || userInfo?._id || userInfo?.userId || userInfo?.vendorId || 1;
+      
+      const response = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/appointments/${appointmentId}/checkout`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({
+          checkoutBy: userId,
+          completionNotes: checkoutNotes
+        })
+      });
+      
+      const resData = await response.json();
+      if (resData.status === "success") {
+        if (selectedBranchId) {
+          const fetchUrl = `${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`;
+          const listRes = await fetch(fetchUrl, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          });
+          const listData = await listRes.json();
+          if (listData.status === "success" && listData.data) {
+            setBookings(transformBookingsData(listData.data));
+          }
+        }
+        setShowCheckOutModal(false);
+      } else {
+        alert(resData.message || "Failed to check-out appointment.");
+      }
+    } catch (err) {
+      console.error("Error checking out booking:", err);
+      alert("Error checking out booking. Please try again.");
+    }
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleDate) {
+      alert("Date is a required field.");
+      return;
+    }
+    if (!rescheduleSlotId) {
+      alert("Time Slot is a required field.");
+      return;
+    }
+    try {
+      const bookingId = selectedBooking.rawId || selectedBooking.id;
+      
+      const getRes = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`, {
+        headers: {
+          "Authorization": `Bearer ${jwtToken}`
+        }
+      });
+      const getData = await getRes.json();
+      if (getData.status !== "success" || !getData.data) {
+        alert("Failed to fetch booking details for rescheduling.");
+        return;
+      }
+      
+      const fullBooking = getData.data;
+      
+      const payload = {
+        notes: fullBooking.notes || "",
+        subTotal: parseFloat(fullBooking.subTotal) || 0,
+        discountAmount: parseFloat(fullBooking.discountAmount) || 0,
+        taxAmount: parseFloat(fullBooking.taxAmount) || 0,
+        totalAmount: parseFloat(fullBooking.totalAmount) || 0,
+        paidAmount: parseFloat(fullBooking.paidAmount) || 0,
+        dueAmount: parseFloat(fullBooking.dueAmount) || 0,
+        paymentStatus: fullBooking.paymentStatus || "Unpaid",
+        appointment: {
+          slotId: rescheduleSlotId ? parseInt(rescheduleSlotId) : fullBooking.appointments?.[0]?.slotId,
+          groomerID: parseInt(rescheduleGroomerId),
+          appointmentDate: rescheduleDate,
+          startTime: rescheduleTime || fullBooking.appointments?.[0]?.startTime,
+          endTime: rescheduleEndTime || fullBooking.appointments?.[0]?.endTime,
+          agreementType: "None"
+        },
+        pets: (fullBooking.appointments?.[0]?.pets || fullBooking.pets || []).map((pet, idx) => {
+          const petServices = pet.services?.selectedServices || (pet.services?.[0]?.selectedServices || []);
+          const petBasePrice = parseFloat(pet.services?.price || (pet.services?.[0]?.price || 0));
+          return {
+            customerPetId: pet.customerPetId || pet.petId || pet.id,
+            groomerID: parseInt(rescheduleGroomerId),
+            slotId: rescheduleSlotId ? parseInt(rescheduleSlotId) : fullBooking.appointments?.[0]?.slotId,
+            petConditionNotes: pet.petConditionNotes || "None",
+            durationMinutes: pet.durationMinutes || 60,
+            bufferMinutes: pet.bufferMinutes || 0,
+            sequenceOrder: pet.sequenceOrder || idx + 1,
+            petStatus: pet.petStatus || "Waiting",
+            services: {
+              serviceType: pet.services?.serviceType || (pet.services?.[0]?.serviceType || "Individual"),
+              selectedServices: petServices,
+              selectedPackage: pet.services?.selectedPackage || (pet.services?.[0]?.selectedPackage || null),
+              selectedSubscription: null,
+              addOns: [],
+              basePrice: petBasePrice,
+              discountAmount: 0,
+              price: petBasePrice
+            }
+          };
+        })
+      };
+      
+      const putRes = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const putData = await putRes.json();
+      if (putData.status === "success") {
+        if (selectedBranchId) {
+          const fetchUrl = `${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`;
+          const listRes = await fetch(fetchUrl, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          });
+          const listData = await listRes.json();
+          if (listData.status === "success" && listData.data) {
+            setBookings(transformBookingsData(listData.data));
+          }
+        }
+        setShowRescheduleModal(false);
+      } else {
+        alert(putData.message || "Failed to reschedule booking.");
+      }
+    } catch (err) {
+      console.error("Error rescheduling booking:", err);
+      alert("Error rescheduling booking. Please try again.");
+    }
+  };
 
   const filterRef = useRef(null);
 
@@ -263,10 +689,44 @@ export default function BookingsList({ onViewDetails, onEdit }) {
       if (!event.target.closest(`.${styles.actionsCell}`) && !event.target.closest(`.${styles.threeDotMenuAbsolute}`)) {
         setActiveMenuId(null);
       }
+      if (!event.target.closest(`.${styles.serviceWrapper}`) && !event.target.closest(`.${styles.servicesPopupAbsolute}`)) {
+        setActiveServicesPopupId(null);
+      }
     }
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    const isAnyModalOpen =
+      showCheckInModal ||
+      showCheckOutModal ||
+      showAppointmentDetails ||
+      showAssignGroomer ||
+      showApproveModal ||
+      showCancelModal ||
+      showRescheduleModal ||
+      showAdvancedPaymentModal;
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [
+    showCheckInModal,
+    showCheckOutModal,
+    showAppointmentDetails,
+    showAssignGroomer,
+    showApproveModal,
+    showCancelModal,
+    showRescheduleModal,
+    showAdvancedPaymentModal
+  ]);
 
   // Filter Bookings based on tags and search
   const filteredBookings = bookings.filter((b) => {
@@ -293,14 +753,23 @@ export default function BookingsList({ onViewDetails, onEdit }) {
     if (action === "Check-In") {
       setShowCheckInModal(true);
     } else if (action === "Check-Out") {
+      setCheckoutNotes("Grooming done, pet was happy.");
       setShowCheckOutModal(true);
     } else if (action === "Assign Groomer") {
       setShowAppointmentDetails(true);
     } else if (action === "Approve") {
+      setApproveReason("Approved by manager");
       setShowApproveModal(true);
     } else if (action === "Cancel") {
+      setCancellationReason("Customer requested cancellation via phone");
       setShowCancelModal(true);
     } else if (action === "Reschedule") {
+      setRescheduleDate(booking.rawDate || "");
+      setRescheduleGroomerId(booking.groomerId || "");
+      setRescheduleSlotId("");
+      setRescheduleTime("");
+      setRescheduleEndTime("");
+      setRescheduleSlots([]);
       setShowRescheduleModal(true);
     } else if (action === "Update Payment status") {
       setShowAdvancedPaymentModal(true);
@@ -525,11 +994,10 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                   <th className={styles.colCustomer}>Customer Name</th>
                   <th className={styles.colContact}>Contact</th>
                   <th className={styles.colPet}>Pet</th>
-                  <th className={styles.colService}>Service Type</th>
+                  <th className={styles.colService}>Services</th>
                   <th className={styles.colGroomer}>Groomer</th>
                   <th className={styles.colAmount}>Amount</th>
                   <th className={styles.colPaymentStatus}>Payment Status</th>
-                  <th className={styles.colServiceStatus}>Services</th>
                   <th className={styles.colCreatedOn}>Created On</th>
                   <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>Actions</th>
                 </tr>
@@ -550,12 +1018,14 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                             ? styles.statusUpcoming
                             : b.status === "COMPLETED"
                               ? styles.statusCompleted
-                              : b.status === "UNASSIGNED"
-                                ? styles.statusUnassigned
-                                : styles.statusCanceled
+                              : b.status === "ONGOING" || b.status === "IN PROGRESS"
+                                ? styles.statusOngoing
+                                : b.status === "UNASSIGNED"
+                                  ? styles.statusUnassigned
+                                  : styles.statusCanceled
                         }
                       >
-                        ● {b.status}
+                        {b.status}
                       </span>
                     </td>
                     <td className={styles.customerName}>{b.customerName}</td>
@@ -566,18 +1036,26 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                     </td>
                     <td>
                       <div className={styles.serviceWrapper}>
-                        <button className={styles.serviceBtn}>{b.service}</button>
-                        {b.hasExtraService && (
-                          <span className={styles.extraServiceBadge}>1+</span>
+                        {b.servicesList && b.servicesList.length > 0 ? (
+                          <>
+                            <span className={styles.serviceBadgePink}>{b.servicesList[0]}</span>
+                            {b.servicesList.length > 1 && (
+                              <span
+                                className={styles.extraServiceCountBadge}
+                                onClick={(e) => handlePlusClick(e, b)}
+                              >
+                                +{b.servicesList.length - 1}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className={styles.serviceBadgePink}>{b.serviceStatus}</span>
                         )}
                       </div>
                     </td>
                     <td className={styles.groomerCell}>{b.groomer}</td>
                     <td className={styles.amountCell}>{b.amount}</td>
                     <td className={getPaymentStatusClass(b.paymentStatus)}>{b.paymentStatus}</td>
-                    <td>
-                      <span className={styles.serviceStatusBadge}>{b.serviceStatus}</span>
-                    </td>
                     <td className={styles.createdOnCell}>{b.createdOn}</td>
                     <td className={`${styles.stickyActionsCell} ${activeMenuId === b.id ? styles.activeActionsCell : ""}`}>
                       <div className={styles.actionsCell}>
@@ -656,16 +1134,7 @@ export default function BookingsList({ onViewDetails, onEdit }) {
 
             <button
               className={styles.modalConfirmBtn}
-              onClick={() => {
-                setBookings(
-                  bookings.map((item) =>
-                    item.id === selectedBooking.id
-                      ? { ...item, status: "IN PROGRESS" }
-                      : item
-                  )
-                );
-                setShowCheckInModal(false);
-              }}
+              onClick={handleCheckInBooking}
             >
               Confirm Check-IN
             </button>
@@ -715,18 +1184,19 @@ export default function BookingsList({ onViewDetails, onEdit }) {
               </div>
             </div>
 
+            <div className={styles.notesContainer}>
+              <label className={styles.notesLabel}>Completion Notes</label>
+              <textarea
+                value={checkoutNotes}
+                onChange={(e) => setCheckoutNotes(e.target.value)}
+                placeholder="Enter completion notes..."
+                className={styles.notesTextarea}
+              />
+            </div>
+
             <button
               className={styles.modalConfirmBtn}
-              onClick={() => {
-                setBookings(
-                  bookings.map((item) =>
-                    item.id === selectedBooking.id
-                      ? { ...item, status: "COMPLETED" }
-                      : item
-                  )
-                );
-                setShowCheckOutModal(false);
-              }}
+              onClick={handleCheckOutBooking}
             >
               Confirm Check-out
             </button>
@@ -814,9 +1284,30 @@ export default function BookingsList({ onViewDetails, onEdit }) {
               <button className={styles.closeBtn} onClick={() => setShowApproveModal(false)}><IconClose /></button>
             </div>
             <p className={styles.modalSubtitle}>Please confirm if you want to <span style={{ color: '#e9315d' }}>Approve</span> this appointment? This action will notify the customer and update your records accordingly.</p>
+            
+            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#666', fontWeight: 600 }}>Approval Reason</label>
+              <textarea
+                value={approveReason}
+                onChange={(e) => setApproveReason(e.target.value)}
+                placeholder="Enter approval reason..."
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
             <div className={styles.modalActionsRow}>
               <button className={styles.btnOutlinePink} onClick={() => setShowApproveModal(false)}>Close</button>
-              <button className={styles.btnSolidPink} onClick={() => setShowApproveModal(false)}>Approve</button>
+              <button className={styles.btnSolidPink} onClick={handleApproveBooking}>Approve</button>
             </div>
           </div>
         </div>
@@ -831,9 +1322,30 @@ export default function BookingsList({ onViewDetails, onEdit }) {
               <button className={styles.closeBtn} onClick={() => setShowCancelModal(false)}><IconClose /></button>
             </div>
             <p className={styles.modalSubtitle}>Please confirm if you want to cancel this appointment? This action will notify the customer and update your records accordingly.</p>
+
+            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', color: '#666', fontWeight: 600 }}>Cancellation Reason</label>
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Enter cancellation reason..."
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
             <div className={styles.modalActionsRow}>
               <button className={styles.btnOutlinePink} onClick={() => setShowCancelModal(false)}>Close</button>
-              <button className={styles.btnSolidPink} onClick={() => setShowCancelModal(false)}>Cancel</button>
+              <button className={styles.btnSolidPink} onClick={handleCancelBooking}>Cancel</button>
             </div>
           </div>
         </div>
@@ -849,34 +1361,96 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             </div>
             <div className={styles.formGrid2}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Date</label>
-                <input type="text" className={styles.formInput} defaultValue={selectedBooking.date} />
+                <label className={styles.formLabel}>Date <span style={{ color: 'red' }}>*</span></label>
+                <input 
+                  type="date" 
+                  className={styles.formInput} 
+                  value={rescheduleDate} 
+                  required
+                  onChange={(e) => setRescheduleDate(e.target.value)} 
+                />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Time</label>
-                <select className={styles.formInput}>
-                  <option>{selectedBooking.time.split('-')[0].trim()}</option>
+                <label className={styles.formLabel}>Time <span style={{ color: 'red' }}>*</span></label>
+                <select 
+                  className={styles.formInput}
+                  value={rescheduleSlotId}
+                  required
+                  onChange={(e) => {
+                    const slotId = e.target.value;
+                    setRescheduleSlotId(slotId);
+                    const slot = rescheduleSlots.find(s => String(s.slotID) === String(slotId));
+                    if (slot) {
+                      setRescheduleTime(slot.startTime);
+                      setRescheduleEndTime(slot.endTime);
+                    } else {
+                      setRescheduleTime("");
+                      setRescheduleEndTime("");
+                    }
+                  }}
+                >
+                  {loadingSlots ? (
+                    <option value="">Loading slots...</option>
+                  ) : (
+                    <>
+                      <option value="">Select Time Slot</option>
+                      {rescheduleSlots
+                        .filter(slot => slot.status !== 'Full')
+                        .map(slot => {
+                          const [h, m] = slot.startTime.split(':');
+                          const isPM = parseInt(h) >= 12;
+                          const displayH = (parseInt(h) % 12) || 12;
+                          const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
+                          return (
+                            <option key={slot.slotID} value={slot.slotID}>
+                              {formattedTime}
+                            </option>
+                          );
+                        })}
+                    </>
+                  )}
                 </select>
               </div>
             </div>
             <div className={styles.formGroup} style={{ marginBottom: 16 }}>
               <label className={styles.formLabel}>Reminder for</label>
-              <div><span className={styles.badgePink}><div className={styles.radioPinkDot}>M</div> Mohit</span></div>
+              <div>
+                <span className={styles.badgePink}>
+                  <div className={styles.radioPinkDot}>
+                    {(selectedBooking.groomer || "U")[0].toUpperCase()}
+                  </div>{" "}
+                  {selectedBooking.groomer || "Unassigned"}
+                </span>
+              </div>
             </div>
             <div className={styles.modalSectionTitle}>Available Groomers</div>
             <div className={styles.radioCardGrid}>
-              <label className={`${styles.radioCard} ${styles.radioCardSelected}`}>
-                <div className={styles.radioPinkDot}>P</div>
-                Dr. Phani
-              </label>
-              <label className={styles.radioCard}>
-                <div className={styles.radioPinkDot}>R</div>
-                Ravi
-              </label>
+              {availableRescheduleGroomers.map((staff) => {
+                const name = staff.staffName || staff.name || "Groomer";
+                const isActive = String(rescheduleGroomerId) === String(staff.userId);
+                return (
+                  <label 
+                    key={staff.userId} 
+                    className={`${styles.radioCard} ${isActive ? styles.radioCardSelected : ""}`}
+                    onClick={() => setRescheduleGroomerId(staff.userId)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={styles.radioPinkDot}>
+                      {name[0].toUpperCase()}
+                    </div>
+                    {name}
+                  </label>
+                );
+              })}
+              {availableRescheduleGroomers.length === 0 && (
+                <div style={{ fontSize: '0.85rem', color: '#888', padding: '0.5rem 0' }}>
+                  No groomers available for this date.
+                </div>
+              )}
             </div>
             <div className={styles.modalActionsRow}>
               <button className={styles.btnOutlinePink} onClick={() => setShowRescheduleModal(false)}>Cancel</button>
-              <button className={styles.btnSolidPink} onClick={() => setShowRescheduleModal(false)}>Confirm</button>
+              <button className={styles.btnSolidPink} onClick={handleConfirmReschedule}>Confirm</button>
             </div>
           </div>
         </div>
@@ -941,11 +1515,30 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             "Check-In",
             "Check-Out",
             "Print",
-            "Assign Groomer",
+            // "Assign Groomer",
             "Approve",
             "Update Payment status",
             "Generate Invoice"
-          ].map((action) => (
+          ].filter((action) => {
+            if (action === "Check-In") {
+              return selectedBooking.bookingStatus?.toUpperCase() === "TODAY";
+            }
+            if (action === "Check-Out") {
+              const statusUpper = selectedBooking.status?.toUpperCase();
+              const bookingStatusUpper = selectedBooking.bookingStatus?.toUpperCase();
+              return (
+                statusUpper === "CHECK-IN" ||
+                statusUpper === "CHECK IN" ||
+                statusUpper === "IN PROGRESS" ||
+                statusUpper === "IN_PROGRESS" ||
+                bookingStatusUpper === "CHECK-IN" ||
+                bookingStatusUpper === "CHECK IN" ||
+                bookingStatusUpper === "IN PROGRESS" ||
+                bookingStatusUpper === "IN_PROGRESS"
+              );
+            }
+            return true;
+          }).map((action) => (
             <button
               key={action}
               className={styles.menuItem}
@@ -954,6 +1547,27 @@ export default function BookingsList({ onViewDetails, onEdit }) {
               {action}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Services List Popup rendered with fixed position */}
+      {activeServicesPopupId && selectedBooking && (
+        <div
+          className={styles.servicesPopupAbsolute}
+          style={{
+            position: "fixed",
+            top: `${servicesPopupPosition.top}px`,
+            left: `${servicesPopupPosition.left}px`
+          }}
+        >
+          <div className={styles.servicesPopupTitle}>Service Names</div>
+          <div className={styles.servicesPopupList}>
+            {selectedBooking.servicesList?.map((srvName, idx) => (
+              <div key={idx} className={styles.servicesPopupItem}>
+                {srvName}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1063,21 +1677,11 @@ const HOURS = [
   "12 PM", "01 PM", "02 PM", "03 PM", "04 PM", "05 PM", "06 PM", "07 PM", "08 PM", "09 PM", "10 PM", "11 PM", "12 AM"
 ];
 
-// Static week events matching the screenshot
-const WEEK_EVENTS = [
-  { day: 1, hour: 7, petName: "Phani", type: "In house Grooming", colorIdx: 0 },
-  { day: 6, hour: 7, petName: "Phani", type: "In house Grooming", colorIdx: 1 },
-  { day: 3, hour: 13, petName: "Phani", type: "In house Grooming", colorIdx: 2 },
-  { day: 4, hour: 16, petName: "Phani", type: "In house Grooming", colorIdx: 3 },
-  { day: 1, hour: 19, petName: "Phani", type: "In house Grooming", colorIdx: 4 },
-  { day: 3, hour: 21, petName: "Phani", type: "In house Grooming", colorIdx: 0 },
-];
-
-function CalendarWeekView({ bookings }) {
+function CalendarWeekView({ bookings, selectedDate = new Date(), onDayClick }) {
   const today = new Date();
-  // get start of week (Sunday)
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
+  // get start of week (Sunday) relative to selectedDate
+  const startOfWeek = new Date(selectedDate);
+  startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
@@ -1087,13 +1691,37 @@ function CalendarWeekView({ bookings }) {
 
   const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+  // Parse and group bookings by dayIndex and hourIndex
+  const bookingsByDayAndHour = {};
+  bookings.forEach((b, idx) => {
+    const d = parseBookingDate(b.date);
+    if (d) {
+      const dayIndex = days.findIndex(day =>
+        day.getDate() === d.getDate() &&
+        day.getMonth() === d.getMonth() &&
+        day.getFullYear() === d.getFullYear()
+      );
+      if (dayIndex !== -1) {
+        const hourIndex = b.startHour !== undefined ? (b.startHour === 0 ? 24 : b.startHour) : 11;
+        const key = `${dayIndex}-${hourIndex}`;
+        if (!bookingsByDayAndHour[key]) bookingsByDayAndHour[key] = [];
+        bookingsByDayAndHour[key].push({ ...b, _idx: idx });
+      }
+    }
+  });
+
   return (
     <div className={styles.weekView}>
       {/* Header */}
       <div className={styles.weekHeader}>
         <div className={styles.weekTimeGutter} />
         {days.map((d, i) => (
-          <div key={i} className={`${styles.weekDayHeader} ${d.toDateString() === today.toDateString() ? styles.weekDayHeaderToday : ""}`}>
+          <div
+            key={i}
+            className={`${styles.weekDayHeader} ${d.toDateString() === today.toDateString() ? styles.weekDayHeaderToday : ""}`}
+            onClick={() => onDayClick && onDayClick(d)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={styles.weekDayNum}>{String(d.getDate()).padStart(2, "0")}</div>
             <div className={styles.weekDayName}>{dayLabels[i]}</div>
           </div>
@@ -1105,14 +1733,14 @@ function CalendarWeekView({ bookings }) {
           <div key={hi} className={styles.weekRow}>
             <div className={styles.weekTimeLabel}>{h}</div>
             {days.map((d, di) => {
-              const events = WEEK_EVENTS.filter(e => e.day === di && e.hour === hi);
+              const events = bookingsByDayAndHour[`${di}-${hi}`] || [];
               return (
                 <div key={di} className={styles.weekCell}>
                   {events.map((ev, ei) => {
-                    const color = getChipColor(ev.colorIdx);
+                    const color = getChipColor(ev._idx || 0);
                     return (
                       <div key={ei} className={styles.calChip} style={{ background: color.bg, color: color.text, borderLeft: `3px solid ${color.text}` }}>
-                        <span className={styles.calChipName}>{ev.petName}</span>
+                        <span className={styles.calChipName}>{ev.petName || ev.customerName}</span>
                         <span className={styles.calChipType}>{ev.type}</span>
                       </div>
                     );
@@ -1130,31 +1758,48 @@ function CalendarWeekView({ bookings }) {
 /* ═══════════════════════════════════════════════
  * CALENDAR DAY VIEW
  * ═══════════════════════════════════════════════ */
-const GROOMERS = ["Groomer 0", "Groomer 1", "Groomer 2", "Groomer 3", "Groomer 4"];
-
-const DAY_EVENTS = [
-  { groomer: 0, hour: 1, petName: "Phani", type: "In house Grooming", colorIdx: 4 },
-  { groomer: 0, hour: 3, petName: "Phani", type: "In house Grooming", colorIdx: 3 },
-  { groomer: 1, hour: 5, petName: "Phani", type: "In house Grooming", colorIdx: 2 },
-  { groomer: 0, hour: 7, petName: "Phani", type: "In house Grooming", colorIdx: 1 },
-  { groomer: 2, hour: 3, petName: "Phani", type: "In house Grooming", colorIdx: 0 },
-  { groomer: 3, hour: 5, petName: "Phani", type: "In house Grooming", colorIdx: 2 },
-  { groomer: 3, hour: 1, petName: "Phani", type: "In house Grooming", colorIdx: 3 },
-  { groomer: 1, hour: 11, petName: "Phani", type: "In house Grooming", colorIdx: 4 },
-  { groomer: 4, hour: 11, petName: "Phani", type: "In house Grooming ng", colorIdx: 0 },
-  { groomer: 0, hour: 13, petName: "Phani", type: "In house Grooming", colorIdx: 1 },
-  { groomer: 3, hour: 22, petName: "Phani", type: "In house Grooming", colorIdx: 2 },
-];
-
-function CalendarDayView({ bookings }) {
+function CalendarDayView({ bookings, selectedDate = new Date() }) {
   const today = new Date();
+
+  // get bookings for the selectedDate
+  const dayBookings = bookings.filter(b => {
+    const d = parseBookingDate(b.date);
+    return d &&
+      d.getDate() === selectedDate.getDate() &&
+      d.getMonth() === selectedDate.getMonth() &&
+      d.getFullYear() === selectedDate.getFullYear();
+  });
+
+  // Extract unique groomer names from day bookings
+  const uniqueGroomers = [];
+  dayBookings.forEach(b => {
+    const groomerName = b.groomer || "Unassigned";
+    if (!uniqueGroomers.includes(groomerName)) {
+      uniqueGroomers.push(groomerName);
+    }
+  });
+
+  // Default to Unassigned if there are no groomers or bookings
+  if (uniqueGroomers.length === 0) {
+    uniqueGroomers.push("Unassigned");
+  }
+
+  // Group bookings by groomer name and hour index
+  const bookingsByGroomerAndHour = {};
+  dayBookings.forEach((b, idx) => {
+    const groomerName = b.groomer || "Unassigned";
+    const hourIndex = b.startHour !== undefined ? (b.startHour === 0 ? 24 : b.startHour) : 11;
+    const key = `${groomerName}-${hourIndex}`;
+    if (!bookingsByGroomerAndHour[key]) bookingsByGroomerAndHour[key] = [];
+    bookingsByGroomerAndHour[key].push({ ...b, _idx: idx });
+  });
 
   return (
     <div className={styles.weekView}>
       {/* Header */}
       <div className={styles.weekHeader}>
         <div className={styles.weekTimeGutter} />
-        {GROOMERS.map((g, i) => (
+        {uniqueGroomers.map((g, i) => (
           <div key={i} className={styles.weekDayHeader}>
             <div className={styles.weekDayName} style={{ fontWeight: 600 }}>{g}</div>
           </div>
@@ -1165,15 +1810,15 @@ function CalendarDayView({ bookings }) {
         {HOURS.map((h, hi) => (
           <div key={hi} className={styles.weekRow}>
             <div className={styles.weekTimeLabel}>{h}</div>
-            {GROOMERS.map((g, gi) => {
-              const events = DAY_EVENTS.filter(e => e.groomer === gi && e.hour === hi);
+            {uniqueGroomers.map((g, gi) => {
+              const events = bookingsByGroomerAndHour[`${g}-${hi}`] || [];
               return (
                 <div key={gi} className={styles.weekCell}>
                   {events.map((ev, ei) => {
-                    const color = getChipColor(ev.colorIdx);
+                    const color = getChipColor(ev._idx || 0);
                     return (
                       <div key={ei} className={styles.calChip} style={{ background: color.bg, color: color.text, borderLeft: `3px solid ${color.text}` }}>
-                        <span className={styles.calChipName}>{ev.petName}</span>
+                        <span className={styles.calChipName}>{ev.petName || ev.customerName}</span>
                         <span className={styles.calChipType}>{ev.type}</span>
                       </div>
                     );
