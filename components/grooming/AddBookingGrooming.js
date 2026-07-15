@@ -37,6 +37,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const [availableServices, setAvailableServices] = useState([]);
   const [availablePackages, setAvailablePackages] = useState([]);
   const [groomersList, setGroomersList] = useState([]);
+  const [doctorsList, setDoctorsList] = useState([]);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -63,6 +64,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         .then(data => {
           if (data.status === "success" && data.data) {
             setGroomersList(data.data.filter(staff => staff.role && staff.role.toLowerCase() === 'groomer'));
+            setDoctorsList(data.data.filter(staff => staff.role && staff.role.toLowerCase() === 'doctor'));
           }
         })
         .catch(err => console.error("Error fetching staff:", err));
@@ -102,7 +104,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   useEffect(() => {
     if (bookingDetails && customers.length > 0) {
       const b = bookingDetails;
-      
+
       // Find customer in list to get the pets array
       const matchedCustomer = customers.find(c => (c.id == b.customerId || c.vendorCustomerId == b.customerId));
       if (matchedCustomer) {
@@ -123,10 +125,13 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
       const fetchedPets = [];
       const details = {};
-      b.appointments?.forEach(app => {
-        app.pets?.forEach(pet => {
-          const petProfile = pet.petProfile || {};
-          const pId = pet.customerPetId || petProfile.petId;
+
+      const registerPetDetails = (pet, app, type) => {
+        const petProfile = pet.petProfile || {};
+        const pId = pet.customerPetId || petProfile.petId;
+
+        // Add to fetched pets if not already present
+        if (!fetchedPets.some(p => p.id === pId)) {
           fetchedPets.push({
             id: pId,
             vendorCustomerPetId: pId,
@@ -135,10 +140,28 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             breed: petProfile.breed || "N/A",
             photo: petProfile.photo
           });
+        }
+
+        if (!details[pId]) {
+          details[pId] = {
+            serviceType: [],
+            hours: "1",
+            minutes: "0",
+            bufferTime: "0"
+          };
+        }
+
+        // Add service category type
+        if (!details[pId].serviceType.includes(type)) {
+          details[pId].serviceType.push(type);
+        }
+
+        // Populate specific fields based on service type
+        if (type === "Grooming") {
           const srv = pet.services?.[0] || {};
           const hours = Math.floor((pet.durationMinutes || 60) / 60);
           const minutes = (pet.durationMinutes || 60) % 60;
-          
+
           const formatTime = (timeStr) => {
             if (!timeStr) return "";
             const [h, m] = timeStr.split(':');
@@ -149,10 +172,9 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
           };
           const displaySlotTime = app.startTime && app.endTime ? `${formatTime(app.startTime)} - ${formatTime(app.endTime)}` : "";
 
-          details[pId] = {
+          Object.assign(details[pId], {
             groomingType: srv.serviceType === "Package" ? "Package" : (srv.serviceType === "Subscription" ? "Subscription" : "Services"),
             selectedPackage: srv.selectedPackage || "",
-            serviceType: srv.serviceType || "Individual",
             selectedServices: srv.selectedServices || [],
             assignedGroomer: app.groomerID || "",
             appointmentDate: app.appointmentDate || "",
@@ -165,9 +187,45 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             minutes: String(minutes),
             bufferTime: String(pet.bufferMinutes !== undefined && pet.bufferMinutes !== null ? pet.bufferMinutes : 0),
             petConditionNotes: pet.petConditionNotes || "Mild skin allergies."
-          };
-        });
+          });
+        } else if (type === "Clinic") {
+          Object.assign(details[pId], {
+            clinicConsultationType: app.consultationType || "First Consultation",
+            clinicAppointmentDate: app.appointmentDate || "",
+            clinicAppointmentTime: app.appointmentTime || "",
+            clinicBookingType: app.bookingType || "Online",
+            clinicConsultationReason: app.consultationReason || "Vaccination",
+            clinicHours: String(Math.floor((app.durationMinutes || 30) / 60)),
+            clinicMinutes: String((app.durationMinutes || 30) % 60),
+            clinicBuffer: String(app.bufferMinutes || "0"),
+            clinicDoctor: app.doctorId || app.doctorID || "",
+            clinicSymptoms: app.symptoms || ""
+          });
+        } else if (type === "Day Care") {
+          Object.assign(details[pId], {
+            daycareDate: app.appointmentDate || "",
+            daycareCheckin: app.checkinTime || "00:00",
+            daycareCheckout: app.checkoutTime || "00:00",
+            daycareFood: app.foodProviding || "",
+            daycareRoom: app.assignedRoom || "",
+            daycareRate: String(app.roomRate || ""),
+            daycareAddonServiceType: app.addonServiceType || "",
+            daycareAddonName: app.addonName || "",
+            daycareAddonQty: String(app.addonQty || "")
+          });
+        }
+      };
+
+      b.appointments?.forEach(app => {
+        app.pets?.forEach(pet => registerPetDetails(pet, app, "Grooming"));
       });
+      b.clinicAppointments?.forEach(app => {
+        app.pets?.forEach(pet => registerPetDetails(pet, app, "Clinic"));
+      });
+      b.daycareAppointments?.forEach(app => {
+        app.pets?.forEach(pet => registerPetDetails(pet, app, "Day Care"));
+      });
+
       setSelectedPets(fetchedPets);
       setPetServiceDetails(details);
 
@@ -353,9 +411,9 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         minutes: "",
         bufferTime: "0",
         appointmentDate: (() => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      })()
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })()
       };
       return {
         ...prev,
@@ -370,10 +428,10 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const handleServicesChange = (petId, ids) => {
     const selectedServicesData = availableServices.filter(s => ids.includes(s.id));
     const totalDuration = selectedServicesData.reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
-    
+
     const calculatedHours = Math.floor(totalDuration / 60);
     const calculatedMinutes = totalDuration % 60;
-    
+
     const hasApiBufferTime = selectedServicesData.some(s => s.bufferTime !== undefined && s.bufferTime !== null && s.bufferTime !== "");
     const apiBufferTime = hasApiBufferTime ? selectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || 0), 0) : "";
 
@@ -389,7 +447,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         minutes: "",
         bufferTime: ""
       };
-      
+
       return {
         ...prev,
         [petId]: {
@@ -412,7 +470,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
       try {
         const firstPetId = selectedPets[0]?.id || selectedPets[0]?.vendorCustomerPetId || selectedPets[0]?.petId || 0;
         const firstPetState = petServiceDetails[firstPetId] || {};
-        
+
         const selectedServicesList = getSelectedServicesWithDetails();
         const baseTotal = selectedServicesList.reduce((sum, item) => sum + item.price, 0);
 
@@ -427,61 +485,119 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         const finalTotal = roundOffToggled ? Math.round(unroundedTotal) : unroundedTotal;
         const parsedPaidAmount = parseFloat(paidAmount) || 0;
 
-        const payload = {
-          customerId: selectedCustomer?.id || selectedCustomer?.vendorCustomerId || selectedCustomer?.customerId || 10,
-          branchId: parseInt(selectedBranchId),
-          serviceType: "Grooming",
-          bookingSource: "Walk-in",
-          bookingMode: firstPetState.bookingMode || "AtStore",
-          notes: firstPetState.notes || "Special care needed around ears.",
-          createdBy: 1,
-          appointment: {
-            slotId: firstPetState.selectedSlotId || 25,
-            groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
-            appointmentDate: firstPetState.appointmentDate,
-            startTime: firstPetState.startTime || "10:00:00",
-            endTime: firstPetState.endTime || "11:00:00",
-            agreementType: "None"
-          },
-          pets: selectedPets.map((pet, idx) => {
-            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
-            const petState = petServiceDetails[petId] || {};
-            const petServices = petState.selectedServices || [];
-            const servicesWithDetails = getSelectedServicesWithDetails().filter(s => 
-              petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
-            );
-            const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
-            
-            return {
-              customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
-              groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
-              slotId: petState.selectedSlotId || 25,
-              petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
-              durationMinutes: (parseInt(petState.hours) * 60 + parseInt(petState.minutes)) || 60,
-              bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
-              sequenceOrder: idx + 1,
-              services: {
-                serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
-                selectedServices: petServices,
-                selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
-                selectedSubscription: null,
-                addOns: [],
-                basePrice: petBasePrice,
-                discountAmount: 0,
-                price: petBasePrice
-              }
-            };
-          }),
-          subTotal: baseTotal,
-          discountAmount: discountAmount,
-          taxAmount: taxAmount,
-          totalAmount: finalTotal,
-          paidAmount: parsedPaidAmount,
-          paymentMethod: "Cash"
-        };
+        const dueAmount = Math.max(0, finalTotal - parsedPaidAmount);
+        const paymentStatus = parsedPaidAmount >= finalTotal ? "Paid" : "Unpaid";
 
-        const url = bookingId 
-          ? `${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}` 
+        let payload;
+        if (bookingId) {
+          payload = {
+            notes: firstPetState.notes || "Special care needed around ears.",
+            subTotal: baseTotal,
+            discountAmount: discountAmount,
+            taxAmount: taxAmount,
+            totalAmount: finalTotal,
+            paidAmount: parsedPaidAmount,
+            dueAmount: dueAmount,
+            paymentStatus: paymentStatus,
+            appointment: {
+              slotId: firstPetState.selectedSlotId || 25,
+              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
+              appointmentDate: firstPetState.appointmentDate,
+              startTime: firstPetState.startTime || "10:00:00",
+              endTime: firstPetState.endTime || "11:00:00",
+              agreementType: "None"
+            },
+            pets: selectedPets.map((pet, idx) => {
+              const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+              const petState = petServiceDetails[petId] || {};
+              const petServices = petState.selectedServices || [];
+              const servicesWithDetails = getSelectedServicesWithDetails().filter(s =>
+                petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
+              );
+              const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
+
+              return {
+                customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
+                groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
+                slotId: petState.selectedSlotId || 25,
+                petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
+                durationMinutes: (parseInt(petState.hours || 0) * 60 + parseInt(petState.minutes || 0)) || 60,
+                bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
+                sequenceOrder: idx + 1,
+                petStatus: "Waiting",
+                services: {
+                  serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
+                  selectedServices: petServices,
+                  selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
+                  selectedSubscription: null,
+                  addOns: [],
+                  basePrice: petBasePrice,
+                  discountAmount: 0,
+                  price: petBasePrice
+                }
+              };
+            })
+          };
+        } else {
+          payload = {
+            customerId: selectedCustomer?.id || selectedCustomer?.vendorCustomerId || selectedCustomer?.customerId || 10,
+            branchId: parseInt(selectedBranchId),
+            serviceType: "Grooming",
+            bookingSource: "Walk-in",
+            bookingMode: firstPetState.bookingMode || "AtStore",
+            notes: firstPetState.notes,
+            createdBy: 1,
+            appointment: {
+              slotId: firstPetState.selectedSlotId || 25,
+              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
+              appointmentDate: firstPetState.appointmentDate,
+              startTime: firstPetState.startTime || "10:00:00",
+              endTime: firstPetState.endTime || "11:00:00",
+              agreementType: "None"
+            },
+            pets: selectedPets.map((pet, idx) => {
+              const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+              const petState = petServiceDetails[petId] || {};
+              const petServices = petState.selectedServices || [];
+              const servicesWithDetails = getSelectedServicesWithDetails().filter(s =>
+                petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
+              );
+              const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
+
+              return {
+                customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
+                groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
+                slotId: petState.selectedSlotId || 25,
+                petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
+                durationMinutes: (parseInt(petState.hours || 0) * 60 + parseInt(petState.minutes || 0)) || 60,
+                bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
+                sequenceOrder: idx + 1,
+                petStatus: "Waiting",
+                services: {
+                  serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
+                  selectedServices: petServices,
+                  selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
+                  selectedSubscription: null,
+                  addOns: [],
+                  basePrice: petBasePrice,
+                  discountAmount: 0,
+                  price: petBasePrice
+                }
+              };
+            }),
+            subTotal: baseTotal,
+            discountAmount: discountAmount,
+            taxAmount: taxAmount,
+            totalAmount: finalTotal,
+            paidAmount: parsedPaidAmount,
+            dueAmount: dueAmount,
+            paymentStatus: paymentStatus,
+            paymentMethod: "Cash"
+          };
+        }
+
+        const url = bookingId
+          ? `${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`
           : `${VENDOR_API_URL}vendor/grooming-booking/bookings`;
         const method = bookingId ? "PUT" : "POST";
 
@@ -819,254 +935,631 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                         />
                       </div>
 
-                      <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
-                        Grooming Details
-                        <button className={styles.iconBtn}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                      </h3>
-
-                      <div style={{ marginBottom: '1.5rem' }}>
-                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Assigned Groomer for the service</label>
-                        <div className={styles.groomerGrid}>
-                          {groomersList.length > 0 ? groomersList.map(g => (
-                            <div
-                              key={g.userId}
-                              className={`${styles.groomerChip} ${petState.assignedGroomer === g.userId && !petState.unassigned ? styles.groomerChipActive : ""}`}
+                      {(!petState.serviceType || petState.serviceType.length === 0 || petState.serviceType.includes("Grooming")) && (
+                        <div>
+                          <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
+                            Grooming Details
+                            <button
+                              className={styles.iconBtn}
                               onClick={() => {
-                                updatePetState(petId, 'assignedGroomer', g.userId);
-                                updatePetState(petId, 'unassigned', false);
+                                const currentTypes = petState.serviceType || [];
+                                updatePetState(petId, 'serviceType', currentTypes.filter(t => t !== "Grooming"));
                               }}
                             >
-                              <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={32} height={32} className={styles.avatar} alt="Avatar" />
-                              {g.staffName}
-                            </div>
-                          )) : <div style={{ color: '#888', fontSize: '14px', fontStyle: 'italic' }}>No groomers found for this branch.</div>}
-                        </div>
-                        <label className={styles.checkboxLabel}>
-                          <input type="checkbox" checked={petState.unassigned} onChange={(e) => updatePetState(petId, 'unassigned', e.target.checked)} />
-                          Mark it as unassigned
-                        </label>
-                      </div>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </h3>
 
-                      <div className={styles.formGrid} style={{ marginBottom: '2rem' }}>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Booking Type</label>
-                          <select className={styles.select}>
-                            <option value="In House Grooming">In House Grooming</option>
-                            <option value="In Store Grooming">In Store Grooming</option>
-                            <option value="Mobile Grooming">Mobile Grooming</option>
-                          </select>
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label className={styles.label}>Appointment Date</label>
-                          <input 
-                            type="date" 
-                            className={styles.input} 
-                            value={petState.appointmentDate || ""}
-                            min={(() => {
-                              const d = new Date();
-                              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                            })()}
-                            max={(() => {
-                              const d = new Date();
-                              d.setDate(d.getDate() + 6);
-                              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                            })()}
-                            onChange={(e) => updatePetState(petId, 'appointmentDate', e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '2rem' }}>
-                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Select Appointment Time Slots</label>
-                        <div className={styles.timeGrid}>
-                          {petSlotsData[petId]?.slots ? (
-                            petSlotsData[petId].slots.map(slot => {
-                              const [h, m] = slot.startTime.split(':');
-                              const isPM = parseInt(h) >= 12;
-                              const displayH = (parseInt(h) % 12) || 12;
-                              const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
-                              const isFull = slot.status === 'Full';
-                              return (
-                                <button
-                                  key={slot.slotID}
-                                  className={`${styles.timeBtn} ${petState.selectedTime === formattedTime ? styles.timeBtnActive : ""}`}
-                                  style={isFull ? { borderColor: 'red', color: 'red', background: '#ffe6e6', cursor: 'not-allowed' } : {}}
-                                  disabled={isFull}
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Assigned Groomer for the service</label>
+                            <div className={styles.groomerGrid}>
+                              {groomersList.length > 0 ? groomersList.map(g => (
+                                <div
+                                  key={g.userId}
+                                  className={`${styles.groomerChip} ${petState.assignedGroomer === g.userId && !petState.unassigned ? styles.groomerChipActive : ""}`}
                                   onClick={() => {
-                                    if (!isFull) {
-                                      updatePetState(petId, 'selectedTime', formattedTime);
-                                      updatePetState(petId, 'selectedSlotId', slot.slotID);
-                                      updatePetState(petId, 'startTime', slot.startTime);
-                                      updatePetState(petId, 'endTime', slot.endTime);
-                                    }
+                                    updatePetState(petId, 'assignedGroomer', g.userId);
+                                    updatePetState(petId, 'unassigned', false);
                                   }}
                                 >
-                                  {formattedTime}
-                                </button>
-                              );
-                            })
-                          ) : (
-                            timeSlots.map(time => (
-                              <button
-                                key={time}
-                                className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
-                                onClick={() => {
-                                  updatePetState(petId, 'selectedTime', time);
-                                  const startTime = convertTimeTo24h(time);
-                                  const [h, m, s] = startTime.split(':');
-                                  let endHours = (parseInt(h) + 1) % 24;
-                                  const endTime = `${String(endHours).padStart(2, '0')}:${m}:${s}`;
-                                  updatePetState(petId, 'startTime', startTime);
-                                  updatePetState(petId, 'endTime', endTime);
-                                }}
-                              >
-                                {time}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '2rem' }}>
-                        <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Grooming Type</label>
-                        <div className={styles.radioGroup}>
-                          <label className={styles.radioLabel}>
-                            <input type="radio" name={`groomingType-${petId}`} value="Services" className={styles.radioInput} checked={petState.groomingType === "Services"} onChange={() => updatePetState(petId, 'groomingType', "Services")} />
-                            Services
-                          </label>
-                          <label className={styles.radioLabel}>
-                            <input type="radio" name={`groomingType-${petId}`} value="Package" className={styles.radioInput} checked={petState.groomingType === "Package"} onChange={() => updatePetState(petId, 'groomingType', "Package")} />
-                            Package
-                          </label>
-                          <label className={styles.radioLabel}>
-                            <input type="radio" name={`groomingType-${petId}`} value="Subscription" className={styles.radioInput} checked={petState.groomingType === "Subscription"} onChange={() => updatePetState(petId, 'groomingType', "Subscription")} />
-                            Subscription
-                          </label>
-                        </div>
-
-                        {petState.groomingType === "Services" && (
-                          <div className={styles.formGroup} style={{ maxWidth: '650px' }}>
-                            <label className={styles.label}>Grooming Services <span style={{ color: '#888', fontSize: '0.75rem' }}>(Multiple Selections)</span></label>
-                            <MultiSelectDropdown
-                              heading="Choose your services here"
-                              listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                              selectedIds={petState.selectedServices || []}
-                              setSelectedIds={(ids) => handleServicesChange(petId, ids)}
-                            />
+                                  <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={32} height={32} className={styles.avatar} alt="Avatar" />
+                                  {g.staffName}
+                                </div>
+                              )) : <div style={{ color: '#888', fontSize: '14px', fontStyle: 'italic' }}>No groomers found for this branch.</div>}
+                            </div>
+                            <label className={styles.checkboxLabel}>
+                              <input type="checkbox" checked={petState.unassigned} onChange={(e) => updatePetState(petId, 'unassigned', e.target.checked)} />
+                              Mark it as unassigned
+                            </label>
                           </div>
-                        )}
-                        {petState.groomingType === "Package" && (
-                          <div className={styles.formGrid}>
+
+                          <div className={styles.formGrid} style={{ marginBottom: '2rem' }}>
                             <div className={styles.formGroup}>
-                              <label className={styles.label}>Grooming Packages</label>
-                              <select 
-                                className={styles.select}
-                                value={petState.selectedPackage || ""}
-                                onChange={(e) => handlePackageChange(petId, e.target.value)}
-                              >
-                                <option value="">Choose here</option>
-                                {availablePackages.map(pkg => (
-                                  <option key={pkg.id} value={pkg.id}>
-                                    {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
-                                  </option>
-                                ))}
+                              <label className={styles.label}>Booking Type</label>
+                              <select className={styles.select}>
+                                <option value="In House Grooming">In House Grooming</option>
+                                <option value="In Store Grooming">In Store Grooming</option>
+                                <option value="Mobile Grooming">Mobile Grooming</option>
                               </select>
                             </div>
                             <div className={styles.formGroup}>
-                              <MultiSelectDropdown
-                                heading="Choose your services here"
-                                listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                                selectedIds={petState.selectedServices || []}
-                                setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                              <label className={styles.label}>Appointment Date</label>
+                              <input
+                                type="date"
+                                className={styles.input}
+                                value={petState.appointmentDate || ""}
+                                min={(() => {
+                                  const d = new Date();
+                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                })()}
+                                max={(() => {
+                                  const d = new Date();
+                                  d.setDate(d.getDate() + 6);
+                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                })()}
+                                onChange={(e) => updatePetState(petId, 'appointmentDate', e.target.value)}
                               />
                             </div>
                           </div>
-                        )}
-                        {petState.groomingType === "Subscription" && (
-                          <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Grooming Packages</label>
-                              <select 
-                                className={styles.select}
-                                value={petState.selectedPackage || ""}
-                                onChange={(e) => handlePackageChange(petId, e.target.value)}
-                              >
-                                <option value="">Choose here</option>
-                                {availablePackages.map(pkg => (
-                                  <option key={pkg.id} value={pkg.id}>
-                                    {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                              <MultiSelectDropdown
-                                heading="Choose your services here"
-                                listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                                selectedIds={petState.selectedServices || []}
-                                setSelectedIds={(ids) => handleServicesChange(petId, ids)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
 
-                      <div>
-                        <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '16px', fontWeight: '600', color: '#666' }}>Time taken for appointment</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-start', gap: '2rem' }}>
-                          <div className={styles.formGroup}>
-                            <label className={styles.label}>Hours</label>
-                            <select
-                              className={styles.select}
-                              value={petState.hours !== undefined && petState.hours !== null ? petState.hours : ""}
-                              onChange={(e) => updatePetState(petId, 'hours', e.target.value)}
-                            >
-                              <option value="">Choose Hours here</option>
-                              {Array.from({ length: 15 }, (_, i) => (
-                                <option key={`h-${i}`} value={i}>{String(i).padStart(2, "0")} hr</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label className={styles.label}>Minutes</label>
-                            <select
-                              className={styles.select}
-                              value={petState.minutes !== undefined && petState.minutes !== null ? petState.minutes : ""}
-                              onChange={(e) => updatePetState(petId, 'minutes', e.target.value)}
-                            >
-                              <option value="">Choose Mins here</option>
-                              {Array.from({ length: 60 }, (_, i) => i).map(m => (
-                                <option key={`m-${m}`} value={m}>{String(m).padStart(2, "0")} minutes</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className={styles.formGroup}>
-                            <label className={styles.label}>Add Buffer for extra time required</label>
-                            {petHasApiBufferTime ? (
-                              <input
-                                type="text"
-                                className={styles.input}
-                                value={`${petApiBufferTime} minutes`}
-                                readOnly
-                                style={{ backgroundColor: '#f5f6fa', cursor: 'not-allowed' }}
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                className={styles.input}
-                                placeholder="Enter Mins here"
-                                value={petState.bufferTime || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (/^\d*$/.test(val)) {
-                                    updatePetState(petId, 'bufferTime', val);
+                          <div style={{ marginBottom: '2rem' }}>
+                            <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Select Appointment Time Slots</label>
+                            <div className={styles.timeGrid}>
+                              {petSlotsData[petId]?.slots ? (
+                                petSlotsData[petId].slots.map(slot => {
+                                  const [h, m] = slot.startTime.split(':');
+                                  const isPM = parseInt(h) >= 12;
+                                  const displayH = (parseInt(h) % 12) || 12;
+                                  const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
+                                  const isFull = slot.status === 'Full';
+
+                                  // Check if selected by another pet in this session
+                                  const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
+                                    const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
+                                    if (otherPetId === petId) return false;
+                                    const otherState = petServiceDetails[otherPetId];
+                                    if (!otherState) return false;
+                                    return otherState.appointmentDate === petState.appointmentDate &&
+                                      String(otherState.assignedGroomer) === String(petState.assignedGroomer) &&
+                                      !otherState.unassigned &&
+                                      (slot.slotID && otherState.selectedSlotId ? String(otherState.selectedSlotId) === String(slot.slotID) : otherState.startTime === slot.startTime);
+                                  });
+
+                                  let buttonStyle = {};
+                                  if (isFull) {
+                                    buttonStyle = { borderColor: 'red', color: 'red', background: '#ffe6e6', cursor: 'not-allowed' };
+                                  } else if (isOccupiedByOther) {
+                                    buttonStyle = { borderColor: '#dcdcdc', color: '#888', background: '#f0f0f0', cursor: 'not-allowed' };
                                   }
-                                }}
-                              />
+
+                                  return (
+                                    <button
+                                      key={slot.slotID}
+                                      className={`${styles.timeBtn} ${petState.selectedTime === formattedTime ? styles.timeBtnActive : ""}`}
+                                      style={buttonStyle}
+                                      disabled={isFull || isOccupiedByOther}
+                                      onClick={() => {
+                                        if (!isFull && !isOccupiedByOther) {
+                                          updatePetState(petId, 'selectedTime', formattedTime);
+                                          updatePetState(petId, 'selectedSlotId', slot.slotID);
+                                          updatePetState(petId, 'startTime', slot.startTime);
+                                          updatePetState(petId, 'endTime', slot.endTime);
+                                        }
+                                      }}
+                                    >
+                                      {formattedTime}
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                timeSlots.map(time => {
+                                  const startTime = convertTimeTo24h(time);
+
+                                  // Check if selected by another pet in this session
+                                  const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
+                                    const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
+                                    if (otherPetId === petId) return false;
+                                    const otherState = petServiceDetails[otherPetId];
+                                    if (!otherState) return false;
+                                    return otherState.appointmentDate === petState.appointmentDate &&
+                                      String(otherState.assignedGroomer) === String(petState.assignedGroomer) &&
+                                      !otherState.unassigned &&
+                                      otherState.startTime === startTime;
+                                  });
+
+                                  let buttonStyle = {};
+                                  if (isOccupiedByOther) {
+                                    buttonStyle = { borderColor: '#dcdcdc', color: '#888', background: '#f0f0f0', cursor: 'not-allowed' };
+                                  }
+
+                                  return (
+                                    <button
+                                      key={time}
+                                      className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
+                                      style={buttonStyle}
+                                      disabled={isOccupiedByOther}
+                                      onClick={() => {
+                                        if (!isOccupiedByOther) {
+                                          updatePetState(petId, 'selectedTime', time);
+                                          const [h, m, s] = startTime.split(':');
+                                          let endHours = (parseInt(h) + 1) % 24;
+                                          const endTime = `${String(endHours).padStart(2, '0')}:${m}:${s}`;
+                                          updatePetState(petId, 'startTime', startTime);
+                                          updatePetState(petId, 'endTime', endTime);
+                                        }
+                                      }}
+                                    >
+                                      {time}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: '2rem' }}>
+                            <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Grooming Type</label>
+                            <div className={styles.radioGroup}>
+                              <label className={styles.radioLabel}>
+                                <input type="radio" name={`groomingType-${petId}`} value="Services" className={styles.radioInput} checked={petState.groomingType === "Services"} onChange={() => updatePetState(petId, 'groomingType', "Services")} />
+                                Services
+                              </label>
+                              <label className={styles.radioLabel}>
+                                <input type="radio" name={`groomingType-${petId}`} value="Package" className={styles.radioInput} checked={petState.groomingType === "Package"} onChange={() => updatePetState(petId, 'groomingType', "Package")} />
+                                Package
+                              </label>
+                              <label className={styles.radioLabel}>
+                                <input type="radio" name={`groomingType-${petId}`} value="Subscription" className={styles.radioInput} checked={petState.groomingType === "Subscription"} onChange={() => updatePetState(petId, 'groomingType', "Subscription")} />
+                                Subscription
+                              </label>
+                            </div>
+
+                            {petState.groomingType === "Services" && (
+                              <div className={styles.formGroup} style={{ maxWidth: '650px' }}>
+                                <label className={styles.label}>Grooming Services <span style={{ color: '#888', fontSize: '0.75rem' }}>(Multiple Selections)</span></label>
+                                <MultiSelectDropdown
+                                  heading="Choose your services here"
+                                  listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                                  selectedIds={petState.selectedServices || []}
+                                  setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                />
+                              </div>
+                            )}
+                            {petState.groomingType === "Package" && (
+                              <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                  <label className={styles.label}>Grooming Packages</label>
+                                  <select
+                                    className={styles.select}
+                                    value={petState.selectedPackage || ""}
+                                    onChange={(e) => handlePackageChange(petId, e.target.value)}
+                                  >
+                                    <option value="">Choose here</option>
+                                    {availablePackages.map(pkg => (
+                                      <option key={pkg.id} value={pkg.id}>
+                                        {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                  <MultiSelectDropdown
+                                    heading="Choose your services here"
+                                    listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                                    selectedIds={petState.selectedServices || []}
+                                    setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {petState.groomingType === "Subscription" && (
+                              <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                  <label className={styles.label}>Grooming Packages</label>
+                                  <select
+                                    className={styles.select}
+                                    value={petState.selectedPackage || ""}
+                                    onChange={(e) => handlePackageChange(petId, e.target.value)}
+                                  >
+                                    <option value="">Choose here</option>
+                                    {availablePackages.map(pkg => (
+                                      <option key={pkg.id} value={pkg.id}>
+                                        {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                  <MultiSelectDropdown
+                                    heading="Choose your services here"
+                                    listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
+                                    selectedIds={petState.selectedServices || []}
+                                    setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                  />
+                                </div>
+                              </div>
                             )}
                           </div>
+
+                          <div>
+                            <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '16px', fontWeight: '600', color: '#666' }}>Time taken for appointment</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-start', gap: '2rem' }}>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Hours</label>
+                                <select
+                                  className={styles.select}
+                                  value={petState.hours !== undefined && petState.hours !== null ? petState.hours : ""}
+                                  onChange={(e) => updatePetState(petId, 'hours', e.target.value)}
+                                >
+                                  <option value="">Choose Hours here</option>
+                                  {Array.from({ length: 15 }, (_, i) => (
+                                    <option key={`h-${i}`} value={i}>{String(i).padStart(2, "0")} hr</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Minutes</label>
+                                <select
+                                  className={styles.select}
+                                  value={petState.minutes !== undefined && petState.minutes !== null ? petState.minutes : ""}
+                                  onChange={(e) => updatePetState(petId, 'minutes', e.target.value)}
+                                >
+                                  <option value="">Choose Mins here</option>
+                                  {Array.from({ length: 60 }, (_, i) => i).map(m => (
+                                    <option key={`m-${m}`} value={m}>{String(m).padStart(2, "0")} minutes</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Add Buffer for extra time required</label>
+                                {petHasApiBufferTime ? (
+                                  <input
+                                    type="text"
+                                    className={styles.input}
+                                    value={`${petApiBufferTime} minutes`}
+                                    readOnly
+                                    style={{ backgroundColor: '#f5f6fa', cursor: 'not-allowed' }}
+                                  />
+                                ) : (
+                                  <input
+                                    type="text"
+                                    className={styles.input}
+                                    placeholder="Enter Mins here"
+                                    value={petState.bufferTime || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (/^\d*$/.test(val)) {
+                                        updatePetState(petId, 'bufferTime', val);
+                                      }
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* ── CLINIC DETAILS ── */}
+                      {petState.serviceType?.includes("Clinic") && (
+                        <div style={{ marginTop: '2rem', borderTop: '1px solid #eaeaea', paddingTop: '2rem' }}>
+                          <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
+                            Clinic Details
+                            <button
+                              className={styles.iconBtn}
+                              onClick={() => {
+                                const currentTypes = petState.serviceType || [];
+                                updatePetState(petId, 'serviceType', currentTypes.filter(t => t !== "Clinic"));
+                              }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </h3>
+
+                          <div className={styles.radioGroup} style={{ marginBottom: '1.5rem' }}>
+                            <label className={styles.radioLabel}>
+                              <input
+                                type="radio"
+                                name={`clinicConsultationType-${petId}`}
+                                value="First Consultation"
+                                className={styles.radioInput}
+                                checked={(petState.clinicConsultationType || "First Consultation") === "First Consultation"}
+                                onChange={(e) => updatePetState(petId, 'clinicConsultationType', e.target.value)}
+                              />
+                              First Consultation
+                            </label>
+                            <label className={styles.radioLabel}>
+                              <input
+                                type="radio"
+                                name={`clinicConsultationType-${petId}`}
+                                value="Followup Consultation"
+                                className={styles.radioInput}
+                                checked={petState.clinicConsultationType === "Followup Consultation"}
+                                onChange={(e) => updatePetState(petId, 'clinicConsultationType', e.target.value)}
+                              />
+                              Followup Consultation
+                            </label>
+                          </div>
+
+                          <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Appointment Date</label>
+                              <input
+                                type="date"
+                                className={styles.input}
+                                value={petState.clinicAppointmentDate || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicAppointmentDate', e.target.value)}
+                              />
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Appointment Time</label>
+                              <select
+                                className={styles.select}
+                                value={petState.clinicAppointmentTime || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicAppointmentTime', e.target.value)}
+                              >
+                                <option value="">Select the Time</option>
+                                <option value="09:00 AM">09:00 AM</option>
+                                <option value="10:00 AM">10:00 AM</option>
+                                <option value="11:00 AM">11:00 AM</option>
+                                <option value="12:00 PM">12:00 PM</option>
+                                <option value="01:00 PM">01:00 PM</option>
+                                <option value="02:00 PM">02:00 PM</option>
+                                <option value="03:00 PM">03:00 PM</option>
+                                <option value="04:00 PM">04:00 PM</option>
+                                <option value="05:00 PM">05:00 PM</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Booking Type</label>
+                              <select
+                                className={styles.select}
+                                value={petState.clinicBookingType || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicBookingType', e.target.value)}
+                              >
+                                <option value="Online">Online</option>
+                                <option value="In-Store">In-Store</option>
+                                <option value="Home-visit">Home-visit</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Type of consultation</label>
+                              <select
+                                className={styles.select}
+                                value={petState.clinicConsultationReason || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicConsultationReason', e.target.value)}
+                              >
+                                <option value="Vaccination">Vaccination</option>
+                                <option value="General Checkup">General Checkup</option>
+                                <option value="Deworming">Deworming</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '16px', fontWeight: '600', color: '#666' }}>Time taken for appointment</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-start', gap: '2rem' }}>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Hours</label>
+                                <select
+                                  className={styles.select}
+                                  value={petState.clinicHours || ""}
+                                  onChange={(e) => updatePetState(petId, 'clinicHours', e.target.value)}
+                                >
+                                  <option value="">Choose Hours here</option>
+                                  {Array.from({ length: 15 }, (_, i) => (
+                                    <option key={`ch-${i}`} value={i}>{String(i).padStart(2, "0")} hr</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Minutes</label>
+                                <select
+                                  className={styles.select}
+                                  value={petState.clinicMinutes || ""}
+                                  onChange={(e) => updatePetState(petId, 'clinicMinutes', e.target.value)}
+                                >
+                                  <option value="">Choose Mins here</option>
+                                  {Array.from({ length: 60 }, (_, i) => i).map(m => (
+                                    <option key={`cm-${m}`} value={m}>{String(m).padStart(2, "0")} minutes</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className={styles.formGroup}>
+                                <label className={styles.label}>Add Buffer for extra time required</label>
+                                <select
+                                  className={styles.select}
+                                  value={petState.clinicBuffer || ""}
+                                  onChange={(e) => updatePetState(petId, 'clinicBuffer', e.target.value)}
+                                >
+                                  <option value="">Choose Buffer here</option>
+                                  <option value="15">15 minutes</option>
+                                  <option value="30">30 minutes</option>
+                                  <option value="45">45 minutes</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={styles.formGrid}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Doctor <span style={{ color: '#888', fontSize: '0.75rem' }}>(optional)</span></label>
+                              <select
+                                className={styles.select}
+                                value={petState.clinicDoctor || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicDoctor', e.target.value)}
+                              >
+                                <option value="">Select Doctor</option>
+                                {doctorsList.map(doc => (
+                                  <option key={doc.userId} value={doc.userId}>
+                                    {doc.staffName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Symptoms / Problems <span style={{ color: '#888', fontSize: '0.75rem' }}>(optional)</span></label>
+                              <input
+                                type="text"
+                                className={styles.input}
+                                placeholder="Type here..."
+                                value={petState.clinicSymptoms || ""}
+                                onChange={(e) => updatePetState(petId, 'clinicSymptoms', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── DAYCARE DETAILS ── */}
+                      {petState.serviceType?.includes("Day Care") && (
+                        <div style={{ marginTop: '2rem', borderTop: '1px solid #eaeaea', paddingTop: '2rem' }}>
+                          <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
+                            Daycare Details
+                            <button
+                              className={styles.iconBtn}
+                              onClick={() => {
+                                const currentTypes = petState.serviceType || [];
+                                updatePetState(petId, 'serviceType', currentTypes.filter(t => t !== "Day Care"));
+                              }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </h3>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem', alignItems: 'flex-end' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Appointment Date</label>
+                              <input
+                                type="date"
+                                className={styles.input}
+                                value={petState.daycareDate || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareDate', e.target.value)}
+                              />
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Check - In - Time</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareCheckin || "00:00"}
+                                onChange={(e) => updatePetState(petId, 'daycareCheckin', e.target.value)}
+                              >
+                                <option value="00:00">00:00</option>
+                                <option value="09:00 AM">09:00 AM</option>
+                                <option value="10:00 AM">10:00 AM</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Check - Out - Time</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareCheckout || "00:00"}
+                                onChange={(e) => updatePetState(petId, 'daycareCheckout', e.target.value)}
+                              >
+                                <option value="00:00">00:00</option>
+                                <option value="05:00 PM">05:00 PM</option>
+                                <option value="06:00 PM">06:00 PM</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div style={{ color: '#e9315d', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '2rem', textDecoration: 'underline' }}>+ Add more</div>
+
+                          <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '15px', fontWeight: '600', color: '#555' }}>Room Allocation</h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-end' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Food Providing</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareFood || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareFood', e.target.value)}
+                              >
+                                <option value="">Select food</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Assigned Room</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareRoom || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareRoom', e.target.value)}
+                              >
+                                <option value="">Select here</option>
+                                <option value="Room A">Room A</option>
+                                <option value="Room B">Room B</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Room Rate</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareRate || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareRate', e.target.value)}
+                              >
+                                <option value="">Select rate</option>
+                                <option value="500">₹ 500 / day</option>
+                                <option value="1000">₹ 1000 / day</option>
+                              </select>
+                            </div>
+                            <button
+                              className={styles.iconBtn}
+                              style={{ height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </div>
+
+                          <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '15px', fontWeight: '600', color: '#555' }}>Addon's</h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '1rem', alignItems: 'flex-end' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Service Type</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareAddonServiceType || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareAddonServiceType', e.target.value)}
+                              >
+                                <option value="">Select here</option>
+                                <option value="Grooming">Grooming</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Addon's</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareAddonName || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareAddonName', e.target.value)}
+                              >
+                                <option value="">Select here</option>
+                                <option value="Nail Trim">Nail Trim</option>
+                                <option value="Bath">Bath</option>
+                              </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Quantity</label>
+                              <select
+                                className={styles.select}
+                                value={petState.daycareAddonQty || ""}
+                                onChange={(e) => updatePetState(petId, 'daycareAddonQty', e.target.value)}
+                              >
+                                <option value="">Select quantity</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                              </select>
+                            </div>
+                            <button
+                              className={styles.iconBtn}
+                              style={{ height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </div>
+                          <div style={{ color: '#e9315d', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '1.5rem', textDecoration: 'underline' }}>+ Add more</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1138,19 +1631,6 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{firstGroomer ? firstGroomer.staffName : "Unassigned"}</span></div>
                 </div>
 
-                <div className={styles.summaryCard}>
-                  <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
-                  {selectedServicesList.map((item, idx) => (
-                    <div key={idx} className={styles.summaryRow}>
-                      <span className={styles.summaryLabel}>{item.serviceName}</span>
-                      <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `₹ ${item.price}`}</span>
-                    </div>
-                  ))}
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Total Amount</span>
-                    <span className={styles.summaryValue}>₹ {baseTotal}</span>
-                  </div>
-                </div>
               </div>
 
               <div className={styles.summaryGrid} style={{ alignItems: 'flex-start' }}>
@@ -1165,113 +1645,129 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Paid Amount</label>
-                      <input 
-                        type="number" 
-                        className={styles.input} 
-                        value={paidAmount} 
-                        onChange={(e) => setPaidAmount(e.target.value)} 
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={paidAmount}
+                        onChange={(e) => setPaidAmount(e.target.value)}
                       />
                     </div>
                   </div>
                   <button className={styles.addPetBtn} style={{ alignSelf: 'flex-start', marginTop: '1rem', fontSize: '0.75rem' }}>+ADD ANOTHER PAYMENT</button>
                 </div>
 
-                <div className={styles.costBreakdownSection}>
-                  <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
-
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel}>Total</span>
-                    <strong>₹ {baseTotal}</strong>
-                  </div>
-
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel}>Whole Tax Details</span>
-                    <div className={styles.toggleWrapper}>
-                      <input 
-                        type="checkbox" 
-                        className={styles.toggle} 
-                        checked={taxToggled} 
-                        onChange={(e) => setTaxToggled(e.target.checked)} 
-                      />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                  <div className={styles.summaryCard}>
+                    <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
+                    {selectedServicesList.map((item, idx) => (
+                      <div key={idx} className={styles.summaryRow}>
+                        <span className={styles.summaryLabel}>{item.serviceName}</span>
+                        <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `₹ ${item.price}`}</span>
+                      </div>
+                    ))}
+                    <div className={styles.summaryRow}>
+                      <span className={styles.summaryLabel}>Total Amount</span>
+                      <span className={styles.summaryValue}>₹ {baseTotal}</span>
                     </div>
                   </div>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Tax in % percentage</span>
-                    <input 
-                      type="text" 
-                      className={styles.costInput} 
-                      value={taxPercentInput + "%"} 
-                      onChange={(e) => {
-                        const val = e.target.value.replace('%', '');
-                        if (/^\d*$/.test(val)) setTaxPercentInput(val);
-                      }} 
-                    />
-                  </div>
+                  <div className={styles.costBreakdownSection}>
+                    <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
-                    <strong>₹ {afterTaxTotal}</strong>
-                  </div>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel}>Total</span>
+                      <strong>₹ {baseTotal}</strong>
+                    </div>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel}>Whole Discount Details</span>
-                    <div className={styles.toggleWrapper}>
-                      <input 
-                        type="checkbox" 
-                        className={styles.toggle} 
-                        checked={discountToggled} 
-                        onChange={(e) => setDiscountToggled(e.target.checked)} 
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel}>Whole Tax Details</span>
+                      <div className={styles.toggleWrapper}>
+                        <input
+                          type="checkbox"
+                          className={styles.toggle}
+                          checked={taxToggled}
+                          onChange={(e) => setTaxToggled(e.target.checked)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Tax in % percentage</span>
+                      <input
+                        type="text"
+                        className={styles.costInput}
+                        value={taxPercentInput + "%"}
+                        onChange={(e) => {
+                          const val = e.target.value.replace('%', '');
+                          if (/^\d*$/.test(val)) setTaxPercentInput(val);
+                        }}
                       />
                     </div>
-                  </div>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
-                    <input 
-                      type="text" 
-                      className={styles.costInput} 
-                      value={discountPercentInput + "%"} 
-                      onChange={(e) => {
-                        const val = e.target.value.replace('%', '');
-                        if (/^\d*$/.test(val)) setDiscountPercentInput(val);
-                      }} 
-                    />
-                  </div>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
+                      <strong>₹ {afterTaxTotal}</strong>
+                    </div>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
-                    <strong>₹ {finalTotal}</strong>
-                  </div>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel}>Whole Discount Details</span>
+                      <div className={styles.toggleWrapper}>
+                        <input
+                          type="checkbox"
+                          className={styles.toggle}
+                          checked={discountToggled}
+                          onChange={(e) => setDiscountToggled(e.target.checked)}
+                        />
+                      </div>
+                    </div>
 
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Round Off</span>
-                    <div className={styles.toggleWrapper}>
-                      <input 
-                        type="checkbox" 
-                        className={styles.checkboxInput} 
-                        checked={roundOffToggled} 
-                        onChange={(e) => setRoundOffToggled(e.target.checked)} 
-                      />
-                      <input 
-                        type="text" 
-                        className={styles.costInput} 
-                        value={roundOffValue} 
-                        readOnly 
-                        style={{ marginLeft: '1rem' }} 
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
+                      <input
+                        type="text"
+                        className={styles.costInput}
+                        value={discountPercentInput + "%"}
+                        onChange={(e) => {
+                          const val = e.target.value.replace('%', '');
+                          if (/^\d*$/.test(val)) setDiscountPercentInput(val);
+                        }}
                       />
                     </div>
-                  </div>
 
-                  <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
-                  <div className={styles.costRow}>
-                    <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
-                    <strong>₹ {parsedPaidAmount}</strong>
-                  </div>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
+                      <strong>₹ {finalTotal}</strong>
+                    </div>
 
-                  <div className={styles.totalPending}>
-                    <span>Total Pending Amount</span>
-                    <span>₹ {pendingAmount}</span>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Round Off</span>
+                      <div className={styles.toggleWrapper}>
+                        <input
+                          type="checkbox"
+                          className={styles.checkboxInput}
+                          checked={roundOffToggled}
+                          onChange={(e) => setRoundOffToggled(e.target.checked)}
+                        />
+                        <input
+                          type="text"
+                          className={styles.costInput}
+                          value={roundOffValue}
+                          readOnly
+                          style={{ marginLeft: '1rem' }}
+                        />
+                      </div>
+                    </div>
+
+                    <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
+                    <div className={styles.costRow}>
+                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
+                      <strong>₹ {parsedPaidAmount}</strong>
+                    </div>
+
+                    <div className={styles.totalPending}>
+                      <span>Total Pending Amount</span>
+                      <span>₹ {pendingAmount}</span>
+                    </div>
                   </div>
                 </div>
               </div>
