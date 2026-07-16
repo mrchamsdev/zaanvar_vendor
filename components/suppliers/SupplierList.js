@@ -44,6 +44,7 @@ const SupplierList = ({
   const currencySymbol = useCurrencySymbol();
   const { vendorSettings } = useStore();
   const manageSupplierStatus = getBoolSetting(vendorSettings, 'manageSupplierStatus', false);
+  const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
 
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -79,13 +80,14 @@ const SupplierList = ({
                   <th>Supplier ID</th>
                   <th>Supplier Type</th>
                   <th>Supplier Name</th>
+                  {showSupplierGrouping && <th>Group Name</th>}
                   <th>Branch Assigned</th>
                   <th>Total Amount</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: 40, color: '#666', fontWeight: 500 }}>
+                  <td colSpan={showSupplierGrouping ? 7 : 6} style={{ textAlign: 'center', padding: 40, color: '#666', fontWeight: 500 }}>
                     The search you entered is not matching to any supplier
                   </td>
                 </tr>
@@ -114,6 +116,7 @@ const SupplierList = ({
                 <th>Supplier ID</th>
                 <th>Supplier Type</th>
                 <th>Supplier Name</th>
+                {showSupplierGrouping && <th>Group Name</th>}
                 <th>Branch Assigned</th>
 
                 <th>Total Amount</th>
@@ -133,11 +136,12 @@ const SupplierList = ({
                   <td>
                     <span className={styles.supplierIdCell}>
                       <span className={styles.supplierIdText}>{s.supplierId}</span>
-                      {s.isActive ? <ActiveSupplierIcon /> : <InactiveSupplierIcon />}
+                      {manageSupplierStatus && (s.isActive ? <ActiveSupplierIcon /> : <InactiveSupplierIcon />)}
                     </span>
                   </td>
                   <td style={{ textTransform: 'uppercase' }}>{Array.isArray(s.supplierType) ? s.supplierType.join(', ') : (s.supplierType || "-")}</td>
                   <td>{s.supplierName}</td>
+                  {showSupplierGrouping && <td>{s.groupName || "-"}</td>}
                   <td>{s.branches?.map(b => b.name).join(", ") || "-"}</td>
 
                   <td style={{

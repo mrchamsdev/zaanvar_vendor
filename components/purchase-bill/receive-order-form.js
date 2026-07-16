@@ -62,6 +62,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
     const calculateTaxBasedOnMrp = getBoolSetting(vendorSettings, 'calculateTaxBasedOnMrp', false);
     const transactionWiseTax = getBoolSetting(vendorSettings, "transactionWiseTax", false);
     const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
+    const roundOffTotal = getBoolSetting(vendorSettings, "roundOffTotal", false);
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
     const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("");
@@ -1063,7 +1064,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 <div className={styles.breakdownRow}><span>Total cost</span><span>{currencySymbol} {totals.totalCost.toFixed(getAmountDecimalPlaces())}</span></div>
 
                                 {!payBasedOnOrdered && totals.shortfallAmount > 0 && (
-                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- ${currencySymbol} {totals.shortfallAmount.toFixed(getAmountDecimalPlaces())}</span></div>
+                                    <div className={styles.breakdownRow}><span>Shortfall Amount</span><span>- {currencySymbol} {totals.shortfallAmount.toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
 
                                 {damagedReturnedGoods && totals.damagedAmount > 0 && (
@@ -1085,25 +1086,29 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>{currencySymbol} {breakdown.finalAmountBeforeRound.toFixed(getAmountDecimalPlaces())}</span></div>
                                 
                                 <div className={styles.breakdownDivider} style={{ marginTop: '8px' }} />
-                                <div className={styles.breakdownRow} style={{ alignItems: 'center', marginTop: '8px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#000', fontSize: '14px' }}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={isRoundOffChecked}
-                                            onChange={(e) => setIsRoundOffChecked(e.target.checked)}
-                                            style={{ width: '16px', height: '16px', accentColor: '#000', cursor: 'pointer' }}
-                                        />
-                                        Round off
-                                    </label>
-                                    {isRoundOffChecked && (
-                                        <span>{breakdown.roundOffAmount >= 0 ? '+' : '-'} {currencySymbol} {Math.abs(breakdown.roundOffAmount).toFixed(getAmountDecimalPlaces())}</span>
-                                    )}
-                                </div>
-                                {isRoundOffChecked && (
-                                    <div className={styles.breakdownRowBold} style={{ marginTop: '8px' }}>
-                                        <span>Finalized Amount</span>
-                                        <span>{currencySymbol} {breakdown.finalAmount.toFixed(getAmountDecimalPlaces())}</span>
-                                    </div>
+                                {roundOffTotal && (
+                                    <>
+                                        <div className={styles.breakdownRow} style={{ alignItems: 'center', marginTop: '8px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#000', fontSize: '14px' }}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isRoundOffChecked}
+                                                    onChange={(e) => setIsRoundOffChecked(e.target.checked)}
+                                                    style={{ width: '16px', height: '16px', accentColor: '#000', cursor: 'pointer' }}
+                                                />
+                                                Round off
+                                            </label>
+                                            {isRoundOffChecked && (
+                                                <span>{breakdown.roundOffAmount >= 0 ? '+' : '-'} {currencySymbol} {Math.abs(breakdown.roundOffAmount).toFixed(getAmountDecimalPlaces())}</span>
+                                            )}
+                                        </div>
+                                        {isRoundOffChecked && (
+                                            <div className={styles.breakdownRowBold} style={{ marginTop: '8px' }}>
+                                                <span>Finalized Amount</span>
+                                                <span>{currencySymbol} {breakdown.finalAmount.toFixed(getAmountDecimalPlaces())}</span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}

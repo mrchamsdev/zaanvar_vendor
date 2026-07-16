@@ -380,6 +380,24 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             setPinCodeError("");
         }
 
+        if (gstin) {
+            const trimmedGstin = gstin.trim().toUpperCase();
+            const lettersCount = (trimmedGstin.match(/[A-Z]/g) || []).length;
+            const digitsCount = (trimmedGstin.match(/[0-9]/g) || []).length;
+
+            const isValidGstin = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(trimmedGstin);
+            const isUserPattern = (trimmedGstin.length === 15 && lettersCount === 10 && digitsCount === 5);
+
+            if (!isValidGstin && !isUserPattern) {
+                setGstinError("GSTIN must be exactly 15 characters (e.g., 10 letters and 5 numbers, or standard GSTIN format)");
+                hasError = true;
+            } else {
+                setGstinError("");
+            }
+        } else {
+            setGstinError("");
+        }
+
         const fieldErrors = {};
         additionalFields.forEach(f => {
             if (f.required && (!f.value || !f.value.trim())) {
@@ -498,8 +516,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     dropdown: {
                                         background: branchError ? '#FFF1F0' : '#fff',
                                         border: branchError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
-                                        padding: '8px 16px',
-                                        borderRadius: '8px'
+                                        padding: '14px 16px',
+                                        borderRadius: '8px',
+                                        minHeight: '48px',
+                                        boxSizing: 'border-box'
                                     }
                                 }}
                             />
@@ -518,8 +538,10 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     dropdown: {
                                         background: supplierTypeError ? '#FFF1F0' : '#fff',
                                         border: supplierTypeError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
-                                        padding: '8px 16px',
-                                        borderRadius: '8px'
+                                        padding: '14px 16px',
+                                        borderRadius: '8px',
+                                        minHeight: '48px',
+                                        boxSizing: 'border-box'
                                     }
                                 }}
                             />
@@ -592,8 +614,11 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     }} placeholder="Enter GSTIN"
                                     value={gstin}
                                     onChange={(e) => {
-                                        setGstin(e.target.value);
-                                        if (gstinError) setGstinError("");
+                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                                        if (val.length <= 15) {
+                                            setGstin(val);
+                                            if (gstinError) setGstinError("");
+                                        }
                                     }}
                                 />
                                 {gstinError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{gstinError}</span>}

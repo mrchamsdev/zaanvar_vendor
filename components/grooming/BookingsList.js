@@ -116,8 +116,9 @@ export default function BookingsList({ onViewDetails, onEdit }) {
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [rescheduleEndTime, setRescheduleEndTime] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [availableServices, setAvailableServices] = useState([]);
 
-  const transformBookingsData = (rawBookings) => {
+  const transformBookingsData = (rawBookings, currentServices = []) => {
     if (!Array.isArray(rawBookings)) return [];
     return rawBookings.map(b => {
       const appointment = b.appointments?.[0] || {};
@@ -156,8 +157,17 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             app.pets.forEach(pet => {
               if (pet.services && Array.isArray(pet.services)) {
                 pet.services.forEach(srv => {
-                  if (srv.serviceNames && Array.isArray(srv.serviceNames)) {
+                  if (srv.serviceNames && Array.isArray(srv.serviceNames) && srv.serviceNames.length > 0) {
                     srv.serviceNames.forEach(name => {
+                      if (name && !servicesList.includes(name)) {
+                        servicesList.push(name);
+                      }
+                    });
+                  } else if (srv.selectedServices && Array.isArray(srv.selectedServices)) {
+                    srv.selectedServices.forEach(sId => {
+                      const listToUse = currentServices.length > 0 ? currentServices : availableServices;
+                      const found = listToUse.find(s => s.id === sId);
+                      const name = found ? (Array.isArray(found.serviceName) ? found.serviceName[0] : found.serviceName) : null;
                       if (name && !servicesList.includes(name)) {
                         servicesList.push(name);
                       }
@@ -205,18 +215,31 @@ export default function BookingsList({ onViewDetails, onEdit }) {
 
   useEffect(() => {
     if (selectedBranchId) {
-      fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`, {
+      // First fetch offerings (services list) to allow ID-to-name mapping
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=services`, {
         headers: {
           "Authorization": `Bearer ${jwtToken}`
         }
       })
         .then(res => res.json())
-        .then(data => {
-          if (data.status === "success" && data.data) {
-            setBookings(transformBookingsData(data.data));
-          }
+        .then(offRes => {
+          const services = offRes.status === "success" && offRes.data?.services ? offRes.data.services : [];
+          setAvailableServices(services);
+          
+          // Then fetch bookings
+          return fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.status === "success" && data.data) {
+                setBookings(transformBookingsData(data.data, services));
+              }
+            });
         })
-        .catch(err => console.error("Error fetching bookings:", err));
+        .catch(err => console.error("Error fetching bookings/offerings:", err));
     }
   }, [selectedBranchId, jwtToken]);
 
@@ -1049,7 +1072,7 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                             )}
                           </>
                         ) : (
-                          <span className={styles.serviceBadgePink}>{b.serviceStatus}</span>
+                          <span className={styles.serviceBadgePink}>{b.service || "----"}</span>
                         )}
                       </div>
                     </td>
@@ -1520,21 +1543,37 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             "Update Payment status",
             "Generate Invoice"
           ].filter((action) => {
+            const bookingStatusUpper = selectedBooking.bookingStatus?.toUpperCase() || selectedBooking.status?.toUpperCase();
+            
+            // If completed, hide reschedule, cancel, approve, check-in, check-out, and edit
+            if (bookingStatusUpper === "COMPLETED") {
+              if (["Reschedule", "Cancel", "Approve", "Check-In", "Check-Out", "Edit"].includes(action)) {
+                return false;
+              }
+            }
+            
+            // If in progress, hide reschedule, cancel, approve, check-in, and edit
+            if (bookingStatusUpper === "IN_PROGRESS" || bookingStatusUpper === "IN PROGRESS") {
+              if (["Reschedule", "Cancel", "Approve", "Check-In", "Edit"].includes(action)) {
+                return false;
+              }
+            }
+
             if (action === "Check-In") {
               return selectedBooking.bookingStatus?.toUpperCase() === "TODAY";
             }
             if (action === "Check-Out") {
               const statusUpper = selectedBooking.status?.toUpperCase();
-              const bookingStatusUpper = selectedBooking.bookingStatus?.toUpperCase();
+              const bookingStatusUpperVal = selectedBooking.bookingStatus?.toUpperCase();
               return (
                 statusUpper === "CHECK-IN" ||
                 statusUpper === "CHECK IN" ||
                 statusUpper === "IN PROGRESS" ||
                 statusUpper === "IN_PROGRESS" ||
-                bookingStatusUpper === "CHECK-IN" ||
-                bookingStatusUpper === "CHECK IN" ||
-                bookingStatusUpper === "IN PROGRESS" ||
-                bookingStatusUpper === "IN_PROGRESS"
+                bookingStatusUpperVal === "CHECK-IN" ||
+                bookingStatusUpperVal === "CHECK IN" ||
+                bookingStatusUpperVal === "IN PROGRESS" ||
+                bookingStatusUpperVal === "IN_PROGRESS"
               );
             }
             return true;

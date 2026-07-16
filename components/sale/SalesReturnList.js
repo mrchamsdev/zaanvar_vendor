@@ -929,7 +929,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                 </th>
                                 <th>
                                     <div className={styles.thContent}>
-                                        <span>TOTAL BALANCE AMOUNT</span>
+                                        <span> BALANCE AMOUNT</span>
                                         <FiFilter
                                             className={`${styles.filterIcon} ${(columnFilters.balance.value !== undefined && columnFilters.balance.value !== null && columnFilters.balance.value !== '') ? styles.filterIconActive : ''}`}
                                             onClick={() => { setOpenFilterCol(openFilterCol === 'balance' ? null : 'balance'); setIsDateFilterOpen(false); }}

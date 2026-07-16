@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { IMAGE_URL } from "../utilities/Constants";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
-import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import { getAmountDecimalPlaces, formatAmount } from "../utilities/formatAmount";
 import LinkPaymentPopup from "../shared/link-payment-popup";
 
 const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, prefill }) => {
@@ -360,8 +360,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 }
             });
 
-            if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
-                updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+            if (!isNaN(paidAmountNum) && Math.abs(totalPaid - paidAmountNum) > 0.01) {
+                updated.paymentsTotal = `The sum of payments (${currencySymbol}${formatAmount(totalPaid)}) does not match the Paid Amount (${currencySymbol}${formatAmount(paidAmountNum)})`;
             } else {
                 updated.paymentsTotal = undefined;
             }
@@ -390,8 +390,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 ...prev,
                 [`paymentAmount_${index}`]: undefined
             };
-            if (!isNaN(paidAmountNum) && totalPaid > paidAmountNum) {
-                updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+            if (!isNaN(paidAmountNum) && Math.abs(totalPaid - paidAmountNum) > 0.01) {
+                updated.paymentsTotal = `The sum of payments (${currencySymbol}${formatAmount(totalPaid)}) does not match the Paid Amount (${currencySymbol}${formatAmount(paidAmountNum)})`;
             } else {
                 updated.paymentsTotal = undefined;
             }
@@ -439,8 +439,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         }
 
         const totalPaid = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) + appliedWalletAmount;
-        if (!newErrors.paidAmount && totalPaid > paidAmountNum) {
-            newErrors.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${paidAmountNum})`;
+        if (!newErrors.paidAmount && Math.abs(totalPaid - paidAmountNum) > 0.01) {
+            newErrors.paymentsTotal = `The sum of payments (${currencySymbol}${formatAmount(totalPaid)}) does not match the Paid Amount (${currencySymbol}${formatAmount(paidAmountNum)})`;
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -728,7 +728,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                                 <span style={{ color: '#999' }}>{c.phoneNumber}</span>
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#E93E64', marginTop: '4px' }}>
-                                                Bal: ${currencySymbol}{c.overallTotals?.dueAmount || 0}
+                                                Bal: {currencySymbol} {formatAmount(c.overallTotals?.dueAmount || 0)}
                                             </div>
                                         </div>
                                     ))}
@@ -872,8 +872,8 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                     const num = parseFloat(cleanVal);
                                     setErrors(prev => {
                                         const updated = { ...prev, paidAmount: undefined };
-                                        if (!isNaN(num) && totalPaid > num) {
-                                            updated.paymentsTotal = `Total of all payment methods (${currencySymbol}${totalPaid}) cannot exceed Paid Amount (₹${num})`;
+                                        if (!isNaN(num) && Math.abs(totalPaid - num) > 0.01) {
+                                            updated.paymentsTotal = `The sum of payments (${currencySymbol}${formatAmount(totalPaid)}) does not match the Paid Amount (${currencySymbol}${formatAmount(num)})`;
                                         } else {
                                             updated.paymentsTotal = undefined;
                                         }

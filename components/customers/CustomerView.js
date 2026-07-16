@@ -1,4 +1,4 @@
-import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
+import { getAmountDecimalPlaces, formatAmount } from "@/components/utilities/formatAmount";
 import React, { useState, useEffect } from "react";
 import { FiMoreVertical } from "react-icons/fi";
 import styles from "../../styles/customers/customerView.module.css";
@@ -153,8 +153,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{formatDate(item.invoiceDate || item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.totalAmount, '0.00')}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.dueAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.totalAmount)}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.dueAmount)}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.userOrderId ? null : item.userOrderId)}>
                                                     <FiMoreVertical />
@@ -222,8 +222,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{formatDate(item.createdDate)}</td>
                                             <td className={styles.dataTableCell}>{item.bill?.userOrderId || item.userOrderId || '-'}</td>
                                             <td className={styles.dataTableCell}>{item.customerReturnId}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {Number(item.totalReturnAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {Number(item.bill?.dueAmount || item.dueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.totalReturnAmount)}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.bill?.dueAmount || item.dueAmount)}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.customerReturnId ? null : item.customerReturnId)}>
                                                     <FiMoreVertical />
@@ -304,10 +304,10 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                             <td className={styles.dataTableCell}>{safeRender(item.userOrderId)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentId)}</td>
                                             <td className={styles.dataTableCell}>{formatDate(item.paymentDate || item.createdDate)}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.totalAmount, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.totalAmount)}</td>
                                             <td className={styles.dataTableCell}>{safeRender(item.paymentMethod, 'Cash')}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.amount, '0.00')}</td>
-                                            <td className={styles.dataTableCell}>{currencySymbol} {safeRender(item.balanceAmount || item.balance, '0.00')}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.amount)}</td>
+                                            <td className={styles.dataTableCell}>{currencySymbol} {formatAmount(item.balanceAmount || item.balance)}</td>
                                             <td className={`${styles.dataTableCellCenter} ${styles.relativePosition}`}>
                                                 <button className={styles.actionButton} onClick={() => setOpenDropdownId(openDropdownId === item.paymentId ? null : item.paymentId)}>
                                                     <FiMoreVertical />
@@ -393,7 +393,7 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                 {paymentHistoryModal.payments.map((p, i) => (
                                     <div key={i} className={styles.paymentItem}>
                                         <div className={styles.paymentInfo}>
-                                            <span className={styles.paymentAmount}>{currencySymbol} {Number(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}</span>
+                                            <span className={styles.paymentAmount}>{currencySymbol} {formatAmount(p.amount)}</span>
                                             <span className={styles.paymentMethod}>{p.paymentMethod || 'Cash'}</span>
                                         </div>
                                         <span className={styles.paymentDate}>{formatDate(p.paymentDate || p.createdDate)}</span>

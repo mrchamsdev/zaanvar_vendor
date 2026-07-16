@@ -33,7 +33,7 @@ const InfoIcon = ({ tip }) => {
         {lines.map((line, lIndex) => {
           const isHeader = line.endsWith("?") || line === "What is this?" || line === "Why use it?" || line === "Why to use?" || line === "How it is used?" || line === "Why use?" || line.startsWith("GSTIN Number") || line.startsWith("Business Currency");
           return (
-            <div key={lIndex} style={{ 
+            <div key={lIndex} style={{
               fontWeight: isHeader ? '700' : '400',
               fontSize: isHeader ? '13px' : '12px',
               color: isHeader ? '#fff' : '#e5e7eb',
@@ -49,7 +49,7 @@ const InfoIcon = ({ tip }) => {
   });
 
   return (
-    <span 
+    <span
       className={styles.infoIconWrapper}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setVisible(false)}
@@ -174,7 +174,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
               <div className={styles.checkRow}>
                 <input id="manageSupplierStatus" type="checkbox" className={styles.checkInput}
                   checked={p.manageSupplierStatus} onChange={toggle("manageSupplierStatus")} />
-                <label htmlFor="manageSupplierStatus" className={styles.checkLabel}>Manage Party Status</label>
+                <label htmlFor="manageSupplierStatus" className={styles.checkLabel}>Manage Supplier Status</label>
                 <InfoIcon tip="When ON, suppliers and customers can be marked Active or Inactive." />
               </div>
 

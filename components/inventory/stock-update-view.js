@@ -153,7 +153,10 @@ const StockUpdateView = ({ stockId, onClose }) => {
   }
 
   const reasonLower = (data.reason || "").trim().toLowerCase();
-  if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {
+  if (reasonLower === "marked expired items as waste") {
+    if (data.stock !== undefined && data.stock !== null) displayCurrentQty = data.stock;
+    if (data.holdQty !== undefined && data.holdQty !== null) displayUpdatedQty = data.holdQty;
+  } else if (reasonLower === "marked damaged items as waste" || reasonLower === "restored items to stock") {
     if (data.currentQty !== undefined && data.currentQty !== null) displayCurrentQty = data.currentQty;
     if (data.updatedQty !== undefined && data.updatedQty !== null) displayUpdatedQty = data.updatedQty;
   }
@@ -223,7 +226,7 @@ const StockUpdateView = ({ stockId, onClose }) => {
               <td style={{ fontWeight: 700 }}>{displayUpdatedQty}</td>
               <td style={{ color: '#E9315D', fontWeight: 700 }}>{data.reason?.toUpperCase()}</td>
               <td>{data.billItem?.expiryDate || "------"}</td>
-              <td>{currencySymbol} {data.billItem?.costPrice || "0"}</td>
+              <td>{currencySymbol} {Number(data.billItem?.costPrice || 0).toDynamicFixed()}</td>
               <td style={{
                 textAlign: 'right',
                 fontWeight: 700,
