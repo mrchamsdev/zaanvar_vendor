@@ -176,23 +176,6 @@ const GeneralSettings = ({ settings, onChange, backupSettings, onBackupChange })
             <InfoIcon tip={`What is this?\nYou can enter GSTIN of the party while adding a party to Zaanvar. This GSTIN will be printed on invoices to the parties.\n\nWhy to use?\nIn case you want Party’s GSTIN no. to be printed on invoice, then you can enable this.`} />
           </div>
 
-          {/* GST Type — only shown when GSTIN enabled */}
-          {g.enableGstin && (
-            <div className={styles.subField}>
-              <div className={styles.fieldLabel}>GST Type</div>
-              <select
-                id="gstType"
-                className={styles.select}
-                value={g.gstType}
-                onChange={handleVal("gstType")}
-              >
-                {GST_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Stop Sale on Negative Stock */}
           <div className={styles.checkRow}>
             <input

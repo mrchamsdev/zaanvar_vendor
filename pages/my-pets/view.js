@@ -77,7 +77,7 @@ const ViewDetails = () => {
                   </div>
 
                   <div className={styles["reward-container"]}>
-                    <p>Price: ${currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
+                    <p>Price: {currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
                   </div>
                 </div>
                 <div className={styles["below-text"]}>
@@ -241,7 +241,7 @@ const ViewDetails = () => {
               />
             </div>
             <div className={styles["reward-container"]}>
-              <p>Price: ${currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
+              <p>Price: {currencySymbol} {pet?.price ? `${pet.price} /-` : "N/A"}</p>
             </div>
           </div>
           <div className={styles["below-text"]}>

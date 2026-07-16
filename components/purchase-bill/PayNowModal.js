@@ -16,6 +16,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const roundOffTotal = getBoolSetting(vendorSettings, 'roundOffTotal', false);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
     const { branchId: selectedBranchId } = useDashboardData({ skipReviews: true });
     const branchId = selectedBranchId || userInfo?.branchId || 1;
@@ -534,24 +535,26 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
                         <div className={styles.summaryCol}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                <div className={styles.field}>
-                                    <label>Round Off</label>
-                                    <div className={styles.roundOffContainer}>
-                                        <input
-                                            type="checkbox"
-                                            className={styles.checkbox}
-                                            checked={isRoundOff}
-                                            onChange={(e) => setIsRoundOff(e.target.checked)}
-                                        />
-                                        <input
-                                            type="number"
-                                            className={styles.input}
-                                            value={roundOffValue}
-                                            onChange={(e) => setRoundOffValue(e.target.value)}
-                                            placeholder="0"
-                                        />
+                                {roundOffTotal && (
+                                    <div className={styles.field}>
+                                        <label>Round Off</label>
+                                        <div className={styles.roundOffContainer}>
+                                            <input
+                                                type="checkbox"
+                                                className={styles.checkbox}
+                                                checked={isRoundOff}
+                                                onChange={(e) => setIsRoundOff(e.target.checked)}
+                                            />
+                                            <input
+                                                type="number"
+                                                className={styles.input}
+                                                value={roundOffValue}
+                                                onChange={(e) => setRoundOffValue(e.target.value)}
+                                                placeholder="0"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                                 <div className={styles.field}>
                                     <label>Total</label>
                                     <input type="text" className={`${styles.input} ${styles.readOnly}`} value={summaryTotal.toDynamicFixed()} readOnly />

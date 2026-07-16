@@ -16,7 +16,10 @@ const SupplierView = ({ data, onBack, isSplit }) => {
 
     const router = useRouter();
     const branchId = router.query.branchId || "";
-    const { jwtToken } = useStore();
+    const { jwtToken, vendorSettings } = useStore();
+    const showShippingAddress = vendorSettings?.party?.shippingAddress || vendorSettings?.settings?.party?.shippingAddress;
+    const enableGstin = vendorSettings?.general?.enableGstin;
+    const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
     const [loading, setLoading] = useState(false);
     const [supplier, setSupplier] = useState(data);
     const [activeTab, setActiveTab] = useState("Purchase Orders");
@@ -292,14 +295,30 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                                     <p className={styles.infoValue}>{supplier?.email || "--"}</p>
                                     <p className={styles.infoLabel}>Email</p>
                                 </div>
-                                <div>
-                                    <p className={styles.infoValue}>{supplier?.city || "--"}</p>
-                                    <p className={styles.infoLabel}>City</p>
-                                </div>
-                                <div>
-                                    <p className={styles.infoValue}>{supplier?.country || "India"}</p>
-                                    <p className={styles.infoLabel}>Country</p>
-                                </div>
+                                {supplier?.gstin && (
+                                    <div>
+                                        <p className={styles.infoValue}>{supplier?.gstin}</p>
+                                        <p className={styles.infoLabel}>GSTIN</p>
+                                    </div>
+                                )}
+                                {supplier?.groupName && (
+                                    <div>
+                                        <p className={styles.infoValue}>{supplier?.groupName}</p>
+                                        <p className={styles.infoLabel}>Group Name</p>
+                                    </div>
+                                )}
+                                {showShippingAddress && (
+                                    <>
+                                        <div>
+                                            <p className={styles.infoValue}>{supplier?.city || "--"}</p>
+                                            <p className={styles.infoLabel}>City</p>
+                                        </div>
+                                        <div>
+                                            <p className={styles.infoValue}>{supplier?.country || "India"}</p>
+                                            <p className={styles.infoLabel}>Country</p>
+                                        </div>
+                                    </>
+                                )}
                                 {supplier?.customFields && typeof supplier.customFields === 'object' &&
                                     Object.entries(supplier.customFields).map(([key, val]) => (
                                         <div key={key}>

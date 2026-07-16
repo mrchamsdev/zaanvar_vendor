@@ -17,6 +17,8 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const queryBranchId = router.query.branchId || "";
     const { jwtToken, vendorSettings } = useStore();
     const enableGstin = vendorSettings?.general?.enableGstin;
+    const showShippingAddress = vendorSettings?.party?.shippingAddress || vendorSettings?.settings?.party?.shippingAddress;
+    const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
     const { branchId: dashboardBranchId } = useDashboardData({ skipReviews: true });
     const branchId = queryBranchId || dashboardBranchId || "";
     const [loading, setLoading] = useState(false);
@@ -287,20 +289,30 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                             <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.email || "--"}</p>
                                             <p style={{ color: '#888', fontSize: '11px' }}>Email</p>
                                         </div>
-                                        {enableGstin && (
+                                        {supplier?.gstin && (
                                             <div>
-                                                <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.gstin || "--"}</p>
+                                                <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.gstin}</p>
                                                 <p style={{ color: '#888', fontSize: '11px' }}>GSTIN</p>
                                             </div>
                                         )}
-                                        <div>
-                                            <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.city || "--"}</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>City</p>
-                                        </div>
-                                        <div>
-                                            <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.country || "India"}</p>
-                                            <p style={{ color: '#888', fontSize: '11px' }}>Country</p>
-                                        </div>
+                                        {supplier?.groupName && (
+                                            <div>
+                                                <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.groupName}</p>
+                                                <p style={{ color: '#888', fontSize: '11px' }}>Group Name</p>
+                                            </div>
+                                        )}
+                                        {showShippingAddress && (
+                                            <>
+                                                <div>
+                                                    <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.city || "--"}</p>
+                                                    <p style={{ color: '#888', fontSize: '11px' }}>City</p>
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{supplier?.country || "India"}</p>
+                                                    <p style={{ color: '#888', fontSize: '11px' }}>Country</p>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 

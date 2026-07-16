@@ -506,7 +506,7 @@ const PaymentOutFormPage = () => {
                                     fontWeight: '700',
                                     color: !isUnbalanced ? '#22c55e' : '#E93E64'
                                 }}>
-                                    {(Number(paidAmount) - currentTotalAllocated) < 0 ? 'Excess Allocation: ${currencySymbol} ' : 'Remaining to Allocate: ₹ '}
+                                    {(Number(paidAmount) - currentTotalAllocated) < 0 ? `Excess Allocation: ${currencySymbol} ` : `Remaining to Allocate: ${currencySymbol} `}
                                     {Math.abs(Number(paidAmount) - currentTotalAllocated).toDynamicFixed()}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#999' }}>

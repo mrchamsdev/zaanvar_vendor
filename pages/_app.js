@@ -13,7 +13,7 @@
 import "@/styles/globals.css";
 import Head from "next/head";
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Axios from "axios";
 import useStore from "../components/state/useStore";
@@ -74,6 +74,58 @@ function AuthGuard({ children }) {
 }
 
 export default function App({ Component, pageProps }) {
+  const [showMobileRedirectModal, setShowMobileRedirectModal] = useState(false);
+  const router = useRouter();
+
+  const getDeviceInfo = () => {
+    if (typeof window === "undefined") return { os: "Unknown", screen: "N/A" };
+    const ua = navigator.userAgent;
+    let os = "Unknown Device";
+    if (/iphone|ipad|ipod/i.test(ua)) os = "iOS Device";
+    else if (/android/i.test(ua)) os = "Android Device";
+    else if (/windows/i.test(ua)) os = "Windows PC";
+    else if (/mac/i.test(ua)) os = "Mac / macOS";
+    else if (/linux/i.test(ua)) os = "Linux PC";
+
+    return {
+      os,
+      screen: `${window.innerWidth} × ${window.innerHeight}px`
+    };
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const uaLower = userAgent.toLowerCase();
+
+      const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(uaLower);
+      const isIPadDesktop = /macintosh/i.test(uaLower) && navigator.maxTouchPoints > 1;
+
+      const isMobileOrTabletUA = isMobileUA || isIPadDesktop;
+
+      let isMobileDevice = false;
+
+      if (isMobileOrTabletUA) {
+        // Mobile or tablet device: show redirect popup if screen width < 1024 OR height < 768
+        if (window.innerWidth < 1024 || window.innerHeight < 768) {
+          isMobileDevice = true;
+        }
+      } else {
+        // Desktop PC (Windows/Mac/Linux): only show if width is shrunk below 600px (emulation)
+        if (window.innerWidth < 600) {
+          isMobileDevice = true;
+        }
+      }
+
+      // Only show if mobile device and not on the home landing page "/"
+      if (isMobileDevice && router.pathname !== '/') {
+        setShowMobileRedirectModal(true);
+      } else {
+        setShowMobileRedirectModal(false);
+      }
+    }
+  }, [router.pathname]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const tz = userTimeZone();
@@ -140,6 +192,79 @@ export default function App({ Component, pageProps }) {
 
       <Toaster richColors position="top-right" closeButton />
       {/* <Chatbot /> */}
+
+      {showMobileRedirectModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 99999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: '#fff', padding: '40px', borderRadius: '12px',
+            maxWidth: '500px', textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', margin: '0 20px',
+            position: 'relative', fontFamily: 'sans-serif'
+          }}>
+            <button
+              onClick={() => setShowMobileRedirectModal(false)}
+              style={{
+                position: 'absolute', top: '15px', right: '15px',
+                background: 'none', border: 'none',
+                color: '#333', cursor: 'pointer', fontSize: '24px',
+                fontWeight: 'bold'
+              }}
+            >
+              ×
+            </button>
+            <h2 style={{ marginBottom: '16px', color: '#333', fontWeight: 'bold' }}>Desktop Web Browser Required</h2>
+
+            <div style={{
+              background: '#f3f4f6',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              color: '#4b5563',
+              textAlign: 'left'
+            }}>
+              <strong>Device Detected:</strong> {getDeviceInfo().os}<br />
+              <strong>Screen Resolution:</strong> {getDeviceInfo().screen}
+            </div>
+
+            <p style={{ marginBottom: '24px', color: '#555', lineHeight: '1.6', fontSize: '15px' }}>
+              We detected that you are opening Zaanvar Vendor on a mobile device. For the best layout and full functional experience, please open it in a <strong>desktop web browser</strong>. Alternatively, you can download our mobile app for on-the-go access.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href="https://apps.apple.com/in/app/zaanvar-business/id6754638999"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '12px 24px', background: '#000', color: '#fff',
+                  borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold',
+                  fontSize: '14px', transition: 'background 0.2s', display: 'inline-block'
+                }}
+              >
+                Download iOS App
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.zaanvar.vender"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '12px 24px', background: '#3ddc84', color: '#000',
+                  borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold',
+                  fontSize: '14px', transition: 'background 0.2s', display: 'inline-block'
+                }}
+              >
+                Download Android App
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

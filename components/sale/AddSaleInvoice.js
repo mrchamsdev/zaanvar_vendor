@@ -35,6 +35,7 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
 
     const router = useRouter();
     const { jwtToken, userInfo, vendorSettings } = useStore();
+    const roundOffTotal = getBoolSetting(vendorSettings, 'roundOffTotal', false);
     const { branchId } = useDashboardData({ skipReviews: true });
     const isViewOnly = mode === 'view';
 
@@ -1219,18 +1220,20 @@ const AddSaleInvoice = ({ isOpen, onClose, onRefresh, mode = 'add', saleId }) =>
                                     <span>{currencySymbol}{(isViewOnly && loadedBeforeRoundOff !== null && loadedBeforeRoundOff !== undefined ? Number(loadedBeforeRoundOff) : (totalBillAmountBeforeRound || 0)).toFixed(getAmountDecimalPlaces())}</span>
                                 </div>
 
-                                <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontSize: '15px' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={isRoundOffChecked}
-                                            onChange={(e) => setIsRoundOffChecked(e.target.checked)}
-                                            style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: 'pointer', margin: 0, borderRadius: '4px' }}
-                                        />
-                                        Round off
-                                    </label>
-                                    <span></span>
-                                </div>
+                                {((!isViewOnly && roundOffTotal) || isRoundOffChecked) && (
+                                    <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontSize: '15px' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={isRoundOffChecked}
+                                                onChange={(e) => setIsRoundOffChecked(e.target.checked)}
+                                                style={{ width: '18px', height: '18px', accentColor: '#111827', cursor: 'pointer', margin: 0, borderRadius: '4px' }}
+                                            />
+                                            Round off
+                                        </label>
+                                        <span></span>
+                                    </div>
+                                )}
 
                                 <div className={styles.totalRowBold}>
                                     <span>Finalized Cost</span>

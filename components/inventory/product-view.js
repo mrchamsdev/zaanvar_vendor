@@ -22,6 +22,9 @@ const ProductView = ({ data, onBack, isSplit }) => {
     if (typeof date === "string" && (date.startsWith("0000-00-00") || date === "0000-00-00")) {
       return "-";
     }
+    if (typeof date === "string" && date.includes("T")) {
+      return date.split("T")[0];
+    }
     return date;
   };
 
@@ -423,43 +426,62 @@ const ProductView = ({ data, onBack, isSplit }) => {
                           <td>{stock.createdDate?.split("T")[0] || "-"}</td>
                           <td>{stock.batchNumber || stock.billItem?.batchNumber || "-"}</td>
                           <td>
-                            {(() => {
-                              if (stock.stock !== undefined && stock.stock !== null) {
-                                return stock.stock;
-                              }
-                              if (stock.stockUpdates) {
-                                if (isOS) {
-                                  const openStock = Number(stock.stockUpdates.openStockQuantity || 0);
-                                  return openStock + Number(stock.remove || 0) - Number(stock.add || 0);
-                                }
-                                if (isHold) {
-                                  const onHold = Number(stock.stockUpdates.onHoldQuantity || 0);
-                                  return onHold + Number(stock.remove || 0) - Number(stock.add || 0);
-                                }
-                              }
-                              return stock.currentQty;
-                            })()}
-                          </td>
+                             {(() => {
+                               if (isOS && stock.openQty !== undefined && stock.openQty !== null) {
+                                 const remove = Number(stock.remove || 0);
+                                 return remove > 0 ? (Number(stock.openQty) + remove) : Number(stock.openQty);
+                               }
+                               if (isHold && stock.holdQty !== undefined && stock.holdQty !== null) {
+                                 const remove = Number(stock.remove || 0);
+                                 return remove > 0 ? (Number(stock.holdQty) + remove) : Number(stock.holdQty);
+                               }
+                               if (stock.currentQty !== undefined && stock.currentQty !== null) {
+                                 return stock.currentQty;
+                               }
+                               if (stock.stock !== undefined && stock.stock !== null) {
+                                 return stock.stock - (stock.add || 0) + (stock.remove || 0);
+                               }
+                               if (stock.stockUpdates) {
+                                 if (isOS) {
+                                   const openStock = Number(stock.stockUpdates.openStockQuantity || 0);
+                                   return openStock;
+                                 }
+                                 if (isHold) {
+                                   const onHold = Number(stock.stockUpdates.onHoldQuantity || 0);
+                                   return onHold;
+                                 }
+                               }
+                               return 0;
+                             })()}
+                           </td>
                           <td>{stock.add}</td>
                           <td>{stock.remove}</td>
                           <td>
-                            {(() => {
-                              if (isOS && stock.openQty !== undefined && stock.openQty !== null) {
-                                return stock.openQty;
-                              }
-                              if (isHold && stock.holdQty !== undefined && stock.holdQty !== null) {
-                                return stock.holdQty;
-                              }
-                              if (stock.stockUpdates) {
-                                if (isOS) {
-                                  return Number(stock.stockUpdates.openStockQuantity || 0);
-                                }
-                                if (isHold) {
-                                  return Number(stock.stockUpdates.onHoldQuantity || 0);
-                                }
-                              }
-                              return stock.updatedQty;
-                            })()}
+                             {(() => {
+                               if (isOS && stock.openQty !== undefined && stock.openQty !== null) {
+                                 const add = Number(stock.add || 0);
+                                 return add > 0 ? (Number(stock.openQty) + add) : Number(stock.openQty);
+                               }
+                               if (isHold && stock.holdQty !== undefined && stock.holdQty !== null) {
+                                 const add = Number(stock.add || 0);
+                                 return add > 0 ? (Number(stock.holdQty) + add) : Number(stock.holdQty);
+                               }
+                               if (stock.stock !== undefined && stock.stock !== null) {
+                                 return stock.stock;
+                               }
+                               if (stock.updatedQty !== undefined && stock.updatedQty !== null) {
+                                 return stock.updatedQty;
+                               }
+                               if (stock.stockUpdates) {
+                                 if (isOS) {
+                                   return Number(stock.stockUpdates.openStockQuantity || 0);
+                                 }
+                                 if (isHold) {
+                                   return Number(stock.stockUpdates.onHoldQuantity || 0);
+                                 }
+                               }
+                               return 0;
+                             })()}
                           </td>
                           <td style={{ color: '#E9315D', fontWeight: 600 }}>{stock.reason || "MISCOUNT"}</td>
                           <td>{formatSourceStatus(stock.sourceStatus)}</td>

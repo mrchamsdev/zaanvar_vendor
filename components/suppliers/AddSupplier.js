@@ -179,6 +179,20 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             return;
         }
 
+        if (gstin) {
+            const trimmedGstin = gstin.trim().toUpperCase();
+            const lettersCount = (trimmedGstin.match(/[A-Z]/g) || []).length;
+            const digitsCount = (trimmedGstin.match(/[0-9]/g) || []).length;
+
+            const isValidGstin = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(trimmedGstin);
+            const isUserPattern = (trimmedGstin.length === 15 && lettersCount === 10 && digitsCount === 5);
+
+            if (!isValidGstin && !isUserPattern) {
+                toast.error("GSTIN must be exactly 15 characters (e.g., 10 letters and 5 numbers, or standard GSTIN format)");
+                return;
+            }
+        }
+
         const fieldErrors = {};
         additionalFields.forEach(f => {
             if (f.required && (!f.value || !f.value.trim())) {
@@ -297,7 +311,13 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                 <label>GSTIN</label>
                                 <input
                                     type="text" className={styles.input} placeholder="Enter GSTIN"
-                                    value={gstin} onChange={(e) => setGstin(e.target.value)}
+                                    value={gstin}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                                        if (val.length <= 15) {
+                                            setGstin(val);
+                                        }
+                                    }}
                                 />
                             </div>
                         )}

@@ -347,7 +347,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                 />
                                 <label htmlFor="useWalletPopup" style={{ cursor: 'pointer', marginBottom: 0, fontWeight: '600' }}>
-                                    Use Wallet Amount (Available: ${currencySymbol} {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                    Use Wallet Amount (Available: {currencySymbol} {walletAmount.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
                                 </label>
                             </div>
                             {useWallet && appliedWalletAmount > 0 && (
@@ -398,7 +398,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             ) : (hasMismatch && payments.length === 1 && (
                                 <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    The sum of payments (${currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
+                                    The sum of payments ({currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                 </div>
                             ))}
                         </div>
@@ -464,7 +464,7 @@ const SalePaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </div>
                                     ) : (hasMismatch && idx === payments.length - 2 && (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            The sum of payments (${currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
+                                            The sum of payments ({currencySymbol} {totalCurrentPayment}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                         </div>
                                     ))}
                                 </div>

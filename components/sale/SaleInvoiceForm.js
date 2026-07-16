@@ -38,6 +38,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
     const router = useRouter();
     const { jwtToken, userInfo, vendorSettings } = useStore();
+    const roundOffTotal = getBoolSetting(vendorSettings, 'roundOffTotal', false);
     const { branchId } = useDashboardData({ skipReviews: true });
 
     const blockNewCustomerFromTxn = vendorSettings?.general?.blockNewCustomerFromTxn;
@@ -1581,7 +1582,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                                 <span>{currencySymbol}{(isViewOnly && saleInvoiceData?.beforeRoundOff !== undefined && saleInvoiceData?.beforeRoundOff !== null ? Number(saleInvoiceData.beforeRoundOff) : (totalBillAmountBeforeRound || 0)).toFixed(getAmountDecimalPlaces())}</span>
                             </div>
 
-                            {(!isViewOnly || isRoundOffChecked) && (
+                            {((!isViewOnly && roundOffTotal) || isRoundOffChecked) && (
                                 <div className={styles.totalRowBold} style={{ alignItems: 'center' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: isViewOnly ? 'default' : 'pointer', margin: 0, fontSize: '15px' }}>
                                         <input

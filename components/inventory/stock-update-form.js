@@ -360,7 +360,10 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
 
                 const reasonLower = (data.reason || "").trim().toLowerCase();
-                if (reasonLower === "marked damaged items as waste" || reasonLower === "marked expired items as waste" || reasonLower === "restored items to stock") {
+                if (reasonLower === "marked expired items as waste") {
+                    if (data.stock !== undefined && data.stock !== null) displayCurrentQty = data.stock;
+                    if (data.holdQty !== undefined && data.holdQty !== null) displayUpdatedQty = data.holdQty;
+                } else if (reasonLower === "marked damaged items as waste" || reasonLower === "restored items to stock") {
                     if (data.currentQty !== undefined && data.currentQty !== null) displayCurrentQty = data.currentQty;
                     if (data.updatedQty !== undefined && data.updatedQty !== null) displayUpdatedQty = data.updatedQty;
                 }
@@ -453,8 +456,20 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                         } else {
                             stockData = batch.stockUpdates || {};
                             totalStock = batch.quantity ?? 0;
-                            openStockVal = (stockData.openStockQuantity || batch.openStockQuantity || batch.openQty || batch.openingStock || batch.quantity || 0) || (variant.stockUpdates?.openStockQuantity || variant.openStockQuantity || variant.openingStock || 0);
-                            holdQtyVal = (stockData.onHoldQuantity || batch.onHoldQuantity || batch.holdQty || batch.holdQuantity || 0) || (variant.stockUpdates?.onHoldQuantity || variant.onHoldQuantity || variant.holdQty || variant.holdQuantity || 0);
+                            
+                            const batchOpen = stockData.openStockQuantity !== undefined && stockData.openStockQuantity !== null
+                                ? stockData.openStockQuantity
+                                : (batch.openStockQuantity ?? batch.openQty ?? batch.openingStock ?? batch.quantity ?? null);
+                            openStockVal = batchOpen !== null
+                                ? batchOpen
+                                : (variant.stockUpdates?.openStockQuantity || variant.openStockQuantity || variant.openingStock || 0);
+
+                            const batchHold = stockData.onHoldQuantity !== undefined && stockData.onHoldQuantity !== null
+                                ? stockData.onHoldQuantity
+                                : (batch.onHoldQuantity ?? batch.holdQty ?? batch.holdQuantity ?? null);
+                            holdQtyVal = batchHold !== null
+                                ? batchHold
+                                : (variant.stockUpdates?.onHoldQuantity || variant.onHoldQuantity || variant.holdQty || variant.holdQuantity || 0);
                         }
                     }
                 }
@@ -798,8 +813,19 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                 holdQtyVal = variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0;
                             } else {
                                 const stockData = batch.stockUpdates || {};
-                                openStockVal = (stockData.openStockQuantity || batch.openStockQuantity || batch.openQty || batch.openingStock || batch.quantity || 0) || (variant?.stockUpdates?.openStockQuantity || variant?.openStockQuantity || variant?.openingStock || 0);
-                                holdQtyVal = (stockData.onHoldQuantity || batch.onHoldQuantity || batch.holdQty || batch.holdQuantity || 0) || (variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0);
+                                const batchOpen = stockData.openStockQuantity !== undefined && stockData.openStockQuantity !== null
+                                    ? stockData.openStockQuantity
+                                    : (batch.openStockQuantity ?? batch.openQty ?? batch.openingStock ?? batch.quantity ?? null);
+                                openStockVal = batchOpen !== null
+                                    ? batchOpen
+                                    : (variant?.stockUpdates?.openStockQuantity || variant?.openStockQuantity || variant?.openingStock || 0);
+
+                                const batchHold = stockData.onHoldQuantity !== undefined && stockData.onHoldQuantity !== null
+                                    ? stockData.onHoldQuantity
+                                    : (batch.onHoldQuantity ?? batch.holdQty ?? batch.holdQuantity ?? null);
+                                holdQtyVal = batchHold !== null
+                                    ? batchHold
+                                    : (variant?.stockUpdates?.onHoldQuantity || variant?.onHoldQuantity || variant?.holdQty || variant?.holdQuantity || 0);
                             }
                         }
                     }
@@ -1101,7 +1127,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
                                                         />
                                                         {errors[`${index}_expiryDate`] && <span className={styles.errorText}>{errors[`${index}_expiryDate`]}</span>}
                                                     </td>
-                                                    <td><input className={styles.tableInput} readOnly value={`${currencySymbol}${row.costPrice}`} /></td>
+                                                    <td><input className={styles.tableInput} readOnly value={`${currencySymbol}${Number(row.costPrice || 0).toDynamicFixed()}`} /></td>
                                                     <td className={`${styles.rightAlign} ${row.total >= 0 ? styles.positiveText : styles.negativeText} ${styles.boldText}`}>
                                                         {row.total >= 0 ? `+ ${currencySymbol} ${row.total.toDynamicFixed()}` : `- ${currencySymbol} ${Math.abs(row.total).toDynamicFixed()}`}
                                                     </td>

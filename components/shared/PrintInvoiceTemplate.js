@@ -267,7 +267,7 @@ const PrintInvoiceTemplate = ({
                     <td colSpan={2} className={styles.left}>TOTAL</td>
                     <td>{totalQty % 1 !== 0 ? totalQty.toFixed(getAmountDecimalPlaces()) : totalQty.toString().padStart(2, '0')}</td>
                     <td></td>
-                    <td>{totalPrice ? totalPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : ''}</td>
+                    <td></td>
                     <td style={{ padding: 0 }}>
                       <div className={styles.nestedCell}>
                         <span></span>

@@ -369,7 +369,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                 </div>
                             ) : (hasMismatch && payments.length === 1 && (
                                 <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                    The sum of payments (${currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
+                                    The sum of payments ({currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                 </div>
                             ))}
                         </div>
@@ -436,7 +436,7 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                                         </div>
                                     ) : (hasMismatch && idx === payments.length - 2 && (
                                         <div style={{ color: '#E9315D', fontSize: '10px', marginTop: '4px' }}>
-                                            The sum of payments (${currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
+                                            The sum of payments ({currencySymbol} {sessionTotal}) does not match the Total Amount Paid ({currencySymbol} {masterTarget || 0})
                                         </div>
                                     ))}
                                 </div>
