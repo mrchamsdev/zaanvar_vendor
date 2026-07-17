@@ -80,7 +80,7 @@ export default function PetSalesPage() {
       <div style={{ padding: "clamp(16px,2vw,32px)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <h2 style={{ fontSize: "24px", fontWeight: 700, color: "#111", margin: 0 }}>
-            {activeTab === "Pets" ? "Pet Sale's List View" : "Puppy Sale's List View"}
+            {activeTab === "Pets" ? "My Pets List View" : "Puppy Sale's List View"}
           </h2>
         </div>
 

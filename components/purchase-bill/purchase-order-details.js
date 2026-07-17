@@ -293,6 +293,7 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
                 {orderData.orderStatus === "order placed" && (
                     <>
                         <button className={styles.cancelBtn} onClick={() => handleUpdateStatus("cancel order")}>Cancel Order</button>
+                        <button className={styles.printBtn} onClick={() => window.open(`/invoice/purchase-order/${orderData.purchaseRequestId}`, '_blank')}>Invoice</button>
                         <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
                         <button className={styles.placeOrderBtn} style={{ background: '#000' }} onClick={onReceive}>Receive Order</button>
                     </>

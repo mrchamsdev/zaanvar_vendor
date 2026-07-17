@@ -33,7 +33,7 @@ const InfoIcon = ({ tip }) => {
         {lines.map((line, lIndex) => {
           const isHeader = line.endsWith("?") || line === "What is this?" || line === "Why use it?" || line === "Why to use?" || line === "How it is used?" || line === "Why use?" || line.startsWith("GSTIN Number") || line.startsWith("Business Currency");
           return (
-            <div key={lIndex} style={{ 
+            <div key={lIndex} style={{
               fontWeight: isHeader ? '700' : '400',
               fontSize: isHeader ? '13px' : '12px',
               color: isHeader ? '#fff' : '#e5e7eb',
@@ -49,7 +49,7 @@ const InfoIcon = ({ tip }) => {
   });
 
   return (
-    <span 
+    <span
       className={styles.infoIconWrapper}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setVisible(false)}
@@ -74,70 +74,350 @@ const InfoIcon = ({ tip }) => {
 
 const AUTO_EVENTS = [
   { key: "purchaseOrder", label: "Purchase order" },
-  { key: "purchaseOrderReceive", label: "Purchase order receive" },
+  { key: "purchaseOrderReceive", label: "Received order" },
   { key: "paymentOut", label: "Payment out" },
-  { key: "purchaseReturn", label: "Purchase Return" },
-  { key: "purchaseOrderTransaction", label: "Purchase order Transaction" },
+  { key: "purchaseReturn", label: "Purchase return" },
   { key: "saleInvoice", label: "Sale invoice" },
   { key: "paymentIn", label: "Payment in" },
   { key: "saleReturn", label: "Sale return" },
-  { key: "saleOrderTransaction", label: "Sale order Transaction" },
-  { key: "cancelledInvoice", label: "Cancelled Invoice" },
-];
+  { key: "cancelledInvoice", label: "Cancel invoice" },
+];const GET_RECIPIENT_LABEL = (key) => {
+  switch (key) {
+    case "purchaseOrder":
+      return "Send Purchase order message to Supplier";
+    case "purchaseOrderReceive":
+      return "Send Received order message to Supplier";
+    case "paymentOut":
+      return "Send Payment out transaction message to Supplier";
+    case "purchaseReturn":
+      return "Send Purchase return message to Supplier";
+    case "saleInvoice":
+      return "Send Sale invoice message to Customer";
+    case "paymentIn":
+      return "Send Payment in message to Customer";
+    case "saleReturn":
+      return "Send Sale return message to Customer";
+    case "cancelledInvoice":
+      return "Send Cancel invoice message to Customer";
+    default:
+      return "";
+  }
+};
 
-const SALE_TEMPLATE = (
-  <div className={styles.previewContainer}>
-    <div className={styles.previewCard}>
-      <div>Greetings from <span className={styles.previewPlaceholder}>[ First Name ]</span></div>
+const GET_RECIPIENT_TIP = (key) => {
+  switch (key) {
+    case "purchaseOrder":
+      return "When enabled, Zaanvar will automatically send a message to your supplier after a Purchase Order is created.";
+    case "purchaseOrderReceive":
+      return "When enabled, Zaanvar will automatically send a message to your supplier after a Received Order is recorded.";
+    case "paymentOut":
+      return "When enabled, Zaanvar will automatically send a message to your supplier after a Payment Out transaction is recorded.";
+    case "purchaseReturn":
+      return "When enabled, Zaanvar will automatically send a message to your supplier after a Purchase Return is recorded.";
+    case "saleInvoice":
+      return "When enabled, Zaanvar will automatically send a message to your customer after a Sale Invoice is created.";
+    case "paymentIn":
+      return "When enabled, Zaanvar will automatically send a message to your customer after a Payment In transaction is recorded.";
+    case "saleReturn":
+      return "When enabled, Zaanvar will automatically send a message to your customer after a Sale Return is recorded.";
+    case "cancelledInvoice":
+      return "When enabled, Zaanvar will automatically send a message to your customer after a Sale Invoice is cancelled.";
+    default:
+      return "";
+  }
+};
+
+const GET_RECIPIENT_PROP = (key) => {
+  switch (key) {
+    case "purchaseOrder":
+      return "sendPurchaseOrderMessageToSupplier";
+    case "purchaseOrderReceive":
+      return "sendReceivedOrderMessageToSupplier";
+    case "paymentOut":
+      return "sendPaymentOutMessageToSupplier";
+    case "purchaseReturn":
+      return "sendPurchaseReturnMessageToSupplier";
+    case "saleInvoice":
+      return "sendSaleInvoiceMessageToCustomer";
+    case "paymentIn":
+      return "sendPaymentInMessageToCustomer";
+    case "saleReturn":
+      return "sendSaleReturnMessageToCustomer";
+    case "cancelledInvoice":
+      return "sendCancelInvoiceMessageToCustomer";
+    default:
+      return "";
+  }
+};
+
+const GET_EVENT_STRING = (key) => {
+  switch (key) {
+    case "purchaseOrder":
+      return "Purchase order";
+    case "purchaseOrderReceive":
+      return "Purchase order receive";
+    case "paymentOut":
+      return "Payment out";
+    case "purchaseReturn":
+      return "Purchase Return";
+    case "saleInvoice":
+      return "Sale invoice";
+    case "paymentIn":
+      return "Payment in";
+    case "saleReturn":
+      return "Sale return";
+    case "cancelledInvoice":
+      return "Cancelled Invoice";
+    default:
+      return "";
+  }
+};
+
+
+
+const GET_TXN_FIELDS = (txnType) => {
+  switch (txnType) {
+    case "Purchase order":
+      return {
+        placeholderBlock: "[ Purchase Order Transaction ]",
+        imageLabel: "Purchase Order :",
+        saleFields: [
+          { label: "Order Amount", val: "[ Order Amount ]" },
+          { label: "Paid", val: "[ ₹000000 ]" },
+          { label: "Balance", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Order Amount", val: "792.000" },
+          { label: "Paid", val: "0.0000" },
+          { label: "Balance", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Received order":
+      return {
+        placeholderBlock: "[ Purchase Transaction ]",
+        imageLabel: "Purchase invoice :",
+        saleFields: [
+          { label: "Order Amount", val: "[ Order Amount ]" },
+          { label: "Paid Amount", val: "[ ₹000000 ]" },
+          { label: "Balance", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Order Amount", val: "792.000" },
+          { label: "Paid", val: "0.0000" },
+          { label: "Balance", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Payment out":
+      return {
+        placeholderBlock: "[ Payment Out Transaction ]",
+        imageLabel: "Payment Out Transaction :",
+        saleFields: [
+          { label: "Paid", val: "[ Amount ]" },
+          { label: "Discount", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Paid", val: "792.000" },
+          { label: "Discount", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Purchase return":
+      return {
+        placeholderBlock: "[ Purchase Return Transaction ]",
+        imageLabel: "Purchase Return invoice :",
+        saleFields: [
+          { label: "Purchase Return Amount", val: "[ Purchase Return Amount ]" },
+          { label: "Received Amount", val: "[ ₹000000 ]" },
+          { label: "Balance", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Purchase Return Amount", val: "792.000" },
+          { label: "Received Amount", val: "0.0000" },
+          { label: "Balance", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Sale invoice":
+      return {
+        placeholderBlock: "[ Sale Transaction ]",
+        imageLabel: "Sale Invoice :",
+        saleFields: [
+          { label: "Sale Amount", val: "[ Sale Amount ]" },
+          { label: "Received Amount", val: "[ ₹000000 ]" },
+          { label: "Balance", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Sale Amount", val: "792.000" },
+          { label: "Received", val: "0.0000" },
+          { label: "Balance", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Payment in":
+      return {
+        placeholderBlock: "[ Payment IN Transaction ]",
+        imageLabel: "Payment IN Invoice :",
+        saleFields: [
+          { label: "Received", val: "[ Amount ]" },
+          { label: "Discount", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Received", val: "792.000" },
+          { label: "Discount", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Sale return":
+      return {
+        placeholderBlock: "[ Sale Return Transaction ]",
+        imageLabel: "Sale Return invoice :",
+        saleFields: [
+          { label: "Sale Return Amount", val: "[ Sale Return Amount ]" },
+          { label: "Paid Amount", val: "[ ₹000000 ]" },
+          { label: "Balance", val: "[ ₹000000 ]" },
+          { label: "Total Balance", val: "[ ₹000000 ]" },
+        ],
+        imageFields: [
+          { label: "Sale Return Amount", val: "792.000" },
+          { label: "Paid", val: "0.0000" },
+          { label: "Balance", val: "0.0000" },
+          { label: "Total Balance", val: "0.0000" },
+        ]
+      };
+    case "Cancel invoice":
+      return {
+        placeholderBlock: "[ Cancelled Invoice Transaction ]",
+        imageLabel: "Cancelled order Transaction :",
+        saleFields: [
+          { label: "Invoice Date", val: "[ DD-MM-YYYY ]" },
+          { label: "Cancellation Date", val: "[ DD-MM-YYYY ]" },
+        ],
+        imageFields: [
+          { label: "Invoice Date", val: "22-May-2026" },
+          { label: "Cancellation Date", val: "30-May-2026" },
+        ]
+      };
+    default:
+      return null;
+  }
+};
+
+const SaleTemplate = ({ txnType }) => {
+  const fieldsConfig = GET_TXN_FIELDS(txnType);
+  if (!fieldsConfig) return null;
+
+  return (
+    <div className={styles.previewContainer}>
+      <div className={styles.previewCard}>
+        <div>Greetings from <span className={styles.previewPlaceholder}>[ Branch Name ]</span></div>
+        <br />
+        <div>
+          We are pleased to have you as a valuable customer. Please find the details of your transaction.
+        </div>
+        <br />
+        <div>
+          <span className={styles.previewPlaceholder}>{fieldsConfig.placeholderBlock}</span>
+        </div>
+        <br />
+        {fieldsConfig.saleFields.map((f, i) => (
+          <React.Fragment key={i}>
+            <div>
+              {f.label} : <span className={styles.previewPlaceholder}>{f.val}</span>
+            </div>
+            <br />
+          </React.Fragment>
+        ))}
+        <div>Thanks for doing business with us. Regards,</div>
+        <br />
+        <div><span className={styles.previewPlaceholder}>[ Firm_Name ]</span></div>
+      </div>
+    </div>
+  );
+};
+
+const ImageTemplate = ({ txnType, includeSupplierWebInvoiceLink, includeCustomerWebInvoiceLink }) => {
+  const fieldsConfig = GET_TXN_FIELDS(txnType);
+  if (!fieldsConfig) return null;
+
+  const isSupplier = ["Purchase order", "Received order", "Payment out", "Purchase return"].includes(txnType);
+  const showLink = (isSupplier ? includeSupplierWebInvoiceLink : includeCustomerWebInvoiceLink) !== false;
+
+  return (
+    <div className={styles.previewCardAttached}>
+      {showLink && (
+        <div className={styles.previewImageBanner}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          Web Invoice Link Included
+        </div>
+      )}
+      <div>Greetings from My Branch</div>
       <br />
-      <div>We are pleased to have you as a valuable customer. Please find the details of your transaction.</div>
+      <div>
+        We are pleased to have you as a valuable customer. Please find the details of your transaction.
+      </div>
       <br />
-      <div><span className={styles.previewPlaceholder}>[ Transaction_Type ]</span></div>
+      <div>{fieldsConfig.imageLabel}</div>
       <br />
-      <div>Invoice Amount : <span className={styles.previewPlaceholder}>[ Invoice Amount ]</span></div>
-      <br />
-      <div>Balance : <span className={styles.previewPlaceholder}>[ Transaction Balance ]</span></div>
-      <br />
+      {fieldsConfig.imageFields.map((f, i) => (
+        <React.Fragment key={i}>
+          <div>
+            {f.label} : {f.val}
+          </div>
+          <br />
+        </React.Fragment>
+      ))}
+      {showLink && (
+        <>
+          <div>Click the link below to view or download your invoice:</div>
+          <div style={{ color: "#e9315d", textDecoration: "underline", marginTop: 4, fontWeight: 500, cursor: "pointer" }}>
+            https://zaanvar.in/invoice/preview/xyz123
+          </div>
+          <br />
+        </>
+      )}
       <div>Thanks for doing business with us. Regards,</div>
       <br />
-      <div><span className={styles.previewPlaceholder}>[ Firm_Name ]</span></div>
+      <div>My Branch</div>
     </div>
-  </div>
-);
+  );
+};
 
-const IMAGE_TEMPLATE = (
-  <div className={styles.previewCardAttached}>
-    <div className={styles.previewImageBanner}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-      </svg>
-      Transaction Image Attached
-    </div>
-    <div>Greetings from My Company</div>
-    <br />
-    <div>We are pleased to have you as a valuable customer. Please find the details of your transaction.</div>
-    <br />
-    <div>Sale Invoice :</div>
-    <br />
-    <div>Invoice Amount : 792.000</div>
-    <br />
-    <div>Balance : 0.0000</div>
-    <br />
-    <div>Thanks for doing business with us. Regards,</div>
-    <br />
-    <div>My Company</div>
-  </div>
-);
 
 const TransactionMessageSettings = ({ settings, onChange }) => {
   const m = settings;
-  const [txnType, setTxnType] = useState("Sale Transaction");
+  const [txnType, setTxnType] = useState("Purchase order");
 
   const toggle = (field) => (e) => onChange({ ...m, [field]: e.target.checked });
 
   const toggleEvent = (key) => {
-    const current = m.autoMessageEvents || {};
-    onChange({ ...m, autoMessageEvents: { ...current, [key]: !current[key] } });
+    const eventString = GET_EVENT_STRING(key);
+    let updated;
+    if (Array.isArray(m.autoMessageEvents)) {
+      if (m.autoMessageEvents.includes(eventString)) {
+        updated = m.autoMessageEvents.filter((item) => item !== eventString);
+      } else {
+        updated = [...m.autoMessageEvents, eventString];
+      }
+    } else if (m.autoMessageEvents && typeof m.autoMessageEvents === "object") {
+      updated = {
+        ...m.autoMessageEvents,
+        [key]: !m.autoMessageEvents[key]
+      };
+    } else {
+      updated = { [key]: true };
+    }
+    onChange({ ...m, autoMessageEvents: updated });
   };
 
   return (
@@ -172,7 +452,7 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
                 background: "#e9315d"
               }} />
             </div>
-            
+
             <div style={{
               display: "flex",
               alignItems: "center",
@@ -184,10 +464,10 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
               fontWeight: 500,
               color: "#333"
             }}>
-              <img 
-                src="https://zaanvarprods3.b-cdn.net/media/1762595677584-zaanvarlogo.png" 
-                alt="Zaanvar logo" 
-                style={{ height: 20, objectFit: "contain" }} 
+              <img
+                src="https://zaanvarprods3.b-cdn.net/media/1762595677584-zaanvarlogo.png"
+                alt="Zaanvar logo"
+                style={{ height: 20, objectFit: "contain" }}
               />
               Send Via &nbsp;Zaanvar
             </div>
@@ -198,37 +478,24 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
         <div className={styles.card}>
           <div className={styles.cardTitle}>Message Recipient Settings :</div>
 
-          <div className={styles.checkRow}>
-            <input id="sendMessageToSupplier" type="checkbox" className={styles.checkInput}
-              checked={m.sendMessageToSupplier} onChange={toggle("sendMessageToSupplier")} />
-            <label htmlFor="sendMessageToSupplier" className={styles.checkLabel}>Send Message to Supplier</label>
-            <InfoIcon tip={`What is this?\nZaanvar will automatically send a message (SMS/WhatsApp) to your supplier immediately after the transaction has been recorded.`} />
-          </div>
-
-          <div className={styles.checkRow}>
-            <input id="sendMessageToCustomer" type="checkbox" className={styles.checkInput}
-              checked={m.sendMessageToCustomer} onChange={toggle("sendMessageToCustomer")} />
-            <label htmlFor="sendMessageToCustomer" className={styles.checkLabel}>Send Message to Customer</label>
-            <InfoIcon tip="When ON, customer receives a message when a sale invoice is created." />
-          </div>
-
-          <div className={styles.checkRow}>
-            <input id="sendTxnUpdateToSupplier" type="checkbox" className={styles.checkInput}
-              checked={m.sendTxnUpdateToSupplier} onChange={toggle("sendTxnUpdateToSupplier")} />
-            <label htmlFor="sendTxnUpdateToSupplier" className={styles.checkLabel}>
-              Send Transaction Update Message to Supplier
-            </label>
-            <InfoIcon tip={`What is this?\nZaanvar will send an automatic message to your supplier immediately after you have updated a transaction.`} />
-          </div>
-
-          <div className={styles.checkRow}>
-            <input id="sendTxnUpdateToCustomer" type="checkbox" className={styles.checkInput}
-              checked={m.sendTxnUpdateToCustomer} onChange={toggle("sendTxnUpdateToCustomer")} />
-            <label htmlFor="sendTxnUpdateToCustomer" className={styles.checkLabel}>
-              Send Transaction Update Message to Customer
-            </label>
-            <InfoIcon tip="When ON, customer gets a message when payment is done in sale invoice, mark as pay, payment in, or sale return." />
-          </div>
+          {AUTO_EVENTS.map((ev) => {
+            const propName = GET_RECIPIENT_PROP(ev.key);
+            return (
+              <div key={ev.key} className={styles.checkRow}>
+                <input
+                  id={`autoEvent-${ev.key}`}
+                  type="checkbox"
+                  className={styles.checkInput}
+                  checked={!!m[propName]}
+                  onChange={(e) => onChange({ ...m, [propName]: e.target.checked })}
+                />
+                <label htmlFor={`autoEvent-${ev.key}`} className={styles.checkLabel}>
+                  {GET_RECIPIENT_LABEL(ev.key)}
+                </label>
+                <InfoIcon tip={GET_RECIPIENT_TIP(ev.key)} />
+              </div>
+            );
+          })}
 
           <div className={styles.checkRow}>
             <input id="sendCopyToSelf" type="checkbox" className={styles.checkInput}
@@ -283,18 +550,26 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
         <div className={styles.card}>
           <div className={styles.cardTitle}>Send Automatic Message for :</div>
           <div className={styles.checkGrid}>
-            {AUTO_EVENTS.map((ev) => (
-              <label key={ev.key} className={styles.checkGridItem}>
-                <input
-                  type="checkbox"
-                  className={styles.checkInput}
-                  checked={!!(m.autoMessageEvents || {})[ev.key]}
-                  onChange={() => toggleEvent(ev.key)}
-                  id={`autoEvent-${ev.key}`}
-                />
-                {ev.label}
-              </label>
-            ))}
+            {AUTO_EVENTS.map((ev) => {
+              const eventString = GET_EVENT_STRING(ev.key);
+              const isChecked = Array.isArray(m.autoMessageEvents)
+                ? m.autoMessageEvents.includes(eventString)
+                : m.autoMessageEvents && typeof m.autoMessageEvents === "object"
+                ? !!m.autoMessageEvents[ev.key]
+                : false;
+              return (
+                <label key={ev.key} className={styles.checkGridItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkInput}
+                    checked={isChecked}
+                    onChange={() => toggleEvent(ev.key)}
+                    id={`autoEventBottom-${ev.key}`}
+                  />
+                  {ev.label}
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -322,8 +597,8 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
               }}
             >
               {AUTO_EVENTS.map((ev) => (
-                <option 
-                  key={ev.key} 
+                <option
+                  key={ev.key}
                   value={ev.label}
                   style={{ color: "#333", background: "#fff" }}
                 >
@@ -333,8 +608,12 @@ const TransactionMessageSettings = ({ settings, onChange }) => {
             </select>
           </div>
 
-          {SALE_TEMPLATE}
-          {IMAGE_TEMPLATE}
+          <SaleTemplate txnType={txnType} />
+          <ImageTemplate
+            txnType={txnType}
+            includeSupplierWebInvoiceLink={m.includeSupplierWebInvoiceLink}
+            includeCustomerWebInvoiceLink={m.includeCustomerWebInvoiceLink}
+          />
         </div>
       </div>
     </div>

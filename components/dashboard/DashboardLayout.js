@@ -133,7 +133,6 @@ const IconBell = () => (
 const SERVICE_MAP = {
   Grooming: { label: "Grooming", path: "/grooming", icon: <IconScissors /> },
   Clinic: { label: "Clinic", path: "/clinic", icon: <IconActivity /> },
-  "Pet Shop": { label: "Pet Shop", path: "/pet-shop", icon: <IconShop /> },
   Training: { label: "Training", path: "/training", icon: <IconActivity /> },
   "Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
   "Pet Day Care": { label: "Day care", path: "/daycare", icon: <IconHeart /> },
@@ -185,7 +184,6 @@ const BRANCH_SERVICE_MAP = {
   clinicDetails: "Clinic",
   groomingServices: "Grooming",
   daycares: "Day Care",
-  petShops: "Pet Shop",
   petSales: "Pet Sales",
   inventory: "Inventory",
   purchaseBills: "Purchase Bills",
@@ -271,7 +269,7 @@ function buildMenuFromVendor(userInfo) {
     }
   });
 
-  return [...base, ...svcItems, { label: "Notifications", path: "/notifications", icon: <IconBell /> }];
+  return [...base, ...svcItems];
 }
 
 /* ─── Loading skeleton ──────────────────────────────────── */
@@ -411,9 +409,9 @@ const DashboardLayout = ({
           {menuItems.map((item) => {
             const subMatch = item.subItems
               ? item.subItems.some(sub => {
-                  const subBase = sub.path.split('?')[0];
-                  return router.pathname === subBase || router.pathname.startsWith(subBase + '/');
-                })
+                const subBase = sub.path.split('?')[0];
+                return router.pathname === subBase || router.pathname.startsWith(subBase + '/');
+              })
               : false;
             const isActive = router.pathname === item.path || router.pathname.startsWith(item.path + '/') || subMatch;
             const hasSub = !!item.subItems;

@@ -614,6 +614,12 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
             </div> */}
 
             <div className={styles.footer}>
+                <button className={styles.printBtn} style={{ marginRight: '10px' }} onClick={() => {
+                    const activeBillId = productsBillId || receivedDetails?.id || data?.id;
+                    if (activeBillId) {
+                        window.open(`/invoice/received-order/${activeBillId}`, '_blank');
+                    }
+                }}>Invoice</button>
                 <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
                 {paymentStatus !== "Full" && (
                     <button className={styles.markPaidBtn} onClick={() => setShowPaymentPopup(true)}>Mark as Paid</button>
