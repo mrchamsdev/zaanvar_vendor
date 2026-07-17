@@ -9,6 +9,8 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
+import { getSettings, triggerVendorMessage } from "../../services/settingsService";
+
 
 const IconTrash = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -63,6 +65,11 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     ]);
 
     const [formErrors, setFormErrors] = useState({});
+    const [messageModal, setMessageModal] = useState({
+        isOpen: false,
+        messageId: null,
+        resolveAction: null,
+    });
 
     // Search and Dropdown states
     const [searchQuery, setSearchQuery] = useState("");
@@ -359,6 +366,67 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             console.log("Submit Response:", res);
             if (res.status === "success" || res.status === "ok" || res.status === 200) {
                 toast.success(type === "Drafted" ? "Order Saved as Draft" : "Order Placed Successfully");
+
+                // Check message settings only if it was NOT drafted
+                if (type !== "Drafted") {
+                    try {
+                        console.log("Fetching message settings for branch:", branchId);
+                        const settingsRes = await getSettings(jwtToken, branchId);
+                        console.log("PO Form - settingsRes:", settingsRes);
+
+                        const msgSettings = settingsRes?.data?.settings?.messages || settingsRes?.settings?.messages;
+                        const responseMessages = settingsRes?.data?.messages || settingsRes?.messages || [];
+
+                        const sendPurchaseOrderMessageToSupplier = msgSettings?.sendPurchaseOrderMessageToSupplier;
+                        const autoMessageEvents = msgSettings?.autoMessageEvents;
+
+                        const isAutoEnabled = Array.isArray(autoMessageEvents)
+                            ? autoMessageEvents.includes("Purchase order")
+                            : !!autoMessageEvents?.purchaseOrder;
+
+                        console.log("PO Form - sendPurchaseOrderMessageToSupplier:", sendPurchaseOrderMessageToSupplier);
+                        console.log("PO Form - isAutoEnabled:", isAutoEnabled);
+                        toast.info(`Msg Setting: SendToSupplier=${sendPurchaseOrderMessageToSupplier || false}, AutoSend=${isAutoEnabled || false}`);
+
+                        if (sendPurchaseOrderMessageToSupplier && !isAutoEnabled) {
+                            // Show the modal first
+                            const userChoice = await new Promise((resolve) => {
+                                setMessageModal({
+                                    isOpen: true,
+                                    messageId: null,
+                                    resolveAction: resolve,
+                                });
+                            });
+
+                            if (userChoice) {
+                                let matchingMsg = responseMessages.find(m => m.eventType === "purchaseOrder");
+                                
+                                // If not found immediately, retry once after 600ms
+                                if (!matchingMsg) {
+                                    console.log("Message not found in initial response, retrying...");
+                                    await new Promise(r => setTimeout(r, 600));
+                                    const refetched = await getSettings(jwtToken, branchId);
+                                    const refetchedMsgs = refetched?.data?.messages || refetched?.messages || [];
+                                    matchingMsg = refetchedMsgs.find(m => m.eventType === "purchaseOrder");
+                                }
+
+                                if (matchingMsg && matchingMsg.vendorMessageId) {
+                                    try {
+                                        await triggerVendorMessage(jwtToken, matchingMsg.vendorMessageId);
+                                        toast.success("Message triggered successfully!");
+                                    } catch (err) {
+                                        console.error("Failed to trigger message:", err);
+                                        toast.error("Failed to trigger message to supplier.");
+                                    }
+                                } else {
+                                    console.error("No purchaseOrder message found to trigger.");
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Settings/message check failed:", err);
+                    }
+                }
 
                 // Trigger navigation and refresh
                 console.log("Invoking onSave callback");
@@ -691,6 +759,95 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                     {loading ? "Processing..." : "Place a Order"}
                 </button>
             </div>
+
+            {messageModal.isOpen && (
+                <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 9999,
+                    backdropFilter: "blur(4px)",
+                }}>
+                    <div style={{
+                        background: "#fff",
+                        borderRadius: 12,
+                        padding: 24,
+                        width: "90%",
+                        maxWidth: 400,
+                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                        textAlign: "center",
+                    }}>
+                        <div style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: "50%",
+                            backgroundColor: "#fdf0f3",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            margin: "0 auto 16px",
+                            color: "#e9315d"
+                        }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                              <polyline points="22,6 12,13 2,6" />
+                            </svg>
+                        </div>
+                        <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600, color: "#111" }}>
+                            Send Message to Supplier?
+                        </h3>
+                        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#666", lineHeight: 1.5 }}>
+                            Do you want to send the purchase order created message to the supplier?
+                        </p>
+                        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                            <button
+                                onClick={() => {
+                                    setMessageModal({ isOpen: false, messageId: null, resolveAction: null });
+                                    if (messageModal.resolveAction) messageModal.resolveAction(false);
+                                }}
+                                style={{
+                                    padding: "10px 20px",
+                                    border: "1px solid #ddd",
+                                    background: "#fff",
+                                    borderRadius: 6,
+                                    cursor: "pointer",
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: "#666",
+                                    minWidth: 80,
+                                }}
+                            >
+                                No
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setMessageModal({ isOpen: false, messageId: null, resolveAction: null });
+                                    if (messageModal.resolveAction) messageModal.resolveAction(true);
+                                }}
+                                style={{
+                                    padding: "10px 20px",
+                                    border: "none",
+                                    background: "#e9315d",
+                                    color: "#fff",
+                                    borderRadius: 6,
+                                    cursor: "pointer",
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    minWidth: 80,
+                                }}
+                            >
+                                Yes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

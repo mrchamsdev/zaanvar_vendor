@@ -916,6 +916,10 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                                 setActiveDropdown(null);
                                                             }}>Open PDF</div>
                                                             <div className={styles.dropdownItem} onClick={() => {
+                                                                window.open(`/invoice/purchase-return/${r.returnProductsId}`, '_blank');
+                                                                setActiveDropdown(null);
+                                                            }}>Invoice</div>
+                                                            <div className={styles.dropdownItem} onClick={() => {
                                                                 setActiveDropdown(null);
                                                                 const printUrl = `${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true&print=true`;
                                                                 const iframe = document.createElement('iframe');

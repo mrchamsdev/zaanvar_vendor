@@ -1094,6 +1094,10 @@ const PaymentOutList = ({ onAddClick }) => {
                                                                         setActiveDropdown(null);
                                                                     }}>Open PDF</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
+                                                                        window.open(`/invoice/payment-out/${t.suppliersTransactionId}`, '_blank');
+                                                                        setActiveDropdown(null);
+                                                                    }}>Invoice</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
                                                                         const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toDynamicFixed();
                                                                         const printUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&print=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}&branchId=${selectedBranchId || defaultBranchId}`;

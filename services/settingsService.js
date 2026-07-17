@@ -37,6 +37,15 @@ export const updateSettings = async (jwtToken, payload) => {
 };
 
 /**
+ * Trigger PUT /api/vendor/settings/messages/{messageId}
+ */
+export const triggerVendorMessage = async (jwtToken, messageId) => {
+  const webApi = new WebApimanager(jwtToken);
+  const res = await webApi.put(`vendor/settings/messages/${messageId}`, { status: "ok" });
+  return res;
+};
+
+/**
  * Fetch all terms and conditions
  * GET /api/vendor/terms-and-conditions?branchId={branchId}
  */
@@ -130,22 +139,19 @@ export const DEFAULT_SETTINGS = {
     sendTxnUpdateToSupplier: false,
     sendTxnUpdateToCustomer: false,
     sendCopyToSelf: false,
+    sendPurchaseOrderMessageToSupplier: false,
+    sendReceivedOrderMessageToSupplier: false,
+    sendPaymentOutMessageToSupplier: false,
+    sendPurchaseReturnMessageToSupplier: false,
+    sendSaleInvoiceMessageToCustomer: false,
+    sendPaymentInMessageToCustomer: false,
+    sendSaleReturnMessageToCustomer: false,
+    sendCancelInvoiceMessageToCustomer: false,
     includeSupplierBalance: false,
     includeCustomerBalance: false,
     includeSupplierWebInvoiceLink: false,
     includeCustomerWebInvoiceLink: false,
-    autoMessageEvents: {
-      purchaseOrder: false,
-      purchaseOrderReceive: false,
-      paymentOut: false,
-      purchaseReturn: false,
-      purchaseOrderTransaction: false,
-      saleInvoice: false,
-      paymentIn: false,
-      saleReturn: false,
-      saleOrderTransaction: false,
-      cancelledInvoice: false
-    }
+    autoMessageEvents: []
   },
   party: {
     supplierGrouping: false,

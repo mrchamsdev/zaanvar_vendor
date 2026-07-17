@@ -1032,6 +1032,10 @@ const SalesInvoiceList = ({ onAddClick }) => {
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${inv.userOrderId}&pdf=true`, '_blank'); }}>Open PDF</div>
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
+                                                                        window.open(`/invoice/sale-invoice/${inv.userOrderId}`, '_blank');
+                                                                    }}>Invoice</div>
+                                                                    <div className={styles.dropdownItem} onClick={() => {
+                                                                        setActiveDropdown(null);
                                                                         const printUrl = `${window.location.pathname}?view=true&id=${inv.userOrderId}&print=true&pdf=true`;
                                                                         const iframe = document.createElement('iframe');
                                                                         iframe.style.position = 'fixed';

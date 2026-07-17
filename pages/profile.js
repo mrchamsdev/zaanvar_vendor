@@ -438,7 +438,7 @@ export default function ProfilePage() {
           {/* Feature Type / Categories / Available Pets */}
           <div className={styles.featureGrid}>
             <div className={styles.featureCol}>
-              <h4>Feature Type</h4>
+              <h4>Service Type</h4>
               {featureTypes.length ? featureTypes.map((item, i) => (
                 <div key={i} className={styles.featureItem}>
                   <div className={styles.featureDot}>🐾</div>{toStr(item)}
