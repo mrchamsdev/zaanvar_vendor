@@ -18,7 +18,7 @@ const InvoiceDynamic = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!_hasHydrated) return; // wait for Zustand to rehydrate from localStorage
+    if (!_hasHydrated) return;
     if (type && id) {
       fetchData();
     }
@@ -444,7 +444,6 @@ const InvoiceDynamic = () => {
     return <div className="inv-state-screen"><h3>Loading invoice details...</h3></div>;
   }
 
-
   if (error) {
     return (
       <div className="inv-error-screen">
@@ -482,7 +481,6 @@ const InvoiceDynamic = () => {
           <div className="inv-logo">[ LOGO ]</div>
         </div>
 
-        {/* Party Info Block */}
         <div className="inv-party-block">
           <div>
             <div className="inv-party-label">{details.partyLabel}</div>
@@ -550,13 +548,12 @@ const InvoiceDynamic = () => {
         </div>
 
         <div className="inv-words-table-roa">
-          {/* AMOUNT PAID Banner Row */}
+          
           <div className="inv-amount-banner">
             <div>{details.rowTitle}</div>
             <div className="inv-amount-val">{currencySymbol} {formatVal(details.grandTotalValue)}</div>
           </div>
 
-          {/* Inline words logic for vouchers */}
           {isVoucher && (
             <>
               <div className="inv-words-label">AMOUNT IN WORDS</div>
@@ -564,7 +561,6 @@ const InvoiceDynamic = () => {
             </>
           )}
 
-          {/* Items/Payment Grid Table */}
           <div className="inv-table-outer">
             <div className="inv-table-wrap">
               <table>
@@ -660,7 +656,6 @@ const InvoiceDynamic = () => {
                     </>
                   )}
 
-                  {/* Total Summary Row */}
                   <tr className="inv-summary-row">
                     <td className="inv-summary-label" colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7}>
                       {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
@@ -672,14 +667,14 @@ const InvoiceDynamic = () => {
                 </tbody>
               </table>
             </div>
-            {/* Swipe hint – only visible on mobile via CSS */}
+            
             <div className="inv-scroll-hint">
               <span>⟵</span><span>Swipe to see all columns</span><span>⟶</span>
             </div>
           </div>
 
         </div>
-        {/* Bottom Double-Box Block */}
+        
         {!isVoucher && (
           <div className="inv-bottom-boxes">
             <div className="inv-words-box">
@@ -703,7 +698,6 @@ const InvoiceDynamic = () => {
           </div>
         )}
 
-        {/* Signature Box */}
         <div className="inv-sig-wrap">
           <div className="inv-sig-box">
             <div className="inv-sig-header">For {companyName}</div>
@@ -713,7 +707,6 @@ const InvoiceDynamic = () => {
           </div>
         </div>
 
-        {/* Bottom Footer Bar */}
         <div className="inv-footer-bar">
           Smart Business Solutions by Zaanvar
         </div>
