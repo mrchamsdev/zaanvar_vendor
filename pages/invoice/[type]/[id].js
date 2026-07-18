@@ -12,16 +12,19 @@ const InvoiceDynamic = () => {
   const currencySymbol = useCurrencySymbol();
   const router = useRouter();
   const { type, id } = router.query;
-  const { jwtToken, userInfo } = useStore();
+  const { jwtToken, userInfo, _hasHydrated } = useStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!_hasHydrated) return; // wait for Zustand to rehydrate from localStorage
     if (jwtToken && type && id) {
       fetchData();
+    } else if (_hasHydrated && !jwtToken) {
+      setLoading(false); // stop loading — user is not logged in
     }
-  }, [jwtToken, type, id]);
+  }, [_hasHydrated, jwtToken, type, id]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -439,10 +442,19 @@ const InvoiceDynamic = () => {
     return details;
   };
 
-  if (loading) {
+  if (loading || !_hasHydrated) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "sans-serif" }}>
         <h3>Loading invoice details...</h3>
+      </div>
+    );
+  }
+
+  if (!jwtToken) {
+    return (
+      <div style={{ padding: 24, textAlign: "center", fontFamily: "sans-serif" }}>
+        <h3 style={{ color: "#e9315d" }}>Session expired. Please log in to view this invoice.</h3>
+        <button onClick={() => router.push("/login")} style={{ padding: "8px 16px", marginTop: 16, cursor: "pointer", background: "#e9315d", color: "#fff", border: "none", borderRadius: 4 }}>Go to Login</button>
       </div>
     );
   }
