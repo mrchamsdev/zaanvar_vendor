@@ -77,6 +77,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
     const [focusedVariantIndex, setFocusedVariantIndex] = useState(null);
     const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
     const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
+    const [supplierProducts, setSupplierProducts] = useState(null);
 
     const tableRef = useRef(null);
     const supplierRef = useRef(null);
@@ -113,6 +114,27 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             fetchProducts();
         }
     }, [jwtToken, branchId]);
+
+    useEffect(() => {
+        const initialSupplierId = initialData?.supplierId || initialData?.restockItem?.supplierId;
+        if (jwtToken && branchId && initialSupplierId) {
+            purchaseService.getSupplierById(jwtToken, initialSupplierId, branchId)
+                .then(res => {
+                    const supplierData = res?.data || res;
+                    if (supplierData && Array.isArray(supplierData.products)) {
+                        setSupplierProducts(supplierData.products.map(p => p.productId || p.id));
+                    } else if (supplierData && Array.isArray(supplierData.productIds)) {
+                        setSupplierProducts(supplierData.productIds);
+                    } else {
+                        setSupplierProducts([]);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to fetch initial supplier products", err);
+                    setSupplierProducts([]);
+                });
+        }
+    }, [jwtToken, branchId, initialData]);
 
     // Handle restock auto-population
     useEffect(() => {
@@ -167,7 +189,7 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
         } catch (e) { console.error(e); }
     };
 
-    const handleSupplierChange = (e) => {
+    const handleSupplierChange = async (e) => {
         const id = e.target.value;
         setSupplierId(id);
         const supplier = suppliers.find(s => String(s.supplierId) === String(id));
@@ -177,6 +199,25 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
             const newErrors = { ...formErrors };
             delete newErrors.supplierId;
             setFormErrors(newErrors);
+        }
+
+        if (id && jwtToken && branchId) {
+            try {
+                const res = await purchaseService.getSupplierById(jwtToken, id, branchId);
+                const supplierData = res?.data || res;
+                if (supplierData && Array.isArray(supplierData.products)) {
+                    setSupplierProducts(supplierData.products.map(p => p.productId || p.id));
+                } else if (supplierData && Array.isArray(supplierData.productIds)) {
+                    setSupplierProducts(supplierData.productIds);
+                } else {
+                    setSupplierProducts([]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch supplier details for products filter:", err);
+                setSupplierProducts([]);
+            }
+        } else {
+            setSupplierProducts(null);
         }
     };
 
@@ -610,6 +651,10 @@ const PurchaseOrderForm = ({ initialData, requestId, onSave, onBack, orderNumber
                                         <div className={styles.productDropdown}>
                                             {allProducts
                                                 .filter(p => !item.productName || p.productName.toLowerCase().includes(item.productName.toLowerCase()))
+                                                .filter(p => {
+                                                    if (!supplierId || supplierProducts === null) return true;
+                                                    return supplierProducts.includes(p.productId);
+                                                })
                                                 .map(p => (
                                                     <div key={p.productId} className={styles.productOption} onClick={() => selectProduct(index, p)}>
                                                         <span className={styles.productOptionName}>{p.productName}</span>

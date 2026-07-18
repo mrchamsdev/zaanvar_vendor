@@ -144,7 +144,7 @@ const InvoiceDynamic = () => {
         details.partyName = data.supplier?.supplierName || "Supplier";
         details.partyPhone = data.supplier?.phone || "-";
 
-        details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
+        details.fromBranch = data.branchName || data.branch?.branchName || data.branch?.name || data.companyName || data.vendor?.companyName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
 
         details.items = (data.items || []).map((item) => ({
@@ -171,7 +171,7 @@ const InvoiceDynamic = () => {
         details.partyName = data.supplier?.supplierName || "Supplier";
         details.partyPhone = data.supplier?.phone || "-";
 
-        details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
+        details.fromBranch = data.branchName || data.branch?.branchName || data.branch?.name || data.companyName || data.vendor?.companyName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
         details.receivedDate = formatDatePretty(data.modifiedDate || data.billDate);
         details.status = "RECEIVED";
@@ -300,7 +300,7 @@ const InvoiceDynamic = () => {
         details.partyPhone = data.customer?.phoneNumber || "-";
         details.partyAddress = data.customer?.shippingAddress || data.customer?.serviceableAddress || "";
 
-        details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
+        details.fromBranch = data.branchName || data.branch?.branchName || data.branch?.name || data.companyName || data.vendor?.companyName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
         details.status = data.status || "Pending";
         details.orderId = data.userOrderId || "-";
@@ -359,7 +359,7 @@ const InvoiceDynamic = () => {
         details.partyName = data.customer ? `${data.customer.firstName} ${data.customer.lastName || ""}`.trim() : "Customer";
         details.partyPhone = data.customer?.phoneNumber || "-";
 
-        details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
+        details.fromBranch = data.branchName || data.branch?.branchName || data.branch?.name || data.companyName || data.vendor?.companyName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
         details.originalReceiptNo = data.userOrderId || "-";
         details.billDate = formatDatePretty(data.invoiceDate || data.orderDate || data.createdDate);
@@ -369,13 +369,18 @@ const InvoiceDynamic = () => {
           const qty = item.quantity || item.returnQuantity || item.qty || 0;
           const rate = parseFloat(item.sellingPrice || item.price || 0);
           const taxPct = parseFloat(item.taxPercentage || item.taxPercent || 0);
-          const discPct = parseFloat(item.discountPercentage || item.discountForItem || item.discountPercent || 0);
-          // Discount is applied first, then tax is computed on the post-discount amount
-          // (matches AddSalesReturn.js logic for both form state and PDF summary)
-          const discAmt = (rate * qty * discPct) / 100;
+          let discPct = parseFloat(item.discountPercentage || item.discountForItem || item.discountPercent || item.discount || 0);
+          let discAmt = parseFloat(item.discountAmount || 0) || (rate * qty * discPct) / 100;
+          const totalRaw = parseFloat(item.itemTotal || item.total || 0);
+          if (totalRaw > 0 && discAmt === 0 && (rate * qty) > totalRaw) {
+              discAmt = (rate * qty) - totalRaw;
+              if (rate * qty > 0) discPct = (discAmt / (rate * qty)) * 100;
+          } else if (discPct === 0 && discAmt > 0 && rate * qty > 0) {
+              discPct = (discAmt / (rate * qty)) * 100;
+          }
           const taxableAmt = (rate * qty) - discAmt;
           const taxAmt = parseFloat(item.taxAmount || 0) || (taxableAmt * taxPct) / 100;
-          const total = parseFloat(item.itemTotal || 0) || (taxableAmt + taxAmt);
+          const total = totalRaw || (taxableAmt + taxAmt);
           return {
             name: item.productName || item.product?.productName || "Product",
             qty,

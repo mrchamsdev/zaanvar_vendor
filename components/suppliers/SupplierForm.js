@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css";
 import { purchaseService } from "../../services/purchaseService";
+import { productService } from "../../services/productService";
+import { getTaxGroups } from "../../services/settingsService";
 import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { toast } from "sonner";
@@ -50,6 +52,12 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [showGroupPopup, setShowGroupPopup] = useState(false);
     const [newGroupName, setNewGroupName] = useState("");
 
+    const [productsList, setProductsList] = useState([]);
+    const [taxGroups, setTaxGroups] = useState([]);
+    const [assignedProducts, setAssignedProducts] = useState([
+        { products: [], taxType: "", taxGroupId: "" }
+    ]);
+
     const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
     const showShippingAddress = vendorSettings?.party?.shippingAddress || vendorSettings?.settings?.party?.shippingAddress;
 
@@ -71,6 +79,43 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             fetchSupplierGroups();
         }
     }, [branchId, selectedBranchId, selectedBranchIds, vendorSettings, jwtToken, showSupplierGrouping]);
+
+    const fetchProducts = async () => {
+        const activeBranchId = Number(selectedBranchId) || Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id);
+        if (!activeBranchId) return;
+        try {
+            const res = await productService.getAllProductsBrief(jwtToken, activeBranchId);
+            const mapped = (res || []).map(p => ({ id: p.productId, name: p.productName }));
+            setProductsList(mapped);
+        } catch (e) {
+            console.error("Error fetching products:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (jwtToken && (selectedBranchId || branchId)) {
+            fetchProducts();
+            fetchTaxGroupsData();
+        }
+    }, [branchId, selectedBranchId, jwtToken]);
+
+    const fetchTaxGroupsData = async () => {
+        const activeBranchId = Number(selectedBranchId) || Number(branchId);
+        if (!activeBranchId) return;
+        try {
+            const res = await getTaxGroups(jwtToken, activeBranchId);
+            const payload = res?.data || res;
+            let rawGroups = [];
+            if (Array.isArray(payload)) rawGroups = payload;
+            else if (payload && Array.isArray(payload.data)) rawGroups = payload.data;
+            else if (payload && Array.isArray(payload.taxGroups)) rawGroups = payload.taxGroups;
+            else if (payload && Array.isArray(payload.payload)) rawGroups = payload.payload;
+            setTaxGroups(rawGroups || []);
+        } catch (err) {
+            console.error("Failed to fetch tax groups:", err);
+            setTaxGroups([]);
+        }
+    };
 
     useEffect(() => {
         const settingsObj = vendorSettings?.settings || vendorSettings;
@@ -153,6 +198,33 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (initialData && Object.keys(initialData).length > 0) {
             setSupplierName(initialData.supplierName || "");
             setSupplierType(initialData.supplierType ? (Array.isArray(initialData.supplierType) ? initialData.supplierType : initialData.supplierType.split(',').map(s => s.trim())) : []);
+            
+            if (initialData.assignedProducts && Array.isArray(initialData.assignedProducts) && initialData.assignedProducts.length > 0) {
+                setAssignedProducts(initialData.assignedProducts);
+            } else if (initialData.products && Array.isArray(initialData.products) && initialData.products.length > 0 && initialData.products[0].productId) {
+                const grouped = {};
+                initialData.products.forEach(p => {
+                    const key = `${p.taxIncluded}-${p.taxGroupId}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            products: [],
+                            taxType: p.taxIncluded ? "Include" : "Exclude",
+                            taxGroupId: p.taxGroupId || ""
+                        };
+                    }
+                    grouped[key].products.push(p.productId);
+                });
+                setAssignedProducts(Object.values(grouped));
+            } else {
+                const prods = initialData.productIds && Array.isArray(initialData.productIds) ? initialData.productIds : 
+                             (initialData.products && Array.isArray(initialData.products) ? initialData.products.map(p => p.productId || p.id) : []);
+                setAssignedProducts([{
+                    products: prods,
+                    taxType: initialData.taxType || "",
+                    taxGroupId: initialData.taxGroupId || ""
+                }]);
+            }
+
             setPhone(initialData.phone || "");
             setEmail(initialData.email || "");
             setGstin(initialData.gstin || "");
@@ -248,6 +320,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 selectedCountryCode,
                 selectedStateCode,
                 groupName,
+                assignedProducts,
                 customFields: additionalFields.reduce((acc, f) => {
                     acc[f.label] = f.value || "";
                     return acc;
@@ -433,6 +506,13 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             createdBy: userInfo?.userId || 1,
             branchIds: selectedBranchIds,
             customFields: customFieldsObj,
+            products: assignedProducts.flatMap(row => 
+                (row.products || []).map(prodId => ({
+                    productId: Number(prodId),
+                    taxIncluded: row.taxType === "Include",
+                    taxGroupId: Number(row.taxGroupId) || null
+                }))
+            ),
             ...(showSupplierGrouping ? { groupName } : {})
         };
 
@@ -694,6 +774,107 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 )}
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ marginBottom: '48px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#000', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '1px' }}>Assigning Products</h3>
+                <div style={{ background: '#fff', padding: '48px', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
+                    {assignedProducts.map((row, index) => (
+                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '16px', alignItems: 'end', marginBottom: '16px' }}>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>
+                                    Products
+                                </label>
+                                <MultiSelectDropdown
+                                    listItems={productsList}
+                                    selectedIds={row.products}
+                                    setSelectedIds={(ids) => {
+                                        const next = [...assignedProducts];
+                                        next[index].products = ids;
+                                        setAssignedProducts(next);
+                                    }}
+                                    placeholder="Select Products here"
+                                    customStyles={{
+                                        dropdown: {
+                                            background: '#fff',
+                                            border: '1px solid #E5E7EB',
+                                            padding: '14px 16px',
+                                            borderRadius: '8px',
+                                            minHeight: '48px',
+                                            boxSizing: 'border-box'
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Tax Include/Exclude</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select 
+                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }} 
+                                        value={row.taxType} 
+                                        onChange={(e) => {
+                                            const next = [...assignedProducts];
+                                            next[index].taxType = e.target.value;
+                                            setAssignedProducts(next);
+                                        }}>
+                                        <option value="">Select Tax Type</option>
+                                        <option value="Exclude">Exclude</option>
+                                        <option value="Include">Include</option>
+                                    </select>
+                                    <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
+                                </div>
+                            </div>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>GST Group</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select 
+                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }} 
+                                        value={row.taxGroupId || ""} 
+                                        onChange={(e) => {
+                                            const next = [...assignedProducts];
+                                            next[index].taxGroupId = e.target.value;
+                                            setAssignedProducts(next);
+                                        }}>
+                                        <option value="">Select GST Group</option>
+                                        {(Array.isArray(taxGroups) ? taxGroups : []).map((g) => (
+                                            <option key={g.id || g.taxGroupId} value={g.id || g.taxGroupId}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                    <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
+                                </div>
+                            </div>
+                            {index > 0 ? (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <FiX 
+                                        style={{ cursor: 'pointer', color: '#E93E64', fontSize: '24px' }} 
+                                        onClick={() => {
+                                            const next = [...assignedProducts];
+                                            next.splice(index, 1);
+                                            setAssignedProducts(next);
+                                        }} 
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ width: '24px' }}></div>
+                            )}
+                        </div>
+                    ))}
+                    <div style={{ marginTop: '0px', textAlign: 'left' }}>
+                        <span 
+                            onClick={() => {
+                                setAssignedProducts([...assignedProducts, { products: [], taxType: "", taxGroupId: "" }]);
+                            }}
+                            style={{
+                                color: '#E93E64',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            + Assign Product
+                        </span>
                     </div>
                 </div>
             </div>

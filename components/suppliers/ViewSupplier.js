@@ -9,6 +9,8 @@ import { parseApiToLocal } from "../../utilities/date-time-utils";
 import { useRouter } from "next/router";
 import useDashboardData from "../dashboard/useDashboardData";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { WebApimanager } from "@/components/utilities/WebApiManager";
+import { FiPaperclip } from "react-icons/fi";
 
 const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const currencySymbol = useCurrencySymbol();
@@ -25,6 +27,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
     const [supplier, setSupplier] = useState(null);
     const [activeTab, setActiveTab] = useState("Purchase Orders");
     const [transactions, setTransactions] = useState([]);
+    const [messages, setMessages] = useState([]);
     const [expandedRows, setExpandedRows] = useState({});
 
     const toggleRowExpand = (id) => {
@@ -91,19 +94,24 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         setLoading(true);
         console.log("Fetching supplier data for ID:", supplierId);
         try {
-            const [sRes, tRes] = await Promise.all([
+            const [sRes, tRes, mRes] = await Promise.all([
                 purchaseService.getSupplierById(jwtToken, supplierId, branchId),
-                purchaseService.getSupplierTransactions(jwtToken, supplierId, branchId)
+                purchaseService.getSupplierTransactions(jwtToken, supplierId, branchId),
+                new WebApimanager(jwtToken).get(`vendor/settings/${branchId}/supplier/${supplierId}/messages`)
             ]);
 
             console.log("Supplier Response:", sRes);
             console.log("Transactions Response:", tRes);
+            console.log("Messages Response:", mRes);
 
             if (sRes && (sRes.status === "success" || sRes.status === 200 || sRes.data?.status === "success")) {
                 setSupplier(sRes.data || sRes);
             }
             if (tRes && (tRes.status === "success" || tRes.status === 200 || tRes.data?.status === "success")) {
                 setTransactions(tRes.data || tRes.results || []);
+            }
+            if (mRes && (mRes.status === 200 || mRes.data?.status === "success" || mRes.data)) {
+                setMessages(mRes.data?.data || mRes.data || []);
             }
         } catch (e) {
             console.error("Fetch Data Error:", e);
@@ -260,6 +268,54 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
         </table>
     );
 
+    const renderMessageWithLinks = (text) => {
+        if (!text) return null;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.split(urlRegex).map((part, i) => {
+            if (part.match(urlRegex)) {
+                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#E53761', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>;
+            }
+            return part;
+        });
+    };
+
+    const formatMessageDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        const today = new Date();
+        const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        if (isToday) {
+            return `Today, ${formattedDate} ${formattedTime}`;
+        }
+        return `${formattedDate} ${formattedTime}`;
+    };
+
+    const renderChat = () => {
+        if (!messages || messages.length === 0) {
+            return <div style={{ textAlign: "center", padding: "40px", color: "#888" }}>No messages found</div>;
+        }
+        return (
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px", marginTop: "16px", alignContent: "start", paddingRight: "8px" }}>
+                {messages.map((msg, index) => (
+                    <div key={index} style={{ background: "#E537611A", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: "11px", color: "#888", marginBottom: "-8px" }}>
+                            {formatMessageDate(msg.createdAt)}
+                        </div>
+                        <div style={{ background: "#E5376126", borderRadius: "6px", padding: "10px", display: "flex", alignItems: "center", gap: "8px", color: "#E53761", fontWeight: "600", fontSize: "14px" }}>
+                            <FiPaperclip size={16} />
+                            Transaction Image Attached
+                        </div>
+                        <div style={{ whiteSpace: "pre-wrap", fontSize: "13px", color: "#333", lineHeight: "1.6" }}>
+                            {renderMessageWithLinks(msg.message)}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className={styles.overlay}>
             <div className={styles.modal} style={{ width: '95vw', maxWidth: '1400px', height: '95vh', borderRadius: '16px' }}>
@@ -343,7 +399,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                             </div>
 
                             <div style={{ display: 'inline-flex', background: '#F1F1F1', padding: '4px', borderRadius: '8px', marginBottom: '24px' }}>
-                                {["Purchase Orders", "Payment History"].map(tab => (
+                                {["Purchase Orders", "Payment History", "Chat"].map(tab => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -381,7 +437,7 @@ const ViewSupplier = ({ isOpen, onClose, supplierId }) => {
                                     </button>
                                 </div>
 
-                                {activeTab === "Purchase Orders" ? renderPurchaseOrders() : renderPaymentHistory()}
+                                {activeTab === "Purchase Orders" ? renderPurchaseOrders() : activeTab === "Payment History" ? renderPaymentHistory() : renderChat()}
                             </div>
                         </>
                     )}
