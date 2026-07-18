@@ -12,7 +12,7 @@ import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
-import { getTermsAndConditions } from "../../services/settingsService";
+import { getTermsAndConditions, getSettings, triggerVendorMessage } from "../../services/settingsService";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 
@@ -40,6 +40,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const roundOffTotal = getBoolSetting(vendorSettings, 'roundOffTotal', false);
     const { branchId } = useDashboardData({ skipReviews: true });
+    const [messageModal, setMessageModal] = useState({ isOpen: false, resolveAction: null });
 
     const blockNewCustomerFromTxn = vendorSettings?.general?.blockNewCustomerFromTxn;
     const invoiceBillNoEditable = getBoolSetting(vendorSettings, 'invoiceBillNoEditable', false);
@@ -940,6 +941,47 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
 
             if (res.status === "success" || res.status === 200) {
                 toast.success(`Sale ${mode === "edit" ? "updated" : "created"} successfully`);
+
+                // WhatsApp message prompt (only for new sales, not edits)
+                if (mode !== "edit") {
+                    try {
+                        const settingsRes = await getSettings(jwtToken, branchId);
+                        const msgSettings = settingsRes?.data?.settings?.messages || settingsRes?.settings?.messages;
+                        const responseMessages = settingsRes?.data?.messages || settingsRes?.messages || [];
+                        const sendMsg = msgSettings?.sendSaleInvoiceMessageToCustomer;
+                        const autoMessageEvents = msgSettings?.autoMessageEvents;
+                        const isAutoEnabled = Array.isArray(autoMessageEvents)
+                            ? autoMessageEvents.includes("Sale invoice")
+                            : !!autoMessageEvents?.saleInvoice;
+
+                        if (sendMsg && !isAutoEnabled) {
+                            const userChoice = await new Promise((resolve) => {
+                                setMessageModal({ isOpen: true, resolveAction: resolve });
+                            });
+
+                            if (userChoice) {
+                                let matchingMsg = responseMessages.find(m => m.eventType === "saleInvoice");
+                                if (!matchingMsg) {
+                                    await new Promise(r => setTimeout(r, 600));
+                                    const refetched = await getSettings(jwtToken, branchId);
+                                    const refetchedMsgs = refetched?.data?.messages || refetched?.messages || [];
+                                    matchingMsg = refetchedMsgs.find(m => m.eventType === "saleInvoice");
+                                }
+                                if (matchingMsg?.vendorMessageId) {
+                                    try {
+                                        await triggerVendorMessage(jwtToken, matchingMsg.vendorMessageId);
+                                        toast.success("Message triggered successfully!");
+                                    } catch (err) {
+                                        toast.error("Failed to trigger message to customer.");
+                                    }
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Settings/message check failed:", err);
+                    }
+                }
+
                 resetForm();
                 if (onSave) onSave();
             } else {
@@ -1710,6 +1752,46 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                 totalTax={itemsTax}
                 invoiceDate={formData.invoiceDate}
             />
+            {messageModal.isOpen && (
+                <div style={{
+                    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: "rgba(0,0,0,0.4)", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    zIndex: 9999, backdropFilter: "blur(4px)",
+                }}>
+                    <div style={{
+                        background: "#fff", borderRadius: 12, padding: 24,
+                        width: "90%", maxWidth: 400, textAlign: "center",
+                        boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+                    }}>
+                        <div style={{
+                            width: 48, height: 48, borderRadius: "50%",
+                            backgroundColor: "#fdf0f3", display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                            margin: "0 auto 16px", color: "#e9315d",
+                        }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                <polyline points="22,6 12,13 2,6" />
+                            </svg>
+                        </div>
+                        <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600, color: "#111" }}>Send Message to Customer?</h3>
+                        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#666", lineHeight: 1.5 }}>
+                            Do you want to send the sale invoice message to the customer?
+                        </p>
+                        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                            <button
+                                onClick={() => { setMessageModal({ isOpen: false, resolveAction: null }); if (messageModal.resolveAction) messageModal.resolveAction(false); }}
+                                style={{ padding: "10px 20px", border: "1px solid #ddd", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 14, fontWeight: 500, color: "#666", minWidth: 80 }}
+                            >No</button>
+                            <button
+                                onClick={() => { setMessageModal({ isOpen: false, resolveAction: null }); if (messageModal.resolveAction) messageModal.resolveAction(true); }}
+                                style={{ padding: "10px 20px", border: "none", background: "#e9315d", color: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 14, fontWeight: 500, minWidth: 80 }}
+                            >Yes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

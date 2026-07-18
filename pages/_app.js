@@ -117,8 +117,9 @@ export default function App({ Component, pageProps }) {
         }
       }
 
-      // Only show if mobile device and not on the home landing page "/"
-      if (isMobileDevice && router.pathname !== '/') {
+      // Only show if mobile device and not on the home landing page "/" or invoice pages
+      const isInvoicePage = router.pathname.startsWith('/invoice');
+      if (isMobileDevice && router.pathname !== '/' && !isInvoicePage) {
         setShowMobileRedirectModal(true);
       } else {
         setShowMobileRedirectModal(false);
