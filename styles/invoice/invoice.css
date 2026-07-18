@@ -79,8 +79,8 @@
   display: flex;
   justify-content: space-between;
   padding: 16px 20px;
-  background: #fafafa;
-  border-bottom: 1px solid #ddd;
+  background: white;
+  /* border-bottom: 1px solid #ddd; */
 }
 
 .inv-party-label {
@@ -463,17 +463,22 @@
    ===================================================== */
 @media (max-width: 600px) {
   .inv-page {
-    padding: 12px 10px;
+    padding: 8px 0;
+  }
+
+  .inv-words-table-roa {
+    /* padding: 0 10px; */
   }
 
   .inv-back-wrap {
-    margin: 0 0 10px;
+    margin: 0 10px 10px;
   }
 
-  /* card: keep standard borders but fit inside page padding */
+  /* card: flush to screen edges */
   .inv-card {
-    border-radius: 4px;
-    overflow: hidden;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
   }
 
   /* title bar */

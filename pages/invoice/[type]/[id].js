@@ -559,134 +559,136 @@ const InvoiceDynamic = () => {
           </div>
         </div>
 
-        {/* AMOUNT PAID Banner Row */}
-        <div className="inv-amount-banner">
-          <div>{details.rowTitle}</div>
-          <div className="inv-amount-val">{currencySymbol} {formatVal(details.grandTotalValue)}</div>
-        </div>
+        <div className="inv-words-table-roa">
+          {/* AMOUNT PAID Banner Row */}
+          <div className="inv-amount-banner">
+            <div>{details.rowTitle}</div>
+            <div className="inv-amount-val">{currencySymbol} {formatVal(details.grandTotalValue)}</div>
+          </div>
 
-        {/* Inline words logic for vouchers */}
-        {isVoucher && (
-          <>
-            <div className="inv-words-label">AMOUNT IN WORDS</div>
-            <div className="inv-words-val">{numberToWords(details.grandTotalValue)}</div>
-          </>
-        )}
+          {/* Inline words logic for vouchers */}
+          {isVoucher && (
+            <>
+              <div className="inv-words-label">AMOUNT IN WORDS</div>
+              <div className="inv-words-val">{numberToWords(details.grandTotalValue)}</div>
+            </>
+          )}
 
-        {/* Items/Payment Grid Table */}
-        <div className="inv-table-outer">
-          <div className="inv-table-wrap">
-            <table>
-              <thead>
-                <tr className="inv-thead-row">
+          {/* Items/Payment Grid Table */}
+          <div className="inv-table-outer">
+            <div className="inv-table-wrap">
+              <table>
+                <thead>
+                  <tr className="inv-thead-row">
+                    {isVoucher ? (
+                      <>
+                        <th className="inv-th" style={{ textAlign: "left" }}>PAYMENT MODE</th>
+                        <th className="inv-th" style={{ textAlign: "left" }}>TRANSACTION / REF NO</th>
+                        <th className="inv-th inv-th-amt">AMOUNT</th>
+                      </>
+                    ) : type === "purchase-order" ? (
+                      <>
+                        <th className="inv-th inv-th-sno">S.NO</th>
+                        <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
+                        <th className="inv-th inv-th-qty">QTY</th>
+                        <th className="inv-th inv-th-unit">UNIT</th>
+                        <th className="inv-th inv-th-price">PRICE</th>
+                        <th className="inv-th inv-th-amt">AMOUNT</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="inv-th inv-th-sno" style={{ width: 38 }}>S.NO</th>
+                        <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
+                        <th className="inv-th inv-th-qty" style={{ width: 42 }}>QTY</th>
+                        <th className="inv-th inv-th-unit" style={{ width: 50 }}>UNIT</th>
+                        <th className="inv-th inv-th-price">PRICE</th>
+                        <th className="inv-th inv-th-tax">TAX (% / ₹)</th>
+                        <th className="inv-th inv-th-disc">DISC (% / ₹)</th>
+                        <th className="inv-th inv-th-amt">AMOUNT</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
                   {isVoucher ? (
                     <>
-                      <th className="inv-th" style={{ textAlign: "left" }}>PAYMENT MODE</th>
-                      <th className="inv-th" style={{ textAlign: "left" }}>TRANSACTION / REF NO</th>
-                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                      {(details.paymentRows.length > 0 ? details.paymentRows : [{ mode: details.paymentMode, ref: details.refNo, amount: details.grandTotalValue }]).map((row, rIdx) => (
+                        <tr key={rIdx} className="inv-tbody-row">
+                          <td className="inv-td">{row.mode}</td>
+                          <td className="inv-td">{row.ref}</td>
+                          <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(row.amount)}</td>
+                        </tr>
+                      ))}
                     </>
                   ) : type === "purchase-order" ? (
                     <>
-                      <th className="inv-th inv-th-sno">S.NO</th>
-                      <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
-                      <th className="inv-th inv-th-qty">QTY</th>
-                      <th className="inv-th inv-th-unit">UNIT</th>
-                      <th className="inv-th inv-th-price">PRICE</th>
-                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                      {details.items.map((item, index) => (
+                        <tr key={index} className="inv-tbody-row">
+                          <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
+                          <td className="inv-td">{item.name}</td>
+                          <td className="inv-td inv-td-center">{item.qty}</td>
+                          <td className="inv-td inv-td-center">{item.unit}</td>
+                          <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
+                          <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
+                        </tr>
+                      ))}
+                      <tr className="inv-tbody-row-total">
+                        <td className="inv-td" colSpan={2}>TOTAL</td>
+                        <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
+                        <td className="inv-td"></td>
+                        <td className="inv-td"></td>
+                        <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
+                      </tr>
                     </>
                   ) : (
                     <>
-                      <th className="inv-th inv-th-sno" style={{ width: 38 }}>S.NO</th>
-                      <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
-                      <th className="inv-th inv-th-qty" style={{ width: 42 }}>QTY</th>
-                      <th className="inv-th inv-th-unit" style={{ width: 50 }}>UNIT</th>
-                      <th className="inv-th inv-th-price">PRICE</th>
-                      <th className="inv-th inv-th-tax">TAX (% / ₹)</th>
-                      <th className="inv-th inv-th-disc">DISC (% / ₹)</th>
-                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                      {details.items.map((item, index) => (
+                        <tr key={index} className="inv-tbody-row">
+                          <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
+                          <td className="inv-td">{item.name}</td>
+                          <td className="inv-td inv-td-center">{item.qty}</td>
+                          <td className="inv-td inv-td-center">{item.unit}</td>
+                          <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
+                          <td className="inv-td inv-td-center">
+                            <span className="inv-tax-pct">{item.taxPercent}%</span> | {currencySymbol}{formatVal(item.taxAmount)}
+                          </td>
+                          <td className="inv-td inv-td-center">
+                            <span className="inv-tax-pct">{item.discountPercent}%</span> | {currencySymbol}{formatVal(item.discountAmount)}
+                          </td>
+                          <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
+                        </tr>
+                      ))}
+                      <tr className="inv-tbody-row-total">
+                        <td className="inv-td" colSpan={2}>TOTAL</td>
+                        <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
+                        <td className="inv-td"></td>
+                        <td className="inv-td"></td>
+                        <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.taxAmount, 0))}</td>
+                        <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.discountAmount, 0))}</td>
+                        <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
+                      </tr>
                     </>
                   )}
-                </tr>
-              </thead>
-              <tbody>
-                {isVoucher ? (
-                  <>
-                    {(details.paymentRows.length > 0 ? details.paymentRows : [{ mode: details.paymentMode, ref: details.refNo, amount: details.grandTotalValue }]).map((row, rIdx) => (
-                      <tr key={rIdx} className="inv-tbody-row">
-                        <td className="inv-td">{row.mode}</td>
-                        <td className="inv-td">{row.ref}</td>
-                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(row.amount)}</td>
-                      </tr>
-                    ))}
-                  </>
-                ) : type === "purchase-order" ? (
-                  <>
-                    {details.items.map((item, index) => (
-                      <tr key={index} className="inv-tbody-row">
-                        <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
-                        <td className="inv-td">{item.name}</td>
-                        <td className="inv-td inv-td-center">{item.qty}</td>
-                        <td className="inv-td inv-td-center">{item.unit}</td>
-                        <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
-                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
-                      </tr>
-                    ))}
-                    <tr className="inv-tbody-row-total">
-                      <td className="inv-td" colSpan={2}>TOTAL</td>
-                      <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
-                      <td className="inv-td"></td>
-                      <td className="inv-td"></td>
-                      <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
-                    </tr>
-                  </>
-                ) : (
-                  <>
-                    {details.items.map((item, index) => (
-                      <tr key={index} className="inv-tbody-row">
-                        <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
-                        <td className="inv-td">{item.name}</td>
-                        <td className="inv-td inv-td-center">{item.qty}</td>
-                        <td className="inv-td inv-td-center">{item.unit}</td>
-                        <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
-                        <td className="inv-td inv-td-center">
-                          <span className="inv-tax-pct">{item.taxPercent}%</span> | {currencySymbol}{formatVal(item.taxAmount)}
-                        </td>
-                        <td className="inv-td inv-td-center">
-                          <span className="inv-tax-pct">{item.discountPercent}%</span> | {currencySymbol}{formatVal(item.discountAmount)}
-                        </td>
-                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
-                      </tr>
-                    ))}
-                    <tr className="inv-tbody-row-total">
-                      <td className="inv-td" colSpan={2}>TOTAL</td>
-                      <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
-                      <td className="inv-td"></td>
-                      <td className="inv-td"></td>
-                      <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.taxAmount, 0))}</td>
-                      <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.discountAmount, 0))}</td>
-                      <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
-                    </tr>
-                  </>
-                )}
 
-                {/* Total Summary Row */}
-                <tr className="inv-summary-row">
-                  <td className="inv-summary-label" colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7}>
-                    {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
-                  </td>
-                  <td className="inv-summary-val">
-                    {currencySymbol} {formatVal(details.grandTotalValue)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  {/* Total Summary Row */}
+                  <tr className="inv-summary-row">
+                    <td className="inv-summary-label" colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7}>
+                      {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
+                    </td>
+                    <td className="inv-summary-val">
+                      {currencySymbol} {formatVal(details.grandTotalValue)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {/* Swipe hint – only visible on mobile via CSS */}
+            <div className="inv-scroll-hint">
+              <span>⟵</span><span>Swipe to see all columns</span><span>⟶</span>
+            </div>
           </div>
-          {/* Swipe hint – only visible on mobile via CSS */}
-          <div className="inv-scroll-hint">
-            <span>⟵</span><span>Swipe to see all columns</span><span>⟶</span>
-          </div>
+
         </div>
-
         {/* Bottom Double-Box Block */}
         {!isVoucher && (
           <div className="inv-bottom-boxes">
