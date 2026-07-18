@@ -19,12 +19,10 @@ const InvoiceDynamic = () => {
 
   useEffect(() => {
     if (!_hasHydrated) return; // wait for Zustand to rehydrate from localStorage
-    if (jwtToken && type && id) {
+    if (type && id) {
       fetchData();
-    } else if (_hasHydrated && !jwtToken) {
-      setLoading(false); // stop loading — user is not logged in
     }
-  }, [_hasHydrated, jwtToken, type, id]);
+  }, [type, id, jwtToken, _hasHydrated]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -446,14 +444,6 @@ const InvoiceDynamic = () => {
     return <div className="inv-state-screen"><h3>Loading invoice details...</h3></div>;
   }
 
-  if (!jwtToken) {
-    return (
-      <div className="inv-error-screen">
-        <h3 className="inv-error-title">Session expired. Please log in to view this invoice.</h3>
-        <button onClick={() => router.push("/login")} className="inv-login-btn">Go to Login</button>
-      </div>
-    );
-  }
 
   if (error) {
     return (
