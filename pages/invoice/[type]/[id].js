@@ -7,7 +7,6 @@ import { saleService } from "../../../services/saleService";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import { parseApiToLocal, parseWallClockDate } from "../../../utilities/date-time-utils";
-import "../../../styles/invoice/invoice.css";
 
 const InvoiceDynamic = () => {
   const currencySymbol = useCurrencySymbol();

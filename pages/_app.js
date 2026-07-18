@@ -11,6 +11,7 @@
 //   return <Component {...pageProps} />;
 // }
 import "@/styles/globals.css";
+import "../styles/invoice/invoice.css";
 import Head from "next/head";
 import Script from "next/script";
 import { useEffect, useState } from "react";
