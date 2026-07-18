@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
 import useStore from "@/components/state/useStore";
 import { purchaseService } from "../../../services/purchaseService";
 import { saleService } from "../../../services/saleService";
@@ -141,10 +142,10 @@ const InvoiceDynamic = () => {
         details.date = formatDatePretty(data.orderDate);
         details.partyName = data.supplier?.supplierName || "Supplier";
         details.partyPhone = data.supplier?.phone || "-";
-        
+
         details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
-        
+
         details.items = (data.items || []).map((item) => ({
           name: item.product?.productName || item.productName || "Product",
           qty: item.orderQuantity || item.qty || 0,
@@ -168,12 +169,12 @@ const InvoiceDynamic = () => {
         details.date = formatDatePretty(data.billDate);
         details.partyName = data.supplier?.supplierName || "Supplier";
         details.partyPhone = data.supplier?.phone || "-";
-        
+
         details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
         details.receivedDate = formatDatePretty(data.modifiedDate || data.billDate);
         details.status = "RECEIVED";
-        
+
         details.items = (data.items || []).map((item) => {
           const qty = item.billQuantity || item.qty || 0;
           const rate = item.costPrice || 0;
@@ -194,12 +195,12 @@ const InvoiceDynamic = () => {
             total,
           };
         });
-        
+
         const totalQty = details.items.reduce((sum, i) => sum + i.qty, 0);
         const totalPrice = details.items.reduce((sum, i) => sum + (i.qty * i.rate), 0);
         const totalTax = details.items.reduce((sum, i) => sum + i.taxAmount, 0);
         const totalDiscount = details.items.reduce((sum, i) => sum + i.discountAmount, 0);
-        
+
         details.grandTotalValue = data.totalAmount || (totalPrice + totalTax - totalDiscount);
         details.amounts = [
           { label: "TOTAL QUANTITY", val: totalQty, noFormat: true },
@@ -245,11 +246,11 @@ const InvoiceDynamic = () => {
         details.date = formatDatePretty(data.returnDate);
         details.partyName = data.supplierName || "Supplier";
         details.partyPhone = data.supplierPhone || "-";
-        
+
         details.originalReceiptNo = data.productsBill?.billNo || "1000124";
         details.billDate = formatDatePretty(data.productsBill?.billDate || data.returnDate);
         details.reason = data.reason || "Manual Return";
-        
+
         details.items = (data.items || []).map((item) => {
           const qty = item.returnQty || item.qty || 0;
           const rate = item.costPrice || 0;
@@ -270,12 +271,12 @@ const InvoiceDynamic = () => {
             total,
           };
         });
-        
+
         const retQty = details.items.reduce((sum, i) => sum + i.qty, 0);
         const retPrice = details.items.reduce((sum, i) => sum + (i.qty * i.rate), 0);
         const retTax = details.items.reduce((sum, i) => sum + i.taxAmount, 0);
         const retDiscount = details.items.reduce((sum, i) => sum + i.discountAmount, 0);
-        
+
         details.grandTotalValue = data.returnAmount || data.totalAmount || (retPrice + retTax - retDiscount);
         details.amounts = [
           { label: "TOTAL QUANTITY", val: retQty, noFormat: true },
@@ -297,7 +298,7 @@ const InvoiceDynamic = () => {
         details.partyName = data.customer ? `${data.customer.firstName} ${data.customer.lastName || ""}`.trim() : "Customer";
         details.partyPhone = data.customer?.phoneNumber || "-";
         details.partyAddress = data.customer?.shippingAddress || data.customer?.serviceableAddress || "";
-        
+
         details.fromBranch = data.branchName || userInfo?.companyName || "Hello 11";
         details.branchAddress = data.branchAddress?.addressText || "Kukatpally, IN";
         details.status = data.status || "Pending";
@@ -463,8 +464,138 @@ const InvoiceDynamic = () => {
 
   return (
     <div style={{ background: "#f5f5f5", minHeight: "100vh", padding: "30px 15px", fontFamily: "sans-serif" }}>
-      {/* Back button control */}
-      <div style={{ maxWidth: 850, margin: "0 auto 15px" }}>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+      <style>{`
+        * { box-sizing: border-box; }
+
+        /* ─── MOBILE ≤ 600px ─── */
+        @media (max-width: 600px) {
+          .inv-back-wrap { margin: 0 10px 10px !important; }
+
+          /* card: no side borders, flush to screen */
+          .inv-card {
+            border-left: none !important;
+            border-right: none !important;
+            box-shadow: none !important;
+          }
+
+          /* title bar */
+          .inv-title-bar { font-size: 14px !important; padding: 10px 14px !important; letter-spacing: 0 !important; }
+
+          /* company header: keep row but allow wrap */
+          .inv-firm-header {
+            flex-wrap: wrap !important;
+            padding: 12px 14px !important;
+            gap: 8px !important;
+          }
+          .inv-firm-header h2 { font-size: 17px !important; }
+          .inv-firm-header .inv-logo {
+            width: 60px !important;
+            height: 38px !important;
+            font-size: 8px !important;
+          }
+
+          /* party block: stack vertically */
+          .inv-party-block {
+            flex-direction: column !important;
+            gap: 0 !important;
+            padding: 12px 14px !important;
+          }
+          .inv-party-right {
+            text-align: left !important;
+            width: 100% !important;
+            border-top: 1px solid #eee !important;
+            padding-top: 10px !important;
+            margin-top: 10px !important;
+          }
+          .inv-party-right > div:first-child { margin-bottom: 4px !important; }
+          .inv-party-right div { font-size: 13px !important; line-height: 1.7 !important; }
+
+          /* amount banner: never let amount wrap to second line */
+          .inv-amount-banner {
+            font-size: 13px !important;
+            padding: 10px 14px !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 8px !important;
+          }
+          .inv-amount-val { white-space: nowrap !important; }
+
+          /* table: horizontal scroll so columns stay readable */
+          .inv-table-outer { position: relative !important; }
+          .inv-table-wrap {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: #e9315d #f0f0f0 !important;
+          }
+          .inv-table-wrap::-webkit-scrollbar {
+            height: 6px !important;
+            display: block !important;
+          }
+          .inv-table-wrap::-webkit-scrollbar-track {
+            background: #f0f0f0 !important;
+            border-radius: 3px !important;
+          }
+          .inv-table-wrap::-webkit-scrollbar-thumb {
+            background: #e9315d !important;
+            border-radius: 3px !important;
+          }
+          /* swipe hint label */
+          .inv-scroll-hint {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            padding: 5px 0 8px !important;
+            font-size: 11px !important;
+            color: #e9315d !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.3px !important;
+          }
+          /* 8-col table (received-order, sale-invoice, etc.) needs more room */
+          .inv-table-wrap table { min-width: 720px !important; }
+          /* 6-col purchase-order table */
+          .inv-table-6col { min-width: 480px !important; }
+          /* 3-col voucher table */
+          .inv-table-3col { min-width: 300px !important; }
+          .inv-table-wrap th {
+            font-size: 10px !important;
+            padding: 8px 5px !important;
+            white-space: nowrap !important;
+          }
+          .inv-table-wrap td {
+            font-size: 11px !important;
+            padding: 8px 5px !important;
+            white-space: nowrap !important;
+          }
+
+          /* bottom boxes: stack vertically */
+          .inv-bottom-boxes {
+            flex-direction: column !important;
+            padding: 12px 14px !important;
+            gap: 10px !important;
+          }
+          .inv-words-box { width: 100% !important; min-width: 0 !important; }
+          .inv-amounts-box { width: 100% !important; }
+
+          /* signature: center it */
+          .inv-sig-wrap {
+            padding: 14px !important;
+            justify-content: center !important;
+          }
+
+          /* footer bar */
+          .inv-footer-bar { font-size: 11px !important; padding: 10px 14px !important; letter-spacing: 0 !important; }
+
+          /* voucher words inline block */
+          .inv-words-label { padding: 6px 14px !important; }
+          .inv-words-val { padding: 10px 14px !important; font-size: 12px !important; }
+        }
+      `}</style>
+      <div className="inv-back-wrap" style={{ maxWidth: 850, margin: "0 auto 15px" }}>
         <button
           onClick={() => router.back()}
           style={{
@@ -482,8 +613,8 @@ const InvoiceDynamic = () => {
         </button>
       </div>
 
-      {/* Main Ticket Container */}
       <div
+        className="inv-card"
         style={{
           background: "#fff",
           maxWidth: 850,
@@ -492,8 +623,8 @@ const InvoiceDynamic = () => {
           boxShadow: "0 4px 10px rgba(0, 0, 0, 0.08)",
         }}
       >
-        {/* Grey Top Header Bar */}
         <div
+          className="inv-title-bar"
           style={{
             background: "#7d7d7d",
             color: "#fff",
@@ -506,20 +637,19 @@ const InvoiceDynamic = () => {
           {details.title}
         </div>
 
-        {/* Firm Header Details Block */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 20px", borderBottom: "1px solid #000" }}>
+        <div className="inv-firm-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 20px", borderBottom: "1px solid #000" }}>
           <div>
             <h2 style={{ margin: "0 0 4px", fontSize: "24px", fontWeight: "bold", color: "#000" }}>{companyName}</h2>
             <div style={{ fontSize: "13px", color: "#555" }}>Ph no. {displayPhone}</div>
           </div>
           {/* Logo Placeholder */}
-          <div style={{ width: 100, height: 60, border: "1px solid #ccc", background: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#888" }}>
+          <div className="inv-logo" style={{ width: 100, height: 60, border: "1px solid #ccc", background: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#888" }}>
             [ LOGO ]
           </div>
         </div>
 
         {/* Party Info Block */}
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid #ddd" }}>
+        <div className="inv-party-block" style={{ display: "flex", justifyContent: "space-between", padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid #ddd" }}>
           <div>
             <div style={{ fontSize: "13px", color: "#777", fontWeight: "bold", marginBottom: "4px" }}>{details.partyLabel}</div>
             <div style={{ fontSize: "15px", fontWeight: "bold", color: "#000" }}>
@@ -532,7 +662,7 @@ const InvoiceDynamic = () => {
               <div style={{ fontSize: "12px", color: "#555", marginTop: "2px" }}>Contact No : {details.partyPhone}</div>
             )}
           </div>
-          <div style={{ textAlign: "right" }}>
+          <div className="inv-party-right" style={{ textAlign: "right" }}>
             <div style={{ fontSize: "13px", color: "#777", fontWeight: "bold", marginBottom: "4px" }}>{details.detailsLabel}</div>
             <div style={{ fontSize: "14px", color: "#333", lineHeight: "1.6" }}>
               {type === "purchase-order" && (
@@ -591,6 +721,7 @@ const InvoiceDynamic = () => {
 
         {/* AMOUNT PAID Banner Row */}
         <div
+          className="inv-amount-banner"
           style={{
             background: "#e9315d",
             color: "#fff",
@@ -602,13 +733,14 @@ const InvoiceDynamic = () => {
           }}
         >
           <div>{details.rowTitle}</div>
-          <div>{currencySymbol} {formatVal(details.grandTotalValue)}</div>
+          <div className="inv-amount-val">{currencySymbol} {formatVal(details.grandTotalValue)}</div>
         </div>
 
         {/* Inline words logic for vouchers */}
         {isVoucher && (
           <>
             <div
+              className="inv-words-label"
               style={{
                 background: "#eaeaea",
                 color: "#444",
@@ -620,6 +752,7 @@ const InvoiceDynamic = () => {
               AMOUNT IN WORDS
             </div>
             <div
+              className="inv-words-val"
               style={{
                 padding: "12px 20px",
                 fontSize: "13px",
@@ -634,35 +767,36 @@ const InvoiceDynamic = () => {
         )}
 
         {/* Items/Payment Grid Table */}
-        <div style={{ padding: "0" }}>
+        <div className="inv-table-outer">
+        <div className="inv-table-wrap" style={{ padding: "0", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#e9315d", color: "#fff" }}>
                 {isVoucher ? (
                   <>
-                    <th style={{ padding: "10px 20px", fontSize: "13px", fontWeight: "bold", textAlign: "left", width: "40%", borderRight: "1px solid #f8bbd0" }}>PAYMENT MODE</th>
-                    <th style={{ padding: "10px 20px", fontSize: "13px", fontWeight: "bold", textAlign: "left", width: "40%", borderRight: "1px solid #f8bbd0" }}>TRANSACTION / REFERENCE NO</th>
-                    <th style={{ padding: "10px 20px", fontSize: "13px", fontWeight: "bold", textAlign: "right", width: "20%" }}>AMOUNT</th>
+                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PAYMENT MODE</th>
+                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>TRANSACTION / REF NO</th>
+                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "right" }}>AMOUNT</th>
                   </>
                 ) : type === "purchase-order" ? (
                   <>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: "8%", borderRight: "1px solid #f8bbd0" }}>S.NO</th>
-                    <th style={{ padding: "10px 15px", fontSize: "12px", fontWeight: "bold", textAlign: "left", width: "42%", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: "10%", borderRight: "1px solid #f8bbd0" }}>QTY</th>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: "15%", borderRight: "1px solid #f8bbd0" }}>UNIT</th>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: "12%", borderRight: "1px solid #f8bbd0" }}>PRICE</th>
-                    <th style={{ padding: "10px 15px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: "13%" }}>AMOUNT</th>
+                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 44, borderRight: "1px solid #f8bbd0" }}>S.NO</th>
+                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
+                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 48, borderRight: "1px solid #f8bbd0" }}>QTY</th>
+                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 60, borderRight: "1px solid #f8bbd0" }}>UNIT</th>
+                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: 80, borderRight: "1px solid #f8bbd0" }}>PRICE</th>
+                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: 90 }}>AMOUNT</th>
                   </>
                 ) : (
                   <>
-                    <th style={{ padding: "10px 8px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: "6%", borderRight: "1px solid #f8bbd0" }}>S.NO</th>
-                    <th style={{ padding: "10px 10px", fontSize: "11px", fontWeight: "bold", textAlign: "left", width: "30%", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: "8%", borderRight: "1px solid #f8bbd0" }}>QTY</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: "10%", borderRight: "1px solid #f8bbd0" }}>UNIT</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: "10%", borderRight: "1px solid #f8bbd0" }}>PRICE</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: "13%", borderRight: "1px solid #f8bbd0" }}>TAX (% / ₹)</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: "13%", borderRight: "1px solid #f8bbd0" }}>DISCOUNT (% / ₹)</th>
-                    <th style={{ padding: "10px 10px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: "10%" }}>AMOUNT</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 38, borderRight: "1px solid #f8bbd0" }}>S.NO</th>
+                    <th style={{ padding: "10px 8px", fontSize: "11px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 42, borderRight: "1px solid #f8bbd0" }}>QTY</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 50, borderRight: "1px solid #f8bbd0" }}>UNIT</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: 80, borderRight: "1px solid #f8bbd0" }}>PRICE</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 80, borderRight: "1px solid #f8bbd0" }}>TAX (% / ₹)</th>
+                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 90, borderRight: "1px solid #f8bbd0" }}>DISC (% / ₹)</th>
+                    <th style={{ padding: "10px 8px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: 90 }}>AMOUNT</th>
                   </>
                 )}
               </tr>
@@ -736,21 +870,28 @@ const InvoiceDynamic = () => {
 
               {/* Total Summary Row */}
               <tr style={{ background: "#e9315d", color: "#fff", fontWeight: "bold" }}>
-                <td colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7} style={{ padding: "12px 20px", fontSize: "14px" }}>
+                <td colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7} style={{ padding: "12px 20px", fontSize: "14px", whiteSpace: "nowrap" }}>
                   {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
                 </td>
-                <td style={{ padding: "12px 20px", fontSize: "14px", textAlign: "right" }}>
+                <td style={{ padding: "12px 20px", fontSize: "14px", textAlign: "right", whiteSpace: "nowrap" }}>
                   {currencySymbol} {formatVal(details.grandTotalValue)}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        {/* Swipe hint – only visible on mobile via CSS */}
+        <div className="inv-scroll-hint" style={{ display: "none" }}>
+          <span>⟵</span>
+          <span>Swipe to see all columns</span>
+          <span>⟶</span>
+        </div>
+        </div>
 
         {/* Bottom Double-Box Block */}
         {!isVoucher && (
-          <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
-            <div style={{ flex: 1, border: "1px solid #ddd", borderRadius: 2 }}>
+          <div className="inv-bottom-boxes" style={{ display: "flex", gap: "20px", padding: "20px", flexWrap: "wrap" }}>
+            <div className="inv-words-box" style={{ flex: 1, minWidth: 0, border: "1px solid #ddd", borderRadius: 2 }}>
               <div style={{ background: "#e9315d", color: "#fff", padding: "8px 16px", fontSize: "13px", fontWeight: "bold" }}>
                 AMOUNT IN WORDS
               </div>
@@ -759,7 +900,7 @@ const InvoiceDynamic = () => {
               </div>
             </div>
 
-            <div style={{ width: "320px", border: "1px solid #ddd", borderRadius: 2 }}>
+            <div className="inv-amounts-box" style={{ width: "320px", border: "1px solid #ddd", borderRadius: 2 }}>
               <div style={{ background: "#e9315d", color: "#fff", padding: "8px 16px", fontSize: "13px", fontWeight: "bold" }}>
                 AMOUNTS
               </div>
@@ -794,7 +935,7 @@ const InvoiceDynamic = () => {
         )}
 
         {/* Signature Box */}
-        <div style={{ display: "flex", justifyContent: "flex-end", padding: "24px 20px" }}>
+        <div className="inv-sig-wrap" style={{ display: "flex", justifyContent: "flex-end", padding: "24px 20px" }}>
           <div style={{ width: 280, border: "1px solid #e9315d", borderRadius: 2 }}>
             <div
               style={{
@@ -817,6 +958,7 @@ const InvoiceDynamic = () => {
 
         {/* Bottom Footer Bar */}
         <div
+          className="inv-footer-bar"
           style={{
             background: "#e9315d",
             color: "#fff",
