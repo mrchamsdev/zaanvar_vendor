@@ -1,11 +1,5 @@
-/* =====================================================
-   Invoice Page Styles
-   Used by: pages/invoice/[type]/[id].js
-   ===================================================== */
-
-/* ── Outer page wrapper ── */
 .inv-page {
-  background: #f5f5f5;
+  background: white;
   min-height: 100vh;
   padding: 30px 15px;
   font-family: sans-serif;
@@ -39,7 +33,7 @@
 
 /* ── Title bar (grey header) ── */
 .inv-title-bar {
-  background: #7d7d7d;
+  background: #e9315d;
   color: #fff;
   padding: 16px 20px;
   font-size: 20px;
@@ -198,14 +192,47 @@
   border-right: 1px solid #f8bbd0;
 }
 
-.inv-th-sno   { text-align: center; width: 44px; }
-.inv-th-name  { text-align: left; }
-.inv-th-qty   { text-align: center; width: 48px; }
-.inv-th-unit  { text-align: center; width: 60px; }
-.inv-th-price { text-align: right;  width: 80px; }
-.inv-th-tax   { text-align: center; width: 80px; font-size: 11px; }
-.inv-th-disc  { text-align: center; width: 90px; font-size: 11px; }
-.inv-th-amt   { text-align: right;  width: 90px; border-right: none; }
+.inv-th-sno {
+  text-align: center;
+  width: 44px;
+}
+
+.inv-th-name {
+  text-align: left;
+}
+
+.inv-th-qty {
+  text-align: center;
+  width: 48px;
+}
+
+.inv-th-unit {
+  text-align: center;
+  width: 60px;
+}
+
+.inv-th-price {
+  text-align: right;
+  width: 80px;
+}
+
+.inv-th-tax {
+  text-align: center;
+  width: 80px;
+  font-size: 11px;
+}
+
+.inv-th-disc {
+  text-align: center;
+  width: 90px;
+  font-size: 11px;
+}
+
+.inv-th-amt {
+  text-align: right;
+  width: 90px;
+  border-right: none;
+}
 
 .inv-tbody-row {
   background: #fff;
@@ -225,12 +252,25 @@
   border-right: 1px solid #ddd;
 }
 
-.inv-td-center  { text-align: center; }
-.inv-td-right   { text-align: right; }
-.inv-td-bold    { font-weight: bold; }
-.inv-td-no-border { border-right: none; }
+.inv-td-center {
+  text-align: center;
+}
 
-.inv-tax-pct    { color: #666; }
+.inv-td-right {
+  text-align: right;
+}
+
+.inv-td-bold {
+  font-weight: bold;
+}
+
+.inv-td-no-border {
+  border-right: none;
+}
+
+.inv-tax-pct {
+  color: #666;
+}
 
 /* ── Summary total row (red footer row inside table) ── */
 .inv-summary-row {
@@ -254,7 +294,8 @@
 
 /* ── Swipe hint (mobile only) ── */
 .inv-scroll-hint {
-  display: none; /* shown only via media query on mobile */
+  display: none;
+  /* shown only via media query on mobile */
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -421,14 +462,18 @@
    MOBILE  ≤ 600px
    ===================================================== */
 @media (max-width: 600px) {
-  .inv-page { padding: 8px 0; }
-  .inv-back-wrap { margin: 0 10px 10px; }
+  .inv-page {
+    padding: 12px 10px;
+  }
 
-  /* card: flush to screen edges */
+  .inv-back-wrap {
+    margin: 0 0 10px;
+  }
+
+  /* card: keep standard borders but fit inside page padding */
   .inv-card {
-    border-left: none;
-    border-right: none;
-    box-shadow: none;
+    border-radius: 4px;
+    overflow: hidden;
   }
 
   /* title bar */
@@ -444,7 +489,11 @@
     padding: 12px 14px;
     gap: 8px;
   }
-  .inv-firm-header h2 { font-size: 17px; }
+
+  .inv-firm-header h2 {
+    font-size: 17px;
+  }
+
   .inv-logo {
     width: 60px;
     height: 38px;
@@ -457,6 +506,7 @@
     gap: 0;
     padding: 12px 14px;
   }
+
   .inv-party-right {
     text-align: left;
     width: 100%;
@@ -464,7 +514,11 @@
     padding-top: 10px;
     margin-top: 10px;
   }
-  .inv-party-right-label { margin-bottom: 4px; }
+
+  .inv-party-right-label {
+    margin-bottom: 4px;
+  }
+
   .inv-party-right-details {
     font-size: 13px;
     line-height: 1.7;
@@ -477,22 +531,52 @@
     flex-wrap: nowrap;
     gap: 8px;
   }
-  .inv-amount-val { white-space: nowrap; }
+
+  .inv-amount-val {
+    white-space: nowrap;
+  }
 
   /* table: horizontal scroll */
   .inv-table-wrap {
     scrollbar-width: thin;
     scrollbar-color: #e9315d #f0f0f0;
   }
-  .inv-table-wrap::-webkit-scrollbar { height: 6px; display: block; }
-  .inv-table-wrap::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
-  .inv-table-wrap::-webkit-scrollbar-thumb { background: #e9315d; border-radius: 3px; }
-  .inv-table-wrap table { min-width: 720px; }
-  .inv-th  { font-size: 10px; padding: 8px 5px; white-space: nowrap; }
-  .inv-td  { font-size: 11px; padding: 8px 5px; white-space: nowrap; }
+
+  .inv-table-wrap::-webkit-scrollbar {
+    height: 6px;
+    display: block;
+  }
+
+  .inv-table-wrap::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 3px;
+  }
+
+  .inv-table-wrap::-webkit-scrollbar-thumb {
+    background: #e9315d;
+    border-radius: 3px;
+  }
+
+  .inv-table-wrap table {
+    min-width: 720px;
+  }
+
+  .inv-th {
+    font-size: 10px;
+    padding: 8px 5px;
+    white-space: nowrap;
+  }
+
+  .inv-td {
+    font-size: 11px;
+    padding: 8px 5px;
+    white-space: nowrap;
+  }
 
   /* swipe hint: show on mobile */
-  .inv-scroll-hint { display: flex; }
+  .inv-scroll-hint {
+    display: flex;
+  }
 
   /* bottom boxes: stack */
   .inv-bottom-boxes {
@@ -500,16 +584,36 @@
     padding: 12px 14px;
     gap: 10px;
   }
-  .inv-words-box { width: 100%; min-width: 0; }
-  .inv-amounts-box { width: 100%; }
+
+  .inv-words-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .inv-amounts-box {
+    width: 100%;
+  }
 
   /* signature: center */
-  .inv-sig-wrap { padding: 14px; justify-content: center; }
+  .inv-sig-wrap {
+    padding: 14px;
+    justify-content: center;
+  }
 
   /* footer */
-  .inv-footer-bar { font-size: 11px; padding: 10px 14px; letter-spacing: 0; }
+  .inv-footer-bar {
+    font-size: 11px;
+    padding: 10px 14px;
+    letter-spacing: 0;
+  }
 
   /* voucher words */
-  .inv-words-label { padding: 6px 14px; }
-  .inv-words-val   { padding: 10px 14px; font-size: 12px; }
+  .inv-words-label {
+    padding: 6px 14px;
+  }
+
+  .inv-words-val {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
 }
