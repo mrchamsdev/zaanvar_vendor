@@ -7,6 +7,7 @@ import { saleService } from "../../../services/saleService";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "@/components/utilities/formatAmount";
 import { parseApiToLocal, parseWallClockDate } from "../../../utilities/date-time-utils";
+import "../../../styles/invoice/invoice.css";
 
 const InvoiceDynamic = () => {
   const currencySymbol = useCurrencySymbol();
@@ -443,27 +444,23 @@ const InvoiceDynamic = () => {
   };
 
   if (loading || !_hasHydrated) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "sans-serif" }}>
-        <h3>Loading invoice details...</h3>
-      </div>
-    );
+    return <div className="inv-state-screen"><h3>Loading invoice details...</h3></div>;
   }
 
   if (!jwtToken) {
     return (
-      <div style={{ padding: 24, textAlign: "center", fontFamily: "sans-serif" }}>
-        <h3 style={{ color: "#e9315d" }}>Session expired. Please log in to view this invoice.</h3>
-        <button onClick={() => router.push("/login")} style={{ padding: "8px 16px", marginTop: 16, cursor: "pointer", background: "#e9315d", color: "#fff", border: "none", borderRadius: 4 }}>Go to Login</button>
+      <div className="inv-error-screen">
+        <h3 className="inv-error-title">Session expired. Please log in to view this invoice.</h3>
+        <button onClick={() => router.push("/login")} className="inv-login-btn">Go to Login</button>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: 24, textAlign: "center", fontFamily: "sans-serif" }}>
-        <h3 style={{ color: "#e9315d" }}>{error}</h3>
-        <button onClick={() => router.back()} style={{ padding: "8px 16px", marginTop: 16, cursor: "pointer" }}>Go Back</button>
+      <div className="inv-error-screen">
+        <h3 className="inv-error-title">{error}</h3>
+        <button onClick={() => router.back()} className="inv-error-btn">Go Back</button>
       </div>
     );
   }
@@ -475,208 +472,40 @@ const InvoiceDynamic = () => {
   const isVoucher = ["payment-out", "payment-in"].includes(type);
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh", padding: "30px 15px", fontFamily: "sans-serif" }}>
+    <div className="inv-page">
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
-      <style>{`
-        * { box-sizing: border-box; }
-
-        /* ─── MOBILE ≤ 600px ─── */
-        @media (max-width: 600px) {
-          .inv-back-wrap { margin: 0 10px 10px !important; }
-
-          /* card: no side borders, flush to screen */
-          .inv-card {
-            border-left: none !important;
-            border-right: none !important;
-            box-shadow: none !important;
-          }
-
-          /* title bar */
-          .inv-title-bar { font-size: 14px !important; padding: 10px 14px !important; letter-spacing: 0 !important; }
-
-          /* company header: keep row but allow wrap */
-          .inv-firm-header {
-            flex-wrap: wrap !important;
-            padding: 12px 14px !important;
-            gap: 8px !important;
-          }
-          .inv-firm-header h2 { font-size: 17px !important; }
-          .inv-firm-header .inv-logo {
-            width: 60px !important;
-            height: 38px !important;
-            font-size: 8px !important;
-          }
-
-          /* party block: stack vertically */
-          .inv-party-block {
-            flex-direction: column !important;
-            gap: 0 !important;
-            padding: 12px 14px !important;
-          }
-          .inv-party-right {
-            text-align: left !important;
-            width: 100% !important;
-            border-top: 1px solid #eee !important;
-            padding-top: 10px !important;
-            margin-top: 10px !important;
-          }
-          .inv-party-right > div:first-child { margin-bottom: 4px !important; }
-          .inv-party-right div { font-size: 13px !important; line-height: 1.7 !important; }
-
-          /* amount banner: never let amount wrap to second line */
-          .inv-amount-banner {
-            font-size: 13px !important;
-            padding: 10px 14px !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 8px !important;
-          }
-          .inv-amount-val { white-space: nowrap !important; }
-
-          /* table: horizontal scroll so columns stay readable */
-          .inv-table-outer { position: relative !important; }
-          .inv-table-wrap {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: #e9315d #f0f0f0 !important;
-          }
-          .inv-table-wrap::-webkit-scrollbar {
-            height: 6px !important;
-            display: block !important;
-          }
-          .inv-table-wrap::-webkit-scrollbar-track {
-            background: #f0f0f0 !important;
-            border-radius: 3px !important;
-          }
-          .inv-table-wrap::-webkit-scrollbar-thumb {
-            background: #e9315d !important;
-            border-radius: 3px !important;
-          }
-          /* swipe hint label */
-          .inv-scroll-hint {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 6px !important;
-            padding: 5px 0 8px !important;
-            font-size: 11px !important;
-            color: #e9315d !important;
-            font-weight: 600 !important;
-            letter-spacing: 0.3px !important;
-          }
-          /* 8-col table (received-order, sale-invoice, etc.) needs more room */
-          .inv-table-wrap table { min-width: 720px !important; }
-          /* 6-col purchase-order table */
-          .inv-table-6col { min-width: 480px !important; }
-          /* 3-col voucher table */
-          .inv-table-3col { min-width: 300px !important; }
-          .inv-table-wrap th {
-            font-size: 10px !important;
-            padding: 8px 5px !important;
-            white-space: nowrap !important;
-          }
-          .inv-table-wrap td {
-            font-size: 11px !important;
-            padding: 8px 5px !important;
-            white-space: nowrap !important;
-          }
-
-          /* bottom boxes: stack vertically */
-          .inv-bottom-boxes {
-            flex-direction: column !important;
-            padding: 12px 14px !important;
-            gap: 10px !important;
-          }
-          .inv-words-box { width: 100% !important; min-width: 0 !important; }
-          .inv-amounts-box { width: 100% !important; }
-
-          /* signature: center it */
-          .inv-sig-wrap {
-            padding: 14px !important;
-            justify-content: center !important;
-          }
-
-          /* footer bar */
-          .inv-footer-bar { font-size: 11px !important; padding: 10px 14px !important; letter-spacing: 0 !important; }
-
-          /* voucher words inline block */
-          .inv-words-label { padding: 6px 14px !important; }
-          .inv-words-val { padding: 10px 14px !important; font-size: 12px !important; }
-        }
-      `}</style>
-      <div className="inv-back-wrap" style={{ maxWidth: 850, margin: "0 auto 15px" }}>
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: "#fff",
-            border: "1px solid #ddd",
-            padding: "8px 16px",
-            borderRadius: 4,
-            cursor: "pointer",
-            fontWeight: "bold",
-            color: "#666",
-            fontSize: 13,
-          }}
-        >
+      <div className="inv-back-wrap">
+        <button onClick={() => router.back()} className="inv-back-btn">
           ← Back
         </button>
       </div>
 
-      <div
-        className="inv-card"
-        style={{
-          background: "#fff",
-          maxWidth: 850,
-          margin: "0 auto",
-          border: "1px solid #bbb",
-          boxShadow: "0 4px 10px rgba(0, 0, 0, 0.08)",
-        }}
-      >
-        <div
-          className="inv-title-bar"
-          style={{
-            background: "#7d7d7d",
-            color: "#fff",
-            padding: "16px 20px",
-            fontSize: "20px",
-            fontWeight: "bold",
-            letterSpacing: "0.5px",
-          }}
-        >
-          {details.title}
-        </div>
+      <div className="inv-card">
+        <div className="inv-title-bar">{details.title}</div>
 
-        <div className="inv-firm-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 20px", borderBottom: "1px solid #000" }}>
+        <div className="inv-firm-header">
           <div>
-            <h2 style={{ margin: "0 0 4px", fontSize: "24px", fontWeight: "bold", color: "#000" }}>{companyName}</h2>
-            <div style={{ fontSize: "13px", color: "#555" }}>Ph no. {displayPhone}</div>
+            <h2>{companyName}</h2>
+            <div className="inv-firm-phone">Ph no. {displayPhone}</div>
           </div>
-          {/* Logo Placeholder */}
-          <div className="inv-logo" style={{ width: 100, height: 60, border: "1px solid #ccc", background: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#888" }}>
-            [ LOGO ]
-          </div>
+          <div className="inv-logo">[ LOGO ]</div>
         </div>
 
         {/* Party Info Block */}
-        <div className="inv-party-block" style={{ display: "flex", justifyContent: "space-between", padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid #ddd" }}>
+        <div className="inv-party-block">
           <div>
-            <div style={{ fontSize: "13px", color: "#777", fontWeight: "bold", marginBottom: "4px" }}>{details.partyLabel}</div>
-            <div style={{ fontSize: "15px", fontWeight: "bold", color: "#000" }}>
-              {details.partyName}
-            </div>
-            {details.partyAddress && (
-              <div style={{ fontSize: "12px", color: "#555", marginTop: "4px", maxWidth: 300 }}>{details.partyAddress}</div>
-            )}
+            <div className="inv-party-label">{details.partyLabel}</div>
+            <div className="inv-party-name">{details.partyName}</div>
+            {details.partyAddress && <div className="inv-party-address">{details.partyAddress}</div>}
             {details.partyPhone && details.partyPhone !== "-" && (
-              <div style={{ fontSize: "12px", color: "#555", marginTop: "2px" }}>Contact No : {details.partyPhone}</div>
+              <div className="inv-party-phone">Contact No : {details.partyPhone}</div>
             )}
           </div>
-          <div className="inv-party-right" style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "13px", color: "#777", fontWeight: "bold", marginBottom: "4px" }}>{details.detailsLabel}</div>
-            <div style={{ fontSize: "14px", color: "#333", lineHeight: "1.6" }}>
+          <div className="inv-party-right">
+            <div className="inv-party-right-label">{details.detailsLabel}</div>
+            <div className="inv-party-right-details">
               {type === "purchase-order" && (
                 <>
                   <div>From Branch : {details.fromBranch}</div>
@@ -692,7 +521,7 @@ const InvoiceDynamic = () => {
                   <div>Bill No : {details.no}</div>
                   <div>Order Date : {details.date}</div>
                   <div>Received Date : {details.receivedDate}</div>
-                  <div>Status : <span style={{ color: "#2e7d32", fontWeight: "bold" }}>{details.status}</span></div>
+                  <div>Status : <span className="inv-status-active">{details.status}</span></div>
                 </>
               )}
               {type === "purchase-return" && (
@@ -732,18 +561,7 @@ const InvoiceDynamic = () => {
         </div>
 
         {/* AMOUNT PAID Banner Row */}
-        <div
-          className="inv-amount-banner"
-          style={{
-            background: "#e9315d",
-            color: "#fff",
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "12px 20px",
-            fontSize: "15px",
-            fontWeight: "bold",
-          }}
-        >
+        <div className="inv-amount-banner">
           <div>{details.rowTitle}</div>
           <div className="inv-amount-val">{currencySymbol} {formatVal(details.grandTotalValue)}</div>
         </div>
@@ -751,193 +569,141 @@ const InvoiceDynamic = () => {
         {/* Inline words logic for vouchers */}
         {isVoucher && (
           <>
-            <div
-              className="inv-words-label"
-              style={{
-                background: "#eaeaea",
-                color: "#444",
-                padding: "8px 20px",
-                fontSize: "12px",
-                fontWeight: "bold",
-              }}
-            >
-              AMOUNT IN WORDS
-            </div>
-            <div
-              className="inv-words-val"
-              style={{
-                padding: "12px 20px",
-                fontSize: "13px",
-                fontWeight: "bold",
-                color: "#000",
-                borderBottom: "1px solid #ddd",
-              }}
-            >
-              {numberToWords(details.grandTotalValue)}
-            </div>
+            <div className="inv-words-label">AMOUNT IN WORDS</div>
+            <div className="inv-words-val">{numberToWords(details.grandTotalValue)}</div>
           </>
         )}
 
         {/* Items/Payment Grid Table */}
         <div className="inv-table-outer">
-        <div className="inv-table-wrap" style={{ padding: "0", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#e9315d", color: "#fff" }}>
+          <div className="inv-table-wrap">
+            <table>
+              <thead>
+                <tr className="inv-thead-row">
+                  {isVoucher ? (
+                    <>
+                      <th className="inv-th" style={{ textAlign: "left" }}>PAYMENT MODE</th>
+                      <th className="inv-th" style={{ textAlign: "left" }}>TRANSACTION / REF NO</th>
+                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                    </>
+                  ) : type === "purchase-order" ? (
+                    <>
+                      <th className="inv-th inv-th-sno">S.NO</th>
+                      <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
+                      <th className="inv-th inv-th-qty">QTY</th>
+                      <th className="inv-th inv-th-unit">UNIT</th>
+                      <th className="inv-th inv-th-price">PRICE</th>
+                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="inv-th inv-th-sno" style={{ width: 38 }}>S.NO</th>
+                      <th className="inv-th" style={{ textAlign: "left" }}>PRODUCT NAME</th>
+                      <th className="inv-th inv-th-qty" style={{ width: 42 }}>QTY</th>
+                      <th className="inv-th inv-th-unit" style={{ width: 50 }}>UNIT</th>
+                      <th className="inv-th inv-th-price">PRICE</th>
+                      <th className="inv-th inv-th-tax">TAX (% / ₹)</th>
+                      <th className="inv-th inv-th-disc">DISC (% / ₹)</th>
+                      <th className="inv-th inv-th-amt">AMOUNT</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
                 {isVoucher ? (
                   <>
-                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PAYMENT MODE</th>
-                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>TRANSACTION / REF NO</th>
-                    <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "bold", textAlign: "right" }}>AMOUNT</th>
+                    {(details.paymentRows.length > 0 ? details.paymentRows : [{ mode: details.paymentMode, ref: details.refNo, amount: details.grandTotalValue }]).map((row, rIdx) => (
+                      <tr key={rIdx} className="inv-tbody-row">
+                        <td className="inv-td">{row.mode}</td>
+                        <td className="inv-td">{row.ref}</td>
+                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(row.amount)}</td>
+                      </tr>
+                    ))}
                   </>
                 ) : type === "purchase-order" ? (
                   <>
-                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 44, borderRight: "1px solid #f8bbd0" }}>S.NO</th>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
-                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 48, borderRight: "1px solid #f8bbd0" }}>QTY</th>
-                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "center", width: 60, borderRight: "1px solid #f8bbd0" }}>UNIT</th>
-                    <th style={{ padding: "10px 8px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: 80, borderRight: "1px solid #f8bbd0" }}>PRICE</th>
-                    <th style={{ padding: "10px 10px", fontSize: "12px", fontWeight: "bold", textAlign: "right", width: 90 }}>AMOUNT</th>
+                    {details.items.map((item, index) => (
+                      <tr key={index} className="inv-tbody-row">
+                        <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
+                        <td className="inv-td">{item.name}</td>
+                        <td className="inv-td inv-td-center">{item.qty}</td>
+                        <td className="inv-td inv-td-center">{item.unit}</td>
+                        <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
+                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
+                      </tr>
+                    ))}
+                    <tr className="inv-tbody-row-total">
+                      <td className="inv-td" colSpan={2}>TOTAL</td>
+                      <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
+                      <td className="inv-td"></td>
+                      <td className="inv-td"></td>
+                      <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
+                    </tr>
                   </>
                 ) : (
                   <>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 38, borderRight: "1px solid #f8bbd0" }}>S.NO</th>
-                    <th style={{ padding: "10px 8px", fontSize: "11px", fontWeight: "bold", textAlign: "left", borderRight: "1px solid #f8bbd0" }}>PRODUCT NAME</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 42, borderRight: "1px solid #f8bbd0" }}>QTY</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 50, borderRight: "1px solid #f8bbd0" }}>UNIT</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: 80, borderRight: "1px solid #f8bbd0" }}>PRICE</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 80, borderRight: "1px solid #f8bbd0" }}>TAX (% / ₹)</th>
-                    <th style={{ padding: "10px 6px", fontSize: "11px", fontWeight: "bold", textAlign: "center", width: 90, borderRight: "1px solid #f8bbd0" }}>DISC (% / ₹)</th>
-                    <th style={{ padding: "10px 8px", fontSize: "11px", fontWeight: "bold", textAlign: "right", width: 90 }}>AMOUNT</th>
+                    {details.items.map((item, index) => (
+                      <tr key={index} className="inv-tbody-row">
+                        <td className="inv-td inv-td-center">{String(index + 1).padStart(2, '0')}</td>
+                        <td className="inv-td">{item.name}</td>
+                        <td className="inv-td inv-td-center">{item.qty}</td>
+                        <td className="inv-td inv-td-center">{item.unit}</td>
+                        <td className="inv-td inv-td-right">{currencySymbol} {formatVal(item.rate)}</td>
+                        <td className="inv-td inv-td-center">
+                          <span className="inv-tax-pct">{item.taxPercent}%</span> | {currencySymbol}{formatVal(item.taxAmount)}
+                        </td>
+                        <td className="inv-td inv-td-center">
+                          <span className="inv-tax-pct">{item.discountPercent}%</span> | {currencySymbol}{formatVal(item.discountAmount)}
+                        </td>
+                        <td className="inv-td inv-td-right inv-td-bold inv-td-no-border">{currencySymbol} {formatVal(item.total)}</td>
+                      </tr>
+                    ))}
+                    <tr className="inv-tbody-row-total">
+                      <td className="inv-td" colSpan={2}>TOTAL</td>
+                      <td className="inv-td inv-td-center">{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
+                      <td className="inv-td"></td>
+                      <td className="inv-td"></td>
+                      <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.taxAmount, 0))}</td>
+                      <td className="inv-td inv-td-center">{currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.discountAmount, 0))}</td>
+                      <td className="inv-td inv-td-right inv-td-no-border">{currencySymbol} {formatVal(details.grandTotalValue)}</td>
+                    </tr>
                   </>
                 )}
-              </tr>
-            </thead>
-            <tbody>
-              {isVoucher ? (
-                <>
-                  {(details.paymentRows.length > 0 ? details.paymentRows : [{ mode: details.paymentMode, ref: details.refNo, amount: details.grandTotalValue }]).map((row, rIdx) => (
-                    <tr key={rIdx} style={{ background: "#fff", borderBottom: "1px solid #ddd" }}>
-                      <td style={{ padding: "12px 20px", fontSize: "13px", color: "#000", borderRight: "1px solid #ddd" }}>{row.mode}</td>
-                      <td style={{ padding: "12px 20px", fontSize: "13px", color: "#000", borderRight: "1px solid #ddd" }}>{row.ref}</td>
-                      <td style={{ padding: "12px 20px", fontSize: "13px", color: "#000", textAlign: "right", fontWeight: "bold" }}>{currencySymbol} {formatVal(row.amount)}</td>
-                    </tr>
-                  ))}
-                </>
-              ) : type === "purchase-order" ? (
-                <>
-                  {details.items.map((item, index) => (
-                    <tr key={index} style={{ background: "#fff", borderBottom: "1px solid #ddd" }}>
-                      <td style={{ padding: "10px 10px", fontSize: "13px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{String(index + 1).padStart(2, '0')}</td>
-                      <td style={{ padding: "10px 15px", fontSize: "13px", color: "#000", borderRight: "1px solid #ddd" }}>{item.name}</td>
-                      <td style={{ padding: "10px 10px", fontSize: "13px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{item.qty}</td>
-                      <td style={{ padding: "10px 10px", fontSize: "13px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{item.unit}</td>
-                      <td style={{ padding: "10px 10px", fontSize: "13px", color: "#000", textAlign: "right", borderRight: "1px solid #ddd" }}>{currencySymbol} {formatVal(item.rate)}</td>
-                      <td style={{ padding: "10px 15px", fontSize: "13px", color: "#000", textAlign: "right", fontWeight: "bold" }}>{currencySymbol} {formatVal(item.total)}</td>
-                    </tr>
-                  ))}
-                  {/* Total Row */}
-                  <tr style={{ background: "#fff", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>
-                    <td colSpan={2} style={{ padding: "12px 15px", fontSize: "13px", color: "#000", borderRight: "1px solid #ddd" }}>TOTAL</td>
-                    <td style={{ padding: "12px 10px", fontSize: "13px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
-                    <td style={{ borderRight: "1px solid #ddd" }}></td>
-                    <td style={{ borderRight: "1px solid #ddd" }}></td>
-                    <td style={{ padding: "12px 15px", fontSize: "13px", color: "#000", textAlign: "right" }}>{currencySymbol} {formatVal(details.grandTotalValue)}</td>
-                  </tr>
-                </>
-              ) : (
-                <>
-                  {details.items.map((item, index) => (
-                    <tr key={index} style={{ background: "#fff", borderBottom: "1px solid #ddd" }}>
-                      <td style={{ padding: "10px 8px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{String(index + 1).padStart(2, '0')}</td>
-                      <td style={{ padding: "10px 10px", fontSize: "12px", color: "#000", borderRight: "1px solid #ddd" }}>{item.name}</td>
-                      <td style={{ padding: "10px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{item.qty}</td>
-                      <td style={{ padding: "10px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{item.unit}</td>
-                      <td style={{ padding: "10px 6px", fontSize: "12px", color: "#000", textAlign: "right", borderRight: "1px solid #ddd" }}>{currencySymbol} {formatVal(item.rate)}</td>
-                      <td style={{ padding: "10px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>
-                        <span style={{ color: "#666" }}>{item.taxPercent}%</span> | {currencySymbol}{formatVal(item.taxAmount)}
-                      </td>
-                      <td style={{ padding: "10px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>
-                        <span style={{ color: "#666" }}>{item.discountPercent}%</span> | {currencySymbol}{formatVal(item.discountAmount)}
-                      </td>
-                      <td style={{ padding: "10px 10px", fontSize: "12px", color: "#000", textAlign: "right", fontWeight: "bold" }}>{currencySymbol} {formatVal(item.total)}</td>
-                    </tr>
-                  ))}
-                  {/* Total Row */}
-                  <tr style={{ background: "#fff", borderBottom: "1px solid #ddd", fontWeight: "bold" }}>
-                    <td colSpan={2} style={{ padding: "12px 10px", fontSize: "12px", color: "#000", borderRight: "1px solid #ddd" }}>TOTAL</td>
-                    <td style={{ padding: "12px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>{details.items.reduce((sum, i) => sum + i.qty, 0)}</td>
-                    <td style={{ borderRight: "1px solid #ddd" }}></td>
-                    <td style={{ borderRight: "1px solid #ddd" }}></td>
-                    <td style={{ padding: "12px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>
-                      {currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.taxAmount, 0))}
-                    </td>
-                    <td style={{ padding: "12px 6px", fontSize: "12px", color: "#000", textAlign: "center", borderRight: "1px solid #ddd" }}>
-                      {currencySymbol}{formatVal(details.items.reduce((sum, i) => sum + i.discountAmount, 0))}
-                    </td>
-                    <td style={{ padding: "12px 10px", fontSize: "12px", color: "#000", textAlign: "right" }}>{currencySymbol} {formatVal(details.grandTotalValue)}</td>
-                  </tr>
-                </>
-              )}
 
-              {/* Total Summary Row */}
-              <tr style={{ background: "#e9315d", color: "#fff", fontWeight: "bold" }}>
-                <td colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7} style={{ padding: "12px 20px", fontSize: "14px", whiteSpace: "nowrap" }}>
-                  {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
-                </td>
-                <td style={{ padding: "12px 20px", fontSize: "14px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  {currencySymbol} {formatVal(details.grandTotalValue)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        {/* Swipe hint – only visible on mobile via CSS */}
-        <div className="inv-scroll-hint" style={{ display: "none" }}>
-          <span>⟵</span>
-          <span>Swipe to see all columns</span>
-          <span>⟶</span>
-        </div>
+                {/* Total Summary Row */}
+                <tr className="inv-summary-row">
+                  <td className="inv-summary-label" colSpan={isVoucher ? 2 : type === "purchase-order" ? 5 : 7}>
+                    {isVoucher ? "TOTAL PAID" : "TOTAL AMOUNT"}
+                  </td>
+                  <td className="inv-summary-val">
+                    {currencySymbol} {formatVal(details.grandTotalValue)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {/* Swipe hint – only visible on mobile via CSS */}
+          <div className="inv-scroll-hint">
+            <span>⟵</span><span>Swipe to see all columns</span><span>⟶</span>
+          </div>
         </div>
 
         {/* Bottom Double-Box Block */}
         {!isVoucher && (
-          <div className="inv-bottom-boxes" style={{ display: "flex", gap: "20px", padding: "20px", flexWrap: "wrap" }}>
-            <div className="inv-words-box" style={{ flex: 1, minWidth: 0, border: "1px solid #ddd", borderRadius: 2 }}>
-              <div style={{ background: "#e9315d", color: "#fff", padding: "8px 16px", fontSize: "13px", fontWeight: "bold" }}>
-                AMOUNT IN WORDS
-              </div>
-              <div style={{ padding: "16px", fontSize: "14px", fontWeight: "bold", color: "#333" }}>
-                {numberToWords(details.grandTotalValue)}
-              </div>
+          <div className="inv-bottom-boxes">
+            <div className="inv-words-box">
+              <div className="inv-words-box-header">AMOUNT IN WORDS</div>
+              <div className="inv-words-box-body">{numberToWords(details.grandTotalValue)}</div>
             </div>
-
-            <div className="inv-amounts-box" style={{ width: "320px", border: "1px solid #ddd", borderRadius: 2 }}>
-              <div style={{ background: "#e9315d", color: "#fff", padding: "8px 16px", fontSize: "13px", fontWeight: "bold" }}>
-                AMOUNTS
-              </div>
-              <div style={{ padding: "12px 16px" }}>
+            <div className="inv-amounts-box">
+              <div className="inv-amounts-box-header">AMOUNTS</div>
+              <div className="inv-amounts-box-body">
                 {details.amounts.map((amt, idx) => {
-                  const isLast = idx === details.amounts.length - 1;
-                  const isHighlight = amt.highlight;
+                  const isHighlight = amt.highlight || idx === details.amounts.length - 1;
                   return (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: (isLast || isHighlight) ? "10px 0 0" : "6px 0",
-                        borderTop: (isLast || isHighlight) ? "1px solid #ddd" : "none",
-                        marginTop: (isLast || isHighlight) ? "6px" : "0",
-                        fontSize: "13px",
-                        fontWeight: (isLast || isHighlight) ? "bold" : "normal",
-                        color: (isLast || isHighlight) ? "#e9315d" : "#333",
-                      }}
-                    >
+                    <div key={idx} className={isHighlight ? "inv-amt-row-highlight" : "inv-amt-row"}>
                       <div>{amt.label}</div>
-                      <div>
-                        {amt.noFormat ? amt.val : `${currencySymbol} ${formatVal(amt.val)}`}
-                      </div>
+                      <div>{amt.noFormat ? amt.val : `${currencySymbol} ${formatVal(amt.val)}`}</div>
                     </div>
                   );
                 })}
@@ -947,41 +713,17 @@ const InvoiceDynamic = () => {
         )}
 
         {/* Signature Box */}
-        <div className="inv-sig-wrap" style={{ display: "flex", justifyContent: "flex-end", padding: "24px 20px" }}>
-          <div style={{ width: 280, border: "1px solid #e9315d", borderRadius: 2 }}>
-            <div
-              style={{
-                background: "#e9315d",
-                color: "#fff",
-                padding: "8px 12px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                textAlign: "center",
-                textTransform: "uppercase",
-              }}
-            >
-              For {companyName}
-            </div>
-            <div style={{ height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "8px" }}>
-              <span style={{ fontSize: "10px", color: "#888", fontWeight: "bold", letterSpacing: "0.5px" }}>AUTHORIZED SIGNATURE</span>
+        <div className="inv-sig-wrap">
+          <div className="inv-sig-box">
+            <div className="inv-sig-header">For {companyName}</div>
+            <div className="inv-sig-body">
+              <span className="inv-sig-label">AUTHORIZED SIGNATURE</span>
             </div>
           </div>
         </div>
 
         {/* Bottom Footer Bar */}
-        <div
-          className="inv-footer-bar"
-          style={{
-            background: "#e9315d",
-            color: "#fff",
-            padding: "12px 20px",
-            fontSize: "12px",
-            fontWeight: "bold",
-            textAlign: "center",
-            letterSpacing: "0.5px",
-            textTransform: "uppercase",
-          }}
-        >
+        <div className="inv-footer-bar">
           Smart Business Solutions by Zaanvar
         </div>
       </div>

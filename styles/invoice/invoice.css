@@ -1,0 +1,515 @@
+/* =====================================================
+   Invoice Page Styles
+   Used by: pages/invoice/[type]/[id].js
+   ===================================================== */
+
+/* ── Outer page wrapper ── */
+.inv-page {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 30px 15px;
+  font-family: sans-serif;
+}
+
+/* ── Back button wrapper ── */
+.inv-back-wrap {
+  max-width: 850px;
+  margin: 0 auto 15px;
+}
+
+.inv-back-btn {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #666;
+  font-size: 13px;
+}
+
+/* ── Main invoice card ── */
+.inv-card {
+  background: #fff;
+  max-width: 850px;
+  margin: 0 auto;
+  border: 1px solid #bbb;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Title bar (grey header) ── */
+.inv-title-bar {
+  background: #7d7d7d;
+  color: #fff;
+  padding: 16px 20px;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+/* ── Company / firm header ── */
+.inv-firm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #000;
+}
+
+.inv-firm-header h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
+}
+
+.inv-firm-phone {
+  font-size: 13px;
+  color: #555;
+}
+
+.inv-logo {
+  width: 100px;
+  height: 60px;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #888;
+}
+
+/* ── Party info block ── */
+.inv-party-block {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-bottom: 1px solid #ddd;
+}
+
+.inv-party-label {
+  font-size: 13px;
+  color: #777;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.inv-party-name {
+  font-size: 15px;
+  font-weight: bold;
+  color: #000;
+}
+
+.inv-party-address {
+  font-size: 12px;
+  color: #555;
+  margin-top: 4px;
+  max-width: 300px;
+}
+
+.inv-party-phone {
+  font-size: 12px;
+  color: #555;
+  margin-top: 2px;
+}
+
+.inv-party-right {
+  text-align: right;
+}
+
+.inv-party-right-label {
+  font-size: 13px;
+  color: #777;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.inv-party-right-details {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.inv-status-active {
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+/* ── Amount banner (red bar above table) ── */
+.inv-amount-banner {
+  background: #e9315d;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.inv-amount-val {
+  /* Prevents the amount from wrapping to a second line on narrow screens */
+}
+
+/* ── Voucher words section ── */
+.inv-words-label {
+  background: #eaeaea;
+  color: #444;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.inv-words-val {
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #000;
+  border-bottom: 1px solid #ddd;
+}
+
+/* ── Items / payments table ── */
+.inv-table-outer {
+  /* wrapper for scroll + swipe hint */
+}
+
+.inv-table-wrap {
+  padding: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inv-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inv-thead-row {
+  background: #e9315d;
+  color: #fff;
+}
+
+.inv-th {
+  padding: 10px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-right: 1px solid #f8bbd0;
+}
+
+.inv-th-sno   { text-align: center; width: 44px; }
+.inv-th-name  { text-align: left; }
+.inv-th-qty   { text-align: center; width: 48px; }
+.inv-th-unit  { text-align: center; width: 60px; }
+.inv-th-price { text-align: right;  width: 80px; }
+.inv-th-tax   { text-align: center; width: 80px; font-size: 11px; }
+.inv-th-disc  { text-align: center; width: 90px; font-size: 11px; }
+.inv-th-amt   { text-align: right;  width: 90px; border-right: none; }
+
+.inv-tbody-row {
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+.inv-tbody-row-total {
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+}
+
+.inv-td {
+  padding: 10px 8px;
+  font-size: 12px;
+  color: #000;
+  border-right: 1px solid #ddd;
+}
+
+.inv-td-center  { text-align: center; }
+.inv-td-right   { text-align: right; }
+.inv-td-bold    { font-weight: bold; }
+.inv-td-no-border { border-right: none; }
+
+.inv-tax-pct    { color: #666; }
+
+/* ── Summary total row (red footer row inside table) ── */
+.inv-summary-row {
+  background: #e9315d;
+  color: #fff;
+  font-weight: bold;
+}
+
+.inv-summary-label {
+  padding: 12px 20px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.inv-summary-val {
+  padding: 12px 20px;
+  font-size: 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Swipe hint (mobile only) ── */
+.inv-scroll-hint {
+  display: none; /* shown only via media query on mobile */
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 0 8px;
+  font-size: 11px;
+  color: #e9315d;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* ── Bottom boxes block ── */
+.inv-bottom-boxes {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.inv-words-box {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+}
+
+.inv-words-box-header {
+  background: #e9315d;
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.inv-words-box-body {
+  padding: 16px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.inv-amounts-box {
+  width: 320px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+}
+
+.inv-amounts-box-header {
+  background: #e9315d;
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.inv-amounts-box-body {
+  padding: 12px 16px;
+}
+
+.inv-amt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 6px 0;
+  color: #333;
+}
+
+.inv-amt-row-highlight {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 10px 0 0;
+  border-top: 1px solid #ddd;
+  margin-top: 6px;
+  font-weight: bold;
+  color: #e9315d;
+}
+
+/* ── Signature box ── */
+.inv-sig-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 24px 20px;
+}
+
+.inv-sig-box {
+  width: 280px;
+  border: 1px solid #e9315d;
+  border-radius: 2px;
+}
+
+.inv-sig-header {
+  background: #e9315d;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.inv-sig-body {
+  height: 60px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+.inv-sig-label {
+  font-size: 10px;
+  color: #888;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+/* ── Footer bar ── */
+.inv-footer-bar {
+  background: #e9315d;
+  color: #fff;
+  padding: 12px 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── State screens (loading / error / no-auth) ── */
+.inv-state-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: sans-serif;
+}
+
+.inv-error-screen {
+  padding: 24px;
+  text-align: center;
+  font-family: sans-serif;
+}
+
+.inv-error-title {
+  color: #e9315d;
+}
+
+.inv-error-btn {
+  padding: 8px 16px;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+.inv-login-btn {
+  padding: 8px 16px;
+  margin-top: 16px;
+  cursor: pointer;
+  background: #e9315d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+
+/* =====================================================
+   MOBILE  ≤ 600px
+   ===================================================== */
+@media (max-width: 600px) {
+  .inv-page { padding: 8px 0; }
+  .inv-back-wrap { margin: 0 10px 10px; }
+
+  /* card: flush to screen edges */
+  .inv-card {
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  /* title bar */
+  .inv-title-bar {
+    font-size: 14px;
+    padding: 10px 14px;
+    letter-spacing: 0;
+  }
+
+  /* company header */
+  .inv-firm-header {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .inv-firm-header h2 { font-size: 17px; }
+  .inv-logo {
+    width: 60px;
+    height: 38px;
+    font-size: 8px;
+  }
+
+  /* party block: stack vertically */
+  .inv-party-block {
+    flex-direction: column;
+    gap: 0;
+    padding: 12px 14px;
+  }
+  .inv-party-right {
+    text-align: left;
+    width: 100%;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+  .inv-party-right-label { margin-bottom: 4px; }
+  .inv-party-right-details {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  /* amount banner */
+  .inv-amount-banner {
+    font-size: 13px;
+    padding: 10px 14px;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .inv-amount-val { white-space: nowrap; }
+
+  /* table: horizontal scroll */
+  .inv-table-wrap {
+    scrollbar-width: thin;
+    scrollbar-color: #e9315d #f0f0f0;
+  }
+  .inv-table-wrap::-webkit-scrollbar { height: 6px; display: block; }
+  .inv-table-wrap::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+  .inv-table-wrap::-webkit-scrollbar-thumb { background: #e9315d; border-radius: 3px; }
+  .inv-table-wrap table { min-width: 720px; }
+  .inv-th  { font-size: 10px; padding: 8px 5px; white-space: nowrap; }
+  .inv-td  { font-size: 11px; padding: 8px 5px; white-space: nowrap; }
+
+  /* swipe hint: show on mobile */
+  .inv-scroll-hint { display: flex; }
+
+  /* bottom boxes: stack */
+  .inv-bottom-boxes {
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .inv-words-box { width: 100%; min-width: 0; }
+  .inv-amounts-box { width: 100%; }
+
+  /* signature: center */
+  .inv-sig-wrap { padding: 14px; justify-content: center; }
+
+  /* footer */
+  .inv-footer-bar { font-size: 11px; padding: 10px 14px; letter-spacing: 0; }
+
+  /* voucher words */
+  .inv-words-label { padding: 6px 14px; }
+  .inv-words-val   { padding: 10px 14px; font-size: 12px; }
+}
