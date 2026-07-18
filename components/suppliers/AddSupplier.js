@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/purchase-bill/purchase-out.module.css"; // Reuse modal styles
 import { FiX, FiChevronDown } from "react-icons/fi";
-import { purchaseService } from "../../services/purchaseService";
+import { productService } from "../../services/productService";
+import { getTaxGroups } from "../../services/settingsService";
 import useStore from "../state/useStore";
 import { toast } from "sonner";
 import MultiSelectDropdown from "../MultiSelectDropdown";
@@ -35,6 +36,12 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     const [supplierGroups, setSupplierGroups] = useState([]);
     const [showGroupPopup, setShowGroupPopup] = useState(false);
     const [newGroupName, setNewGroupName] = useState("");
+
+    const [productsList, setProductsList] = useState([]);
+    const [taxGroups, setTaxGroups] = useState([]);
+    const [assignedProducts, setAssignedProducts] = useState([
+        { products: [], taxType: "", taxGroupId: "" }
+    ]);
 
     const showSupplierGrouping = vendorSettings?.party?.supplierGrouping || vendorSettings?.settings?.party?.supplierGrouping;
 
@@ -70,7 +77,43 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
         if (isOpen && showSupplierGrouping && (selectedBranchId || branchId)) {
             fetchSupplierGroups();
         }
+        if (isOpen) {
+            fetchProducts();
+            fetchTaxGroupsData();
+        }
     }, [isOpen, branchId, selectedBranchId, showSupplierGrouping]);
+
+    const fetchTaxGroupsData = async () => {
+        const activeBranchId = Number(selectedBranchId) || Number(branchId) || Number(selectedBranchIds[0]);
+        if (!activeBranchId) return;
+        try {
+            const res = await getTaxGroups(jwtToken, activeBranchId);
+            const payload = res?.data || res;
+            let rawGroups = [];
+            if (Array.isArray(payload)) rawGroups = payload;
+            else if (payload && Array.isArray(payload.data)) rawGroups = payload.data;
+            else if (payload && Array.isArray(payload.taxGroups)) rawGroups = payload.taxGroups;
+            else if (payload && Array.isArray(payload.payload)) rawGroups = payload.payload;
+            
+            console.log("Tax Groups Parsed:", rawGroups);
+            setTaxGroups(rawGroups || []);
+        } catch (err) {
+            console.error("Failed to fetch tax groups:", err);
+            setTaxGroups([]);
+        }
+    };
+
+    const fetchProducts = async () => {
+        const activeBranchId = Number(selectedBranchId) || Number(branchId) || Number(selectedBranchIds[0]) || Number(branchesList[0]?.id);
+        if (!activeBranchId) return;
+        try {
+            const res = await productService.getAllProductsBrief(jwtToken, activeBranchId);
+            const mapped = (res || []).map(p => ({ id: p.productId, name: p.productName }));
+            setProductsList(mapped);
+        } catch (e) {
+            console.error("Error fetching products:", e);
+        }
+    };
 
     useEffect(() => {
         const settingsObj = vendorSettings?.settings || vendorSettings;
@@ -119,6 +162,18 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 setLocality(data.locality || "");
                 setAreaPinCode(data.areaPinCode || "");
                 setCountry(data.country || "India");
+                if (data.assignedProducts && Array.isArray(data.assignedProducts) && data.assignedProducts.length > 0) {
+                    setAssignedProducts(data.assignedProducts);
+                } else {
+                    const prods = data.productIds && Array.isArray(data.productIds) ? data.productIds : 
+                                 (data.products && Array.isArray(data.products) ? data.products.map(p => p.productId || p.id) : []);
+                    setAssignedProducts([{
+                        products: prods,
+                        taxType: data.taxType || "",
+                        taxGroupId: data.taxGroupId || ""
+                    }]);
+                }
+                
                 setSelectedBranchIds(data.branches?.map(b => b.id) || []);
                 setGroupName(data.groupName || "");
 
@@ -227,6 +282,13 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
             createdBy: userInfo?.userId || 1,
             branchIds: selectedBranchIds,
             customFields: customFieldsObj,
+            products: assignedProducts.flatMap(row => 
+                (row.products || []).map(prodId => ({
+                    productId: Number(prodId),
+                    taxIncluded: row.taxType === "Include",
+                    taxGroupId: Number(row.taxGroupId) || null
+                }))
+            ),
             ...(showSupplierGrouping ? { groupName } : {})
         };
 
@@ -383,6 +445,84 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                 )}
                             </div>
                         ))}
+                    </div>
+
+                    <h4 style={{ margin: '30px 0 20px', color: '#000', textTransform: 'uppercase' }}>Assigning Products</h4>
+                    {assignedProducts.map((row, index) => (
+                        <div key={index} className={styles.topGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '16px', alignItems: 'end', marginBottom: '16px' }}>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label>Products</label>
+                                <MultiSelectDropdown
+                                    listItems={productsList}
+                                    selectedIds={row.products}
+                                    setSelectedIds={(ids) => {
+                                        const next = [...assignedProducts];
+                                        next[index].products = ids;
+                                        setAssignedProducts(next);
+                                    }}
+                                    placeholder="Select Products here"
+                                />
+                            </div>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label>Tax Include/Exclude</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select className={styles.select} style={{ appearance: 'none', width: '100%', minHeight: '48px' }} 
+                                        value={row.taxType} 
+                                        onChange={(e) => {
+                                            const next = [...assignedProducts];
+                                            next[index].taxType = e.target.value;
+                                            setAssignedProducts(next);
+                                        }}>
+                                        <option value="">Select Tax Type</option>
+                                        <option value="Exclude">Exclude</option>
+                                        <option value="Include">Include</option>
+                                    </select>
+                                    <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }} />
+                                </div>
+                            </div>
+                            <div className={styles.field} style={{ marginBottom: 0 }}>
+                                <label>GST Group</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select className={styles.select} style={{ appearance: 'none', width: '100%', minHeight: '48px' }} 
+                                        value={row.taxGroupId || ""} 
+                                        onChange={(e) => {
+                                            const next = [...assignedProducts];
+                                            next[index].taxGroupId = e.target.value;
+                                            setAssignedProducts(next);
+                                        }}>
+                                        <option value="">Select GST Group</option>
+                                        {(Array.isArray(taxGroups) ? taxGroups : []).map((g) => (
+                                            <option key={g.id || g.taxGroupId} value={g.id || g.taxGroupId}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                    <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }} />
+                                </div>
+                            </div>
+                            {index > 0 ? (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <FiX 
+                                        style={{ cursor: 'pointer', color: '#E93E64', fontSize: '24px' }} 
+                                        onClick={() => {
+                                            const next = [...assignedProducts];
+                                            next.splice(index, 1);
+                                            setAssignedProducts(next);
+                                        }} 
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ width: '24px' }}></div>
+                            )}
+                        </div>
+                    ))}
+                    <div style={{ marginTop: '0px', textAlign: 'left' }}>
+                        <span 
+                            onClick={() => {
+                                setAssignedProducts([...assignedProducts, { products: [], taxType: "", taxGroupId: "" }]);
+                            }}
+                            style={{ color: '#E93E64', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+                        >
+                            + Assign Product
+                        </span>
                     </div>
 
                     <h4 style={{ margin: '30px 0 20px', color: '#000' }}>Address Information</h4>

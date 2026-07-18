@@ -4,7 +4,9 @@ import styles from "../../styles/inventory/product-form.module.css";
 import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { productService } from "../../services/productService";
+import { purchaseService } from "../../services/purchaseService";
 import { getTaxGroups } from "../../services/settingsService";
+import MultiSelectDropdown from "../MultiSelectDropdown";
 import ConfirmationModal from "./confirmation-modal";
 import { toast } from "sonner";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
@@ -182,6 +184,29 @@ const ProductForm = ({
     };
     fetchTaxGroupsData();
   }, [jwtToken, branchId, initialData?.taxGroupId]);
+
+  const [suppliersList, setSuppliersList] = useState([]);
+  const [selectedSuppliers, setSelectedSuppliers] = useState(() => {
+    if (initialData?.supplierIds && Array.isArray(initialData.supplierIds)) return initialData.supplierIds;
+    if (initialData?.suppliers && Array.isArray(initialData.suppliers)) return initialData.suppliers.map(s => s.supplierId || s.id);
+    return [];
+  });
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      if (!jwtToken || !branchId) return;
+      try {
+          const res = await purchaseService.getSuppliers(jwtToken, branchId);
+          if (res.status === "success" || res.status === 200) {
+              const mapped = (res.data || []).map(s => ({ id: s.supplierId, name: s.supplierName }));
+              setSuppliersList(mapped);
+          }
+      } catch (err) {
+          console.error("Failed to fetch suppliers:", err);
+      }
+    };
+    fetchSuppliers();
+  }, [jwtToken, branchId]);
 
   console.log("[ProductForm Debug]", {
     initialDataBranchId: initialData?.branchId,
@@ -642,6 +667,7 @@ const ProductForm = ({
         hsnCode: hsnCode,
         rack: rack,
         customFields: productCustomFields,
+        Suppliers: selectedSuppliers,
         extraAttributes: {
           prescriptionRequired: true,
           storageCondition: "Store below 25°C",
@@ -1012,7 +1038,6 @@ const ProductForm = ({
                 packType: "",
                 images: [],
                 variantDescription: "",
-                composition: "",
                 minStock: "",
               },
             ];
@@ -1192,12 +1217,59 @@ const ProductForm = ({
         </div>
         <div className={styles.inputField}>
           <label>Sub Category</label>
-          <input
-            type="text"
-            placeholder="Enter Sub Category"
+          <select
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
-          />
+          >
+            <option value="">Select Sub Category</option>
+            {category === "Food" && (
+              <>
+                <option value="Dry Food">Dry Food</option>
+                <option value="Wet Food">Wet Food</option>
+                <option value="Prescription Diet">Prescription Diet</option>
+                <option value="Treats and Chews">Treats and Chews</option>
+              </>
+            )}
+            {category === "Cloths" && (
+              <>
+                <option value="Shirts">Shirts</option>
+                <option value="T-shirts">T-shirts</option>
+                <option value="Sweaters & Hoodies">
+                  Sweaters & Hoodies
+                </option>
+                <option value="Coats & Jackets">Coats & Jackets</option>
+                <option value="Raincoats">Raincoats</option>
+              </>
+            )}
+            {category === "Accessories" && (
+              <>
+                <option value="Toys">Toys</option>
+                <option value="Beds & Furniture">Beds & Furniture</option>
+                <option value="Collars, Leashes & Harnesses">
+                  Collars, Leashes & Harnesses
+                </option>
+                <option value="Bowls & Feeders">Bowls & Feeders</option>
+                <option value="Travel Carriers">Travel Carriers</option>
+                <option value="Training & Behavior">
+                  Training & Behavior
+                </option>
+                <option value="Tech Accessories">Tech Accessories</option>
+              </>
+            )}
+            {category === "Grooming" && (
+              <>
+                <option value="Shampoo">Shampoo</option>
+                <option value="Conditioner">Conditioner</option>
+                <option value="Bathing Accessories">
+                  Bathing Accessories
+                </option>
+                <option value="Brushes">Brushes</option>
+                <option value="Combs">Combs</option>
+                <option value="Nail Clippers">Nail Clippers</option>
+                <option value="Toothbrushes">Toothbrushes</option>
+              </>
+            )}
+          </select>
         </div>
         <div className={styles.inputField}>
           <label>
@@ -1299,6 +1371,15 @@ const ProductForm = ({
           {formErrors.productCode && (
             <div className={styles.errorMessage}>{formErrors.productCode}</div>
           )}
+        </div>
+        <div className={styles.inputField} style={{ zIndex: 110 }}>
+          <label>Suppliers</label>
+          <MultiSelectDropdown
+            listItems={suppliersList}
+            selectedIds={selectedSuppliers}
+            setSelectedIds={setSelectedSuppliers}
+            placeholder="Select Suppliers"
+          />
         </div>
 
         {/* Dynamic Custom Fields */}

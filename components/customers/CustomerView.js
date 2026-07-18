@@ -6,6 +6,8 @@ import { customerService } from "../../services/customerService";
 import { useRouter } from "next/router";
 import useStore from "../state/useStore";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import { WebApimanager } from "@/components/utilities/WebApiManager";
+import { FiPaperclip } from "react-icons/fi";
 
 const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
   const currencySymbol = useCurrencySymbol();
@@ -18,14 +20,23 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [paymentHistoryModal, setPaymentHistoryModal] = useState(null); // { orderId, payments[] }
 
+    const [messages, setMessages] = useState([]);
+
     useEffect(() => {
         const fetchFullData = async () => {
             if (initialData?.vendorCustomerId) {
                 setLoading(true);
                 try {
-                    const res = await customerService.getCustomerById(jwtToken, initialData.vendorCustomerId);
+                    const branchId = router.query.branchId || "";
+                    const [res, msgRes] = await Promise.all([
+                        customerService.getCustomerById(jwtToken, initialData.vendorCustomerId),
+                        new WebApimanager(jwtToken).get(`vendor/settings/${branchId}/messages?vendorCustomerId=${initialData.vendorCustomerId}`).catch(() => null)
+                    ]);
                     if (res && (res.data || res.customer)) {
                         setData(res.data || res.customer);
+                    }
+                    if (msgRes && (msgRes.status === 200 || msgRes.data?.status === "success" || msgRes.data)) {
+                        setMessages(msgRes.data?.data || msgRes.data || []);
                     }
                 } catch (err) {
                     console.error("Failed to fetch full customer data", err);
@@ -35,9 +46,9 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
             }
         };
         fetchFullData();
-    }, [initialData?.vendorCustomerId, jwtToken]);
+    }, [initialData?.vendorCustomerId, jwtToken, router.query.branchId]);
 
-    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Reviews"];
+    const sidebarNavs = ["Bookings", "Pets", "Reminders", "Wallet", "Sales", "Reviews", "Chats"];
     const rightTabs = ["Clinic", "Boarding", "Daycare", "Grooming", "Ordered", "Return", "Payments "];
 
     const [activeRightTab, setActiveRightTab] = useState("Ordered");
@@ -376,6 +387,54 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
         return String(val);
     };
 
+    const renderMessageWithLinks = (text) => {
+        if (!text) return null;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.split(urlRegex).map((part, i) => {
+            if (part.match(urlRegex)) {
+                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#E53761', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>;
+            }
+            return part;
+        });
+    };
+
+    const formatMessageDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        const today = new Date();
+        const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        const formattedDate = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        if (isToday) {
+            return `Today, ${formattedDate} ${formattedTime}`;
+        }
+        return `${formattedDate} ${formattedTime}`;
+    };
+
+    const renderChats = () => {
+        if (!messages || messages.length === 0) {
+            return <div className={styles.emptyState}>No messages found</div>;
+        }
+        return (
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px", alignContent: "start", paddingRight: "8px" }}>
+                {messages.map((msg, index) => (
+                    <div key={index} style={{ background: "#E537611A", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", fontSize: "11px", color: "#888", marginBottom: "-8px" }}>
+                            {formatMessageDate(msg.createdAt)}
+                        </div>
+                        <div style={{ background: "#E5376126", borderRadius: "6px", padding: "10px", display: "flex", alignItems: "center", gap: "8px", color: "#E53761", fontWeight: "600", fontSize: "14px" }}>
+                            <FiPaperclip size={16} />
+                            Transaction Image Attached
+                        </div>
+                        <div style={{ whiteSpace: "pre-wrap", fontSize: "13px", color: "#333", lineHeight: "1.6" }}>
+                            {renderMessageWithLinks(msg.message)}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <>
             {/* Payment History Modal */}
@@ -492,6 +551,8 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
 
                                 {renderRightContent()}
                             </>
+                        ) : activeTab === "Chats" ? (
+                            renderChats()
                         ) : (
                             <div className={`${styles.tableCard} ${styles.developmentCard}`}>
                                 <h2 className={styles.developmentText}>{activeTab} and it is under development</h2>
