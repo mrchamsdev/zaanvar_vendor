@@ -381,29 +381,8 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
           <InfoIcon tip={`What is this?\nGST stands for Goods and Services Tax of the Government of India. Enabling GST allows you to apply GST to Sales, Purchases, and other types of transactions.\n\nHow it is used?\nApply GST to Sale and/or Purchase invoices. You can also generate GST reports for tax f iling.\n\nWhy to use?\nBusinesses with a GSTIN and registered under the Regular or Composition scheme can enable GST. Zaanvar generates ready-made GST reports such as GSTR-1 and GSTR-3B to simplify GST filing in India.`} />
         </div>
 
-        <div className={styles.checkRow}>
-          <input
-            id="enableTCS"
-            type="checkbox"
-            className={styles.checkInput}
-            checked={g.enableTcs ?? false}
-            onChange={toggle("enableTcs")}
-          />
-          <label htmlFor="enableTCS" className={styles.checkLabel}>Enable TCS</label>
-          <InfoIcon tip={`What is this?\nTCS (Tax Collected at Source) is a tax that vendors collect from their customers at the time of sale.\n\nHow it is used?\nEnter TCS in your transactions. You can find your TCS details in Form 27EQ.\n\nWhy to use?\nThe government requires businesses to collect TCS if: * Your turnover exceeded ₹10 crore in the previous financial year, and * The value of sales to a customer exceeds ₹50 lakh in the current financial year.`} />
-        </div>
 
-        <div className={styles.checkRow}>
-          <input
-            id="enableTDS"
-            type="checkbox"
-            className={styles.checkInput}
-            checked={g.enableTds ?? false}
-            onChange={toggle("enableTds")}
-          />
-          <label htmlFor="enableTDS" className={styles.checkLabel}>Enable TDS</label>
-          <InfoIcon tip={`What is this?\nTDS (Tax Deducted at Source) is a tax deducted by the payer at the time of making specified payments and subsequently deposited with the government.\n\nHow it is used?\nEnter TDS in your transactions. You can view your TDS details in the TDS Receivable and TDS Payable reports.\n\nWhy to use?\nUnder the TDS system, a person or entity making certain types of payments is required to deduct a specified percentage of tax before making the payment to the recipient. Using the TDS feature helps streamline financial processes, minimize errors, stay compliant with tax regulations, and avoid penalties or legal issues related to tax deductions.`} />
-        </div>
+
 
         <div style={{ marginTop: 16 }}>
           <button className={styles.btnLink} type="button" onClick={() => setShowTaxList(!showTaxList)}>

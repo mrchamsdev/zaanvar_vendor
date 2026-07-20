@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import styles from "../../styles/inventory/product-form.module.css";
 // import BarcodeScanner from "./BarcodeScanner";
 import useStore from "../state/useStore";
@@ -153,6 +154,7 @@ const ProductForm = ({
   onBack,
   productType: propType,
 }) => {
+  const router = useRouter();
   const { jwtToken, userInfo, selectedBranchId, vendorSettings } = useStore();
   const [branchId, setBranchId] = useState(
     initialData?.branchId || selectedBranchId || userInfo?.branchId || 91,
@@ -187,8 +189,21 @@ const ProductForm = ({
 
   const [suppliersList, setSuppliersList] = useState([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState(() => {
-    if (initialData?.supplierIds && Array.isArray(initialData.supplierIds)) return initialData.supplierIds;
-    if (initialData?.suppliers && Array.isArray(initialData.suppliers)) return initialData.suppliers.map(s => s.supplierId || s.id);
+    if (initialData?.Suppliers && Array.isArray(initialData.Suppliers)) {
+      return initialData.Suppliers.map(s => ({
+        SupplierId: s.SupplierId || s.supplierId,
+        taxIncluded: s.taxIncluded || false,
+        taxGroupId: s.taxGroupId || ""
+      }));
+    }
+    // Backward compatibility for old supplierIds
+    if (initialData?.supplierIds && Array.isArray(initialData.supplierIds)) {
+      return initialData.supplierIds.map(id => ({
+        SupplierId: id,
+        taxIncluded: false,
+        taxGroupId: initialData.taxGroupId || ""
+      }));
+    }
     return [];
   });
 
@@ -663,11 +678,15 @@ const ProductForm = ({
         subCategoryId: { subCategory: subCategory },
         productType: productType,
         productPetType: { petType: selectedPetTypes.join(" and ") },
-        taxGroupId: selectedTaxGroupId,
+        taxGroupId: selectedSuppliers.length > 0 && selectedSuppliers[0].taxGroupId ? Number(selectedSuppliers[0].taxGroupId) : 0,
         hsnCode: hsnCode,
         rack: rack,
         customFields: productCustomFields,
-        Suppliers: selectedSuppliers,
+        Suppliers: selectedSuppliers.map(s => ({
+          SupplierId: Number(s.SupplierId),
+          taxIncluded: Boolean(s.taxIncluded),
+          taxGroupId: Number(s.taxGroupId) || 0
+        })),
         extraAttributes: {
           prescriptionRequired: true,
           storageCondition: "Store below 25°C",
@@ -1372,14 +1391,23 @@ const ProductForm = ({
             <div className={styles.errorMessage}>{formErrors.productCode}</div>
           )}
         </div>
-        <div className={styles.inputField} style={{ zIndex: 110 }}>
-          <label>Suppliers</label>
-          <MultiSelectDropdown
-            listItems={suppliersList}
-            selectedIds={selectedSuppliers}
-            setSelectedIds={setSelectedSuppliers}
-            placeholder="Select Suppliers"
+        <div className={styles.inputField}>
+          <label>
+            HSN Code <span>*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Enter HSN Code"
+            className={formErrors.hsnCode ? styles.errorField : ""}
+            value={hsnCode}
+            disabled={isEdit && hasPurchaseOrder}
+            onChange={(e) =>
+              handleNumericInput(e.target.value, setHsnCode, 8, "hsnCode")
+            }
           />
+          {formErrors.hsnCode && (
+            <div className={styles.errorMessage}>{formErrors.hsnCode}</div>
+          )}
         </div>
 
         {/* Dynamic Custom Fields */}
@@ -1421,50 +1449,6 @@ const ProductForm = ({
             </div>
           ));
         })()}
-      </div>
-
-      <div className={styles.sectionTitle}>Tax information</div>
-      <div className={styles.inputGrid}>
-        <div className={styles.inputField}>
-          <label>
-            GST(%) <InfoIcon text="Goods and Services Tax percentage." />
-          </label>
-          <div className={styles.selectWrapper}>
-            <select
-              value={gst}
-              onChange={(e) => setGst(e.target.value)}
-              className={!gst ? styles.placeholderSelect : ""}
-            >
-              <option value="">Select GST Group</option>
-              {taxGroups.map((g) => (
-                <option key={g.id || g.taxGroupId} value={g.name}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-            <div className={styles.selectIcon}>
-              <IconChevron />
-            </div>
-          </div>
-        </div>
-        <div className={styles.inputField}>
-          <label>
-            HSN Code <span>*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Enter HSN Code"
-            className={formErrors.hsnCode ? styles.errorField : ""}
-            value={hsnCode}
-            disabled={isEdit && hasPurchaseOrder}
-            onChange={(e) =>
-              handleNumericInput(e.target.value, setHsnCode, 8, "hsnCode")
-            }
-          />
-          {formErrors.hsnCode && (
-            <div className={styles.errorMessage}>{formErrors.hsnCode}</div>
-          )}
-        </div>
         {productType === "Medical" && (
           <div className={styles.inputField}>
             <label>Rack</label>
@@ -1476,6 +1460,104 @@ const ProductForm = ({
             />
           </div>
         )}
+      </div>
+
+      <div className={styles.sectionTitle} style={{ marginTop: "24px" }}>Assign Suppliers</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+        {selectedSuppliers.map((sup, idx) => (
+          <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', background: '#f9f9f9', padding: '16px', borderRadius: '8px', border: '1px solid #eee' }}>
+            <div className={styles.inputField} style={{ flex: 1, margin: 0 }}>
+              <label>Supplier</label>
+              <div className={styles.selectWrapper}>
+                <select
+                  value={sup.SupplierId}
+                  onChange={(e) => {
+                    const newSuppliers = [...selectedSuppliers];
+                    newSuppliers[idx].SupplierId = e.target.value;
+                    setSelectedSuppliers(newSuppliers);
+                  }}
+                  className={!sup.SupplierId ? styles.placeholderSelect : ""}
+                >
+                  <option value="">Select Supplier</option>
+                  {suppliersList.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <div className={styles.selectIcon}><IconChevron /></div>
+              </div>
+            </div>
+
+            <div className={styles.inputField} style={{ flex: 1, margin: 0 }}>
+              <label>Tax Type</label>
+              <div className={styles.selectWrapper}>
+                <select
+                  value={sup.taxIncluded === "" ? "" : (sup.taxIncluded ? "included" : "excluded")}
+                  onChange={(e) => {
+                    const newSuppliers = [...selectedSuppliers];
+                    newSuppliers[idx].taxIncluded = e.target.value === "" ? "" : (e.target.value === "included");
+                    setSelectedSuppliers(newSuppliers);
+                  }}
+                  className={sup.taxIncluded === "" ? styles.placeholderSelect : ""}
+                >
+                  <option value="">Select Tax Type</option>
+                  <option value="excluded">Tax Excluded</option>
+                  <option value="included">Tax Included</option>
+                </select>
+                <div className={styles.selectIcon}><IconChevron /></div>
+              </div>
+            </div>
+
+            <div className={styles.inputField} style={{ flex: 1, margin: 0 }}>
+              <label>Tax Group</label>
+              <div className={styles.selectWrapper}>
+                <select
+                  value={sup.taxGroupId}
+                  onChange={(e) => {
+                    if (e.target.value === "__add_tax_group__") {
+                      router.push(`/vendor-settings?tab=TaxesGST&branchId=${branchId}`);
+                    } else {
+                      const newSuppliers = [...selectedSuppliers];
+                      newSuppliers[idx].taxGroupId = e.target.value;
+                      setSelectedSuppliers(newSuppliers);
+                    }
+                  }}
+                  className={!sup.taxGroupId ? styles.placeholderSelect : ""}
+                >
+                  <option value="">Select Tax Group</option>
+                  {taxGroups.map((g) => (
+                    <option key={g.id || g.taxGroupId} value={g.id || g.taxGroupId}>
+                      {g.name}
+                    </option>
+                  ))}
+                  <option value="__add_tax_group__">+ Add Tax Group</option>
+                </select>
+                <div className={styles.selectIcon}><IconChevron /></div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const newSuppliers = selectedSuppliers.filter((_, i) => i !== idx);
+                setSelectedSuppliers(newSuppliers);
+              }}
+              style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '8px', marginTop: '24px' }}
+              title="Remove Supplier"
+            >
+              <IconX />
+            </button>
+          </div>
+        ))}
+        <div>
+          <button
+            type="button"
+            className={styles.pageBtn}
+            onClick={() => setSelectedSuppliers([...selectedSuppliers, { SupplierId: "", taxIncluded: "", taxGroupId: "" }])}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+          >
+            <IconPlus /> Assign Supplier
+          </button>
+        </div>
       </div>
 
       <div

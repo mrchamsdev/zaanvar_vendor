@@ -139,10 +139,26 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         const newBatches = item.batches.map(batch => {
                             const matchingGroup = findMatchingTaxGroup(batch, mappedGroups);
                             if (matchingGroup) {
+                                const taxRate = matchingGroup.percentage;
+                                const taxIncluded = batch.taxIncluded ?? false;
+
+                                // If tax is included in the cost price, back-calculate to get the tax-exclusive price
+                                // tax-exclusive cost = originalCostPrice / (1 + taxRate/100)
+                                let displayCostPrice = batch.costPrice;
+                                if (taxIncluded && taxRate > 0 && batch.originalCostPrice !== undefined && batch.originalCostPrice !== "") {
+                                    const original = Number(batch.originalCostPrice);
+                                    if (!isNaN(original) && original > 0) {
+                                        const taxExclusive = original / (1 + taxRate / 100);
+                                        displayCostPrice = taxExclusive.toFixed(getAmountDecimalPlaces());
+                                    }
+                                }
+
                                 return {
                                     ...batch,
                                     taxGroupId: matchingGroup.id,
-                                    tax: matchingGroup.percentage
+                                    tax: taxRate,
+                                    taxIncluded,
+                                    costPrice: displayCostPrice,
                                 };
                             }
                             return batch;
@@ -185,6 +201,14 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                         (ri.variantId === item.variantId || ri.variantId === productInfo.variantId)
                     ) || [];
 
+                    // Look up this product in supplier.products to get the correct taxGroupId and taxIncluded
+                    const supplierProducts = res.data.supplier?.products || [];
+                    const supplierProductInfo = supplierProducts.find(
+                        sp => Number(sp.productId) === Number(item.productId || productInfo.productId)
+                    );
+                    const supplierTaxGroupId = supplierProductInfo?.taxGroupId ?? null;
+                    const supplierTaxIncluded = supplierProductInfo?.taxIncluded ?? false;
+
                     let batches = [];
                     if (savedItems.length > 0) {
                         batches = savedItems.map(savedItem => ({
@@ -196,18 +220,27 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                             damagedQty: savedItem.damagedQty ?? "",
                             tax: savedItem.taxPercentage ?? savedItem.tax ?? 0,
                             taxGroupId: savedItem.taxGroupId ?? savedItem.gst ?? null,
+                            taxIncluded: supplierTaxIncluded,
                             discount: savedItem.discount || 0,
                         }));
                     } else {
+                        // Use supplier's taxGroupId when the item's own taxGroupId is 0 / null / "0.00"
+                        const rawItemTaxGroupId = item.taxGroupId ?? productInfo.taxGroupId ?? item.gst ?? productInfo.gst ?? null;
+                        const effectiveTaxGroupId = (rawItemTaxGroupId === null || rawItemTaxGroupId === "0.00" || Number(rawItemTaxGroupId) === 0)
+                            ? supplierTaxGroupId
+                            : rawItemTaxGroupId;
+
                         batches = [{
                             batchNumber: "",
                             expDate: "",
+                            originalCostPrice: item.costPrice !== undefined && item.costPrice !== null && item.costPrice !== "" ? Number(item.costPrice) : "",
                             costPrice: item.costPrice !== undefined && item.costPrice !== null && item.costPrice !== "" ? Number(item.costPrice).toFixed(getAmountDecimalPlaces()) : "",
                             mrp: (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== undefined && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== null && (item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice) !== "" ? Number(item.mrp || productInfo.mrp || productInfo.variant?.mrp || productInfo.sellingPrice || item.sellingPrice).toFixed(getAmountDecimalPlaces()) : "",
                             receivedQty: "",
                             damagedQty: "",
                             tax: item.taxPercentage ?? productInfo.taxPercentage ?? item.tax ?? productInfo.tax ?? 0,
-                            taxGroupId: item.taxGroupId ?? productInfo.taxGroupId ?? item.gst ?? productInfo.gst ?? null,
+                            taxGroupId: effectiveTaxGroupId,
+                            taxIncluded: supplierTaxIncluded,
                             discount: 0,
                         }];
                     }
@@ -289,6 +322,8 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     receivedQty: "",
                     damagedQty: "",
                     tax: lastBatch.tax || 0,
+                    taxGroupId: lastBatch.taxGroupId ?? null,
+                    taxIncluded: lastBatch.taxIncluded ?? false,
                     discount: lastBatch.discount || 0
                 }
             ];
@@ -407,7 +442,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
         if (isRoundOffChecked && vendorSettings?.transaction) {
             const rType = vendorSettings.transaction.roundOffType || "nearest";
             const rVal = Number(vendorSettings.transaction.roundOffValue) || 1;
-            
+
             let roundedAmount = finalAmount;
             if (rVal > 0) {
                 if (rType === "nearest") {
@@ -1125,14 +1160,14 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                     <div className={styles.breakdownRow}><span> Previous Credit</span><span>- {currencySymbol} {Number(previousCredit).toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
                                 <div className={styles.breakdownRowBold}><span>Total</span><span>{currencySymbol} {breakdown.finalAmountBeforeRound.toFixed(getAmountDecimalPlaces())}</span></div>
-                                
+
                                 <div className={styles.breakdownDivider} style={{ marginTop: '8px' }} />
                                 {roundOffTotal && (
                                     <>
                                         <div className={styles.breakdownRow} style={{ alignItems: 'center', marginTop: '8px' }}>
                                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#000', fontSize: '14px' }}>
-                                                <input 
-                                                    type="checkbox" 
+                                                <input
+                                                    type="checkbox"
                                                     checked={isRoundOffChecked}
                                                     onChange={(e) => setIsRoundOffChecked(e.target.checked)}
                                                     style={{ width: '16px', height: '16px', accentColor: '#000', cursor: 'pointer' }}
@@ -1174,104 +1209,104 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
 
                     {(paymentStatus === "Partial" || paymentStatus === "Full") && (
                         <>
-                        <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Payment Type <span style={{ color: '#ff4d4f' }}>*</span></label>
-                            <select
-                                className={styles.input}
-                                value={paymentType}
-                                onChange={(e) => setPaymentType(e.target.value)}
-                            >
-                                <option value="" disabled hidden>Select Payment Type</option>
-                                {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                ))}
-                            </select>
-                            {isSubmitted && !paymentType && (
-                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Payment Type is required</span>
-                            )}
-                        </div>
-                        {addTimeOnTransactions && (
                             <div className={styles.infoGroup}>
-                                <label className={styles.infoLabel}>Payment Time</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <select 
-                                        className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
-                                        value={amountPaidTime ? String(parseInt(amountPaidTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
-                                        onChange={(e) => {
-                                            const h = parseInt(e.target.value);
-                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
-                                            const isPm = amountPaidTime ? parseInt(amountPaidTime.split(':')[0]) >= 12 : false;
-                                            const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
-                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
-                                        }}
-                                    >
-                                        {[...Array(12)].map((_, i) => {
-                                            const val = String(i + 1).padStart(2, '0');
-                                            return <option key={val} value={val}>{val}</option>;
-                                        })}
-                                    </select>
-                                    <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
-                                    <select 
-                                        className={styles.input} 
-                                        style={{ width: '30%', padding: '0 8px' }}
-                                        value={amountPaidTime ? amountPaidTime.split(':')[1] : '00'}
-                                        onChange={(e) => {
-                                            const currentH = amountPaidTime ? amountPaidTime.split(':')[0] : '00';
-                                            setAmountPaidTime(`${currentH}:${e.target.value}`);
-                                        }}
-                                    >
-                                        {[...Array(60)].map((_, i) => {
-                                            const val = String(i).padStart(2, '0');
-                                            return <option key={val} value={val}>{val}</option>;
-                                        })}
-                                    </select>
-                                    <select 
-                                        className={styles.input} 
-                                        style={{ width: '35%', padding: '0 8px' }}
-                                        value={amountPaidTime && parseInt(amountPaidTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
-                                        onChange={(e) => {
-                                            const currentH = parseInt(amountPaidTime ? amountPaidTime.split(':')[0] : '00');
-                                            const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
-                                            const isPm = e.target.value === 'PM';
-                                            let newH = currentH;
-                                            if (isPm && currentH < 12) newH = currentH + 12;
-                                            if (!isPm && currentH >= 12) newH = currentH - 12;
-                                            setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
-                                        }}
-                                    >
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
+                                <label className={styles.infoLabel}>Payment Type <span style={{ color: '#ff4d4f' }}>*</span></label>
+                                <select
+                                    className={styles.input}
+                                    value={paymentType}
+                                    onChange={(e) => setPaymentType(e.target.value)}
+                                >
+                                    <option value="" disabled hidden>Select Payment Type</option>
+                                    {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                                {isSubmitted && !paymentType && (
+                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Payment Type is required</span>
+                                )}
+                            </div>
+                            {addTimeOnTransactions && (
+                                <div className={styles.infoGroup}>
+                                    <label className={styles.infoLabel}>Payment Time</label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <select
+                                            className={styles.input}
+                                            style={{ width: '30%', padding: '0 8px' }}
+                                            value={amountPaidTime ? String(parseInt(amountPaidTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                            onChange={(e) => {
+                                                const h = parseInt(e.target.value);
+                                                const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                                const isPm = amountPaidTime ? parseInt(amountPaidTime.split(':')[0]) >= 12 : false;
+                                                const newH = isPm ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                                                setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                            }}
+                                        >
+                                            {[...Array(12)].map((_, i) => {
+                                                const val = String(i + 1).padStart(2, '0');
+                                                return <option key={val} value={val}>{val}</option>;
+                                            })}
+                                        </select>
+                                        <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>:</span>
+                                        <select
+                                            className={styles.input}
+                                            style={{ width: '30%', padding: '0 8px' }}
+                                            value={amountPaidTime ? amountPaidTime.split(':')[1] : '00'}
+                                            onChange={(e) => {
+                                                const currentH = amountPaidTime ? amountPaidTime.split(':')[0] : '00';
+                                                setAmountPaidTime(`${currentH}:${e.target.value}`);
+                                            }}
+                                        >
+                                            {[...Array(60)].map((_, i) => {
+                                                const val = String(i).padStart(2, '0');
+                                                return <option key={val} value={val}>{val}</option>;
+                                            })}
+                                        </select>
+                                        <select
+                                            className={styles.input}
+                                            style={{ width: '35%', padding: '0 8px' }}
+                                            value={amountPaidTime && parseInt(amountPaidTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                            onChange={(e) => {
+                                                const currentH = parseInt(amountPaidTime ? amountPaidTime.split(':')[0] : '00');
+                                                const m = amountPaidTime ? amountPaidTime.split(':')[1] : '00';
+                                                const isPm = e.target.value === 'PM';
+                                                let newH = currentH;
+                                                if (isPm && currentH < 12) newH = currentH + 12;
+                                                if (!isPm && currentH >= 12) newH = currentH - 12;
+                                                setAmountPaidTime(`${String(newH).padStart(2, '0')}:${m}`);
+                                            }}
+                                        >
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        <div className={styles.infoGroup}>
-                            <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
-                            <div className={styles.inputWrapper}>
-                                <span className={styles.currencySymbol}>{currencySymbol}</span>
-                                <input
-                                    type="number"
-                                    className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.inputError : ""}`}
-                                    placeholder="00000"
-                                    value={paidAmount}
-                                    readOnly={paymentStatus === "Full"}
-                                    onChange={(e) => {
-                                        let val = e.target.value;
-                                        if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
-                                        setPaidAmount(val);
-                                    }}
-                                    onBlur={() => {
-                                        if (paidAmount) {
-                                            setPaidAmount(Number(paidAmount).toFixed(getAmountDecimalPlaces()));
-                                        }
-                                    }}
-                                />
-                            </div>
-                            {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
-                                <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Paid amount is required for partial payment</span>
                             )}
-                        </div>
+                            <div className={styles.infoGroup}>
+                                <label className={styles.infoLabel}>Paid Amount {paymentStatus === "Partial" && <span style={{ color: '#ff4d4f' }}>*</span>}</label>
+                                <div className={styles.inputWrapper}>
+                                    <span className={styles.currencySymbol}>{currencySymbol}</span>
+                                    <input
+                                        type="number"
+                                        className={`${styles.input} ${styles.inputWithSymbol} ${isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) ? styles.inputError : ""}`}
+                                        placeholder="00000"
+                                        value={paidAmount}
+                                        readOnly={paymentStatus === "Full"}
+                                        onChange={(e) => {
+                                            let val = e.target.value;
+                                            if (val.length > 1 && val.startsWith("0") && val[1] !== ".") val = val.slice(1);
+                                            setPaidAmount(val);
+                                        }}
+                                        onBlur={() => {
+                                            if (paidAmount) {
+                                                setPaidAmount(Number(paidAmount).toFixed(getAmountDecimalPlaces()));
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                {isSubmitted && paymentStatus === "Partial" && (!paidAmount || Number(paidAmount) <= 0) && (
+                                    <span className={styles.errorLabel} style={{ marginTop: '4px', display: 'block' }}>Paid amount is required for partial payment</span>
+                                )}
+                            </div>
                         </>
                     )}
 

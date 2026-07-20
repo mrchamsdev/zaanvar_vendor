@@ -71,8 +71,8 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
                 console.error("Error fetching suppliers:", error);
             }
         };
-        if (isOpen) fetchSuppliers();
-    }, [isOpen, cashSaleByDefault]);
+        if (isOpen && branchId) fetchSuppliers();
+    }, [isOpen, branchId, jwtToken]);
 
     const handleSupplierChange = async (supplierId) => {
         setSelectedSupplierId(supplierId);

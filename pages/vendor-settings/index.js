@@ -31,6 +31,16 @@ export default function VendorSettingsPage() {
   /* ── Active tab from URL query ── */
   const activeTab = (router.query.tab || "General");
 
+  // When URL carries ?branchId=X, wait until the hook has synced to that
+  // branch before we treat branchId as ready — prevents stale-branch flicker.
+  const queryBranchId = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("branchId")
+    : (router.isReady ? router.query.branchId : undefined);
+  const effectiveBranchId =
+    queryBranchId && String(branchId) !== String(queryBranchId)
+      ? null   // still syncing — hold off
+      : branchId;
+
   /* ── Settings state ── */
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [hasExisting, setHasExisting] = useState(false); // track POST vs PUT
@@ -39,14 +49,14 @@ export default function VendorSettingsPage() {
   const [topbarActions, setTopbarActions] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
-  /* ── Fetch on mount / when branchId changes ── */
+  /* ── Fetch on mount / when effectiveBranchId changes ── */
   useEffect(() => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken || !effectiveBranchId) return;
 
     const fetchSettings = async () => {
       setLoading(true);
       try {
-        const res = await getSettings(jwtToken, branchId);
+        const res = await getSettings(jwtToken, effectiveBranchId);
         const data = res?.data?.settings || res?.settings;
         if (data) {
           setSettings({
@@ -72,7 +82,7 @@ export default function VendorSettingsPage() {
     };
 
     fetchSettings();
-  }, [jwtToken, branchId]);
+  }, [jwtToken, effectiveBranchId]);
 
   /* ── Tab change — update URL query without full navigation ── */
   const handleTabChange = (tab) => {
@@ -88,7 +98,7 @@ export default function VendorSettingsPage() {
 
   /* ── Save ── */
   const handleSave = async () => {
-    if (!branchId) {
+    if (!effectiveBranchId) {
       toast.error("No branch selected.");
       return;
     }
@@ -96,7 +106,7 @@ export default function VendorSettingsPage() {
     setSaving(true);
     try {
       const payload = {
-        branchId: parseInt(branchId),
+        branchId: parseInt(effectiveBranchId),
         createdBy: userInfo?.vendorId || 1,
         settings: {
           general: settings.general,

@@ -1533,3 +1533,75 @@
     color: #ff4d4f !important;
     margin-left: 2px;
 }
+/* Supplier Form Sections */
+.sectionWrapper {
+    margin-bottom: 48px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sectionCard {
+    background: #fff;
+    padding: 48px;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+}
+
+.discountsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px 48px;
+}
+
+.selectIconWrap {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6B7280;
+}
+
+.selectIconWrapSmall {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6B7280;
+}
+
+.discountInputGroup {
+    display: flex;
+}
+
+.discountInputWrap {
+    flex: 1;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+}
+
+.discountSelectWrap {
+    position: relative;
+    width: 64px;
+}
+
+.discountSelectWrap select {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    padding-left: 12px;
+    padding-right: 24px;
+}
+
+
+.whiteBg {
+    background-color: var(--color-white) !important;
+}
