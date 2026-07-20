@@ -4,14 +4,17 @@ import { FiX } from "react-icons/fi";
 import { WebApimanager } from "../utilities/WebApiManager";
 import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
+import { getBoolSetting } from "@/utilities/settings-utils";
 
 const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, totalPaidAmount, initialLinkedTxns = [] }) => {
-    const { jwtToken } = useStore();
+    const { jwtToken, vendorSettings } = useStore();
+    const enableDiscountDuringPayments = getBoolSetting(vendorSettings, 'enableDiscountDuringPayments', true);
     const { branchId } = useDashboardData({ skipReviews: true });
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selections, setSelections] = useState({});
     const [popupPaidAmount, setPopupPaidAmount] = useState("");
+    const [applyDiscount, setApplyDiscount] = useState(false);
 
     useEffect(() => {
         setPopupPaidAmount(totalPaidAmount || "");
@@ -60,7 +63,7 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
         fetchTxns();
     }, [isOpen, partyId, type, branchId, jwtToken]);
 
-    if (!isOpen) return null;
+
 
     const handleCheckbox = (id) => {
         setSelections(prev => {
@@ -98,20 +101,109 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
             .filter(id => Number(selections[id].amount) > 0)
             .map(id => {
                 const t = transactions.find(tx => (tx.id || tx.userOrderId || tx.productsBillId).toString() === id);
+                // Calculate discount
+                const discountObj = t.vendor?.discount || t.discount || null;
+                let discountApplied = 0;
+                const assignedAmount = Number(selections[id].amount || 0);
+                const billTotal = Number(t.totalAmount || t.overallBillAmount || 0);
+
+                if (discountObj?.discountType === "Bill Amount Based") {
+                    const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+                    if (assignedAmount >= minOrderVal && minOrderVal > 0) {
+                        if (discountObj.discountValueType === "Percentage (%)") {
+                            discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
+                        } else {
+                            discountApplied = Number(discountObj.discountValue || 0);
+                        }
+                    }
+                }
+
                 return {
                     ...t,
-                    linkedAmount: selections[id].amount
+                    linkedAmount: selections[id].amount,
+                    discountApplied: discountApplied
                 };
             });
         onDone(selected, popupPaidAmount);
     };
 
-    const totalAssigned = Object.values(selections).reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    // Calculate total discount available
+    let totalEligibleBalance = 0;
+    let totalDiscountIfFullyPaid = 0;
+    let discountObjFound = null;
+
+    if (enableDiscountDuringPayments && type !== "paymentIn") {
+        transactions.forEach(t => {
+            const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
+            const discountObj = t.vendor?.discount || t.discount || null;
+            if (discountObj?.discountType === "Bill Amount Based") {
+                const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+                if (bal >= minOrderVal && minOrderVal > 0) {
+                    discountObjFound = discountObj;
+                    totalEligibleBalance += bal;
+                    if (discountObj.discountValueType === "Percentage (%)") {
+                        totalDiscountIfFullyPaid += bal * (Number(discountObj.discountValue || 0) / 100);
+                    } else {
+                        totalDiscountIfFullyPaid += Number(discountObj.discountValue || 0);
+                    }
+                }
+            }
+        });
+    }
+
+    const isEligible = totalEligibleBalance > 0;
+
+    useEffect(() => {
+        if (applyDiscount && isEligible) {
+            const newSelections = { ...selections };
+            let netPayable = 0;
+            transactions.forEach(t => {
+                const id = (t.id || t.userOrderId || t.productsBillId).toString();
+                const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
+                const discountObj = t.vendor?.discount || t.discount || null;
+                if (discountObj?.discountType === "Bill Amount Based") {
+                    const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+                    if (bal >= minOrderVal && minOrderVal > 0) {
+                        newSelections[id] = { amount: bal.toString() };
+                        let appliedDiscount = 0;
+                        if (discountObj.discountValueType === "Percentage (%)") {
+                            appliedDiscount = bal * (Number(discountObj.discountValue || 0) / 100);
+                        } else {
+                            appliedDiscount = Number(discountObj.discountValue || 0);
+                        }
+                        netPayable += (bal - appliedDiscount);
+                    }
+                }
+            });
+            setSelections(newSelections);
+            setPopupPaidAmount(netPayable.toFixed(2));
+        }
+    }, [applyDiscount, isEligible]);
+
+    const totalAssigned = Object.keys(selections).reduce((sum, id) => {
+        const assignedAmount = Number(selections[id].amount || 0);
+        const t = transactions.find(tx => (tx.id || tx.userOrderId || tx.productsBillId).toString() === id);
+        let discountApplied = 0;
+        const discountObj = t?.vendor?.discount || t?.discount || null;
+        if (discountObj?.discountType === "Bill Amount Based") {
+            const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+            if (assignedAmount >= minOrderVal && minOrderVal > 0) {
+                if (discountObj.discountValueType === "Percentage (%)") {
+                    discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
+                } else {
+                    discountApplied = Number(discountObj.discountValue || 0);
+                }
+            }
+        }
+        return sum + (assignedAmount - discountApplied);
+    }, 0);
     const unusedAmount = Number(popupPaidAmount || 0) - totalAssigned;
+
+    if (!isOpen) return null;
 
     return (
         <div className={styles.overlay} style={{ zIndex: 2001, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '90vh', borderRadius: '8px', margin: 'auto', width: '80%', maxWidth: '800px', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.modal} style={{ minHeight: 'auto', maxHeight: '90vh', borderRadius: '8px', margin: 'auto', width: '90%', maxWidth: '1000px', display: 'flex', flexDirection: 'column' }}>
                 <div className={styles.modalHeader}>
                     <h3>Link payment to Txns</h3>
                     <button className={styles.closeBtn} onClick={onClose}><FiX /></button>
@@ -134,12 +226,33 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                             />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <button onClick={() => setSelections({})} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <button onClick={() => {
+                                setSelections({});
+                                setApplyDiscount(false);
+                            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 Reset ↺
                             </button>
                         </div>
                     </div>
                     
+                    {isEligible && (
+                        <div style={{ backgroundColor: '#fdf2f5', border: '1px solid #fbcfe0', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <div style={{ flex: 1, fontSize: '13px', color: '#E9315D', lineHeight: '1.5' }}>
+                                <strong>Note:</strong> You are eligible for a {discountObjFound.discountValue}{discountObjFound.discountValueType === "Percentage (%)" ? "%" : "₹"} discount! If you pay the full remaining balances on eligible bills, you will get ₹{totalDiscountIfFullyPaid.toFixed(2)} off.
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    id="applyDiscountLinked" 
+                                    checked={applyDiscount} 
+                                    onChange={(e) => setApplyDiscount(e.target.checked)} 
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#E9315D' }}
+                                />
+                                <label htmlFor="applyDiscountLinked" style={{ fontSize: '13px', fontWeight: 600, color: '#E9315D', cursor: 'pointer', whiteSpace: 'nowrap' }}>Apply Discount</label>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
@@ -148,21 +261,37 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                     <th style={{ padding: '12px 8px', color: '#666', fontWeight: 500 }}>Type</th>
                                     <th style={{ padding: '12px 8px', color: '#666', fontWeight: 500 }}>Total</th>
                                     <th style={{ padding: '12px 8px', color: '#666', fontWeight: 500 }}>Balance</th>
+                                    <th style={{ padding: '12px 8px', color: '#666', fontWeight: 500 }}>Discount Applied</th>
                                     <th style={{ padding: '12px 8px', color: '#666', fontWeight: 500 }}>Linked Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+                                    <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
                                 ) : transactions.length === 0 ? (
-                                    <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>No transactions found</td></tr>
+                                    <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center' }}>No transactions found</td></tr>
                                 ) : (
                                     transactions.map(t => {
                                         const id = (t.id || t.userOrderId || t.productsBillId).toString();
                                         const isSelected = !!selections[id];
                                         const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
                                         const assignedAmount = isSelected ? Number(selections[id].amount || 0) : 0;
-                                        const displayBalance = bal - assignedAmount;
+                                        const billTotal = Number(t.totalAmount || t.overallBillAmount || 0);
+                                        
+                                        const discountObj = t.vendor?.discount || t.discount || null;
+                                        let discountApplied = 0;
+                                        if (discountObj?.discountType === "Bill Amount Based") {
+                                            const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+                                            if (assignedAmount >= minOrderVal && minOrderVal > 0) {
+                                                if (discountObj.discountValueType === "Percentage (%)") {
+                                                    discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
+                                                } else {
+                                                    discountApplied = Number(discountObj.discountValue || 0);
+                                                }
+                                            }
+                                        }
+
+                                        const displayBalance = bal - assignedAmount - discountApplied;
                                         
                                         return (
                                             <tr key={id} style={{ borderBottom: '1px solid #eee' }}>
@@ -178,8 +307,11 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '12px 8px' }}>Sale</td>
-                                                <td style={{ padding: '12px 8px' }}>{Number(t.totalAmount || t.overallBillAmount || 0).toFixed(2)}</td>
+                                                <td style={{ padding: '12px 8px' }}>{billTotal.toFixed(2)}</td>
                                                 <td style={{ padding: '12px 8px' }}>{displayBalance.toFixed(2)}</td>
+                                                <td style={{ padding: '12px 8px', color: discountApplied > 0 ? '#10B981' : 'inherit' }}>
+                                                    {discountApplied > 0 ? discountApplied.toFixed(2) : "-"}
+                                                </td>
                                                 <td style={{ padding: '12px 8px' }}>
                                                     {isSelected ? (
                                                         <input 

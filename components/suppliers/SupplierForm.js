@@ -45,6 +45,13 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [country, setCountry] = useState("");
     const [countryError, setCountryError] = useState("");
     const [selectedBranchIds, setSelectedBranchIds] = useState([]);
+
+    // Discounts
+    const [discountType, setDiscountType] = useState("");
+    const [discountMinOrderValue, setDiscountMinOrderValue] = useState("");
+    const [discountTimePeriodDays, setDiscountTimePeriodDays] = useState("");
+    const [discountValue, setDiscountValue] = useState("");
+    const [discountUnit, setDiscountUnit] = useState("Percentage (%)");
     const [branchError, setBranchError] = useState("");
 
     const [groupName, setGroupName] = useState("");
@@ -160,21 +167,21 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         const fullBranchIds = data.branches.map(b => Number(b.id || b.branchId || b._id));
                         setSelectedBranchIds(fullBranchIds);
                     }
-                        const settingsObj = vendorSettings?.settings || vendorSettings;
-                        const partySettings = settingsObj?.party;
-                        const activeFields = (partySettings?.additionalFields || [])
-                            .filter(f => f.label && f.label.trim() !== "")
-                            .map(f => {
-                                const savedValue = data.customFields?.[f.label] !== undefined ? data.customFields[f.label] : "";
-                                return {
-                                    label: f.label,
-                                    dataType: f.dataType || "string",
-                                    required: !!f.required,
-                                    showInPrint: !!f.showInPrint,
-                                    value: savedValue
-                                };
-                            });
-                        setAdditionalFields(activeFields);
+                    const settingsObj = vendorSettings?.settings || vendorSettings;
+                    const partySettings = settingsObj?.party;
+                    const activeFields = (partySettings?.additionalFields || [])
+                        .filter(f => f.label && f.label.trim() !== "")
+                        .map(f => {
+                            const savedValue = data.customFields?.[f.label] !== undefined ? data.customFields[f.label] : "";
+                            return {
+                                label: f.label,
+                                dataType: f.dataType || "string",
+                                required: !!f.required,
+                                showInPrint: !!f.showInPrint,
+                                value: savedValue
+                            };
+                        });
+                    setAdditionalFields(activeFields);
                 } catch (err) {
                     console.error("Failed to fetch full supplier details in form:", err);
                 }
@@ -198,7 +205,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         if (initialData && Object.keys(initialData).length > 0) {
             setSupplierName(initialData.supplierName || "");
             setSupplierType(initialData.supplierType ? (Array.isArray(initialData.supplierType) ? initialData.supplierType : initialData.supplierType.split(',').map(s => s.trim())) : []);
-            
+
             if (initialData.assignedProducts && Array.isArray(initialData.assignedProducts) && initialData.assignedProducts.length > 0) {
                 setAssignedProducts(initialData.assignedProducts);
             } else if (initialData.products && Array.isArray(initialData.products) && initialData.products.length > 0 && initialData.products[0].productId) {
@@ -216,8 +223,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 });
                 setAssignedProducts(Object.values(grouped));
             } else {
-                const prods = initialData.productIds && Array.isArray(initialData.productIds) ? initialData.productIds : 
-                             (initialData.products && Array.isArray(initialData.products) ? initialData.products.map(p => p.productId || p.id) : []);
+                const prods = initialData.productIds && Array.isArray(initialData.productIds) ? initialData.productIds :
+                    (initialData.products && Array.isArray(initialData.products) ? initialData.products.map(p => p.productId || p.id) : []);
                 setAssignedProducts([{
                     products: prods,
                     taxType: initialData.taxType || "",
@@ -241,6 +248,13 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 []
             );
             setGroupName(initialData.groupName || "");
+
+            const initDiscount = initialData.discount || {};
+            setDiscountType(initDiscount.discountType || "");
+            setDiscountMinOrderValue(initDiscount.minimumOrderValue || "");
+            setDiscountTimePeriodDays(initDiscount.minimumPaymentDays || "");
+            setDiscountValue(initDiscount.discountValue || "");
+            setDiscountUnit(initDiscount.discountValueType || "Percentage (%)");
 
             const settingsObj = vendorSettings?.settings || vendorSettings;
             const partySettings = settingsObj?.party;
@@ -506,13 +520,22 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
             createdBy: userInfo?.userId || 1,
             branchIds: selectedBranchIds,
             customFields: customFieldsObj,
-            products: assignedProducts.flatMap(row => 
+            products: assignedProducts.flatMap(row =>
                 (row.products || []).map(prodId => ({
                     productId: Number(prodId),
                     taxIncluded: row.taxType === "Include",
                     taxGroupId: Number(row.taxGroupId) || null
                 }))
             ),
+            ...(discountType ? {
+                discount: {
+                    discountType: discountType,
+                    discountValue: Number(discountValue) || 0,
+                    discountValueType: discountUnit,
+                    minimumOrderValue: Number(discountMinOrderValue) || 0,
+                    ...(discountType === "Time Based" ? { minimumPaymentDays: Number(discountTimePeriodDays) || 0 } : {})
+                }
+            } : {}),
             ...(showSupplierGrouping ? { groupName } : {})
         };
 
@@ -525,9 +548,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                 res = await purchaseService.createSupplier(jwtToken, payload);
             }
 
-            const isSuccess = res && 
-                              (res.status === "success" || res.status === 200) && 
-                              (!res.data || (res.data.status !== "fail" && res.data.status !== "error"));
+            const isSuccess = res &&
+                (res.status === "success" || res.status === 200) &&
+                (!res.data || (res.data.status !== "fail" && res.data.status !== "error"));
 
             if (isSuccess) {
                 toast.success(supplierId ? "Supplier updated successfully" : "Supplier added successfully");
@@ -708,9 +731,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             <div className={styles.field}>
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Group Name</label>
                                 <div style={{ position: 'relative' }}>
-                                    <select 
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', paddingRight: '40px' }} 
-                                        value={groupName} 
+                                    <select
+                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', paddingRight: '40px' }}
+                                        value={groupName}
                                         onChange={(e) => {
                                             if (e.target.value === "ADD_NEW_GROUP") {
                                                 setShowGroupPopup(true);
@@ -811,9 +834,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             <div className={styles.field} style={{ marginBottom: 0 }}>
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Tax Include/Exclude</label>
                                 <div style={{ position: 'relative' }}>
-                                    <select 
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }} 
-                                        value={row.taxType} 
+                                    <select
+                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }}
+                                        value={row.taxType}
                                         onChange={(e) => {
                                             const next = [...assignedProducts];
                                             next[index].taxType = e.target.value;
@@ -829,9 +852,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             <div className={styles.field} style={{ marginBottom: 0 }}>
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>GST Group</label>
                                 <div style={{ position: 'relative' }}>
-                                    <select 
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }} 
-                                        value={row.taxGroupId || ""} 
+                                    <select
+                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }}
+                                        value={row.taxGroupId || ""}
                                         onChange={(e) => {
                                             const next = [...assignedProducts];
                                             next[index].taxGroupId = e.target.value;
@@ -847,13 +870,13 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                             </div>
                             {index > 0 ? (
                                 <div style={{ marginBottom: '12px' }}>
-                                    <FiX 
-                                        style={{ cursor: 'pointer', color: '#E93E64', fontSize: '24px' }} 
+                                    <FiX
+                                        style={{ cursor: 'pointer', color: '#E93E64', fontSize: '24px' }}
                                         onClick={() => {
                                             const next = [...assignedProducts];
                                             next.splice(index, 1);
                                             setAssignedProducts(next);
-                                        }} 
+                                        }}
                                     />
                                 </div>
                             ) : (
@@ -862,7 +885,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         </div>
                     ))}
                     <div style={{ marginTop: '0px', textAlign: 'left' }}>
-                        <span 
+                        <span
                             onClick={() => {
                                 setAssignedProducts([...assignedProducts, { products: [], taxType: "", taxGroupId: "" }]);
                             }}
@@ -875,6 +898,102 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         >
                             + Assign Product
                         </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Section: Discounts */}
+            <div className={styles.sectionWrapper}>
+                <h3 className={styles.sectionTitle}>Discounts</h3>
+                <div className={styles.sectionCard}>
+                    <div className={styles.discountsGrid}>
+                        <div className={styles.field}>
+                            <label>Discount Type</label>
+                            <div style={{ position: 'relative' }}>
+                                <select
+                                    className={`${styles.select} ${styles.whiteBg}`}
+                                    style={{ appearance: 'none', cursor: 'pointer', color: discountType ? '#111827' : '#9CA3AF' }}
+                                    value={discountType}
+                                    onChange={(e) => {
+                                        setDiscountType(e.target.value);
+                                        setDiscountMinOrderValue("");
+                                        setDiscountTimePeriodDays("");
+                                        setDiscountValue("");
+                                    }}
+                                >
+                                    <option value="">Select Discount Type</option>
+                                    <option value="Bill Amount Based">Bill Amount Based</option>
+                                    <option value="Time Based">Time Based</option>
+                                </select>
+                                <div className={styles.selectIconWrap}>
+                                    <FiChevronDown />
+                                </div>
+                            </div>
+                        </div>
+
+                        {discountType && (
+                            <div className={styles.field}>
+                                <label>Min Order Value</label>
+                                <input
+                                    type="text"
+                                    className={`${styles.input} ${styles.whiteBg}`}
+                                    placeholder="Enter min order value"
+                                    value={discountMinOrderValue}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "" || /^\d*\.?\d*$/.test(val)) setDiscountMinOrderValue(val);
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {discountType === "Time Based" && (
+                            <div className={styles.field}>
+                                <label>Minimum time period to pay (Days)</label>
+                                <input
+                                    type="text"
+                                    className={`${styles.input} ${styles.whiteBg}`}
+                                    placeholder="Enter number of days"
+                                    value={discountTimePeriodDays}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "" || /^\d+$/.test(val)) setDiscountTimePeriodDays(val);
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {discountType && (
+                            <div className={styles.field}>
+                                <label>Discount</label>
+                                <div className={styles.discountInputGroup}>
+                                    <input
+                                        type="text"
+                                        className={`${styles.input} ${styles.discountInputWrap} ${styles.whiteBg}`}
+                                        placeholder="Enter discount"
+                                        value={discountValue}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "" || /^\d*\.?\d*$/.test(val)) setDiscountValue(val);
+                                        }}
+                                    />
+                                    <div className={styles.discountSelectWrap}>
+                                        <select
+                                            className={`${styles.select} ${styles.whiteBg}`}
+                                            style={{ appearance: 'none', cursor: 'pointer' }}
+                                            value={discountUnit}
+                                            onChange={(e) => setDiscountUnit(e.target.value)}
+                                        >
+                                            <option value="Percentage (%)">%</option>
+                                            <option value="Amount (₹)">₹</option>
+                                        </select>
+                                        <div className={styles.selectIconWrapSmall}>
+                                            <FiChevronDown />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1053,7 +1172,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                     {loading ? "Saving..." : "Save"}
                 </button>
             </div>
-            
+
             {errorPopupMessage && (
                 <div style={{
                     position: 'fixed',
@@ -1079,7 +1198,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         border: '1px solid #f1f5f9',
                         fontFamily: "'Inter', sans-serif"
                     }}>
-                        <button 
+                        <button
                             onClick={() => setErrorPopupMessage(null)}
                             style={{
                                 position: 'absolute',
@@ -1099,9 +1218,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         >
                             <FiX />
                         </button>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            
+
                             <div>
                                 <h3 style={{
                                     fontSize: '18px',
@@ -1157,8 +1276,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                         <div className={styles.modalContent} style={{ padding: '24px' }}>
                             <div className={styles.field} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: '500', color: '#000', fontSize: '14px' }}>Group Name <span style={{ color: 'red' }}>*</span></label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     style={{ boxSizing: 'border-box', width: '100%', padding: '12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
                                     placeholder="Enter Group Name"
                                     value={newGroupName}

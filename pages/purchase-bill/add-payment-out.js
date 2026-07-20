@@ -16,7 +16,7 @@ import { getAmountDecimalPlaces } from "../../components/utilities/formatAmount"
 
 const PaymentOutFormPage = () => {
     const currencySymbol = useCurrencySymbol();
-    useDashboardData({ skipReviews: true });
+    const { branchId: activeBranchId } = useDashboardData({ skipReviews: true });
 
     const router = useRouter();
     const { id, mode, branchId: queryBranchId } = router.query;
@@ -75,7 +75,7 @@ const PaymentOutFormPage = () => {
         setLoading(true);
         try {
             // Fetch suppliers first for lookup
-            const suppliersRes = await purchaseService.getSuppliers(jwtToken, queryBranchId || userInfo?.branchId || 91);
+            const suppliersRes = await purchaseService.getSuppliers(jwtToken, queryBranchId || activeBranchId || userInfo?.branchId || 91);
             let suppliersList = [];
             if (suppliersRes.status === "success") {
                 suppliersList = suppliersRes.data || [];

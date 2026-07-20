@@ -640,13 +640,14 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                         if (initialData?.openPaymentPopup) {
                             onClose();
                         } else {
-                            window.location.reload();
+                            setShowPaymentPopup(false);
                         }
                     }}
                     data={{
                         purchaseRequestId: purchaseRequestId,
                         totalAmount: breakdown.finalAmount,
                         previousPaidAmount: receivedDetails?.paidAmount || data?.amountPaidTosupplier || 0,
+                        supplier: data?.supplier,
                         supplierId: data?.supplier?.supplierId,
                         branchId: data?.branchId,
                         productsBillId: productsBillId || receivedDetails?.id || data?.id,

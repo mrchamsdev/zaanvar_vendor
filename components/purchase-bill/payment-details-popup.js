@@ -9,13 +9,16 @@ import useStore from "../../components/state/useStore";
 import { toast } from "sonner";
 import { dateOnlyWithTimeZone, withTimeZone, parseWallClockDate } from "@/utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
+import useDashboardData from "../../components/dashboard/useDashboardData";
 
 const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const currencySymbol = useCurrencySymbol();
+    const { branchId } = useDashboardData({ skipReviews: true });
 
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const enableDiscountDuringPayments = getBoolSetting(vendorSettings, 'enableDiscountDuringPayments', true);
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -25,6 +28,10 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const [description, setDescription] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    // Discount state
+    const [supplierDetails, setSupplierDetails] = useState(null);
+    const [applyDiscount, setApplyDiscount] = useState(false);
 
     // Multi-payment state
     const [masterTarget, setMasterTarget] = useState("");
@@ -44,7 +51,27 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     const previousPaidAmount = data.previousPaidAmount || 0;
 
     const initialBalance = (data.balanceAmount && Number(data.balanceAmount) > 0) ? Number(data.balanceAmount) : totalAmount;
-    const balanceAmount = Math.max(0, initialBalance - (Number(masterTarget) || 0));
+    
+    // We need discountAmt here for balance calculation if applyDiscount is checked
+    const supplierData = supplierDetails?.data || supplierDetails;
+    const discountObj = supplierData?.discount;
+    let isEligible = false;
+    let discountAmt = 0;
+
+    if (enableDiscountDuringPayments && discountObj && discountObj.discountType === "Bill Amount Based") {
+        const minOrder = Number(discountObj.minimumOrderValue || 0);
+        if (initialBalance >= minOrder && minOrder > 0) {
+            isEligible = true;
+            if (discountObj.discountValueType === "Percentage (%)") {
+                discountAmt = initialBalance * (Number(discountObj.discountValue || 0) / 100);
+            } else {
+                discountAmt = Number(discountObj.discountValue || 0);
+            }
+        }
+    }
+
+    const appliedDiscountAmount = applyDiscount ? discountAmt : 0;
+    const balanceAmount = Math.max(0, initialBalance - (Number(masterTarget) || 0) - appliedDiscountAmount);
     const totalAmountPaid = previousPaidAmount + (Number(masterTarget) || 0);
 
     const today = toApiDateOnly(new Date());
@@ -65,7 +92,35 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
             setAmountPaidTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
         }
         }
-    }, [isOpen, data, cashSaleByDefault]);
+    }, [isOpen, data, cashSaleByDefault, addTimeOnTransactions]);
+
+    useEffect(() => {
+        if (isOpen && data?.supplierId && enableDiscountDuringPayments) {
+            if (data.supplier) {
+                setSupplierDetails(data.supplier);
+            } else {
+                const fetchSupplier = async () => {
+                    try {
+                        const res = await purchaseService.getSupplierById(jwtToken, data.supplierId, branchId || data.branchId);
+                        if (res?.data) {
+                            setSupplierDetails(res.data);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching supplier details:", error);
+                    }
+                };
+                fetchSupplier();
+            }
+        }
+    }, [isOpen, data, enableDiscountDuringPayments, jwtToken]);
+
+    useEffect(() => {
+        if (applyDiscount && isEligible && payments.length === 1) {
+            const finalPayable = Math.max(0, initialBalance - discountAmt);
+            setMasterTarget(finalPayable.toString());
+            setPayments(prev => [{ ...prev[0], amountPaid: finalPayable.toString() }]);
+        }
+    }, [applyDiscount, isEligible, initialBalance]);
 
     const handleAddPayment = () => {
         setPayments([...payments, {
@@ -151,6 +206,9 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 transactionImg: "",
                 totalAmount: Number(totalAmount),
                 balanceAmount: balanceAmount,
+                totalAmountPaid: Number(masterTarget) + appliedDiscountAmount,
+                discountAmount: appliedDiscountAmount,
+                amountAfterDiscount: Number(masterTarget),
                 paymentTypes: payments.map(p => {
                     const typeObj = {
                         paymentType: p.paymentType,
@@ -215,6 +273,24 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                 </div>
 
                 <div className={styles.content}>
+                    {isEligible && (
+                        <div style={{ backgroundColor: '#fdf2f5', border: '1px solid #fbcfe0', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <div style={{ flex: 1, fontSize: '13px', color: '#E9315D', lineHeight: '1.5' }}>
+                                <strong>Note:</strong> You are eligible for a {discountObj.discountValue}{discountObj.discountValueType === "Percentage (%)" ? "%" : "₹"} discount! If you pay the full remaining balance, you will get {currencySymbol}{discountAmt.toFixed(2)} off.
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    id="applyDiscount" 
+                                    checked={applyDiscount} 
+                                    onChange={(e) => setApplyDiscount(e.target.checked)} 
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#E9315D' }}
+                                />
+                                <label htmlFor="applyDiscount" style={{ fontSize: '13px', fontWeight: 600, color: '#E9315D', cursor: 'pointer', whiteSpace: 'nowrap' }}>Apply Discount</label>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Row 1: Date (Global) and first payment amount */}
                     <div className={styles.row}>
                         <div className={styles.field}>
