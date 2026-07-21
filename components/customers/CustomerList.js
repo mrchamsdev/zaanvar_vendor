@@ -55,7 +55,9 @@ const CustomerList = ({
   onEdit,
   onDelete,
   onAddClick,
-  searchTerm = ""
+  searchTerm = "",
+  addEdit = true,
+  canDelete = true
 }) => {
   const currencySymbol = useCurrencySymbol();
 
@@ -114,7 +116,7 @@ const CustomerList = ({
           </div>
         ) : (
           <EmptyState
-            buttonText="Add Customer"
+            buttonText={addEdit ? "Add Customer" : null}
             onAddClick={onAddClick}
           />
         )
@@ -183,12 +185,16 @@ const CustomerList = ({
                             <div className={styles.dropdownItem} onClick={() => { onView(c.vendorCustomerId); setActiveMenuId(null); }}>
                               View
                             </div>
-                            <div className={styles.dropdownItem} onClick={() => { onEdit(c.vendorCustomerId); setActiveMenuId(null); }}>
-                              Edit
-                            </div>
-                            <div className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`} onClick={() => { onDelete(c.vendorCustomerId); setActiveMenuId(null); }}>
-                              Delete
-                            </div>
+                            {addEdit && (
+                              <div className={styles.dropdownItem} onClick={() => { onEdit(c.vendorCustomerId); setActiveMenuId(null); }}>
+                                Edit
+                              </div>
+                            )}
+                            {canDelete && (
+                              <div className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`} onClick={() => { onDelete(c.vendorCustomerId); setActiveMenuId(null); }}>
+                                Delete
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

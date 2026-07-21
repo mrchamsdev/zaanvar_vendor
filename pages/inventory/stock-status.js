@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import EmptyState from "../../components/utilities/EmptyState";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
+import usePermissions from "../../components/utilities/usePermissions";
 
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -63,6 +64,7 @@ const StockStatusPage = () => {
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
   const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
+  const { addEdit } = usePermissions("Inventory", "Stock Status");
   const currentBranchId = router.query.branchId || "";
   const [activeTab, setActiveTab] = useState("outOfStock");
   const [loading, setLoading] = useState(true);
@@ -84,18 +86,9 @@ const StockStatusPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  useEffect(() => {
-    if (!router.isReady) return;
-    if (!currentBranchId && branches && branches.length > 0) {
-      const targetId = defaultBranchId || branches[0].id;
-      router.replace({
-        pathname: router.pathname,
-        query: { ...router.query, branchId: targetId }
-      }, undefined, { shallow: true });
-    } else if (currentBranchId) {
-      setSelectedBranchId(currentBranchId);
-    }
-  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+  // Removed redundant branch effect that caused infinite loops
+
+
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -425,51 +418,55 @@ const StockStatusPage = () => {
           {activeTab !== "shortExpiry" && (
             <td>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {activeTab === "outOfStock" || activeTab === "lowStock" ? (
-                  <button
-                    className={`${styles.actionBtn} ${styles.restockBtn}`}
-                    onClick={() => handleRestock(item)}
-                  >
-                    <IconRefresh /> Restock
-                  </button>
-                ) : activeTab === "expired" ? (
-                  isItemCompleted(item) ? (
-                    <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <IconRefresh /> Completed
-                    </span>
-                  ) : (
+                {addEdit ? (
+                  activeTab === "outOfStock" || activeTab === "lowStock" ? (
                     <button
-                      className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                      onClick={() => handleMarkWaste(item, true)}
+                      className={`${styles.actionBtn} ${styles.restockBtn}`}
+                      onClick={() => handleRestock(item)}
                     >
-                      🏷 Mark Waste
+                      <IconRefresh /> Restock
                     </button>
-                  )
-                ) : (
-                  <>
-                    {isItemCompleted(item) ? (
+                  ) : activeTab === "expired" ? (
+                    isItemCompleted(item) ? (
                       <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <IconRefresh /> Completed
                       </span>
                     ) : (
-                      <>
-                        <button
-                          className={`${styles.actionBtn} ${styles.wasteBtn}`}
-                          onClick={() => handleMarkWaste(item, false)}
-                        >
-                          🏷 Mark Waste
-                        </button>
-                        {(item.consumptionId || item.stockUpdateId || item.id) && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                        onClick={() => handleMarkWaste(item, true)}
+                      >
+                        🏷 Mark Waste
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      {isItemCompleted(item) ? (
+                        <span style={{ color: '#28a745', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <IconRefresh /> Completed
+                        </span>
+                      ) : (
+                        <>
                           <button
-                            className={`${styles.actionBtn} ${styles.restockBtn}`}
-                            onClick={() => handleRestore(item)}
+                            className={`${styles.actionBtn} ${styles.wasteBtn}`}
+                            onClick={() => handleMarkWaste(item, false)}
                           >
-                            <IconRefresh /> Restore
+                            🏷 Mark Waste
                           </button>
-                        )}
-                      </>
-                    )}
-                  </>
+                          {(item.consumptionId || item.stockUpdateId || item.id) && (
+                            <button
+                              className={`${styles.actionBtn} ${styles.restockBtn}`}
+                              onClick={() => handleRestore(item)}
+                            >
+                              <IconRefresh /> Restore
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )
+                ) : (
+                  <span style={{ color: '#999', fontSize: '12px' }}>-</span>
                 )}
               </div>
             </td>

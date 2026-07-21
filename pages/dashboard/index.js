@@ -94,7 +94,8 @@ export default function DashboardHomePage() {
     const fetchDashboard = async () => {
       try {
         if (!jwtToken) return;
-        const id = branchId || vendor?.branchId || 91;
+        const id = branchId || vendor?.branchId;
+        if (!id) return;
         const webApi = new WebApimanager(jwtToken);
         
         let queryParams = `branchId=${id}`;
@@ -133,7 +134,8 @@ export default function DashboardHomePage() {
     const fetchStockReports = async () => {
       try {
         if (!jwtToken) return;
-        const id = branchId || vendor?.branchId || 91;
+        const id = branchId || vendor?.branchId;
+        if (!id) return;
         const webApi = new WebApimanager(jwtToken);
         const res = await webApi.get(`vendor/products/stock-reports?branchId=${id}`);
         const payload = res.data || res;

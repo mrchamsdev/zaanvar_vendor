@@ -16,6 +16,7 @@ import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import usePermissions from "../utilities/usePermissions";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const currencySymbol = useCurrencySymbol();
@@ -333,6 +334,7 @@ const PaymentOutList = ({ onAddClick }) => {
 
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
+    const perms = usePermissions("Purchase Bills", "Payment Out");
     const [transactions, setTransactions] = useState([]);
 
     const getDisplayPaymentType = (t) => {
@@ -882,7 +884,7 @@ const PaymentOutList = ({ onAddClick }) => {
                 <Loader message="Loading Payments..." />
             ) : transactions.length === 0 ? (
                 <EmptyState
-                    buttonText="Add Payment Out"
+                    buttonText={perms.addEdit ? "Add Payment Out" : null}
                     onAddClick={onAddClick}
                 />
             ) : (
@@ -1083,20 +1085,19 @@ const PaymentOutList = ({ onAddClick }) => {
                                                                         router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&branchId=${selectedBranchId || defaultBranchId}`);
                                                                         setActiveDropdown(null);
                                                                     }}>View</div>
-                                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                                        router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit&branchId=${selectedBranchId || defaultBranchId}`);
-                                                                        setActiveDropdown(null);
-                                                                    }}>Edit</div>
+                                                                    {perms.addEdit && (
+                                                                        <div className={styles.dropdownItem} onClick={() => {
+                                                                            router.push(`/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=edit&branchId=${selectedBranchId || defaultBranchId}`);
+                                                                            setActiveDropdown(null);
+                                                                        }}>Edit</div>
+                                                                    )}
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toDynamicFixed();
                                                                         const pdfUrl = `/purchase-bill/add-payment-out?id=${t.suppliersTransactionId}&mode=view&pdf=true&balanceAmount=${balAmt}&refNo=${t.suppliersTransactionId}&branchId=${selectedBranchId || defaultBranchId}`;
                                                                         window.open(pdfUrl, '_blank');
                                                                         setActiveDropdown(null);
                                                                     }}>Open PDF</div>
-                                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                                        window.open(`/invoice/payment-out/${t.suppliersTransactionId}`, '_blank');
-                                                                        setActiveDropdown(null);
-                                                                    }}>Invoice</div>
+
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
                                                                         const balAmt = Number((t.splitTransactions && t.splitTransactions.length ? t.splitTransactions[t.splitTransactions.length - 1].totalBalanceAmount : t.totalBalanceAmount) || 0).toDynamicFixed();

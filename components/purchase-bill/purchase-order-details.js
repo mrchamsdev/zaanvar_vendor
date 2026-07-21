@@ -11,6 +11,7 @@ import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import { parseWallClockDate } from "../../utilities/date-time-utils";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import usePermissions from "../utilities/usePermissions";
 
 const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialData }) => {
   const currencySymbol = useCurrencySymbol();
@@ -38,6 +39,9 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
     const [loading, setLoading] = useState(true);
     const [orderData, setOrderData] = useState(null);
     const [isPdf, setIsPdf] = useState(false);
+    
+    // Check permissions for buttons
+    const perms = usePermissions("Purchase Bills", "Purchase Orders");
 
     useEffect(() => {
         if (jwtToken && requestId) {
@@ -292,10 +296,14 @@ const PurchaseOrderDetails = ({ requestId, onClose, onSave, onReceive, initialDa
             <div className={styles.actions} style={{ justifyContent: 'flex-end', gap: '15px' }}>
                 {orderData.orderStatus === "order placed" && (
                     <>
-                        <button className={styles.cancelBtn} onClick={() => handleUpdateStatus("cancel order")}>Cancel Order</button>
-                        <button className={styles.printBtn} onClick={() => window.open(`/invoice/purchase-order/${orderData.purchaseRequestId}`, '_blank')}>Invoice</button>
+                        {perms.canDelete && (
+                            <button className={styles.cancelBtn} onClick={() => handleUpdateStatus("cancel order")}>Cancel Order</button>
+                        )}
+
                         <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
-                        <button className={styles.placeOrderBtn} style={{ background: '#000' }} onClick={onReceive}>Receive Order</button>
+                        {perms.addEdit && (
+                            <button className={styles.placeOrderBtn} style={{ background: '#000' }} onClick={onReceive}>Receive Order</button>
+                        )}
                     </>
                 )}
                 {orderData.orderStatus === "cancel order" && (

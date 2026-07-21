@@ -5,24 +5,17 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { FiChevronDown, FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
 import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
+import usePermissions from "../../components/utilities/usePermissions";
 
 const PurchaseOutPage = () => {
     const router = useRouter();
     const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
     const currentBranchId = router.query.branchId || "";
+    
+    const perms = usePermissions("Purchase Bills", "Payment Out");
 
-    React.useEffect(() => {
-        if (!router.isReady) return;
-        if (!currentBranchId && branches && branches.length > 0) {
-            const targetId = defaultBranchId || branches[0].id;
-            router.replace({
-                pathname: router.pathname,
-                query: { ...router.query, branchId: targetId }
-            }, undefined, { shallow: true });
-        } else if (currentBranchId) {
-            setSelectedBranchId(currentBranchId);
-        }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+    // Removed redundant branch effect that caused infinite loops
+
 
     const handleBranchChange = (e) => {
         router.push({
@@ -48,23 +41,25 @@ const PurchaseOutPage = () => {
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button 
-                onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
-                style={{
-                    background: '#E93E64',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                <FiPlus /> Add Payment Out
-            </button>
+            {perms.addEdit && (
+                <button 
+                    onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+                    style={{
+                        background: '#E93E64',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}
+                >
+                    <FiPlus /> Add Payment Out
+                </button>
+            )}
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );

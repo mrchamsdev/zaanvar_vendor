@@ -13,6 +13,7 @@ import Loader from "../../components/utilities/Loader";
 import { FiFilter, FiCheck, FiChevronRight, FiCalendar, FiChevronLeft, FiX, FiShare2 } from "react-icons/fi";
 import ShareModal from "../../components/purchase-bill/ShareModal";
 import { getAmountDecimalPlaces } from "../../components/utilities/formatAmount";
+import usePermissions from "../../components/utilities/usePermissions";
 
 /* ── Inline Icons ────────────────────────────────────────── */
 const IconPlus = () => (
@@ -305,6 +306,7 @@ const PurchaseOrdersPage = () => {
     const router = useRouter();
 
     const { jwtToken } = useStore();
+    const perms = usePermissions("Purchase Bills", "Purchase Orders");
     const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData();
     const currentBranchId = router.query.branchId || "";
 
@@ -340,10 +342,8 @@ const PurchaseOrdersPage = () => {
                 pathname: router.pathname,
                 query: { ...router.query, branchId: targetId }
             }, undefined, { shallow: true });
-        } else if (currentBranchId) {
-            setSelectedBranchId(currentBranchId);
         }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+    }, [router.isReady, currentBranchId, branches, defaultBranchId]);
 
     // Fetch Purchase Requests
     useEffect(() => {
@@ -576,9 +576,11 @@ const PurchaseOrdersPage = () => {
             customTopbarLeft={customLeft}
             customTopbarRight={(
                 <div className={styles.addBtnWrapper}>
-                    <button className={styles.addBtn} onClick={() => openOrder(null, "Add")}>
-                        <IconPlus /> Add Purchase Order
-                    </button>
+                    {perms.addEdit && (
+                        <button className={styles.addBtn} onClick={() => openOrder(null, "Add")}>
+                            <IconPlus /> Add Purchase Order
+                        </button>
+                    )}
                 </div>
             )}
         >
@@ -643,7 +645,7 @@ const PurchaseOrdersPage = () => {
                     <Loader message="Loading Purchase Orders..." />
                 ) : (filteredData.length === 0 && !hasFiltersApplied) ? (
                     <EmptyState
-                        buttonText="Add Purchase Order"
+                        buttonText={perms.addEdit ? "Add Purchase Order" : null}
                         onAddClick={() => openOrder(null, "Add")}
                     />
                 ) : (

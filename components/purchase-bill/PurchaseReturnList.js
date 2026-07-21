@@ -14,6 +14,7 @@ import Loader from "../utilities/Loader";
 import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
+import usePermissions from "../utilities/usePermissions";
 
 const CustomDateRangePicker = ({ startDate, endDate, onSelect, onClose, showInputs, isEmbedded }) => {
     const currencySymbol = useCurrencySymbol();
@@ -301,6 +302,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
 
     const router = useRouter();
     const { jwtToken, userInfo } = useStore();
+    const perms = usePermissions("Purchase Bills", "Purchase Return ");
     const [returns, setReturns] = useState([]);
     const [totals, setTotals] = useState({ totalReceived: 0, totalBalance: 0 });
     const [loading, setLoading] = useState(true);
@@ -726,7 +728,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                 <Loader message="Loading Returns..." />
             ) : returns.length === 0 ? (
                 <EmptyState
-                    buttonText="Add Purchase Return"
+                    buttonText={perms.addEdit ? "Add Purchase Return" : null}
                     onAddClick={onAddClick}
                 />
             ) : (
@@ -915,10 +917,7 @@ const PurchaseReturnList = ({ onAddClick }) => {
                                                                 window.open(`${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true`, '_blank');
                                                                 setActiveDropdown(null);
                                                             }}>Open PDF</div>
-                                                            <div className={styles.dropdownItem} onClick={() => {
-                                                                window.open(`/invoice/purchase-return/${r.returnProductsId}`, '_blank');
-                                                                setActiveDropdown(null);
-                                                            }}>Invoice</div>
+
                                                             <div className={styles.dropdownItem} onClick={() => {
                                                                 setActiveDropdown(null);
                                                                 const printUrl = `${window.location.pathname}?view=true&id=${r.returnProductsId}&pdf=true&print=true`;

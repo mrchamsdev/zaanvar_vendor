@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getBoolSetting } from "../../utilities/settings-utils";
 import { formatAmount } from "../../components/utilities/formatAmount";
+import usePermissions from "../../components/utilities/usePermissions";
 
 const ActiveProductIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none"><path fillRule="evenodd" clipRule="evenodd" d="M0.0762206 6.00862C0.166619 5.75442 0.446025 5.62158 0.700283 5.71194L5.90882 7.56389C6.22648 7.67686 6.57333 7.67686 6.89093 7.56389L12.0995 5.71194C12.3538 5.62158 12.6332 5.75442 12.7235 6.00862C12.814 6.26289 12.6811 6.54231 12.4268 6.63274L7.21829 8.48462C6.6889 8.67284 6.11085 8.67284 5.58146 8.48462L0.372903 6.63274C0.118645 6.54231 -0.0141848 6.26289 0.0762206 6.00862Z" fill="#09B51A"/><path fillRule="evenodd" clipRule="evenodd" d="M0.0762206 8.7762C0.166619 8.52199 0.446025 8.38916 0.700283 8.47952L5.90882 10.3315C6.22648 10.4444 6.57333 10.4444 6.89093 10.3315L12.0995 8.47952C12.3538 8.38916 12.6332 8.52199 12.7235 8.7762C12.814 9.03047 12.6811 9.30989 12.4268 9.40031L7.21829 11.2522C6.6889 11.4404 6.11085 11.4404 5.58146 11.2522L0.372903 9.40031C0.118645 9.30989 -0.0141848 9.03047 0.0762206 8.7762Z" fill="#09B51A"/><path fillRule="evenodd" clipRule="evenodd" d="M7.12354 1.10469C6.65617 0.934721 6.14385 0.934721 5.67641 1.10469L1.08442 2.77451C0.941476 2.82649 0.941482 3.02865 1.08442 3.08063L5.67641 4.75046C6.14385 4.92043 6.65617 4.92043 7.12354 4.75046L11.7155 3.08063C11.8585 3.02865 11.8585 2.82648 11.7155 2.77451L7.12354 1.10469ZM5.34247 0.186311C6.02561 -0.0621036 6.77441 -0.0621036 7.45755 0.186311L12.0495 1.85613C13.0502 2.21999 13.0502 3.63515 12.0495 3.99901L7.45755 5.66885C6.77441 5.91726 6.02561 5.91726 5.34247 5.66885L0.750469 3.99901C-0.25016 3.63515 -0.250153 2.21999 0.750469 1.85613L5.34247 0.186311Z" fill="#09B51A"/><path d="M12.7998 5.46875C14.3714 5.46886 15.6494 6.7477 15.6494 8.31934C15.6493 9.89088 14.3714 11.1688 12.7998 11.1689C11.2282 11.1689 9.94932 9.89095 9.94922 8.31934C9.94922 6.74764 11.2281 5.46875 12.7998 5.46875Z" fill="#4BAE4F" stroke="white" strokeWidth="0.7"/><mask id="path-5-inside-1_6006_84556" fill="white"><path fillRule="evenodd" clipRule="evenodd" d="M14.3475 7.2407C14.425 7.3182 14.425 7.4457 14.3475 7.5232L12.4725 9.3982C12.4337 9.43695 12.3825 9.45695 12.3312 9.45695C12.28 9.45695 12.2287 9.43695 12.3312 9.45695C12.28 9.45695 12.2287 9.43695 12.19 9.3982L11.2525 8.4607C11.175 8.3832 11.175 8.2557 11.2525 8.1782C11.33 8.1007 11.4575 8.1007 11.535 8.1782L12.3312 8.97445L14.065 7.2407C14.1425 7.16195 14.27 7.16195 14.3475 7.2407Z"/></mask><path fillRule="evenodd" clipRule="evenodd" d="M14.3475 7.2407C14.425 7.3182 14.425 7.4457 14.3475 7.5232L12.4725 9.3982C12.4337 9.43695 12.3825 9.45695 12.3312 9.45695C12.28 9.45695 12.2287 9.43695 12.3312 9.45695C12.28 9.45695 12.2287 9.43695 12.19 9.3982L11.2525 8.4607C11.175 8.3832 11.175 8.2557 11.2525 8.1782C11.33 8.1007 11.4575 8.1007 11.535 8.1782L12.3312 8.97445L14.065 7.2407C14.1425 7.16195 14.27 7.16195 14.3475 7.2407Z" fill="white"/><path d="M14.3475 7.2407L13.8485 7.73172L13.8525 7.73568L14.3475 7.2407ZM14.3475 7.5232L13.8525 7.02823V7.02823L14.3475 7.5232ZM12.4725 9.3982L12.9674 9.89318V9.89318L12.4725 9.3982ZM12.19 9.3982L11.695 9.89318V9.89318L12.19 9.3982ZM11.2525 8.4607L11.7474 7.96573V7.96573L11.2525 8.4607ZM11.535 8.1782L12.0299 7.68323V7.68323L11.535 8.1782ZM12.3312 8.97445L11.8362 9.46943L12.3312 9.9644L12.8262 9.46943L12.3312 8.97445ZM14.065 7.2407L14.56 7.73569L14.5639 7.7317L14.065 7.2407ZM14.3475 7.2407L13.8525 7.73568C13.6566 7.53981 13.6566 7.2241 13.8525 7.02823L14.3475 7.5232L14.8424 8.01818C15.1933 7.66731 15.1933 7.0966 14.8424 6.74573L14.3475 7.2407ZM14.3475 7.5232L13.8525 7.02823L11.9775 8.90323L12.4725 9.3982L12.9674 9.89318L14.8424 8.01818L14.3475 7.5232ZM12.4725 9.3982L11.9775 8.90323L12.4725 9.3982ZM12.4725 9.3982L11.9775 8.90323C12.0731 8.80759 12.2013 8.75695 12.3312 8.75695V9.45695V10.157C12.5637 10.157 12.7943 10.0663 12.9674 9.89318L12.4725 9.3982ZM12.3312 9.45695V8.75695C12.4612 8.75695 12.5893 8.80759 12.6849 8.90323L12.19 9.3982L11.695 9.89318C11.8681 10.0663 12.0988 10.157 12.3312 10.157V9.45695ZM12.19 9.3982L12.6849 8.90323L11.7474 7.96573L11.2525 8.4607L10.7575 8.95568L11.695 9.89318L12.19 9.3982ZM11.2525 8.4607L11.7474 7.96573C11.9433 8.1616 11.9433 8.47731 11.7474 8.67318L11.2525 8.1782L10.7575 7.68323C10.4066 8.0341 10.4066 8.60481 10.7575 8.95568L11.2525 8.4607ZM11.2525 8.1782L11.7474 8.67318C11.5516 8.86904 11.2359 8.86904 11.04 8.67318L11.535 8.1782L12.0299 7.68323C11.6791 7.33236 11.1084 7.33236 10.7575 7.68323L11.2525 8.1782ZM11.535 8.1782L11.04 8.67318L11.8362 9.46943L12.3312 8.97445L12.8262 8.47948L12.0299 7.68323L11.535 8.1782ZM12.3312 8.97445L12.8262 9.46943L14.5599 7.73568L14.065 7.2407L13.57 6.74573L11.8362 8.47948L12.3312 8.97445ZM14.065 7.2407L14.5639 7.7317C14.3671 7.93162 14.0453 7.93162 13.8485 7.7317L14.3475 7.2407L14.8464 6.7497C14.4946 6.39229 13.9178 6.39229 13.566 6.7497L14.065 7.2407Z" fill="white" mask="url(#path-5-inside-1_6006_84556)"/></svg>);
 
@@ -55,6 +56,7 @@ const IconEdit = () => (
 
 const ProductsPage = () => {
   const currencySymbol = useCurrencySymbol();
+  const { view, addEdit, canDelete } = usePermissions("Inventory", "Products");
 
   const router = useRouter();
   const { userInfo, jwtToken, vendorSettings, _hasHydrated: isHydrated } = useStore();
@@ -106,7 +108,7 @@ const ProductsPage = () => {
   }, [router.isReady, router.query.action]);
 
   useEffect(() => {
-    if (router.isReady) {
+    if (router.isReady && branchId) {
       fetchStats();
       fetchProducts();
     }
@@ -119,8 +121,7 @@ const ProductsPage = () => {
 
   const fetchStats = async () => {
     try {
-      const bid = branchId || 91;
-      const data = await productService.getDamagedExpiredReports(jwtToken, bid);
+      const data = await productService.getDamagedExpiredReports(jwtToken, branchId);
       if (data && data.counts) {
         setStats({
           total: data.counts.totalBranchProducts || 0,
@@ -137,10 +138,9 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const bid = branchId || 91;
       const result = await productService.getProducts(
         jwtToken,
-        bid,
+        branchId,
         productType,
         debouncedSearchTerm,
         currentPage,
@@ -311,14 +311,16 @@ const ProductsPage = () => {
   return (
     <DashboardLayout
       customTopbarRight={(
-        <div className={styles.addBtnWrapper}>
-          <button
-            className={styles.addBtn}
-            onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
-          >
-            <IconPlus /> Add Product
-          </button>
-        </div>
+        addEdit ? (
+          <div className={styles.addBtnWrapper}>
+            <button
+              className={styles.addBtn}
+              onClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
+            >
+              <IconPlus /> Add Product
+            </button>
+          </div>
+        ) : null
       )}
     >
       <div className={styles.container}>
@@ -398,8 +400,8 @@ const ProductsPage = () => {
           </div>
         ) : products.length === 0 ? (
           <EmptyState
-            buttonText="Add Product"
-            onAddClick={() => { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); }}
+            buttonText={addEdit ? "Add Product" : null}
+            onAddClick={() => { if(addEdit) { setFormMode("Add"); setIsAddingProduct(true); setTriggerAddProduct(prev => prev + 1); } }}
           />
         ) : (
           <div className={styles.tableWrapper}>
@@ -558,39 +560,43 @@ const ProductsPage = () => {
                   >
                     <IconEye /> View
                   </div>
-                  <div
-                    className={styles.actionItem}
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const fullProducts = [];
-                        for (const id of selectedIds) {
-                          const res = await productService.getProductById(jwtToken, id);
-                          let prod = res?.data?.data || res?.data;
-                          if (prod) {
-                            prod = {
-                              ...prod,
-                              productId: prod.productId || prod.id || prod.ID || prod._id
-                            };
-                            fullProducts.push(prod);
+                  {addEdit && (
+                    <div
+                      className={styles.actionItem}
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const fullProducts = [];
+                          for (const id of selectedIds) {
+                            const res = await productService.getProductById(jwtToken, id);
+                            let prod = res?.data?.data || res?.data;
+                            if (prod) {
+                              prod = {
+                                ...prod,
+                                productId: prod.productId || prod.id || prod.ID || prod._id
+                              };
+                              fullProducts.push(prod);
+                            }
                           }
+                          setEditProductData(fullProducts);
+                          setFormMode("Edit");
+                          setIsAddingProduct(true);
+                          setTriggerAddProduct(prev => prev + 1);
+                        } catch (e) {
+                          console.error("Error fetching full product details for edit:", e);
+                        } finally {
+                          setLoading(false);
                         }
-                        setEditProductData(fullProducts);
-                        setFormMode("Edit");
-                        setIsAddingProduct(true);
-                        setTriggerAddProduct(prev => prev + 1);
-                      } catch (e) {
-                        console.error("Error fetching full product details for edit:", e);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                  >
-                    <IconEdit /> Edit
-                  </div>
-                  <div className={styles.actionItem} onClick={handleDelete}>
-                    <IconTrash /> Delete
-                  </div>
+                      }}
+                    >
+                      <IconEdit /> Edit
+                    </div>
+                  )}
+                  {canDelete && (
+                    <div className={styles.actionItem} onClick={handleDelete}>
+                      <IconTrash /> Delete
+                    </div>
+                  )}
                 </div>
               )}
             </div>

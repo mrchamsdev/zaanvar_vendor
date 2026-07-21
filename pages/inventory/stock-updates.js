@@ -12,6 +12,7 @@ import StockUpdateManager from "../../components/inventory/stock-update-manager"
 import PurchaseOrderManager from "../../components/purchase-bill/purchase-order-manager";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../../components/utilities/formatAmount";
+import usePermissions from "../../components/utilities/usePermissions";
 
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -21,6 +22,7 @@ const IconSearch = () => (
 
 const StockUpdatesPage = () => {
   const currencySymbol = useCurrencySymbol();
+  const { addEdit } = usePermissions("Inventory", "Stock Updates");
 
   const router = useRouter();
   const { jwtToken, userInfo, _hasHydrated: isHydrated } = useStore();
@@ -45,10 +47,8 @@ const StockUpdatesPage = () => {
         pathname: router.pathname,
         query: { ...router.query, branchId: targetId }
       }, undefined, { shallow: true });
-    } else if (currentBranchId) {
-      setSelectedBranchId(currentBranchId);
     }
-  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+  }, [router.isReady, currentBranchId, branches, defaultBranchId]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -127,19 +127,21 @@ const StockUpdatesPage = () => {
     <DashboardLayout
       customTopbarLeft={customLeft}
       customTopbarRight={(
-        <div className={styles.topbarRight}>
-            <button 
-                className={styles.updateStockBtn}
-                onClick={() => {
-                    setManagerMode("Add");
-                    setSelectedStockId(null);
-                    setShowUpdateForm(true);
-                    setTriggerNewTab(prev => prev + 1);
-                }}
-            >
-                <span>+</span> Update Stock
-            </button>
-        </div>
+        addEdit ? (
+          <div className={styles.topbarRight}>
+              <button 
+                  className={styles.updateStockBtn}
+                  onClick={() => {
+                      setManagerMode("Add");
+                      setSelectedStockId(null);
+                      setShowUpdateForm(true);
+                      setTriggerNewTab(prev => prev + 1);
+                  }}
+              >
+                  <span>+</span> Update Stock
+              </button>
+          </div>
+        ) : null
       )}
     >
       <div className={styles.container}>
@@ -166,13 +168,13 @@ const StockUpdatesPage = () => {
           ) : filteredUpdates.length === 0 ? (
             <div className={styles.emptyContainer}>
                 <EmptyState 
-                    buttonText="Update Stock"
-                    onAddClick={() => {
+                    buttonText={addEdit ? "Update Stock" : null}
+                    onAddClick={addEdit ? () => {
                         setManagerMode("Add");
                         setSelectedStockId(null);
                         setShowUpdateForm(true);
                         setTriggerNewTab(prev => prev + 1);
-                    }}
+                    } : null}
                 />
             </div>
           ) : (

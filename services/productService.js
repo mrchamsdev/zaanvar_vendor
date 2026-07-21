@@ -132,9 +132,9 @@ export const productService = {
     return await webApi.post(`vendor/stock-updates`, data);
   },
 
-  getStockUpdateById: async (jwt, id) => {
+  getStockUpdateById: async (jwt, id, branchId) => {
     const webApi = new WebApimanager(jwt);
-    return await webApi.get(`vendor/stock-updates/${id}`);
+    return await webApi.get(`vendor/stock-updates/${id}`, { branchId });
   },
 
   getStockReports: async (jwt, branchId) => {

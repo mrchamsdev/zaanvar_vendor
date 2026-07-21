@@ -58,14 +58,39 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
     let isEligible = false;
     let discountAmt = 0;
 
-    if (enableDiscountDuringPayments && discountObj && discountObj.discountType === "Bill Amount Based") {
-        const minOrder = Number(discountObj.minimumOrderValue || 0);
-        if (initialBalance >= minOrder && minOrder > 0) {
-            isEligible = true;
-            if (discountObj.discountValueType === "Percentage (%)") {
-                discountAmt = initialBalance * (Number(discountObj.discountValue || 0) / 100);
-            } else {
-                discountAmt = Number(discountObj.discountValue || 0);
+    if (enableDiscountDuringPayments && discountObj) {
+        if (discountObj.discountType === "Bill Amount Based") {
+            const minOrder = Number(discountObj.minimumOrderValue || 0);
+            if (initialBalance >= minOrder && minOrder > 0) {
+                isEligible = true;
+                if (discountObj.discountValueType === "Percentage (%)") {
+                    discountAmt = initialBalance * (Number(discountObj.discountValue || 0) / 100);
+                } else {
+                    discountAmt = Number(discountObj.discountValue || 0);
+                }
+            }
+        } else if (discountObj.discountType === "Time Based") {
+            const minDays = Number(discountObj.minimumPaymentDays || 0);
+            const refDateStr = data.modifiedDate || data.orderDate || data.receivedDate || data.createdDate;
+            if (refDateStr && minDays > 0) {
+                const refDate = new Date(refDateStr);
+                refDate.setHours(0, 0, 0, 0);
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                
+                const diffTime = todayDate.getTime() - refDate.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                console.log("TIME BASED DISCOUNT DEBUG:", { minDays, refDateStr, diffTime, diffDays });
+
+                if (diffDays <= minDays) {
+                    isEligible = true;
+                    if (discountObj.discountValueType === "Percentage (%)") {
+                        discountAmt = initialBalance * (Number(discountObj.discountValue || 0) / 100);
+                    } else {
+                        discountAmt = Number(discountObj.discountValue || 0);
+                    }
+                }
             }
         }
     }
@@ -407,6 +432,21 @@ const PaymentDetailsPopup = ({ isOpen, onClose, data, onRefresh }) => {
                             </div>
                         </div>
                     </div>
+
+                    {isEligible && (
+                        <div className={styles.row} style={{ marginTop: '8px', marginBottom: '8px' }}>
+                            <div className={styles.field} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={applyDiscount} 
+                                    onChange={(e) => setApplyDiscount(e.target.checked)}
+                                />
+                                <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                                    Apply Discount ({currencySymbol} {discountAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Row 3: First Payment Type and Global Total Paid */}
                     <div className={styles.row}>

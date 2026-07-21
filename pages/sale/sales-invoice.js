@@ -3,6 +3,7 @@ import React from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import SalesInvoiceList from "../../components/sale/SalesInvoiceList";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import useStore from "../../components/state/useStore";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
 import SaleInvoiceManager from "../../components/sale/SaleInvoiceManager";
@@ -17,6 +18,16 @@ const SalesInvoicePage = () => {
     const [isPdf, setIsPdf] = React.useState(false);
     const [managerTrigger, setManagerTrigger] = React.useState(0);
 
+    const { rolesData } = useStore();
+    const hasAddAccess = React.useMemo(() => {
+        if (!rolesData) return true;
+        const module = rolesData.find(m => m.module === "Sale");
+        if (!module) return true;
+        const service = module.services.find(s => s.serviceName === "Sale Invoice");
+        if (!service) return true;
+        return service.addEdit !== false;
+    }, [rolesData]);
+
     React.useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
@@ -27,19 +38,8 @@ const SalesInvoicePage = () => {
         }
     }, []);
 
-    React.useEffect(() => {
-        if (isPdf) return; // skip for pdf view
-        if (!router.isReady) return;
-        if (!currentBranchId && branches && branches.length > 0) {
-            const targetId = defaultBranchId || branches[0].id;
-            router.replace({
-                pathname: router.pathname,
-                query: { ...router.query, branchId: targetId }
-            }, undefined, { shallow: true });
-        } else if (currentBranchId) {
-            setSelectedBranchId(currentBranchId);
-        }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId, isPdf, setSelectedBranchId]);
+        // Removed redundant branch effect that caused infinite loops
+
 
     const handleBranchChange = (e) => {
         router.push({
@@ -83,29 +83,30 @@ const SalesInvoicePage = () => {
             />
         );
     }
-
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button
-                onClick={() => {
-                    setManagerTrigger(prev => prev + 1);
-                    router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true });
-                }}
-                style={{
-                    background: '#E93E64',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                <FiPlus /> Add Sale Invoice
-            </button>
+            {hasAddAccess && (
+                <button
+                    onClick={() => {
+                        setManagerTrigger(prev => prev + 1);
+                        router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true });
+                    }}
+                    style={{
+                        background: '#E93E64',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}
+                >
+                    <FiPlus /> Add Sale Invoice
+                </button>
+            )}
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );

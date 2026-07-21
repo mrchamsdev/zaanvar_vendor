@@ -25,19 +25,8 @@ const PaymentInPage = () => {
         }
     }, []);
 
-    React.useEffect(() => {
-        if (isPdf) return; // skip for pdf view
-        if (!router.isReady) return;
-        if (!currentBranchId && branches && branches.length > 0) {
-            const targetId = defaultBranchId || branches[0].id;
-            router.replace({
-                pathname: router.pathname,
-                query: { ...router.query, branchId: targetId }
-            }, undefined, { shallow: true });
-        } else if (currentBranchId) {
-            setSelectedBranchId(currentBranchId);
-        }
-    }, [router.isReady, currentBranchId, branches, defaultBranchId, isPdf, setSelectedBranchId]);
+        // Removed redundant branch effect that caused infinite loops
+
 
     const handleBranchChange = (e) => {
         router.push({

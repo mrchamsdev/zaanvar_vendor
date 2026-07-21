@@ -18,9 +18,12 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
     const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
     const roundOffTotal = getBoolSetting(vendorSettings, 'roundOffTotal', false);
     const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
+    const enableDiscountDuringPayments = getBoolSetting(vendorSettings, 'enableDiscountDuringPayments', true);
     const { branchId: selectedBranchId } = useDashboardData({ skipReviews: true });
     const branchId = selectedBranchId || userInfo?.branchId || 1;
     const [loading, setLoading] = useState(false);
+
+    const [applyDiscount, setApplyDiscount] = useState(false);
 
     // Header Data
     const [billDetails, setBillDetails] = useState(null);
@@ -197,8 +200,51 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
     // Calculations
     const previouslyPaid = parseFloat(billDetails?.amountPaidToSupplier || 0);
-    const currentBalance = parseFloat(billDetails?.balanceAmount || 0);
-    const totalBillAmount = parseFloat(billDetails?.overallBillAmount || billDetails?.totalAmount || (previouslyPaid + currentBalance));
+    const currentBalanceRaw = parseFloat(billDetails?.balanceAmount || 0);
+    const totalBillAmount = parseFloat(billDetails?.overallBillAmount || billDetails?.totalAmount || (previouslyPaid + currentBalanceRaw));
+
+    // Discount calculations
+    const supplierDataObj = billDetails?.vendor || supplierData;
+    const discountObj = supplierDataObj?.discount;
+    let isEligible = false;
+    let discountAmt = 0;
+
+    if (enableDiscountDuringPayments && discountObj) {
+        if (discountObj.discountType === "Bill Amount Based") {
+            const minOrder = Number(discountObj.minimumOrderValue || 0);
+            if (currentBalanceRaw >= minOrder && minOrder > 0) {
+                isEligible = true;
+                if (discountObj.discountValueType === "Percentage (%)") {
+                    discountAmt = currentBalanceRaw * (Number(discountObj.discountValue || 0) / 100);
+                } else {
+                    discountAmt = Number(discountObj.discountValue || 0);
+                }
+            }
+        } else if (discountObj.discountType === "Time Based") {
+            const minDays = Number(discountObj.minimumPaymentDays || 0);
+            const refDateStr = billDetails?.modifiedDate || billDetails?.orderDate || billDetails?.receivedDate || billDetails?.createdDate;
+            if (refDateStr && minDays > 0) {
+                const refDate = new Date(refDateStr);
+                refDate.setHours(0, 0, 0, 0);
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                const diffTime = todayDate.getTime() - refDate.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= minDays) {
+                    isEligible = true;
+                    if (discountObj.discountValueType === "Percentage (%)") {
+                        discountAmt = currentBalanceRaw * (Number(discountObj.discountValue || 0) / 100);
+                    } else {
+                        discountAmt = Number(discountObj.discountValue || 0);
+                    }
+                }
+            }
+        }
+    }
+
+    const appliedDiscountAmount = applyDiscount ? discountAmt : 0;
+    const currentBalance = Math.max(0, currentBalanceRaw - appliedDiscountAmount);
 
     // Amount currently being entered (top Paid Amount field)
     const currentEntryAmount = parseFloat(topPaidAmount || 0);
@@ -206,8 +252,8 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
 
     // Final Summary Values
     const summaryTotal = isRoundOff ? Math.round(totalPaidInModal) : totalPaidInModal + parseFloat(roundOffValue || 0);
-    const summaryPaidTotal = previouslyPaid + summaryTotal;
-    const summaryPendingAmount = currentBalance - summaryTotal;
+    const summaryPaidTotal = previouslyPaid + summaryTotal + appliedDiscountAmount;
+    const summaryPendingAmount = currentBalanceRaw - (summaryTotal + appliedDiscountAmount);
 
     useEffect(() => {
         if (isOpen) {
@@ -306,6 +352,9 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                 transactionInfo: description || `Payment for invoice #${currentBillId}`,
                 returnProductsId: null,
                 returnsDeduction: false,
+                totalAmountPaid: currentEntryAmount + appliedDiscountAmount,
+                discountAmount: appliedDiscountAmount,
+                amountAfterDiscount: currentEntryAmount,
                 paymentTypes: validEntries.map(entry => {
                     const typeObj = {
                         paymentType: entry.type,
@@ -484,8 +533,20 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                         </div>
                         <div className={styles.field}>
                             <label>Balance Amount</label>
-                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${currentBalance.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`} readOnly />
+                            <input type="text" className={`${styles.input} ${styles.readOnly}`} value={`${currencySymbol} ${currentBalanceRaw.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })}`} readOnly />
                         </div>
+                        {isEligible && (
+                            <div className={styles.field} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', marginBottom: '8px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={applyDiscount} 
+                                    onChange={(e) => setApplyDiscount(e.target.checked)}
+                                />
+                                <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                                    Apply Discount ({currencySymbol} {discountAmt.toLocaleString(undefined, { minimumFractionDigits: getAmountDecimalPlaces(), maximumFractionDigits: getAmountDecimalPlaces() })})
+                                </span>
+                            </div>
+                        )}
                         <div className={styles.field}>
                             <label>Paid Amount</label>
                             <input

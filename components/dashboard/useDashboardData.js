@@ -38,7 +38,7 @@ function normaliseTiming(timings) {
 export default function useDashboardData(options = {}) {
   const { skipReviews = true } = options;
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId, setVendorSettings, vendorSettings } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, selectedBranchId, setSelectedBranchId, setVendorSettings, vendorSettings, setRoles } = useStore();
 
   /* ── supplementary state ── */
   const [reviews, setReviews] = useState([]);
@@ -129,6 +129,28 @@ export default function useDashboardData(options = {}) {
         }
       });
   }, [jwtToken, branchId, setVendorSettings]);
+
+  /* ── fetch roles & poll every 10 mins ── */
+  useEffect(() => {
+    if (!jwtToken || !branchId) return;
+
+    const fetchRoles = () => {
+      const webApi = new WebApimanager(jwtToken);
+      webApi.get(`vendor/roles?branchId=${branchId}`)
+        .then((res) => {
+          const data = res?.data?.data || res?.data || res;
+          if (Array.isArray(data)) {
+            setRoles(data);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch roles:", err));
+    };
+
+    fetchRoles(); // fetch immediately
+    const intervalId = setInterval(fetchRoles, 10 * 60 * 1000); // poll every 10 minutes
+
+    return () => clearInterval(intervalId);
+  }, [jwtToken, branchId, setRoles]);
 
   /* ── fetch reviews & ratings when branch is known ── */
   useEffect(() => {
