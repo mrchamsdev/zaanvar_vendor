@@ -7,10 +7,12 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 import useStore from "../state/useStore";
 import { getBoolSetting } from "@/utilities/settings-utils";
+import usePermissions from "../utilities/usePermissions";
 
 const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
   const currencySymbol = useCurrencySymbol();
   const { vendorSettings } = useStore();
+  const perms = usePermissions("Purchase Bills", "Purchase Orders");
   const transactionWiseTax = getBoolSetting(vendorSettings, "transactionWiseTax", false);
   const transactionWiseDiscount = getBoolSetting(vendorSettings, "transactionWiseDiscount", false);
 
@@ -614,14 +616,8 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
             </div> */}
 
             <div className={styles.footer}>
-                <button className={styles.printBtn} style={{ marginRight: '10px' }} onClick={() => {
-                    const activeBillId = productsBillId || receivedDetails?.id || data?.id;
-                    if (activeBillId) {
-                        window.open(`/invoice/received-order/${activeBillId}`, '_blank');
-                    }
-                }}>Invoice</button>
                 <button className={styles.printBtn} onClick={() => setIsPdf(true)}>Print</button>
-                {paymentStatus !== "Full" && (
+                {paymentStatus !== "Full" && perms.addEdit && (
                     <button className={styles.markPaidBtn} onClick={() => setShowPaymentPopup(true)}>Mark as Paid</button>
                 )}
             </div>
@@ -652,6 +648,10 @@ const PurchaseOrderSummary = ({ data, onClose, onRefresh, initialData }) => {
                         branchId: data?.branchId,
                         productsBillId: productsBillId || receivedDetails?.id || data?.id,
                         balanceAmount: data?.balanceAmount || data?.outstandingAmount,
+                        orderDate: data?.orderDate,
+                        receivedDate: data?.receivedDate,
+                        createdDate: data?.createdDate || data?.createdAt,
+                        modifiedDate: data?.modifiedDate || data?.updatedAt
                     }}
                 />
             )}

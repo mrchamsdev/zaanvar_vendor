@@ -116,6 +116,8 @@ const useStore = create(
         set({ selectedLocation: locationLabel }),
       // ✅ Add setter for findMatchesStoredId
       setFindMatchesStoredId: (id) => set({ findMatchesStoredId: id }),
+      roles: [],
+      setRoles: (roles) => set({ roles }),
       setSelectedBranchId: (id) => set({ selectedBranchId: id }),
       setSellerLogos: (logos) => set({ sellerLogos: logos }),
       setVendorSettings: (settings) => set({ vendorSettings: settings }),

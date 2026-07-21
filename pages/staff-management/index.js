@@ -245,7 +245,7 @@ const StaffManagement = () => {
                         />
                       </td>
                       <td style={{ fontWeight: 600 }}>{staff.staffName || staff.name || (staff.firstName ? `${staff.firstName} ${staff.lastName || ''}` : '')}</td>
-                      <td>ROHTAK</td>
+                      <td>{staff.branchName || "ROHTAK"}</td>
                       <td>{staff.contact || staff.phoneNumber || "-"}</td>
                       <td><span className={styles.roleBadge}>{staff.role || "STAFF"}</span></td>
                       <td>

@@ -9,10 +9,10 @@ import CustomerList from "../components/customers/CustomerList";
 import CustomerFormManager from "../components/customers/CustomerFormManager";
 import CustomerView from "../components/customers/CustomerView";
 import ConfirmationModal from "../components/inventory/confirmation-modal";
-
 import useDashboardData from "../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
 import { FiX } from "react-icons/fi";
+import usePermissions from "../components/utilities/usePermissions";
 
 const IconPlus = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -23,6 +23,7 @@ const IconPlus = () => (
 const CustomersPage = () => {
   const router = useRouter();
   const { jwtToken, _hasHydrated: isHydrated } = useStore();
+  const { view, addEdit, canDelete } = usePermissions("Customers", "");
   const { branches, branchId: defaultBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
   const currentBranchId = router.query.branchId || "";
   const [loading, setLoading] = useState(true);
@@ -34,18 +35,8 @@ const CustomersPage = () => {
   const [managerTrigger, setManagerTrigger] = useState(0);
   const [errorPopupMessage, setErrorPopupMessage] = useState(null);
 
-  useEffect(() => {
-    if (!router.isReady) return;
-    if (!currentBranchId && branches && branches.length > 0) {
-      const targetId = defaultBranchId || branches[0].id;
-      router.replace({
-        pathname: router.pathname,
-        query: { ...router.query, branchId: targetId }
-      }, undefined, { shallow: true });
-    } else if (currentBranchId) {
-      setSelectedBranchId(currentBranchId);
-    }
-  }, [router.isReady, currentBranchId, branches, defaultBranchId, setSelectedBranchId]);
+  // Removed redundant branch effect that caused infinite loops
+
 
   useEffect(() => {
     if (router.isReady) {
@@ -150,12 +141,14 @@ const CustomersPage = () => {
     <DashboardLayout
       customTopbarLeft={customLeft}
       customTopbarRight={(
-        <button
-          className={styles.addBtn}
-          onClick={() => openManager("Add", null)}
-        >
-          <IconPlus /> Add Customer
-        </button>
+        addEdit ? (
+          <button
+            className={styles.addBtn}
+            onClick={() => openManager("Add", null)}
+          >
+            <IconPlus /> Add Customer
+          </button>
+        ) : null
       )}
     >
       <div className={styles.container}>
@@ -229,7 +222,9 @@ const CustomersPage = () => {
             onBulkDelete={() => {
               setShowDeleteConfirm(true);
             }}
-            onAddClick={() => openManager("Add", null)}
+            onAddClick={addEdit ? () => openManager("Add", null) : null}
+            addEdit={addEdit}
+            canDelete={canDelete}
           />
         )}
 

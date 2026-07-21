@@ -1000,10 +1000,7 @@ const SalesReturnList = ({ onAddClick }) => {
                                                                 window.open(`${window.location.pathname}?view=true&id=${r.customerReturnId}&pdf=true`, '_blank');
                                                                 setActiveDropdown(null);
                                                             }}>Open PDF</div>
-                                                            <div className={styles.dropdownItem} onClick={() => {
-                                                                setActiveDropdown(null);
-                                                                window.open(`/invoice/sale-return/${r.customerReturnId}`, '_blank');
-                                                            }}>Invoice</div>
+
                                                             <div className={styles.dropdownItem} onClick={() => {
                                                                 const printUrl = `${window.location.pathname}?view=true&id=${r.customerReturnId}&print=true&pdf=true`;
                                                                 const iframe = document.createElement('iframe');

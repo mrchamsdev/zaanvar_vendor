@@ -157,10 +157,16 @@ const ProductForm = ({
   const router = useRouter();
   const { jwtToken, userInfo, selectedBranchId, vendorSettings } = useStore();
   const [branchId, setBranchId] = useState(
-    initialData?.branchId || selectedBranchId || userInfo?.branchId || 91,
+    initialData?.branchId || selectedBranchId || userInfo?.branchId,
   );
 
   const [taxGroups, setTaxGroups] = useState([]);
+
+  useEffect(() => {
+    if (selectedBranchId && selectedBranchId !== branchId) {
+      setBranchId(selectedBranchId);
+    }
+  }, [selectedBranchId]);
 
   useEffect(() => {
     const fetchTaxGroupsData = async () => {

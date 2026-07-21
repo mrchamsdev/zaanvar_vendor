@@ -91,7 +91,8 @@ export default function DashboardHomePage() {
     const fetchDashboard = async () => {
       try {
         if (!jwtToken) return;
-        const id = branchId || vendor?.branchId || 91;
+        const id = branchId || vendor?.branchId;
+        if (!id) return;
         const webApi = new WebApimanager(jwtToken);
         
         let queryParams = \`branchId=\${id}\`;

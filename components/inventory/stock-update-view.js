@@ -13,7 +13,7 @@ const IconX = () => (
   </svg>
 );
 
-const StockUpdateView = ({ stockId, onClose }) => {
+const StockUpdateView = ({ stockId, branchId, onClose }) => {
   const currencySymbol = useCurrencySymbol();
 
   const formatVariantSize = (size) => {
@@ -39,15 +39,15 @@ const StockUpdateView = ({ stockId, onClose }) => {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (stockId && jwtToken) {
+    if (stockId && jwtToken && branchId) {
       fetchDetails();
     }
-  }, [stockId, jwtToken]);
+  }, [stockId, jwtToken, branchId]);
 
   const fetchDetails = async () => {
     setLoading(true);
     try {
-      const response = await productService.getStockUpdateById(jwtToken, stockId);
+      const response = await productService.getStockUpdateById(jwtToken, stockId, branchId);
       if (response?.data?.status === "success") {
         setData(response.data.data);
       } else {

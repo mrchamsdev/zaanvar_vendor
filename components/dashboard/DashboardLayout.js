@@ -313,7 +313,7 @@ const DashboardLayout = ({
   customTopbarRight
 }) => {
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated, clearStore } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, clearStore, roles } = useStore();
   const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -350,6 +350,63 @@ const DashboardLayout = ({
   if (!jwtToken || !userInfo) return <Skeleton />;
 
   const menuItems = buildMenuFromVendor(userInfo);
+
+  /* ── role-based sidebar filtering ── */
+  const currentUserId = userInfo?.userId || userInfo?.id || userInfo?._id;
+  const userRoleStr = userInfo?.role;
+  const isSuperAdmin = userRoleStr === "superadmin";
+
+  // Find the role for the current user by their userId inside role.userIds
+  const userRole = !isSuperAdmin && roles?.find(
+    (r) => r.userIds && r.userIds.includes(Number(currentUserId))
+  );
+
+  // Returns false if the module/service has noAccess:true for this user's role
+  const isAccessible = (moduleName, serviceName = null) => {
+    if (isSuperAdmin || !userRole) return true; // superadmin or no role data yet = full access
+    const perms = userRole.permissions || [];
+    if (serviceName) {
+      const normalizedService = serviceName.trim().toLowerCase();
+      const perm = perms.find(
+        p => p.module === moduleName && (p.serviceName || "").trim().toLowerCase() === normalizedService
+      );
+      if (!perm) return true; // not listed = not restricted
+      return !perm.noAccess;
+    }
+    // For top-level modules with no subItems (e.g. Customers, Supplier)
+    // Check if ALL permissions for this module have noAccess:true
+    const modulePerms = perms.filter(p => p.module === moduleName);
+    if (modulePerms.length === 0) return true;
+    return modulePerms.some(p => !p.noAccess);
+  };
+
+  // Roles have loaded when the array is non-empty (populated by useDashboardData polling)
+  const rolesLoaded = Array.isArray(roles) && roles.length > 0;
+
+  const filteredMenuItems = isSuperAdmin
+    ? menuItems                          // superadmin: always show everything
+    : !rolesLoaded
+      ? []                               // roles not yet fetched: show nothing to prevent flash
+      : !userRole
+        ? menuItems                      // roles loaded but no matching role: safe default = show all
+        : menuItems.reduce((acc, item) => {
+            if (item.subItems && item.subItems.length > 0) {
+              // Filter sub-items individually
+              const visibleSubs = item.subItems.filter(sub =>
+                isAccessible(item.label, sub.label)
+              );
+              // Only include the parent if at least one sub-item is visible
+              if (visibleSubs.length > 0) {
+                acc.push({ ...item, subItems: visibleSubs });
+              }
+            } else {
+              // Top-level item with no children (e.g. Customers, Supplier)
+              if (isAccessible(item.label)) {
+                acc.push(item);
+              }
+            }
+            return acc;
+          }, []);
 
   /* ── avatar ── */
   const firstName = userInfo?.firstName || "";
@@ -406,7 +463,7 @@ const DashboardLayout = ({
 
         {/* Nav items */}
         <ul className={styles.sidebarNav}>
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const subMatch = item.subItems
               ? item.subItems.some(sub => {
                 const subBase = sub.path.split('?')[0];

@@ -52,11 +52,11 @@ const PaymentOutFormPage = () => {
     const isUnbalanced = Number(paidAmount) > 0 && Math.abs(currentTotalAllocated - Number(paidAmount)) > 0.01;
 
     useEffect(() => {
-        if (jwtToken && id) {
-            fetchTransaction();
+        const branchIdVal = queryBranchId || activeBranchId || userInfo?.branchId;
+        if (jwtToken && id && branchIdVal) {
+            fetchTransaction(branchIdVal);
         }
-    }, [jwtToken, id]);
-
+    }, [jwtToken, id, queryBranchId, activeBranchId, userInfo?.branchId]);
 
     useEffect(() => {
         if (!loading && isView && router.query.print === "true") {
@@ -71,11 +71,11 @@ const PaymentOutFormPage = () => {
         }
     }, [loading, isView, router.query.print, router.query.pdf]);
 
-    const fetchTransaction = async () => {
+    const fetchTransaction = async (branchIdVal) => {
         setLoading(true);
         try {
             // Fetch suppliers first for lookup
-            const suppliersRes = await purchaseService.getSuppliers(jwtToken, queryBranchId || activeBranchId || userInfo?.branchId || 91);
+            const suppliersRes = await purchaseService.getSuppliers(jwtToken, branchIdVal);
             let suppliersList = [];
             if (suppliersRes.status === "success") {
                 suppliersList = suppliersRes.data || [];
@@ -199,7 +199,7 @@ const PaymentOutFormPage = () => {
             if (res.status === 200 || res.data?.status === "success" || res.data?.status === "ok" || res.data?.suppliersTransactionId) {
                 toast.success("Transaction updated successfully");
                 setTimeout(() => {
-                    const branchIdVal = queryBranchId || router.query.branchId || userInfo?.branchId || 91;
+                    const branchIdVal = queryBranchId || router.query.branchId || userInfo?.branchId;
                     const redirectUrl = `/purchase-bill/purchase-out?branchId=${branchIdVal}`;
                     router.push(redirectUrl).catch(() => {
                         window.location.href = redirectUrl;

@@ -431,7 +431,9 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
     };
 
     useEffect(() => {
-        fetchInitialData();
+        if (jwtToken && branchId) {
+            fetchInitialData();
+        }
     }, [branchId, jwtToken]);
 
     useEffect(() => {

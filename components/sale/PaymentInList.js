@@ -1189,10 +1189,7 @@ const PaymentInList = ({ onAddClick }) => {
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${p.paymentId}&pdf=true`, '_blank'); }}>Open PDF</div>
-                                                                    <div className={styles.dropdownItem} onClick={() => {
-                                                                        setActiveDropdown(null);
-                                                                        window.open(`/invoice/payment-in/${p.paymentId}`, '_blank');
-                                                                    }}>Invoice</div>
+
                                                                     <div className={styles.dropdownItem} onClick={() => {
                                                                         setActiveDropdown(null);
                                                                         const printUrl = `${window.location.pathname}?view=true&id=${p.paymentId}&print=true&pdf=true`;

@@ -8,13 +8,13 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
   const [isMaximized, setIsMaximized] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [modulesList, setModulesList] = useState([]);
-  
+
   const [roleName, setRoleName] = useState("");
   const [description, setDescription] = useState("");
   const [permissions, setPermissions] = useState([]);
   const [assignedPersons, setAssignedPersons] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const { branchId, userInfo } = useDashboardData({ skipReviews: true }) || {};
 
   useEffect(() => {
@@ -24,6 +24,7 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
       }).catch(err => console.error(err));
     }
   }, [show]);
+
 
   useEffect(() => {
     if (show) {
@@ -37,7 +38,7 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
         const defaultPerms = modulesList.flatMap(mod => {
           const name = mod.name || mod.module || mod;
           const subModules = mod.subModules || [];
-          
+
           if (subModules.length > 0) {
             return subModules.map(sub => {
               const subName = sub.name || sub;
@@ -60,26 +61,29 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
 
   const handleSave = async () => {
     if (!roleName) return toast?.error ? toast.error("Role Name is required") : alert("Role Name is required");
-    
+
     setLoading(true);
     try {
-      const activePermissions = permissions.filter(p => p.view || p.addEdit || p.delete);
-      
+      const allPermissionsWithNoAccess = permissions.map(p => ({
+        ...p,
+        noAccess: !p.view && !p.addEdit && !p.delete
+      }));
+
       const payload = {
         branchId: parseInt(branchId) || 1,
         companyId: userInfo?.companyId || 1,
         roleName,
         description,
-        permissions: activePermissions
+        permissions: allPermissionsWithNoAccess
       };
-      
+
       let res;
       if (initialData?.id) {
         res = await updateRole(initialData.id, payload);
       } else {
         res = await createRole(payload);
       }
-      
+
       if (res?.status === "success" || res?.statusCode === 200 || res?.id) {
         toast?.success ? toast.success("Role saved successfully!") : alert("Role saved successfully!");
         onClose();
@@ -126,21 +130,21 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
               {/* Left Column: Roles & permission Details */}
               <div>
                 <div className={styles.sectionTitle}>Roles & permission Details</div>
-                
-                  <div className={styles.roleDetailsBox}>
-                    <span className={styles.roleLabel}>Role Name</span>
-                    {mode === "view" ? (
-                      <span className={styles.roleValue}>{roleName || "-"}</span>
-                    ) : (
-                      <input 
-                        type="text" 
-                        className={styles.roleInput} 
-                        placeholder="Enter Role Name" 
-                        value={roleName}
-                        onChange={e => setRoleName(e.target.value)}
-                      />
-                    )}
-                  </div>
+
+                <div className={styles.roleDetailsBox}>
+                  <span className={styles.roleLabel}>Role Name</span>
+                  {mode === "view" ? (
+                    <span className={styles.roleValue}>{roleName || "-"}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      className={styles.roleInput}
+                      placeholder="Enter Role Name"
+                      value={roleName}
+                      onChange={e => setRoleName(e.target.value)}
+                    />
+                  )}
+                </div>
 
                 <div className={styles.sectionTitle}>Permission Details</div>
                 <table className={styles.permissionsTable}>
@@ -148,9 +152,9 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
                     <tr>
                       <th>Module</th>
                       <th>Service Name</th>
-                      <th style={{textAlign: 'center'}}>View</th>
-                      <th style={{textAlign: 'center'}}>Add / Edit</th>
-                      <th style={{textAlign: 'center'}}>Delete</th>
+                      <th style={{ textAlign: 'center' }}>View</th>
+                      <th style={{ textAlign: 'center' }}>Add / Edit</th>
+                      <th style={{ textAlign: 'center' }}>Delete</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -164,17 +168,17 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
                             {perm.serviceName || "-"}
                           </span>
                         </td>
-                        <td style={{textAlign: 'center'}}>
+                        <td style={{ textAlign: 'center' }}>
                           {mode === "view" ? (perm.view ? <span className={styles.iconGreen}>✓</span> : <span className={styles.iconRed}>✕</span>) : (
                             <input type="checkbox" checked={perm.view} onChange={(e) => handlePermChange(index, "view", e.target.checked)} style={{ cursor: 'pointer', accentColor: '#000' }} />
                           )}
                         </td>
-                        <td style={{textAlign: 'center'}}>
+                        <td style={{ textAlign: 'center' }}>
                           {mode === "view" ? (perm.addEdit ? <span className={styles.iconGreen}>✓</span> : <span className={styles.iconRed}>✕</span>) : (
                             <input type="checkbox" checked={perm.addEdit} onChange={(e) => handlePermChange(index, "addEdit", e.target.checked)} style={{ cursor: 'pointer', accentColor: '#000' }} />
                           )}
                         </td>
-                        <td style={{textAlign: 'center'}}>
+                        <td style={{ textAlign: 'center' }}>
                           {mode === "view" ? (perm.delete ? <span className={styles.iconGreen}>✓</span> : <span className={styles.iconRed}>✕</span>) : (
                             <input type="checkbox" checked={perm.delete} onChange={(e) => handlePermChange(index, "delete", e.target.checked)} style={{ cursor: 'pointer', accentColor: '#000' }} />
                           )}
@@ -193,7 +197,7 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
                     <div key={idx} className={styles.personRow}>
                       <div className={styles.personInfo}>
                         <div className={styles.personIcon}>
-                          <img src={person.profileImage || `https://ui-avatars.com/api/?name=${person.name}`} alt="Profile" style={{width:'100%', height:'100%', borderRadius:'50%'}} />
+                          <img src={person.profileImage || `https://ui-avatars.com/api/?name=${person.name}`} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
                         </div>
                         <span className={styles.personName}>{person.name}</span>
                       </div>

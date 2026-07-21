@@ -209,7 +209,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
 
     const { jwtToken, userInfo } = useStore();
     const { branches, branchId: globalBranchId } = useDashboardData({ skipReviews: true });
-    const [branchId, setBranchId] = useState(globalBranchId || "91");
+    const [branchId, setBranchId] = useState(globalBranchId);
     const [updateDate, setUpdateDate] = useState(toApiDateOnly(new Date()));
     const [products, setProducts] = useState([]);
     const [rows, setRows] = useState([
@@ -218,25 +218,26 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     const [showAddProduct, setShowAddProduct] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
+    const [detailsLoaded, setDetailsLoaded] = useState(false);
     const [isProductsLoaded, setIsProductsLoaded] = useState(false);
     const [errors, setErrors] = useState({}); // { "row_index_field": true }
     const tableRef = useRef(null);
 
     useEffect(() => {
-        if (globalBranchId && mode !== "View") {
+        if (globalBranchId && globalBranchId !== branchId) {
             setBranchId(globalBranchId);
         }
-    }, [globalBranchId, mode]);
+    }, [globalBranchId]);
 
     useEffect(() => {
         if (jwtToken && branchId) {
             // In View mode, wait until stock update details are fetched before loading products
-            if (mode === "View" && !rows[0].productId) {
+            if (mode === "View" && !detailsLoaded) {
                 return;
             }
             loadProducts();
         }
-    }, [jwtToken, branchId, rows[0].productId]);
+    }, [jwtToken, branchId, detailsLoaded, mode]);
 
     const loadProducts = async () => {
         setIsProductsLoaded(false);
@@ -293,15 +294,15 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
     };
 
     useEffect(() => {
-        if (mode === "View" && initialId && jwtToken) {
+        if (mode === "View" && initialId && jwtToken && branchId) {
             fetchStockUpdateDetails();
         }
-    }, [mode, initialId, jwtToken]);
+    }, [mode, initialId, jwtToken, branchId]);
 
     const fetchStockUpdateDetails = async () => {
         setIsFetching(true);
         try {
-            const response = await productService.getStockUpdateById(jwtToken, initialId);
+            const response = await productService.getStockUpdateById(jwtToken, initialId, branchId);
             const data = response?.data?.data || response?.data || response;
             if (data) {
                 const isOS = (data.sourceStatus === "openStock" || data.sourceStatus === "Open Stock" || (!data.sourceStatus && (data.reason === "Open Stock" || data.reason === "openStock")));
@@ -408,6 +409,7 @@ const StockUpdateForm = ({ onClose, onSave, isEmbedded = false, mode = "Add", in
             toast.error("Failed to load stock update details");
         } finally {
             setIsFetching(false);
+            setDetailsLoaded(true);
         }
     };
 

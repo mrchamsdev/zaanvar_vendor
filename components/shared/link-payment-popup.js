@@ -6,6 +6,42 @@ import useStore from "../state/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import { getBoolSetting } from "@/utilities/settings-utils";
 
+const calculateDiscountForTxn = (t, assignedAmount, discountObj) => {
+    let discountApplied = 0;
+    if (!discountObj || assignedAmount <= 0) return 0;
+    
+    if (discountObj.discountType === "Bill Amount Based") {
+        const minOrderVal = Number(discountObj.minimumOrderValue || 0);
+        if (assignedAmount >= minOrderVal && minOrderVal > 0) {
+            if (discountObj.discountValueType === "Percentage (%)") {
+                discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
+            } else {
+                discountApplied = Number(discountObj.discountValue || 0);
+            }
+        }
+    } else if (discountObj.discountType === "Time Based") {
+        const minDays = Number(discountObj.minimumPaymentDays || 0);
+        const refDateStr = t.modifiedDate || t.orderDate || t.receivedDate || t.createdAt || t.createdDate || t.billDate || t.invoiceDate;
+        if (refDateStr && minDays > 0) {
+            const refDate = new Date(refDateStr);
+            refDate.setHours(0, 0, 0, 0);
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const diffTime = todayDate.getTime() - refDate.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= minDays) {
+                if (discountObj.discountValueType === "Percentage (%)") {
+                    discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
+                } else {
+                    discountApplied = Number(discountObj.discountValue || 0);
+                }
+            }
+        }
+    }
+    return discountApplied;
+};
+
 const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, totalPaidAmount, initialLinkedTxns = [] }) => {
     const { jwtToken, vendorSettings } = useStore();
     const enableDiscountDuringPayments = getBoolSetting(vendorSettings, 'enableDiscountDuringPayments', true);
@@ -103,20 +139,8 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                 const t = transactions.find(tx => (tx.id || tx.userOrderId || tx.productsBillId).toString() === id);
                 // Calculate discount
                 const discountObj = t.vendor?.discount || t.discount || null;
-                let discountApplied = 0;
                 const assignedAmount = Number(selections[id].amount || 0);
-                const billTotal = Number(t.totalAmount || t.overallBillAmount || 0);
-
-                if (discountObj?.discountType === "Bill Amount Based") {
-                    const minOrderVal = Number(discountObj.minimumOrderValue || 0);
-                    if (assignedAmount >= minOrderVal && minOrderVal > 0) {
-                        if (discountObj.discountValueType === "Percentage (%)") {
-                            discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
-                        } else {
-                            discountApplied = Number(discountObj.discountValue || 0);
-                        }
-                    }
-                }
+                const discountApplied = calculateDiscountForTxn(t, assignedAmount, discountObj);
 
                 return {
                     ...t,
@@ -136,17 +160,12 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
         transactions.forEach(t => {
             const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
             const discountObj = t.vendor?.discount || t.discount || null;
-            if (discountObj?.discountType === "Bill Amount Based") {
-                const minOrderVal = Number(discountObj.minimumOrderValue || 0);
-                if (bal >= minOrderVal && minOrderVal > 0) {
-                    discountObjFound = discountObj;
-                    totalEligibleBalance += bal;
-                    if (discountObj.discountValueType === "Percentage (%)") {
-                        totalDiscountIfFullyPaid += bal * (Number(discountObj.discountValue || 0) / 100);
-                    } else {
-                        totalDiscountIfFullyPaid += Number(discountObj.discountValue || 0);
-                    }
-                }
+            const possibleDiscount = calculateDiscountForTxn(t, bal, discountObj);
+            
+            if (possibleDiscount > 0) {
+                discountObjFound = discountObj;
+                totalEligibleBalance += bal;
+                totalDiscountIfFullyPaid += possibleDiscount;
             }
         });
     }
@@ -161,18 +180,10 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                 const id = (t.id || t.userOrderId || t.productsBillId).toString();
                 const bal = Number(t.balanceAmount || t.totalBalanceAmount || t.dueAmount || 0);
                 const discountObj = t.vendor?.discount || t.discount || null;
-                if (discountObj?.discountType === "Bill Amount Based") {
-                    const minOrderVal = Number(discountObj.minimumOrderValue || 0);
-                    if (bal >= minOrderVal && minOrderVal > 0) {
-                        newSelections[id] = { amount: bal.toString() };
-                        let appliedDiscount = 0;
-                        if (discountObj.discountValueType === "Percentage (%)") {
-                            appliedDiscount = bal * (Number(discountObj.discountValue || 0) / 100);
-                        } else {
-                            appliedDiscount = Number(discountObj.discountValue || 0);
-                        }
-                        netPayable += (bal - appliedDiscount);
-                    }
+                const appliedDiscount = calculateDiscountForTxn(t, bal, discountObj);
+                if (appliedDiscount > 0) {
+                    newSelections[id] = { amount: bal.toString() };
+                    netPayable += (bal - appliedDiscount);
                 }
             });
             setSelections(newSelections);
@@ -185,16 +196,7 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
         const t = transactions.find(tx => (tx.id || tx.userOrderId || tx.productsBillId).toString() === id);
         let discountApplied = 0;
         const discountObj = t?.vendor?.discount || t?.discount || null;
-        if (discountObj?.discountType === "Bill Amount Based") {
-            const minOrderVal = Number(discountObj.minimumOrderValue || 0);
-            if (assignedAmount >= minOrderVal && minOrderVal > 0) {
-                if (discountObj.discountValueType === "Percentage (%)") {
-                    discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
-                } else {
-                    discountApplied = Number(discountObj.discountValue || 0);
-                }
-            }
-        }
+        discountApplied = calculateDiscountForTxn(t, assignedAmount, discountObj);
         return sum + (assignedAmount - discountApplied);
     }, 0);
     const unusedAmount = Number(popupPaidAmount || 0) - totalAssigned;
@@ -279,19 +281,9 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                         const billTotal = Number(t.totalAmount || t.overallBillAmount || 0);
                                         
                                         const discountObj = t.vendor?.discount || t.discount || null;
-                                        let discountApplied = 0;
-                                        if (discountObj?.discountType === "Bill Amount Based") {
-                                            const minOrderVal = Number(discountObj.minimumOrderValue || 0);
-                                            if (assignedAmount >= minOrderVal && minOrderVal > 0) {
-                                                if (discountObj.discountValueType === "Percentage (%)") {
-                                                    discountApplied = assignedAmount * (Number(discountObj.discountValue || 0) / 100);
-                                                } else {
-                                                    discountApplied = Number(discountObj.discountValue || 0);
-                                                }
-                                            }
-                                        }
+                                        const discountApplied = calculateDiscountForTxn(t, assignedAmount, discountObj);
 
-                                        const displayBalance = bal - assignedAmount - discountApplied;
+                                        const displayBalance = bal - assignedAmount;
                                         
                                         return (
                                             <tr key={id} style={{ borderBottom: '1px solid #eee' }}>
@@ -316,8 +308,22 @@ const LinkPaymentPopup = ({ isOpen, onClose, onDone, type, partyId, partyName, t
                                                     {isSelected ? (
                                                         <input 
                                                             type="number"
-                                                            value={selections[id].amount}
-                                                            onChange={(e) => handleAmountChange(id, e.target.value)}
+                                                            value={selections[id].amount ? (Number(selections[id].amount) - discountApplied).toFixed(2).replace(/\.00$/, '') : ""}
+                                                            onChange={(e) => {
+                                                                const net = Number(e.target.value);
+                                                                let gross = net;
+                                                                if (discountObj) {
+                                                                    if (discountObj.discountValueType === "Percentage (%)") {
+                                                                        const pct = Number(discountObj.discountValue || 0) / 100;
+                                                                        if (pct > 0 && pct < 1) {
+                                                                            gross = net / (1 - pct);
+                                                                        }
+                                                                    } else {
+                                                                        gross = net + Number(discountObj.discountValue || 0);
+                                                                    }
+                                                                }
+                                                                handleAmountChange(id, e.target.value === "" ? "" : gross.toString());
+                                                            }}
                                                             style={{ padding: '4px 8px', width: '100px', border: '1px solid #ccc', borderRadius: '4px' }}
                                                             placeholder="0"
                                                         />
