@@ -41,20 +41,20 @@ const TimeFilterDropdown = ({ value, fromDate, toDate, onChange, onDateChange })
     </select>
     {value === 'custom' && (
       <>
-        <input 
-          type="date" 
-          value={fromDate} 
-          onChange={e => onDateChange('from', e.target.value)} 
-          className={styles.timeSelect} 
-          style={{ width: '130px', padding: '0.3rem' }} 
+        <input
+          type="date"
+          value={fromDate}
+          onChange={e => onDateChange('from', e.target.value)}
+          className={styles.timeSelect}
+          style={{ width: '130px', padding: '0.3rem' }}
         />
         <span style={{ color: '#666', fontSize: '13px' }}>to</span>
-        <input 
-          type="date" 
-          value={toDate} 
-          onChange={e => onDateChange('to', e.target.value)} 
-          className={styles.timeSelect} 
-          style={{ width: '130px', padding: '0.3rem' }} 
+        <input
+          type="date"
+          value={toDate}
+          onChange={e => onDateChange('to', e.target.value)}
+          className={styles.timeSelect}
+          style={{ width: '130px', padding: '0.3rem' }}
         />
       </>
     )}
@@ -66,7 +66,7 @@ export default function DashboardHomePage() {
   const { jwtToken } = useStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [lowStockItems, setLowStockItems] = useState([]);
   const [isLowStockModalOpen, setIsLowStockModalOpen] = useState(false);
 
@@ -97,18 +97,18 @@ export default function DashboardHomePage() {
         const id = branchId || vendor?.branchId;
         if (!id) return;
         const webApi = new WebApimanager(jwtToken);
-        
+
         let queryParams = `branchId=${id}`;
-        
+
         Object.entries(filters).forEach(([section, values]) => {
-           queryParams += `&${section}DateFilter=${values.filter}`;
-           if (values.filter === 'custom') {
-              if (values.from) queryParams += `&${section}FromDate=${values.from}`;
-              if (values.to) queryParams += `&${section}ToDate=${values.to}`;
-           }
-           if (section === 'overallStats') {
-               queryParams += `&profitCategory=product`;
-           }
+          queryParams += `&${section}DateFilter=${values.filter}`;
+          if (values.filter === 'custom') {
+            if (values.from) queryParams += `&${section}FromDate=${values.from}`;
+            if (values.to) queryParams += `&${section}ToDate=${values.to}`;
+          }
+          if (section === 'overallStats') {
+            queryParams += `&profitCategory=product`;
+          }
         });
 
         const res = await webApi.get(`vendor/dashboard?${queryParams}`);
@@ -122,7 +122,7 @@ export default function DashboardHomePage() {
         setLoading(false);
       }
     };
-    
+
     // We want to fetch if the filter is NOT custom, OR if it IS custom and both dates are selected
     // Otherwise we'd trigger lots of requests when the user is picking custom dates.
     // For simplicity, we just trigger it immediately. In most browsers <input type="date"> fires onChange only on complete.
@@ -139,7 +139,7 @@ export default function DashboardHomePage() {
         const webApi = new WebApimanager(jwtToken);
         const res = await webApi.get(`vendor/products/stock-reports?branchId=${id}`);
         const payload = res.data || res;
-        
+
         if (payload && payload.status === "success" && payload.data?.lowStock) {
           const lowStockData = payload.data.lowStock;
           if (lowStockData.length > 0) {
@@ -250,12 +250,12 @@ export default function DashboardHomePage() {
         <div className={styles.sectionBlock}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Overall Statistics</h2>
-            <TimeFilterDropdown 
-               value={filters.overallStats.filter} 
-               fromDate={filters.overallStats.from} 
-               toDate={filters.overallStats.to}
-               onChange={(val) => handleFilterChange('overallStats', 'filter', val)}
-               onDateChange={(type, val) => handleFilterChange('overallStats', type, val)}
+            <TimeFilterDropdown
+              value={filters.overallStats.filter}
+              fromDate={filters.overallStats.from}
+              toDate={filters.overallStats.to}
+              onChange={(val) => handleFilterChange('overallStats', 'filter', val)}
+              onDateChange={(type, val) => handleFilterChange('overallStats', type, val)}
             />
           </div>
           <div className={styles.statsGrid}>
@@ -276,12 +276,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard} style={{ flex: 1.5 }}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Sale Vs Purchase Trends</h2>
-              <TimeFilterDropdown 
-                 value={filters.saleVsPurchaseTrends.filter} 
-                 fromDate={filters.saleVsPurchaseTrends.from} 
-                 toDate={filters.saleVsPurchaseTrends.to}
-                 onChange={(val) => handleFilterChange('saleVsPurchaseTrends', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('saleVsPurchaseTrends', type, val)}
+              <TimeFilterDropdown
+                value={filters.saleVsPurchaseTrends.filter}
+                fromDate={filters.saleVsPurchaseTrends.from}
+                toDate={filters.saleVsPurchaseTrends.to}
+                onChange={(val) => handleFilterChange('saleVsPurchaseTrends', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('saleVsPurchaseTrends', type, val)}
               />
             </div>
             <div style={{ width: '100%', height: 300 }}>
@@ -304,12 +304,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard} style={{ flex: 1 }}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Profit & Loss</h2>
-              <TimeFilterDropdown 
-                 value={filters.profitAndLoss.filter} 
-                 fromDate={filters.profitAndLoss.from} 
-                 toDate={filters.profitAndLoss.to}
-                 onChange={(val) => handleFilterChange('profitAndLoss', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('profitAndLoss', type, val)}
+              <TimeFilterDropdown
+                value={filters.profitAndLoss.filter}
+                fromDate={filters.profitAndLoss.from}
+                toDate={filters.profitAndLoss.to}
+                onChange={(val) => handleFilterChange('profitAndLoss', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('profitAndLoss', type, val)}
               />
             </div>
             <div style={{ width: '100%', height: 300 }}>
@@ -334,12 +334,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Inventory Overview</h2>
-              <TimeFilterDropdown 
-                 value={filters.inventoryOverview.filter} 
-                 fromDate={filters.inventoryOverview.from} 
-                 toDate={filters.inventoryOverview.to}
-                 onChange={(val) => handleFilterChange('inventoryOverview', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('inventoryOverview', type, val)}
+              <TimeFilterDropdown
+                value={filters.inventoryOverview.filter}
+                fromDate={filters.inventoryOverview.from}
+                toDate={filters.inventoryOverview.to}
+                onChange={(val) => handleFilterChange('inventoryOverview', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('inventoryOverview', type, val)}
               />
             </div>
             <div className={styles.inventoryGrid}>
@@ -384,12 +384,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Customer Growth</h2>
-              <TimeFilterDropdown 
-                 value={filters.customerGrowth.filter} 
-                 fromDate={filters.customerGrowth.from} 
-                 toDate={filters.customerGrowth.to}
-                 onChange={(val) => handleFilterChange('customerGrowth', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('customerGrowth', type, val)}
+              <TimeFilterDropdown
+                value={filters.customerGrowth.filter}
+                fromDate={filters.customerGrowth.from}
+                toDate={filters.customerGrowth.to}
+                onChange={(val) => handleFilterChange('customerGrowth', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('customerGrowth', type, val)}
               />
             </div>
             <div style={{ width: '100%', height: 220 }}>
@@ -409,12 +409,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Top Selling Categories</h2>
-              <TimeFilterDropdown 
-                 value={filters.topSellingCategories.filter} 
-                 fromDate={filters.topSellingCategories.from} 
-                 toDate={filters.topSellingCategories.to}
-                 onChange={(val) => handleFilterChange('topSellingCategories', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('topSellingCategories', type, val)}
+              <TimeFilterDropdown
+                value={filters.topSellingCategories.filter}
+                fromDate={filters.topSellingCategories.from}
+                toDate={filters.topSellingCategories.to}
+                onChange={(val) => handleFilterChange('topSellingCategories', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('topSellingCategories', type, val)}
               />
             </div>
             <div style={{ width: '100%', height: 220 }}>
@@ -439,12 +439,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Payments From Customers</h2>
-              <TimeFilterDropdown 
-                 value={filters.paymentsFromCustomers.filter} 
-                 fromDate={filters.paymentsFromCustomers.from} 
-                 toDate={filters.paymentsFromCustomers.to}
-                 onChange={(val) => handleFilterChange('paymentsFromCustomers', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('paymentsFromCustomers', type, val)}
+              <TimeFilterDropdown
+                value={filters.paymentsFromCustomers.filter}
+                fromDate={filters.paymentsFromCustomers.from}
+                toDate={filters.paymentsFromCustomers.to}
+                onChange={(val) => handleFilterChange('paymentsFromCustomers', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('paymentsFromCustomers', type, val)}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
@@ -475,12 +475,12 @@ export default function DashboardHomePage() {
           <div className={styles.chartCard}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Payments to Supplier</h2>
-              <TimeFilterDropdown 
-                 value={filters.paymentsToSupplier.filter} 
-                 fromDate={filters.paymentsToSupplier.from} 
-                 toDate={filters.paymentsToSupplier.to}
-                 onChange={(val) => handleFilterChange('paymentsToSupplier', 'filter', val)}
-                 onDateChange={(type, val) => handleFilterChange('paymentsToSupplier', type, val)}
+              <TimeFilterDropdown
+                value={filters.paymentsToSupplier.filter}
+                fromDate={filters.paymentsToSupplier.from}
+                toDate={filters.paymentsToSupplier.to}
+                onChange={(val) => handleFilterChange('paymentsToSupplier', 'filter', val)}
+                onDateChange={(type, val) => handleFilterChange('paymentsToSupplier', type, val)}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
@@ -511,10 +511,10 @@ export default function DashboardHomePage() {
 
       </div>
 
-      <LowStockAlertModal 
-          isOpen={isLowStockModalOpen}
-          onClose={() => setIsLowStockModalOpen(false)}
-          lowStockItems={lowStockItems}
+      <LowStockAlertModal
+        isOpen={isLowStockModalOpen}
+        onClose={() => setIsLowStockModalOpen(false)}
+        lowStockItems={lowStockItems}
       />
     </DashboardLayout>
   );

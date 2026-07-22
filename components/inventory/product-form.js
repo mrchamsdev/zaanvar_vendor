@@ -83,7 +83,6 @@ const IconChevron = () => (
   </svg>
 );
 
-const RETAIL_CATEGORIES = ["Food", "Cloths", "Accessories", "Grooming"];
 const MEDICAL_CATEGORIES = ["Medicines"];
 const PET_TYPES = ["Dog", "Cat", "Bird", "Fish", "Small pets"];
 const PACK_TYPES = [
@@ -132,21 +131,7 @@ const PACKAGING_TYPES = [
 const SIZE_TYPES = ["PIECES (Pcs)", "PAIRS (Prs)"];
 const DIMENSION_TYPES = ["DIMENSIONS (Dim)"];
 
-const CATEGORY_MAP = {
-  Food: 1,
-  Grooming: 1,
-  Toys: 2,
-  Cloths: 2, // Map to Toys/Apparel ID
-  Accessories: 3,
-  Medicines: 3,
-};
 
-const SUB_CATEGORY_MAP = {
-  Dry: 5,
-  Wet: 6,
-  Puppy: 7,
-  Adult: 8,
-};
 
 const ProductForm = ({
   initialData,
@@ -259,27 +244,17 @@ const ProductForm = ({
   });
   const [category, setCategory] = useState(() => {
     const raw = initialData?.categoryId;
-    let name = "";
     if (typeof raw === "object" && raw !== null) {
-      if (Array.isArray(raw)) name = raw[0] || "";
-      else name = raw.category || raw.name || "";
-    } else if (typeof raw === "string") {
-      name = raw;
+      return raw.id || raw.categoryId || raw.category || raw.name || "";
     }
-
-    // Match against RETAIL_CATEGORIES case-insensitively
-    const match = RETAIL_CATEGORIES.find(
-      (c) => c.toLowerCase() === String(name).toLowerCase(),
-    );
-    return match || name;
+    return raw || "";
   });
   const [subCategory, setSubCategory] = useState(() => {
     const raw = initialData?.subCategoryId;
     if (typeof raw === "object" && raw !== null) {
-      if (Array.isArray(raw)) return raw[0] || "";
-      return raw.subCategory || raw.name || "";
+      return raw.id || raw.subCategoryId || raw.subCategory || raw.name || "";
     }
-    return typeof raw === "string" ? raw : "";
+    return raw || "";
   });
   const [selectedPetTypes, setSelectedPetTypes] = useState(() => {
     const reverseMap = {
@@ -298,6 +273,110 @@ const ProductForm = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isPetDropdownOpen, setIsPetDropdownOpen] = useState(false);
   const petDropdownRef = useRef(null);
+
+  // Dynamic Categories and Subcategories state
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [subcategoriesList, setSubcategoriesList] = useState([]);
+  
+  // Modal state for adding a subcategory
+  const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [newSubcategoryId, setNewSubcategoryId] = useState("");
+  const [isAddingSubcategory, setIsAddingSubcategory] = useState(false);
+
+  // Fetch Categories on Mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!jwtToken) return;
+      try {
+        const res = await productService.getCategories(jwtToken);
+        const payload = res?.data?.data || res?.data || [];
+        const catList = Array.isArray(payload) ? payload : [];
+        if (catList.length > 0) {
+          setCategoriesList(catList);
+          
+          // Map initial string category to ID if it exists and is a string
+          if (initialData?.categoryId && typeof initialData.categoryId !== 'object' && isNaN(initialData.categoryId)) {
+            const match = catList.find(c => c.name.toLowerCase() === String(initialData.categoryId).toLowerCase());
+            if (match) setCategory(match.id);
+          } else if (initialData?.categoryId?.category) {
+            const match = catList.find(c => c.name.toLowerCase() === String(initialData.categoryId.category).toLowerCase());
+            if (match) setCategory(match.id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    fetchCategories();
+  }, [jwtToken]);
+
+  // Fetch Subcategories when Category changes
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (!jwtToken || !category) {
+        setSubcategoriesList([]);
+        return;
+      }
+      try {
+        const res = await productService.getSubcategories(jwtToken, category);
+        const payload = res?.data?.data || res?.data || [];
+        const subList = Array.isArray(payload) ? payload : [];
+        if (subList.length > 0) {
+          setSubcategoriesList(subList);
+          
+          // Map initial string subcategory to ID if needed
+          if (initialData?.subCategoryId && typeof initialData.subCategoryId !== 'object' && isNaN(initialData.subCategoryId)) {
+            const match = subList.find(s => s.name.toLowerCase() === String(initialData.subCategoryId).toLowerCase());
+            if (match) setSubCategory(match.id);
+          } else if (initialData?.subCategoryId?.subCategory) {
+            const match = subList.find(s => s.name.toLowerCase() === String(initialData.subCategoryId.subCategory).toLowerCase());
+            if (match) setSubCategory(match.id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch subcategories:", err);
+      }
+    };
+    fetchSubcategories();
+  }, [jwtToken, category]);
+
+  const handleCreateSubcategory = async () => {
+    if (!newSubcategoryId || !newSubcategoryName.trim()) {
+      toast.error("Please select a category and enter a subcategory name");
+      return;
+    }
+    setIsAddingSubcategory(true);
+    try {
+      const payload = {
+        categoryId: newSubcategoryId,
+        name: newSubcategoryName.trim()
+      };
+      const res = await productService.createSubcategory(jwtToken, payload);
+      if (res && (res.status === "success" || res.data)) {
+        toast.success("Subcategory added successfully");
+        setIsAddSubcategoryModalOpen(false);
+        setNewSubcategoryName("");
+        
+        // Refresh subcategories if the created one is for the currently selected category
+        if (String(newSubcategoryId) === String(category)) {
+          const subRes = await productService.getSubcategories(jwtToken, category);
+          const subPayload = subRes?.data?.data || subRes?.data || [];
+          const subList = Array.isArray(subPayload) ? subPayload : [];
+          if (subList.length > 0) {
+            setSubcategoriesList(subList);
+          }
+        }
+      } else {
+        toast.error("Failed to add subcategory");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while adding subcategory");
+    } finally {
+      setIsAddingSubcategory(false);
+    }
+  };
   const [productCode, setProductCode] = useState(
     initialData?.ProductCode || "",
   );
@@ -657,9 +736,8 @@ const ProductForm = ({
     );
 
     try {
-      // Mapping names to numeric IDs for the [1, 5] payload structure
-      const catId = CATEGORY_MAP[category] || 1;
-      const subCatId = SUB_CATEGORY_MAP[subCategory] || 5;
+      const selectedCategoryObj = categoriesList.find(c => String(c.id) === String(category)) || { id: category, name: category };
+      const selectedSubCategoryObj = subcategoriesList.find(s => String(s.id) === String(subCategory)) || { id: subCategory, name: subCategory };
 
       const petTypeMap = {
         Dog: "Dog",
@@ -680,8 +758,8 @@ const ProductForm = ({
         ProductCode: productCode,
         productName: productName,
         brand: brand,
-        categoryId: { category: category },
-        subCategoryId: { subCategory: subCategory },
+        categoryId: { id: selectedCategoryObj.id, category: selectedCategoryObj.name },
+        subCategoryId: { id: selectedSubCategoryObj.id, subCategory: selectedSubCategoryObj.name },
         productType: productType,
         productPetType: { petType: selectedPetTypes.join(" and ") },
         taxGroupId: selectedSuppliers.length > 0 && selectedSuppliers[0].taxGroupId ? Number(selectedSuppliers[0].taxGroupId) : 0,
@@ -1180,120 +1258,58 @@ const ProductForm = ({
           <label>
             Category <span>*</span>
           </label>
-          {productType === "Retail" ? (
-            <>
-              <div className={styles.selectWrapper}>
-                <select
-                  className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
-                  value={category}
-                  disabled={isEdit && hasPurchaseOrder}
-                  onChange={(e) => {
-                    setCategory(e.target.value);
-                    if (formErrors.category) {
-                      const newErrors = { ...formErrors };
-                      delete newErrors.category;
-                      setFormErrors(newErrors);
-                    }
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {RETAIL_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <div className={styles.selectIcon}>
-                  <IconChevron />
-                </div>
-              </div>
-              {formErrors.category && (
-                <div className={styles.errorMessage}>{formErrors.category}</div>
-              )}
-            </>
-          ) : (
-            <div className={styles.selectWrapper}>
-              <select
-                className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
-                value={category}
-                disabled={isEdit && hasPurchaseOrder}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setSubCategory("");
-                  if (formErrors.category) {
-                    const newErrors = { ...formErrors };
-                    delete newErrors.category;
-                    setFormErrors(newErrors);
-                  }
-                }}
-              >
-                <option value="">Select Category</option>
-                {MEDICAL_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <div className={styles.selectIcon}>
-                <IconChevron />
-              </div>
+          <div className={styles.selectWrapper}>
+            <select
+              className={`${!category ? styles.placeholderSelect : ""} ${formErrors.category ? styles.errorField : ""}`}
+              value={category}
+              disabled={isEdit && hasPurchaseOrder}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setSubCategory("");
+                if (formErrors.category) {
+                  const newErrors = { ...formErrors };
+                  delete newErrors.category;
+                  setFormErrors(newErrors);
+                }
+              }}
+            >
+              <option value="">Select Category</option>
+              {categoriesList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <div className={styles.selectIcon}>
+              <IconChevron />
             </div>
+          </div>
+          {formErrors.category && (
+            <div className={styles.errorMessage}>{formErrors.category}</div>
           )}
         </div>
         <div className={styles.inputField}>
           <label>Sub Category</label>
           <select
             value={subCategory}
-            onChange={(e) => setSubCategory(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === "ADD_NEW_SUBCATEGORY") {
+                setIsAddSubcategoryModalOpen(true);
+                setNewSubcategoryId(category); // default to current category
+              } else {
+                setSubCategory(e.target.value);
+              }
+            }}
           >
             <option value="">Select Sub Category</option>
-            {category === "Food" && (
-              <>
-                <option value="Dry Food">Dry Food</option>
-                <option value="Wet Food">Wet Food</option>
-                <option value="Prescription Diet">Prescription Diet</option>
-                <option value="Treats and Chews">Treats and Chews</option>
-              </>
-            )}
-            {category === "Cloths" && (
-              <>
-                <option value="Shirts">Shirts</option>
-                <option value="T-shirts">T-shirts</option>
-                <option value="Sweaters & Hoodies">
-                  Sweaters & Hoodies
-                </option>
-                <option value="Coats & Jackets">Coats & Jackets</option>
-                <option value="Raincoats">Raincoats</option>
-              </>
-            )}
-            {category === "Accessories" && (
-              <>
-                <option value="Toys">Toys</option>
-                <option value="Beds & Furniture">Beds & Furniture</option>
-                <option value="Collars, Leashes & Harnesses">
-                  Collars, Leashes & Harnesses
-                </option>
-                <option value="Bowls & Feeders">Bowls & Feeders</option>
-                <option value="Travel Carriers">Travel Carriers</option>
-                <option value="Training & Behavior">
-                  Training & Behavior
-                </option>
-                <option value="Tech Accessories">Tech Accessories</option>
-              </>
-            )}
-            {category === "Grooming" && (
-              <>
-                <option value="Shampoo">Shampoo</option>
-                <option value="Conditioner">Conditioner</option>
-                <option value="Bathing Accessories">
-                  Bathing Accessories
-                </option>
-                <option value="Brushes">Brushes</option>
-                <option value="Combs">Combs</option>
-                <option value="Nail Clippers">Nail Clippers</option>
-                <option value="Toothbrushes">Toothbrushes</option>
-              </>
-            )}
+            {subcategoriesList.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+            <option value="ADD_NEW_SUBCATEGORY" style={{ fontWeight: 'bold', color: '#0056b3' }}>
+              ➕ Add Sub Category
+            </option>
           </select>
         </div>
         <div className={styles.inputField}>
@@ -2245,6 +2261,57 @@ const ProductForm = ({
         onCancel={() => setShowVariantDeleteConfirm(false)}
         confirmText={isDeletingVariant ? "Deleting..." : "Yes"}
       />
+
+      {isAddSubcategoryModalOpen && (
+        <div className={styles.modalOverlay} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className={styles.modalContent} style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '400px', maxWidth: '90%' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Add New Sub Category</h3>
+            <div className={styles.inputField} style={{ marginBottom: '16px' }}>
+              <label>Category <span>*</span></label>
+              <select
+                className={styles.input}
+                value={newSubcategoryId}
+                onChange={(e) => setNewSubcategoryId(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+              >
+                <option value="">Select Category</option>
+                {categoriesList.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.inputField} style={{ marginBottom: '24px' }}>
+              <label>Sub Category Name <span>*</span></label>
+              <input
+                type="text"
+                value={newSubcategoryName}
+                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                placeholder="Enter new subcategory name"
+                className={styles.input}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setIsAddSubcategoryModalOpen(false)}
+                style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handleCreateSubcategory}
+                disabled={isAddingSubcategory}
+                style={{ padding: '8px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                {isAddingSubcategory ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

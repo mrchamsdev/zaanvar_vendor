@@ -38,6 +38,10 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const [availablePackages, setAvailablePackages] = useState([]);
   const [groomersList, setGroomersList] = useState([]);
   const [doctorsList, setDoctorsList] = useState([]);
+  const [newCustomerDetails, setNewCustomerDetails] = useState({ firstName: '', lastName: '', gender: '', mobileNumber: '', email: '' });
+  const [newPetDetails, setNewPetDetails] = useState({ petName: '', breed: '', petType: '', petGender: '', age: '', size: '', ageType: 'approx', years: '', months: '', dateOfBirth: '' });
+  const [newPetImageFile, setNewPetImageFile] = useState(null);
+  const [isSavingPet, setIsSavingPet] = useState(false);
 
   useEffect(() => {
     if (selectedBranchId) {
@@ -463,8 +467,74 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
   const handleNext = async () => {
     if (activeTab === "Basic Details") {
+      if (customerType === "New") {
+        if (!newCustomerDetails.firstName || !newCustomerDetails.mobileNumber) {
+          toast.error("Please enter Customer First Name and Mobile Number");
+          return;
+        }
+        if (!newPetDetails.petName) {
+          toast.error("Please enter Pet Name");
+          return;
+        }
+        const existingLocalId = selectedPets.find(p => p.isNewLocally)?.id;
+        const tempPetId = existingLocalId || ("temp_" + Date.now());
+        const localPet = {
+          id: tempPetId,
+          petName: newPetDetails.petName,
+          breed: newPetDetails.breed,
+          petType: newPetDetails.petType,
+          gender: newPetDetails.petGender,
+          size: newPetDetails.size,
+          age: newPetDetails.age,
+          photo: newPetImagePreview,
+          isNewLocally: true,
+          rawDetails: { ...newPetDetails }
+        };
+        setSelectedPets([localPet]);
+      } else {
+        if (!selectedCustomer) {
+          toast.error("Please select an existed customer");
+          return;
+        }
+        if (selectedPets.length === 0) {
+          if (newPetDetails.petName) {
+            const tempPetId = "temp_" + Date.now();
+            const localPet = {
+              id: tempPetId,
+              petName: newPetDetails.petName,
+              breed: newPetDetails.breed,
+              petType: newPetDetails.petType,
+              gender: newPetDetails.petGender,
+              size: newPetDetails.size,
+              age: newPetDetails.age,
+              photo: newPetImagePreview,
+              isNewLocally: true,
+              rawDetails: { ...newPetDetails }
+            };
+            setSelectedPets([localPet]);
+          } else {
+            toast.error("Please select at least one pet");
+            return;
+          }
+        }
+      }
       setActiveTab("Service Details");
     } else if (activeTab === "Service Details") {
+      const invalidPet = selectedPets.find((pet, idx) => {
+        const pId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+        const pState = petServiceDetails[pId] || {};
+        const isGrooming = !pState.serviceType || pState.serviceType.length === 0 || pState.serviceType.includes("Grooming");
+        if (!isGrooming) return false;
+        if (!pState.selectedSlotId) return true;
+        const slots = petSlotsData[pId]?.slots || [];
+        const slot = slots.find(s => String(s.slotID) === String(pState.selectedSlotId));
+        if (slot && slot.status === 'Full') return true;
+        return false;
+      });
+      if (invalidPet) {
+        toast.error("Please select an available (non-full) appointment time slot.");
+        return;
+      }
       setActiveTab("Service Agreement");
     } else if (activeTab === "Service Agreement") {
       try {
@@ -488,115 +558,186 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         const dueAmount = Math.max(0, finalTotal - parsedPaidAmount);
         const paymentStatus = parsedPaidAmount >= finalTotal ? "Paid" : "Unpaid";
 
+
+        const actualCustomerId = selectedCustomer?.id || selectedCustomer?.vendorCustomerId || selectedCustomer?.customerId;
+        const finalSelectedPets = [...selectedPets];
+
+        const activeServiceTypes = Array.from(new Set(
+          finalSelectedPets.flatMap((pet, idx) => {
+            const pId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const pState = petServiceDetails[pId] || {};
+            return (pState.serviceType && pState.serviceType.length > 0) ? pState.serviceType : ["Grooming"];
+          })
+        ));
+
+        const buildGroomingPetEntry = (pet, idx) => {
+          const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+          const petState = petServiceDetails[petId] || {};
+          const rawServices = petState.selectedServices || [];
+          const petServices = rawServices.map(id => isNaN(Number(id)) ? id : Number(id));
+
+          const servicesWithDetails = availableServices.filter(s =>
+            petServices.some(id => String(id) === String(s.id))
+          );
+
+          const selectedServicesObjects = servicesWithDetails.map(s => ({
+            id: isNaN(Number(s.id)) ? s.id : Number(s.id),
+            name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : (s.serviceName || s.name || ""),
+            price: Number(s.price) || 0
+          }));
+
+          const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+
+          const petEntry = {
+            petName: pet.petName || pet.rawDetails?.petName || "",
+            petType: pet.petType || pet.rawDetails?.petType || "Dog",
+            breed: pet.breed || pet.rawDetails?.breed || "",
+            gender: pet.gender || pet.petGender || pet.rawDetails?.petGender || "Male",
+            petSize: pet.size || pet.rawDetails?.size || "Medium",
+            approximateAge: pet.approximateAge || pet.age || pet.rawDetails?.age || "1Y 0M",
+            services: {
+              serviceType: petState.groomingType === "Package" ? "Package" : "Individual",
+              selectedServices: selectedServicesObjects,
+              basePrice: petBasePrice,
+              discountAmount: 0.00,
+              price: petBasePrice
+            }
+          };
+          if (!pet.isNewLocally && petId && !String(petId).startsWith("temp_")) {
+            petEntry.customerPetId = petId;
+          }
+          return petEntry;
+        };
+
+        const buildClinicEntries = () => {
+          const entries = [];
+          finalSelectedPets.forEach((pet, idx) => {
+            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const petState = petServiceDetails[petId] || {};
+            if (petState.serviceType && petState.serviceType.includes("Clinic")) {
+              entries.push({
+                petName: pet.petName || pet.rawDetails?.petName || "",
+                petType: pet.petType || pet.rawDetails?.petType || "Dog",
+                breed: pet.breed || pet.rawDetails?.breed || "",
+                gender: pet.gender || pet.petGender || pet.rawDetails?.petGender || "Male",
+                approximateAge: pet.approximateAge || pet.age || pet.rawDetails?.age || "1Y 0M",
+                doctorId: petState.clinicDoctor ? parseInt(petState.clinicDoctor) : 3,
+                consultationType: petState.clinicConsultationType || "New Consultation",
+                consultationCategory: petState.clinicConsultationReason || "General Checkup",
+                appointmentDate: petState.clinicAppointmentDate || firstPetState.appointmentDate || "2026-07-22",
+                startTime: petState.clinicAppointmentTime || "10:30:00",
+                endTime: "11:00:00",
+                symptoms: petState.clinicSymptoms || "Routine checkup",
+                services: [
+                  { id: 10, name: "General Checkup Fee", price: 400.00 }
+                ]
+              });
+            }
+          });
+          return entries;
+        };
+
+        const buildDaycareObject = () => {
+          const daycarePets = finalSelectedPets.filter((pet, idx) => {
+            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const petState = petServiceDetails[petId] || {};
+            return petState.serviceType && petState.serviceType.includes("Day Care");
+          });
+          if (daycarePets.length === 0) return undefined;
+
+          const petNames = daycarePets.map(p => p.petName || p.rawDetails?.petName || "");
+          const firstDaycareState = petServiceDetails[daycarePets[0].id || daycarePets[0].vendorCustomerPetId || daycarePets[0].petId || 0] || {};
+
+          return {
+            foodProviding: firstDaycareState.daycareFood === "Yes" || true,
+            instructions: "Daycare stay for pets",
+            pets: petNames,
+            dates: [
+              {
+                date: firstDaycareState.daycareDate || firstPetState.appointmentDate || "2026-07-22",
+                checkInTime: firstDaycareState.daycareCheckin || "11:00:00",
+                checkOutTime: firstDaycareState.daycareCheckout || "18:00:00",
+                assignedRoom: firstDaycareState.daycareRoom || "Standard Room 01",
+                roomRate: parseFloat(firstDaycareState.daycareRate) || 1500.00
+              }
+            ],
+            addons: []
+          };
+        };
+
         let payload;
         if (bookingId) {
           payload = {
-            notes: firstPetState.notes || "Special care needed around ears.",
+            status: "Booked",
+            paymentStatus: paymentStatus,
+            grooming: [{
+              slotId: parseInt(firstPetState.selectedSlotId),
+              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 145,
+              appointmentDate: firstPetState.appointmentDate,
+              startTime: firstPetState.startTime || "09:00:00",
+              endTime: firstPetState.endTime || "10:00:00",
+              agreementType: "Grooming",
+              pets: finalSelectedPets.map((pet, idx) => buildGroomingPetEntry(pet, idx))
+            }],
             subTotal: baseTotal,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             totalAmount: finalTotal,
             paidAmount: parsedPaidAmount,
-            dueAmount: dueAmount,
-            paymentStatus: paymentStatus,
-            appointment: {
-              slotId: firstPetState.selectedSlotId || 25,
-              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
-              appointmentDate: firstPetState.appointmentDate,
-              startTime: firstPetState.startTime || "10:00:00",
-              endTime: firstPetState.endTime || "11:00:00",
-              agreementType: "None"
-            },
-            pets: selectedPets.map((pet, idx) => {
-              const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
-              const petState = petServiceDetails[petId] || {};
-              const petServices = petState.selectedServices || [];
-              const servicesWithDetails = getSelectedServicesWithDetails().filter(s =>
-                petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
-              );
-              const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
-
-              return {
-                customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
-                groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
-                slotId: petState.selectedSlotId || 25,
-                petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
-                durationMinutes: (parseInt(petState.hours || 0) * 60 + parseInt(petState.minutes || 0)) || 60,
-                bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
-                sequenceOrder: idx + 1,
-                petStatus: "Waiting",
-                services: {
-                  serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
-                  selectedServices: petServices,
-                  selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
-                  selectedSubscription: null,
-                  addOns: [],
-                  basePrice: petBasePrice,
-                  discountAmount: 0,
-                  price: petBasePrice
-                }
-              };
-            })
+            paymentMethod: "Cash"
           };
         } else {
           payload = {
-            customerId: selectedCustomer?.id || selectedCustomer?.vendorCustomerId || selectedCustomer?.customerId || 10,
             branchId: parseInt(selectedBranchId),
-            serviceType: "Grooming",
+            serviceType: activeServiceTypes,
             bookingSource: "Walk-in",
             bookingMode: firstPetState.bookingMode || "AtStore",
-            notes: firstPetState.notes,
+            notes: firstPetState.notes || "Booking appointment",
             createdBy: 1,
-            appointment: {
-              slotId: firstPetState.selectedSlotId || 25,
-              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 5,
-              appointmentDate: firstPetState.appointmentDate,
-              startTime: firstPetState.startTime || "10:00:00",
-              endTime: firstPetState.endTime || "11:00:00",
-              agreementType: "None"
-            },
-            pets: selectedPets.map((pet, idx) => {
-              const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
-              const petState = petServiceDetails[petId] || {};
-              const petServices = petState.selectedServices || [];
-              const servicesWithDetails = getSelectedServicesWithDetails().filter(s =>
-                petServices.includes(s.id) || (petState.selectedPackage && s.id === petState.selectedPackage)
-              );
-              const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + s.price, 0);
-
-              return {
-                customerPetId: pet.id || pet.vendorCustomerPetId || pet.petId || 12,
-                groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 5,
-                slotId: petState.selectedSlotId || 25,
-                petConditionNotes: petState.petConditionNotes || "Mild skin allergies.",
-                durationMinutes: (parseInt(petState.hours || 0) * 60 + parseInt(petState.minutes || 0)) || 60,
-                bufferMinutes: petState.bufferTime !== undefined && petState.bufferTime !== null && petState.bufferTime !== "" ? parseInt(petState.bufferTime) : 0,
-                sequenceOrder: idx + 1,
-                petStatus: "Waiting",
-                services: {
-                  serviceType: petState.groomingType === "Package" ? "Package" : (petState.groomingType === "Subscription" ? "Subscription" : "Individual"),
-                  selectedServices: petServices,
-                  selectedPackage: petState.groomingType === "Package" || petState.groomingType === "Subscription" ? petState.selectedPackage || null : null,
-                  selectedSubscription: null,
-                  addOns: [],
-                  basePrice: petBasePrice,
-                  discountAmount: 0,
-                  price: petBasePrice
-                }
-              };
-            }),
             subTotal: baseTotal,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             totalAmount: finalTotal,
             paidAmount: parsedPaidAmount,
-            dueAmount: dueAmount,
-            paymentStatus: paymentStatus,
             paymentMethod: "Cash"
           };
+
+          if (customerType === "New") {
+            payload.customer = {
+              firstName: newCustomerDetails.firstName,
+              lastName: newCustomerDetails.lastName,
+              phoneNumber: newCustomerDetails.mobileNumber,
+              email: newCustomerDetails.email,
+              gender: newCustomerDetails.gender || "Male"
+            };
+          } else {
+            payload.customerId = actualCustomerId;
+          }
+
+          if (activeServiceTypes.includes("Grooming")) {
+            payload.grooming = [{
+              slotId: parseInt(firstPetState.selectedSlotId),
+              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 145,
+              appointmentDate: firstPetState.appointmentDate,
+              startTime: firstPetState.startTime || "09:00:00",
+              endTime: firstPetState.endTime || "10:00:00",
+              agreementType: "Grooming",
+              pets: finalSelectedPets.map((pet, idx) => buildGroomingPetEntry(pet, idx))
+            }];
+          }
+
+          const clinicEntries = buildClinicEntries();
+          if (clinicEntries.length > 0) {
+            payload.clinic = clinicEntries;
+          }
+
+          const daycareObj = buildDaycareObject();
+          if (daycareObj) {
+            payload.daycare = daycareObj;
+          }
         }
 
-        const url = bookingId
+                const url = bookingId
           ? `${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`
           : `${VENDOR_API_URL}vendor/grooming-booking/bookings`;
         const method = bookingId ? "PUT" : "POST";
@@ -659,11 +800,32 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
               <div className={styles.card}>
                 <div className={styles.radioGroup}>
                   <label className={styles.radioLabel}>
-                    <input type="radio" name="customerType" value="Existed" className={styles.radioInput} checked={customerType === "Existed"} onChange={() => setCustomerType("Existed")} />
+                    <input
+                      type="radio"
+                      name="customerType"
+                      value="Existed"
+                      className={styles.radioInput}
+                      checked={customerType === "Existed"}
+                      onChange={() => {
+                        setCustomerType("Existed");
+                        setSelectedPets([]);
+                      }}
+                    />
                     Existed Customer
                   </label>
                   <label className={styles.radioLabel}>
-                    <input type="radio" name="customerType" value="New" className={styles.radioInput} checked={customerType === "New"} onChange={() => setCustomerType("New")} />
+                    <input
+                      type="radio"
+                      name="customerType"
+                      value="New"
+                      className={styles.radioInput}
+                      checked={customerType === "New"}
+                      onChange={() => {
+                        setCustomerType("New");
+                        setSelectedCustomer(null);
+                        setSelectedPets([]);
+                      }}
+                    />
                     New Customer
                   </label>
                 </div>
@@ -748,15 +910,15 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>First Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter your first name here" />
+                      <input type="text" className={styles.input} placeholder="Enter your first name here" value={newCustomerDetails.firstName} onChange={e => setNewCustomerDetails({...newCustomerDetails, firstName: e.target.value})} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Last Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter your last name here" />
+                      <input type="text" className={styles.input} placeholder="Enter your last name here" value={newCustomerDetails.lastName} onChange={e => setNewCustomerDetails({...newCustomerDetails, lastName: e.target.value})} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Gender</label>
-                      <select className={styles.select}>
+                      <select className={styles.select} value={newCustomerDetails.gender || ""} onChange={e => setNewCustomerDetails({...newCustomerDetails, gender: e.target.value})}>
                         <option value="">Select Your Gender here</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -764,11 +926,11 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Mobile Number</label>
-                      <input type="text" className={styles.input} placeholder="Enter your number here" />
+                      <input type="text" className={styles.input} placeholder="Enter your number here" value={newCustomerDetails.mobileNumber} onChange={e => setNewCustomerDetails({...newCustomerDetails, mobileNumber: e.target.value})} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Email Id <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
-                      <input type="email" className={styles.input} placeholder="Enter your id here" />
+                      <input type="email" className={styles.input} placeholder="Enter your id here" value={newCustomerDetails.email} onChange={e => setNewCustomerDetails({...newCustomerDetails, email: e.target.value})} />
                     </div>
                   </div>
                 )}
@@ -798,7 +960,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                             <div className={styles.petPillPlaceholder}></div>
                           )}
                           <span className={styles.petPillName}>{(pet.petName || pet.name || 'Unknown').toUpperCase()}</span>
-                          <button className={styles.petPillRemove} onClick={() => setSelectedPets(selectedPets.filter(sp => sp !== pet))}>×</button>
+                          <button className={styles.petPillRemove} onClick={() => setSelectedPets(selectedPets.filter(sp => sp !== pet))}>Ãƒâ€”</button>
                         </div>
                       ))}
                     </div>
@@ -861,42 +1023,117 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter your pet name here" />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Pet Breed</label>
-                      <select className={styles.select}>
-                        <option value="">Choose your pet Breed here</option>
-                      </select>
+                      <input type="text" className={styles.input} placeholder="Enter pet name" value={newPetDetails.petName} onChange={e => setNewPetDetails({...newPetDetails, petName: e.target.value})} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Type</label>
-                      <select className={styles.select}>
-                        <option value="">Choose your pet Type here</option>
+                      <select className={styles.select} value={newPetDetails.petType} onChange={e => setNewPetDetails({...newPetDetails, petType: e.target.value, breed: ''})}>
+                        <option value="">Choose pet type</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Bird">Birds</option>
+                        <option value="Fish">Fish</option>
+                        <option value="Small Pet">Small Pets</option>
+                      </select>
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Pet Breed</label>
+                      <select className={styles.select} value={newPetDetails.breed} onChange={e => setNewPetDetails({...newPetDetails, breed: e.target.value})}>
+                        <option value="">Choose pet breed</option>
+                        {newPetDetails.petType === 'Dog' && (<>
+                          <option value="Golden Retriever">Golden Retriever</option>
+                          <option value="German Shepherd">German Shepherd</option>
+                          <option value="Labrador">Labrador</option>
+                          <option value="Poodle">Poodle</option>
+                          <option value="Bulldog">Bulldog</option>
+                        </>)}
+                        {newPetDetails.petType === 'Cat' && (<>
+                          <option value="Persian">Persian</option>
+                          <option value="Siamese">Siamese</option>
+                          <option value="Maine Coon">Maine Coon</option>
+                          <option value="Bengal">Bengal</option>
+                          <option value="Ragdoll">Ragdoll</option>
+                        </>)}
+                        {newPetDetails.petType === 'Bird' && (<>
+                          <option value="Parrot">Parrot</option>
+                          <option value="Cockatiel">Cockatiel</option>
+                          <option value="Budgerigar">Budgerigar</option>
+                          <option value="Lovebird">Lovebird</option>
+                          <option value="Finch">Finch</option>
+                        </>)}
+                        {newPetDetails.petType === 'Fish' && (<>
+                          <option value="Goldfish">Goldfish</option>
+                          <option value="Betta">Betta</option>
+                          <option value="Guppy">Guppy</option>
+                          <option value="Molly">Molly</option>
+                          <option value="Angelfish">Angelfish</option>
+                        </>)}
+                        {newPetDetails.petType === 'Small Pet' && (<>
+                          <option value="Rabbit">Rabbit</option>
+                          <option value="Guinea Pig">Guinea Pig</option>
+                          <option value="Hamster">Hamster</option>
+                          <option value="Ferret">Ferret</option>
+                          <option value="Chinchilla">Chinchilla</option>
+                        </>)}
                       </select>
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Gender</label>
-                      <select className={styles.select}>
-                        <option value="">Choose your pet Gender here</option>
-                      </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Pet Age</label>
-                      <select className={styles.select}>
-                        <option value="">Choose your pet Age here</option>
+                      <select className={styles.select} value={newPetDetails.petGender} onChange={e => setNewPetDetails({...newPetDetails, petGender: e.target.value})}>
+                        <option value="">Choose pet gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
                       </select>
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Size</label>
-                      <select className={styles.select}>
-                        <option value="">Choose your pet Size here</option>
+                      <select className={styles.select} value={newPetDetails.size} onChange={e => setNewPetDetails({...newPetDetails, size: e.target.value})}>
+                        <option value="">Choose pet size</option>
+                        <option value="Toy">Toy</option>
+                        <option value="Small">Small</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Large">Large</option>
+                        <option value="Giant">Giant</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Pet Age - Approximate or Exact */}
+                  <div style={{ marginTop: '1.25rem', marginBottom: '0.5rem' }}>
+                    <label className={styles.label} style={{ display: 'block', marginBottom: '0.75rem' }}>Pet Age</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                        <input type="radio" checked={newPetDetails.ageType === 'approx'} onChange={() => setNewPetDetails({...newPetDetails, ageType: 'approx'})} />
+                        Approximate Age
+                      </label>
+                      {newPetDetails.ageType === 'approx' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
+                          <div>
+                            <label className={styles.label}>Years</label>
+                            <input type="number" min="0" className={styles.input} placeholder="0" value={newPetDetails.years} onChange={e => setNewPetDetails({...newPetDetails, years: e.target.value, age: `${e.target.value || 0}Y ${newPetDetails.months || 0}M`})} />
+                          </div>
+                          <div>
+                            <label className={styles.label}>Months</label>
+                            <input type="number" min="0" max="11" className={styles.input} placeholder="0" value={newPetDetails.months} onChange={e => setNewPetDetails({...newPetDetails, months: e.target.value, age: `${newPetDetails.years || 0}Y ${e.target.value || 0}M`})} />
+                          </div>
+                        </div>
+                      )}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+                        <input type="radio" checked={newPetDetails.ageType === 'exact'} onChange={() => setNewPetDetails({...newPetDetails, ageType: 'exact'})} />
+                        Exact Age
+                      </label>
+                      {newPetDetails.ageType === 'exact' && (
+                        <div style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', maxWidth: '300px' }}>
+                          <label className={styles.label}>Date of Birth</label>
+                          <input type="date" className={styles.input} value={newPetDetails.dateOfBirth} onChange={e => setNewPetDetails({...newPetDetails, dateOfBirth: e.target.value, age: e.target.value})} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             )}
+
           </>
         )}
 
@@ -1137,7 +1374,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                     <option value="">Choose here</option>
                                     {availablePackages.map(pkg => (
                                       <option key={pkg.id} value={pkg.id}>
-                                        {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                        {pkg.serviceName || pkg.packageName} (Ã¢â€šÂ¹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
                                       </option>
                                     ))}
                                   </select>
@@ -1164,7 +1401,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                     <option value="">Choose here</option>
                                     {availablePackages.map(pkg => (
                                       <option key={pkg.id} value={pkg.id}>
-                                        {pkg.serviceName || pkg.packageName} (₹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                        {pkg.serviceName || pkg.packageName} (Ã¢â€šÂ¹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
                                       </option>
                                     ))}
                                   </select>
@@ -1240,7 +1477,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                         </div>
                       )}
 
-                      {/* ── CLINIC DETAILS ── */}
+                      {/* Ã¢â€â‚¬Ã¢â€â‚¬ CLINIC DETAILS Ã¢â€â‚¬Ã¢â€â‚¬ */}
                       {petState.serviceType?.includes("Clinic") && (
                         <div style={{ marginTop: '2rem', borderTop: '1px solid #eaeaea', paddingTop: '2rem' }}>
                           <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
@@ -1414,7 +1651,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                         </div>
                       )}
 
-                      {/* ── DAYCARE DETAILS ── */}
+                      {/* Ã¢â€â‚¬Ã¢â€â‚¬ DAYCARE DETAILS Ã¢â€â‚¬Ã¢â€â‚¬ */}
                       {petState.serviceType?.includes("Day Care") && (
                         <div style={{ marginTop: '2rem', borderTop: '1px solid #eaeaea', paddingTop: '2rem' }}>
                           <h3 className={`${styles.sectionTitle} ${styles.sectionTitleRed}`}>
@@ -1440,29 +1677,61 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 onChange={(e) => updatePetState(petId, 'daycareDate', e.target.value)}
                               />
                             </div>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Check - In - Time</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareCheckin || "00:00"}
-                                onChange={(e) => updatePetState(petId, 'daycareCheckin', e.target.value)}
-                              >
-                                <option value="00:00">00:00</option>
-                                <option value="09:00 AM">09:00 AM</option>
-                                <option value="10:00 AM">10:00 AM</option>
-                              </select>
+                             <div className={styles.formGroup}>
+                              <label className={styles.label}>Check In Time</label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <select
+                                  className={styles.select}
+                                  value={(petState.daycareCheckin || "07:00 AM").split(" ")[0] || "07:00"}
+                                  onChange={(e) => {
+                                    const period = (petState.daycareCheckin || "07:00 AM").split(" ")[1] || "AM";
+                                    updatePetState(petId, 'daycareCheckin', `${e.target.value} ${period}`);
+                                  }}
+                                >
+                                  {["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"].map(h => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  className={styles.select}
+                                  value={(petState.daycareCheckin || "07:00 AM").split(" ")[1] || "AM"}
+                                  onChange={(e) => {
+                                    const hour = (petState.daycareCheckin || "07:00 AM").split(" ")[0] || "07:00";
+                                    updatePetState(petId, 'daycareCheckin', `${hour} ${e.target.value}`);
+                                  }}
+                                >
+                                  <option value="AM">AM</option>
+                                  <option value="PM">PM</option>
+                                </select>
+                              </div>
                             </div>
                             <div className={styles.formGroup}>
-                              <label className={styles.label}>Check - Out - Time</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareCheckout || "00:00"}
-                                onChange={(e) => updatePetState(petId, 'daycareCheckout', e.target.value)}
-                              >
-                                <option value="00:00">00:00</option>
-                                <option value="05:00 PM">05:00 PM</option>
-                                <option value="06:00 PM">06:00 PM</option>
-                              </select>
+                              <label className={styles.label}>Check Out Time</label>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <select
+                                  className={styles.select}
+                                  value={(petState.daycareCheckout || "05:00 PM").split(" ")[0] || "05:00"}
+                                  onChange={(e) => {
+                                    const period = (petState.daycareCheckout || "05:00 PM").split(" ")[1] || "PM";
+                                    updatePetState(petId, 'daycareCheckout', `${e.target.value} ${period}`);
+                                  }}
+                                >
+                                  {["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"].map(h => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  className={styles.select}
+                                  value={(petState.daycareCheckout || "05:00 PM").split(" ")[1] || "PM"}
+                                  onChange={(e) => {
+                                    const hour = (petState.daycareCheckout || "05:00 PM").split(" ")[0] || "05:00";
+                                    updatePetState(petId, 'daycareCheckout', `${hour} ${e.target.value}`);
+                                  }}
+                                >
+                                  <option value="AM">AM</option>
+                                  <option value="PM">PM</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
                           <div style={{ color: '#e9315d', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '2rem', textDecoration: 'underline' }}>+ Add more</div>
@@ -1501,8 +1770,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 onChange={(e) => updatePetState(petId, 'daycareRate', e.target.value)}
                               >
                                 <option value="">Select rate</option>
-                                <option value="500">₹ 500 / day</option>
-                                <option value="1000">₹ 1000 / day</option>
+                                <option value="500">Ã¢â€šÂ¹ 500 / day</option>
+                                <option value="1000">Ã¢â€šÂ¹ 1000 / day</option>
                               </select>
                             </div>
                             <button
@@ -1596,11 +1865,19 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <h4 className={styles.summaryTitle}>Customer Details</h4>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Customer Name</span>
-                    <span className={styles.summaryValue}>{selectedCustomer ? ((selectedCustomer.firstName || "") + " " + (selectedCustomer.lastName || "")).trim() : "Phani Araja"}</span>
+                    <span className={styles.summaryValue}>
+                      {customerType === "New"
+                        ? `${newCustomerDetails.firstName || ""} ${newCustomerDetails.lastName || ""}`.trim() || "New Customer"
+                        : (selectedCustomer ? `${selectedCustomer.firstName || ""} ${selectedCustomer.lastName || ""}`.trim() || selectedCustomer.vendorCustomerName || selectedCustomer.name || "Customer" : "Customer")}
+                    </span>
                   </div>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Customer Phone Number</span>
-                    <span className={styles.summaryValue}>{selectedCustomer?.phoneNumber || "+91 9347992753"}</span>
+                    <span className={styles.summaryValue}>
+                      {customerType === "New"
+                        ? (newCustomerDetails.mobileNumber || "N/A")
+                        : (selectedCustomer?.phoneNumber || selectedCustomer?.phone || "N/A")}
+                    </span>
                   </div>
                 </div>
 
@@ -1662,12 +1939,12 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     {selectedServicesList.map((item, idx) => (
                       <div key={idx} className={styles.summaryRow}>
                         <span className={styles.summaryLabel}>{item.serviceName}</span>
-                        <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `₹ ${item.price}`}</span>
+                        <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `Ã¢â€šÂ¹ ${item.price}`}</span>
                       </div>
                     ))}
                     <div className={styles.summaryRow}>
                       <span className={styles.summaryLabel}>Total Amount</span>
-                      <span className={styles.summaryValue}>₹ {baseTotal}</span>
+                      <span className={styles.summaryValue}>Ã¢â€šÂ¹ {baseTotal}</span>
                     </div>
                   </div>
 
@@ -1676,7 +1953,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel}>Total</span>
-                      <strong>₹ {baseTotal}</strong>
+                      <strong>Ã¢â€šÂ¹ {baseTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -1706,7 +1983,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
-                      <strong>₹ {afterTaxTotal}</strong>
+                      <strong>Ã¢â€šÂ¹ {afterTaxTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -1736,7 +2013,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
-                      <strong>₹ {finalTotal}</strong>
+                      <strong>Ã¢â€šÂ¹ {finalTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -1761,12 +2038,12 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
-                      <strong>₹ {parsedPaidAmount}</strong>
+                      <strong>Ã¢â€šÂ¹ {parsedPaidAmount}</strong>
                     </div>
 
                     <div className={styles.totalPending}>
                       <span>Total Pending Amount</span>
-                      <span>₹ {pendingAmount}</span>
+                      <span>Ã¢â€šÂ¹ {pendingAmount}</span>
                     </div>
                   </div>
                 </div>

@@ -4,6 +4,20 @@ import { WebApimanager } from "../components/utilities/WebApiManager";
 
 
 export const productService = {
+  getCategories: async (jwt) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.get(`vendor/petstore/categories`);
+  },
+
+  getSubcategories: async (jwt, categoryId) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.get(`vendor/petstore/subcategories`, { categoryId });
+  },
+
+  createSubcategory: async (jwt, data) => {
+    const webApi = new WebApimanager(jwt);
+    return await webApi.post(`vendor/petstore/subcategories`, data);
+  },
   getProducts: async (jwt, branchId, type, search = "") => {
     const webApi = new WebApimanager(jwt);
     try {
