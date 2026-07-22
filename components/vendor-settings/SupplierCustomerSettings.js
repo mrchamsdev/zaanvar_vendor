@@ -86,7 +86,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-const SupplierCustomerSettings = ({ settings, onChange }) => {
+const SupplierCustomerSettings = ({ settings, onChange, addEdit = true, canDelete = true }) => {
   const p = settings;
 
   const toggle = (field) => (e) => onChange({ ...p, [field]: e.target.checked });
@@ -274,6 +274,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
                 </div>
               ))}
 
+              {addEdit && (
               <button
                 className={`${styles.addBtn} ${styles.marginTop4}`}
                 type="button"
@@ -282,6 +283,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
               >
                 + Add
               </button>
+              )}
             </div>
           </div>
         </div>
@@ -371,6 +373,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
                 </div>
               ))}
 
+              {addEdit && (
               <button
                 className={`${styles.addBtn} ${styles.marginTop4}`}
                 type="button"
@@ -379,6 +382,7 @@ const SupplierCustomerSettings = ({ settings, onChange }) => {
               >
                 + Add
               </button>
+              )}
             </div>
           </div>
         </div>

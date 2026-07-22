@@ -19,7 +19,7 @@ export default function usePermissions(moduleName, serviceName) {
 
   // Superadmin bypasses checks
   if (userRoleStr === "superadmin") {
-    return { view: true, addEdit: true, canDelete: true };
+    return { view: true, addEdit: true, canDelete: true, noAccess: false };
   }
 
   // Find the matching role object by checking if the user's ID is in the role's userIds array
@@ -30,21 +30,26 @@ export default function usePermissions(moduleName, serviceName) {
   if (!role) {
     // If no roles are loaded yet, or role isn't found, default to true 
     // to prevent blocking legitimate access before APIs return.
-    return { view: true, addEdit: true, canDelete: true };
+    return { view: true, addEdit: true, canDelete: true, noAccess: false };
   }
 
+  const normalizedModule = moduleName.trim().toLowerCase();
+  const normalizedService = (serviceName || "").trim().toLowerCase();
+
   const permission = role.permissions?.find(
-    (p) => p.module === moduleName && p.serviceName === serviceName
+    (p) => p.module.trim().toLowerCase() === normalizedModule && 
+           (p.serviceName || "").trim().toLowerCase() === normalizedService
   );
 
   if (permission) {
     return {
       view: !!permission.view,
       addEdit: !!permission.addEdit,
-      canDelete: !!permission.delete
+      canDelete: !!permission.delete,
+      noAccess: !!permission.noAccess
     };
   }
 
-  // If the specific permission block is not found, assume false
-  return { view: false, addEdit: false, canDelete: false };
+  // If the specific permission block is not found, assume it is not restricted
+  return { view: true, addEdit: true, canDelete: true, noAccess: false };
 }

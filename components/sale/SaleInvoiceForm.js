@@ -33,7 +33,7 @@ const convertToBulletPoints = (text) => {
         .join('\n');
 };
 
-const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange }) => {
+const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onCancel, onTitleChange, hasAddAccess = true }) => {
     const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
@@ -1685,7 +1685,7 @@ const SaleInvoiceForm = ({ mode = "add", saleId, tabId, initialData, onSave, onC
                         </button>
                         {isViewOnly && (
                             <>
-                                {saleInvoiceData?.billStatus !== "Full" && balanceAmount > 0 && (
+                                {saleInvoiceData?.billStatus !== "Full" && balanceAmount > 0 && hasAddAccess && (
                                     <button
                                         className={styles.saveBtn}
                                         onClick={() => setPaymentModalOpen(true)}

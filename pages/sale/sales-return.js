@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import SalesReturnList from "../../components/sale/SalesReturnList";
@@ -7,6 +6,8 @@ import { FiPlus, FiSettings } from "react-icons/fi";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
 import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
+import useStore from "../../components/state/useStore";
+import usePermissions from "../../components/utilities/usePermissions";
 
 const SalesReturnPage = () => {
     const router = useRouter();
@@ -15,6 +16,8 @@ const SalesReturnPage = () => {
 
     const [isReady, setIsReady] = React.useState(false);
     const [isPdf, setIsPdf] = React.useState(false);
+
+    const { addEdit: hasAddAccess, noAccess } = usePermissions("Sale", "Sale Return");
 
     React.useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -25,9 +28,6 @@ const SalesReturnPage = () => {
             setIsReady(true);
         }
     }, []);
-
-    // Removed redundant branch effect that caused infinite loops
-
 
     const handleBranchChange = (e) => {
         router.push({
@@ -53,23 +53,25 @@ const SalesReturnPage = () => {
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button
-                onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
-                style={{
-                    background: '#E93E64',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '8px 20px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                <FiPlus /> Add Sale Return
-            </button>
+            {hasAddAccess && (
+                <button
+                    onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+                    style={{
+                        background: '#E93E64',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '8px 20px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}
+                >
+                    <FiPlus /> Add Sale Return
+                </button>
+            )}
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );
@@ -79,6 +81,16 @@ const SalesReturnPage = () => {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
                 Loading...
             </div>
+        );
+    }
+
+    if (noAccess) {
+        return (
+            <DashboardLayout customTopbarLeft={customLeft}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', background: '#fff', fontSize: '18px', color: '#666' }}>
+                    You do not have permission to view this page.
+                </div>
+            </DashboardLayout>
         );
     }
 
@@ -101,6 +113,7 @@ const SalesReturnPage = () => {
             customTopbarRight={customRight}
         >
             <SalesReturnList
+                hasAddAccess={hasAddAccess}
                 onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
             />
 

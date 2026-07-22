@@ -9,7 +9,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 import { FiPaperclip } from "react-icons/fi";
 
-const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
+const CustomerView = ({ data: initialData, onBack, isSplit, onEdit, addEdit = true }) => {
   const currencySymbol = useCurrencySymbol();
 
     const { jwtToken } = useStore();
@@ -504,9 +504,11 @@ const CustomerView = ({ data: initialData, onBack, isSplit, onEdit }) => {
                                     ))
                                 }
                             </div>
-                            <button onClick={onEdit} className={styles.editButton}>
-                                <span className={styles.editIcon}>✎</span> Edit Customer Details
-                            </button>
+                            {addEdit && (
+                                <button onClick={onEdit} className={styles.editButton}>
+                                    <span className={styles.editIcon}>✎</span> Edit Customer Details
+                                </button>
+                            )}
                         </div>
                     </div>
 

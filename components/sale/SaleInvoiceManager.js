@@ -28,7 +28,7 @@ const IconX = () => (
   </svg>
 );
 
-const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, trigger }) => {
+const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, trigger, hasAddAccess = true }) => {
   const router = useRouter();
   const { jwtToken } = useStore();
   const [tabs, setTabs] = useState([]);
@@ -260,6 +260,7 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, 
         saleId={activeTab.saleId}
         tabId={activeTab.id}
         initialData={activeTab.data}
+        hasAddAccess={hasAddAccess}
         onSave={() => {}}
         onCancel={() => window.close()}
       />
@@ -310,6 +311,7 @@ const SaleInvoiceManager = ({ isOpen, mode = "add", saleId, onClose, onRefresh, 
                 saleId={tab.saleId}
                 tabId={tab.id}
                 initialData={tab.data}
+                hasAddAccess={hasAddAccess}
                 onSave={() => {
                   onRefresh();
                   closeTab(tab.id);

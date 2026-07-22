@@ -39,7 +39,9 @@ const SupplierList = ({
   onDelete,
   onBulkDelete,
   onAddClick,
-  searchTerm = ""
+  searchTerm = "",
+  addEdit = true,
+  canDelete = true
 }) => {
   const currencySymbol = useCurrencySymbol();
   const { vendorSettings } = useStore();
@@ -96,7 +98,7 @@ const SupplierList = ({
           </div>
         ) : (
           <EmptyState
-            buttonText="Add Supplier"
+            buttonText={addEdit ? "Add Supplier" : null}
             onAddClick={onAddClick}
           />
         )
@@ -186,12 +188,16 @@ const SupplierList = ({
                 <div className={styles.actionItem} onClick={() => onView(selectedIds[0])}>
                   <IconEye /> View
                 </div>
-                <div className={styles.actionItem} onClick={() => onEdit(selectedIds[0])}>
-                  <IconEdit /> Edit
-                </div>
-                <div className={styles.actionItem} onClick={onBulkDelete}>
-                  <IconTrash /> Delete
-                </div>
+                {addEdit && (
+                  <div className={styles.actionItem} onClick={() => onEdit(selectedIds[0])}>
+                    <IconEdit /> Edit
+                  </div>
+                )}
+                {canDelete && (
+                  <div className={styles.actionItem} onClick={onBulkDelete}>
+                    <IconTrash /> Delete
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -12,7 +12,7 @@ import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 import { WebApimanager } from "@/components/utilities/WebApiManager";
 
-const SupplierView = ({ data, onBack, isSplit }) => {
+const SupplierView = ({ data, onBack, isSplit, addEdit = true, canDelete = true }) => {
     const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
@@ -432,21 +432,23 @@ const SupplierView = ({ data, onBack, isSplit }) => {
                     <div className={`${styles.contentArea} ${isSplit ? styles.contentAreaSplit : ""}`}>
                         <div className={styles.contentHeader}>
                             <h3 className={styles.statsTitle}>{activeTab}</h3>
-                            <button
-                                onClick={() => {
-                                    const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
-                                    if (pendingBill) {
-                                        setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
-                                        setSelectedBillData(pendingBill);
-                                        setIsPayNowModalOpen(true);
-                                    } else {
-                                        toast.info("No pending payments found");
-                                    }
-                                }}
-                                className={styles.payNowBtn}
-                            >
-                                PAY NOW
-                            </button>
+                            {addEdit && (
+                                <button
+                                    onClick={() => {
+                                        const pendingBill = purchaseOrders.find(o => o.paymentStatus !== 'Full' && o.paymentStatus !== 'Paid');
+                                        if (pendingBill) {
+                                            setSelectedBillIdForPayment(pendingBill.productsBillId || pendingBill.productsPurchaseRqstID);
+                                            setSelectedBillData(pendingBill);
+                                            setIsPayNowModalOpen(true);
+                                        } else {
+                                            toast.info("No pending payments found");
+                                        }
+                                    }}
+                                    className={styles.payNowBtn}
+                                >
+                                    PAY NOW
+                                </button>
+                            )}
                         </div>
                         {activeTab === "Purchase Orders" ? renderPurchaseOrders() : activeTab === "Payment History" ? renderPaymentHistory() : renderChat()}
                     </div>

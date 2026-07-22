@@ -101,7 +101,7 @@ const EditField = ({ label, value, onChange, placeholder, half, required }) => (
 /* ══════════════════════════════════════════════════════
  * ProfileSettings Component
  * ════════════════════════════════════════════════════ */
-const ProfileSettings = () => {
+const ProfileSettings = ({ addEdit = true, canDelete = true }) => {
   const { jwtToken, userInfo } = useStore();
   const webApi = new WebApimanager(jwtToken);
 
@@ -262,30 +262,32 @@ const ProfileSettings = () => {
               Manage your personal information, contact details, and account preferences from one place.
             </p>
           </div>
-          {!editProfile ? (
-            <button
-              className={profileStyles.editBtn}
-              onClick={() => setEditProfile(true)}
-              id="edit-profile-btn"
-            >
-              <EditIcon /> Edit Profile
-            </button>
-          ) : (
-            <div style={{ display: "flex", gap: 8 }}>
+          {addEdit && (
+            !editProfile ? (
               <button
-                className={profileStyles.cancelBtn}
-                onClick={() => setEditProfile(false)}
+                className={profileStyles.editBtn}
+                onClick={() => setEditProfile(true)}
+                id="edit-profile-btn"
               >
-                Cancel
+                <EditIcon /> Edit Profile
               </button>
-              <button
-                className={profileStyles.saveProfileBtn}
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-              >
-                <SaveIcon /> {savingProfile ? "Saving…" : "Save"}
-              </button>
-            </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className={profileStyles.cancelBtn}
+                  onClick={() => setEditProfile(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={profileStyles.saveProfileBtn}
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  <SaveIcon /> {savingProfile ? "Saving…" : "Save"}
+                </button>
+              </div>
+            )
           )}
         </div>
 
@@ -312,27 +314,29 @@ const ProfileSettings = () => {
       <section className={profileStyles.section}>
         <div className={profileStyles.sectionHeader}>
           <h2 className={profileStyles.sectionTitle}>Address Details</h2>
-          {!editAddress ? (
-            <button
-              className={profileStyles.editBtn}
-              onClick={() => setEditAddress(true)}
-              id="edit-address-btn"
-            >
-              <EditIcon /> Edit Address
-            </button>
-          ) : (
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className={profileStyles.cancelBtn} onClick={() => setEditAddress(false)}>
-                Cancel
-              </button>
+          {addEdit && (
+            !editAddress ? (
               <button
-                className={profileStyles.saveProfileBtn}
-                onClick={handleSaveAddress}
-                disabled={savingAddress}
+                className={profileStyles.editBtn}
+                onClick={() => setEditAddress(true)}
+                id="edit-address-btn"
               >
-                <SaveIcon /> {savingAddress ? "Saving…" : "Save"}
+                <EditIcon /> Edit Address
               </button>
-            </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className={profileStyles.cancelBtn} onClick={() => setEditAddress(false)}>
+                  Cancel
+                </button>
+                <button
+                  className={profileStyles.saveProfileBtn}
+                  onClick={handleSaveAddress}
+                  disabled={savingAddress}
+                >
+                  <SaveIcon /> {savingAddress ? "Saving…" : "Save"}
+                </button>
+              </div>
+            )
           )}
         </div>
 
@@ -369,7 +373,7 @@ const ProfileSettings = () => {
             <LockIcon />
             Password was Updated on : {pwLastUpdated}
           </span>
-          {pwMode === "view" && (
+          {pwMode === "view" && addEdit && (
             <button
               className={profileStyles.editBtn}
               onClick={() => setPwMode("change")}

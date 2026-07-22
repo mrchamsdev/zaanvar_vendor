@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
+import usePermissions from "../utilities/usePermissions";
 
 const TABS = [
   { key: "General", label: "General Settings" },
@@ -11,16 +12,21 @@ const TABS = [
   { key: "ServicesPackages", label: "Services & Packages" },
   { key: "RoomsCapacity", label: "Rooms & Capacity" },
   { key: "ProfileSettings", label: "Profile Settings" },
+  { key: "RolesAndPermissions", label: "Roles & Permissions" },
 ];
 
 const VendorSettingsLayout = ({ activeTab, onTabChange, children, onSave, saving }) => {
+  const tabConfig = TABS.find(t => t.key === activeTab);
+  const serviceName = tabConfig ? tabConfig.label : "";
+  const { addEdit } = usePermissions("Settings", serviceName);
+
   return (
     <div className={styles.outerContentArea}>
       {/* Tab content — fills full width */}
       {children}
 
       {/* Save / Cancel button row at the bottom */}
-      {activeTab !== "ProfileSettings" && activeTab !== "RolesAndPermissions" && activeTab !== "ServicesPackages" && activeTab !== "RoomsCapacity" && (
+      {activeTab !== "ProfileSettings" && activeTab !== "RolesAndPermissions" && activeTab !== "ServicesPackages" && activeTab !== "RoomsCapacity" && addEdit && (
         <div className={styles.bottomActionBar}>
           <button
             type="button"

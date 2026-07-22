@@ -5,7 +5,7 @@ import useStore from "../../components/state/useStore";
 import { updateSettings } from "../../services/settingsService";
 import { toast } from "sonner";
 
-const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom }) => {
+const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom, addEdit = true }) => {
   const [activeSpace, setActiveSpace] = useState("Clinic");
   const [roomTypeFilter, setRoomTypeFilter] = useState("All Rooms");
   const [petTypeFilter, setPetTypeFilter] = useState("All Pets");
@@ -114,9 +114,11 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
           <h2>Rooms & Capacity</h2>
           <p>List of all rooms and currently available rooms in your space.</p>
         </div>
+        {addEdit && rooms.length > 0 && (
         <button className={styles.btnEditRooms} onClick={() => setIsAddingRoom(true)}>
           Edit Rooms
         </button>
+        )}
       </div>
 
       {/* Toolbar & Filters */}
@@ -189,9 +191,11 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
           <div className={styles.emptyState}>
             <h4 className={styles.emptyStateTitle}>No rooms configured yet</h4>
             <p className={styles.emptyStateText}>Designate and allocate your clinic and daycare boarding rooms to track occupancy.</p>
+            {addEdit && (
             <button className={styles.btnEditRooms} onClick={() => setIsAddingRoom(true)}>
               Add Room
             </button>
+            )}
           </div>
         </div>
       ) : (

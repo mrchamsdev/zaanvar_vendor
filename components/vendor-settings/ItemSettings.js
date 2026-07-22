@@ -86,7 +86,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-const ItemSettings = ({ settings, onChange }) => {
+const ItemSettings = ({ settings, onChange, addEdit = true, canDelete = true }) => {
   const s = settings;
   const toggle = (field) => (e) => onChange({ ...s, [field]: e.target.checked });
 
@@ -227,6 +227,7 @@ const ItemSettings = ({ settings, onChange }) => {
               </div>
             ))}
 
+            {addEdit && (
             <button
               className={`${styles.addBtn} ${styles.marginTop4}`}
               type="button"
@@ -235,6 +236,7 @@ const ItemSettings = ({ settings, onChange }) => {
             >
               + Add
             </button>
+            )}
           </div>
         </div>
       </div>
