@@ -590,6 +590,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 type="text" style={{
                                     boxSizing: 'border-box',
                                     width: '100%',
+                                    height: '52px',
                                     padding: '14px 16px',
                                     borderRadius: '8px',
                                     border: supplierNameError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
@@ -621,7 +622,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         border: branchError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
-                                        minHeight: '48px',
+                                        minHeight: '52px',
+                                        width: '100%',
                                         boxSizing: 'border-box'
                                     }
                                 }}
@@ -643,7 +645,8 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         border: supplierTypeError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
-                                        minHeight: '48px',
+                                        minHeight: '52px',
+                                        width: '100%',
                                         boxSizing: 'border-box'
                                     }
                                 }}
@@ -658,6 +661,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 type="text" style={{
                                     boxSizing: 'border-box',
                                     width: '100%',
+                                    height: '52px',
                                     padding: '14px 16px',
                                     borderRadius: '8px',
                                     border: phoneError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
@@ -684,6 +688,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 type="email" style={{
                                     boxSizing: 'border-box',
                                     width: '100%',
+                                    height: '52px',
                                     padding: '14px 16px',
                                     borderRadius: '8px',
                                     border: emailError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
@@ -707,6 +712,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     type="text" style={{
                                         boxSizing: 'border-box',
                                         width: '100%',
+                                        height: '52px',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
                                         border: gstinError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
@@ -732,7 +738,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '10px', display: 'block' }}>Group Name</label>
                                 <div style={{ position: 'relative' }}>
                                     <select
-                                        style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', paddingRight: '40px' }}
+                                        style={{ boxSizing: 'border-box', width: '100%', height: '52px', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', paddingRight: '40px' }}
                                         value={groupName}
                                         onChange={(e) => {
                                             if (e.target.value === "ADD_NEW_GROUP") {
@@ -765,6 +771,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     style={{
                                         boxSizing: 'border-box',
                                         width: '100%',
+                                        height: '52px',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
                                         border: additionalErrors[field.label] ? '1px solid #FF4D4F' : '1px solid #E5E7EB',

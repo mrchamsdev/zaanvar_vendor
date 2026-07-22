@@ -14,10 +14,29 @@ const AddRoomModal = ({ onClose, onSave, initialData }) => {
   ]);
   const [clinicTaxIncluded, setClinicTaxIncluded] = useState(true);
 
-  // Daycare spaces room rows state
-  const [daycareCheckInFrom, setDaycareCheckInFrom] = useState("07:00 AM");
-  const [daycareCheckInTo, setDaycareCheckInTo] = useState("10:00 AM");
-  const [daycareCheckOut, setDaycareCheckOut] = useState("09:00 AM");
+  // Helper to parse time strings into hour (01-12) and period (AM/PM)
+  const parseTimeString = (timeStr, defaultHour = "07:00", defaultPeriod = "AM") => {
+    if (!timeStr) return { hour: defaultHour, period: defaultPeriod };
+    const parts = timeStr.trim().split(" ");
+    if (parts.length >= 2) {
+      let h = parts[0];
+      if (!h.includes(":")) h = `${h.padStart(2, '0')}:00`;
+      return { hour: h, period: parts[1].toUpperCase() };
+    }
+    return { hour: defaultHour, period: defaultPeriod };
+  };
+
+  const initialCheckIn = parseTimeString("07:00 AM", "07:00", "AM");
+  const [daycareCheckInHour, setDaycareCheckInHour] = useState(initialCheckIn.hour);
+  const [daycareCheckInPeriod, setDaycareCheckInPeriod] = useState(initialCheckIn.period);
+
+  const initialCheckOut = parseTimeString("05:00 PM", "05:00", "PM");
+  const [daycareCheckOutHour, setDaycareCheckOutHour] = useState(initialCheckOut.hour);
+  const [daycareCheckOutPeriod, setDaycareCheckOutPeriod] = useState(initialCheckOut.period);
+
+  const daycareCheckInFrom = `${daycareCheckInHour} ${daycareCheckInPeriod}`;
+  const daycareCheckInTo = `${daycareCheckInHour} ${daycareCheckInPeriod}`;
+  const daycareCheckOut = `${daycareCheckOutHour} ${daycareCheckOutPeriod}`;
 
   const [daycareRooms, setDaycareRooms] = useState([
     { id: "dr1", roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000" }
@@ -308,43 +327,51 @@ const AddRoomModal = ({ onClose, onSave, initialData }) => {
                   </div>
                 </div>
 
-                <div className={styles.daycareCheckInRow}>
-                  <div className={styles.checkInTimeGroup}>
-                    <div className={styles.timeFieldBox}>
-                      <label>From</label>
+                <div className={styles.daycareCheckInRow} style={{ display: 'flex', gap: '2.5rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <div className={styles.timeFieldBox}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', color: '#333' }}>Check In Time</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       <select 
                         className={styles.timeSelect}
-                        value={daycareCheckInFrom}
-                        onChange={(e) => setDaycareCheckInFrom(e.target.value)}
+                        value={daycareCheckInHour}
+                        onChange={(e) => setDaycareCheckInHour(e.target.value)}
                       >
-                        <option value="07:00 AM">07:00 AM</option>
-                        <option value="08:00 AM">08:00 AM</option>
+                        {["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"].map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
                       </select>
-                    </div>
-                    <span className={styles.toLabel}>TO</span>
-                    <div className={styles.timeFieldBox}>
-                      <label>To</label>
                       <select 
                         className={styles.timeSelect}
-                        value={daycareCheckInTo}
-                        onChange={(e) => setDaycareCheckInTo(e.target.value)}
+                        value={daycareCheckInPeriod}
+                        onChange={(e) => setDaycareCheckInPeriod(e.target.value)}
                       >
-                        <option value="10:00 AM">10:00 AM</option>
-                        <option value="11:00 AM">11:00 AM</option>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className={styles.timeFieldBox} style={{ marginLeft: 40 }}>
-                    <label>Check Out Time</label>
-                    <select 
-                      className={styles.timeSelect}
-                      value={daycareCheckOut}
-                      onChange={(e) => setDaycareCheckOut(e.target.value)}
-                    >
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="05:00 PM">05:00 PM</option>
-                    </select>
+                  <div className={styles.timeFieldBox}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', color: '#333' }}>Check Out Time</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <select 
+                        className={styles.timeSelect}
+                        value={daycareCheckOutHour}
+                        onChange={(e) => setDaycareCheckOutHour(e.target.value)}
+                      >
+                        {["01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00"].map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                      <select 
+                        className={styles.timeSelect}
+                        value={daycareCheckOutPeriod}
+                        onChange={(e) => setDaycareCheckOutPeriod(e.target.value)}
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 

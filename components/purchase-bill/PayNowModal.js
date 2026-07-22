@@ -650,7 +650,7 @@ const PayNowModal = ({ isOpen, onClose, onRefresh, billId, supplierData, initial
                                                 value={entry.type}
                                                 onChange={(e) => updatePayment(entry.id, "type", e.target.value)}
                                             >
-                                                <option value="" disabled hidden>Select Payment Type</option>
+                                                <option value="">Select Payment Type</option>
                                                 <option value="Cash">Cash</option>
                                                 <option value="UPI">UPI</option>
                                                 <option value="Card">Card</option>

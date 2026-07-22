@@ -38,7 +38,7 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
   }, [activeTab, setTopbarActions]);
 
   const selectedBranchId = useStore((state) => state.selectedBranchId);
-  const branchId = selectedBranchId || 3;
+  const cleanBranchId = String(selectedBranchId || 90).replace(/^B-/, "");
 
   const [services, setServices] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -47,41 +47,62 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
   const fetchOfferings = async () => {
     try {
       const typeStr = activeTab === "Services" ? "services" : "packages";
-      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}?type=${typeStr}`);
+      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}?type=${typeStr}`);
       const json = await res.json();
       
-      if (json.status === "success" && json.data) {
+      if (json.status === "success" || json.data || Array.isArray(json)) {
+        const dataObj = json.data || json;
         if (activeTab === "Services") {
-          const apiServices = json.data.services || [];
-          setServices(apiServices.filter(s => s.id).map(s => ({
-            id: s.id,
-            serviceName: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName,
-            petType: Array.isArray(s.petType) ? s.petType.join(", ") : s.petType,
-            duration: `${s.duration} mins`,
-            price: `₹ ${s.price}`,
-            rawPrice: s.price,
-            discountPrice: `₹ ${s.discountPrice}`,
-            rawDiscountPrice: s.discountPrice,
-            discountPercent: s.discountPercentage,
-            category: s.category,
-            branch: branchId
-          })));
+          const apiServices = Array.isArray(dataObj) ? dataObj : (dataObj.services || dataObj.offerings || dataObj.data || []);
+          setServices(apiServices.map((s, idx) => {
+            const itemId = s.id || s.serviceId || s.offeringId || s.vendorServiceId || `srv-${idx}`;
+            const sName = Array.isArray(s.serviceName) ? s.serviceName.join(", ") : (s.serviceName || s.name || s.title || "Unnamed Service");
+            const pType = Array.isArray(s.petType) ? s.petType.join(", ") : (s.petType || "Dog");
+            const dur = s.duration || s.durationMinutes || s.durationInMinutes || "30";
+            const pr = s.price !== undefined && s.price !== null ? s.price : 0;
+            const dPr = s.discountPrice !== undefined && s.discountPrice !== null ? s.discountPrice : pr;
+            const dPct = s.discountPercentage || s.discountPercent || 0;
+            return {
+              id: itemId,
+              serviceName: sName,
+              petType: pType,
+              duration: `${dur} mins`,
+              price: `₹ ${pr}`,
+              rawPrice: pr,
+              discountPrice: `₹ ${dPr}`,
+              rawDiscountPrice: dPr,
+              discountPercent: dPct,
+              category: s.category || "",
+              branch: cleanBranchId,
+              rawItem: s
+            };
+          }));
         } else {
-          const apiPackages = json.data.packages || [];
-          setPackages(apiPackages.filter(p => p.id).map(p => ({
-            id: p.id,
-            packageName: p.packageName || p.serviceName,
-            petType: Array.isArray(p.petType) ? p.petType.join(", ") : p.petType,
-            duration: `${p.duration} mins`,
-            price: `₹ ${p.price}`,
-            rawPrice: p.price,
-            discountPrice: `₹ ${p.discountPrice}`,
-            rawDiscountPrice: p.discountPrice,
-            discountPercent: p.discountPercentage,
-            category: p.category,
-            services: p.services || [],
-            branch: branchId
-          })));
+          const apiPackages = Array.isArray(dataObj) ? dataObj : (dataObj.packages || dataObj.offerings || dataObj.data || []);
+          setPackages(apiPackages.map((p, idx) => {
+            const itemId = p.id || p.packageId || p.offeringId || p.vendorPackageId || `pkg-${idx}`;
+            const pName = p.packageName || p.serviceName || p.name || p.title || "Unnamed Package";
+            const pType = Array.isArray(p.petType) ? p.petType.join(", ") : (p.petType || "Dog");
+            const dur = p.duration || p.durationMinutes || p.durationInMinutes || "60";
+            const pr = p.price !== undefined && p.price !== null ? p.price : 0;
+            const dPr = p.discountPrice !== undefined && p.discountPrice !== null ? p.discountPrice : pr;
+            const dPct = p.discountPercentage || p.discountPercent || 0;
+            return {
+              id: itemId,
+              packageName: pName,
+              petType: pType,
+              duration: `${dur} mins`,
+              price: `₹ ${pr}`,
+              rawPrice: pr,
+              discountPrice: `₹ ${dPr}`,
+              rawDiscountPrice: dPr,
+              discountPercent: dPct,
+              category: p.category || "",
+              services: p.services || [],
+              branch: cleanBranchId,
+              rawItem: p
+            };
+          }));
         }
       }
     } catch (err) {
@@ -91,7 +112,7 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
 
   useEffect(() => {
     fetchOfferings();
-  }, [activeTab, branchId]);
+  }, [activeTab, cleanBranchId]);
 
   // Search filtering
   const filteredServices = services.filter(s =>
@@ -139,7 +160,7 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
     if (!itemToDelete) return;
     try {
       const typeStr = itemToDelete.type === "service" ? "services" : "packages";
-      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${itemToDelete.id}?type=${typeStr}`, {
+      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${itemToDelete.id}?type=${typeStr}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -163,8 +184,8 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
     try {
       const isEdit = String(saved.id).startsWith("off-");
       const url = isEdit 
-        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${saved.id}` 
-        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}`;
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${saved.id}` 
+        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}`;
         
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
@@ -189,8 +210,8 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
     try {
       const isEdit = String(saved.id).startsWith("off-");
       const url = isEdit 
-        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}/${saved.id}` 
-        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${branchId}`;
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${saved.id}` 
+        : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}`;
         
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',

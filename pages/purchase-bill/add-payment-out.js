@@ -24,6 +24,8 @@ const PaymentOutFormPage = () => {
     const isEdit = mode === "edit";
     const { jwtToken, userInfo, vendorSettings } = useStore();
     const linkPaymentsToInvoices = getBoolSetting(vendorSettings, 'linkPaymentsToInvoices', false);
+    const cashSaleByDefault = getBoolSetting(vendorSettings, 'cashSaleByDefault', true);
+    const addTimeOnTransactions = getBoolSetting(vendorSettings, 'addTimeOnTransactions', false);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -35,6 +37,7 @@ const PaymentOutFormPage = () => {
     const [supplierName, setSupplierName] = useState("");
     const [supplierAddress, setSupplierAddress] = useState("");
     const [transactionDate, setTransactionDate] = useState("");
+    const [transactionTime, setTransactionTime] = useState("");
     const [totalBalance, setTotalBalance] = useState("000");
     const [totalBillAmt, setTotalBillAmt] = useState("");
     const [totalBalanceAmt, setTotalBalanceAmt] = useState("");
@@ -42,7 +45,7 @@ const PaymentOutFormPage = () => {
     const [description, setDescription] = useState("");
     const [payments, setPayments] = useState([{
         amountPaid: "",
-        paymentType: "Cash",
+        paymentType: cashSaleByDefault ? "Cash" : "",
         refNo: "",
         id: Date.now()
     }]);
@@ -97,6 +100,20 @@ const PaymentOutFormPage = () => {
                 setSupplierAddress(sAddress);
 
                 setTransactionDate(t.userTransactionDate?.split('T')[0] || "");
+                
+                if (t.time) {
+                    const timeStr = t.time.trim().toLowerCase();
+                    const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                    let [h, m] = cleanTime.split(':').map(Number);
+                    if (!isNaN(h) && !isNaN(m)) {
+                        const isPM = timeStr.includes('pm');
+                        const isAM = timeStr.includes('am');
+                        if (isPM && h < 12) h += 12;
+                        if (isAM && h === 12) h = 0;
+                        setTransactionTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                    }
+                }
+
                 setTotalBalance(t.overallBillAmount || totals.supplierTotalAmount || "000");
                 setTotalBillAmt(t.overallBillAmount || totals.overallBillAmount || totals.totalBillAmount || "");
                 const finalBalanceAmount = (t.splitTransactions && t.splitTransactions.length > 0)
@@ -109,15 +126,15 @@ const PaymentOutFormPage = () => {
                 const decPlaces = getAmountDecimalPlaces();
                 const allPayments = [
                     {
-                        amountPaid: t.amount !== undefined && t.amount !== null && t.amount !== "" ? Number(t.amount).toFixed(decPlaces) : "",
-                        paymentType: t.paymentType || "Cash",
-                        refNo: t.referenceNumber || t.refNo || "",
+                        amountPaid: t.paidAmount || t.amount !== undefined && t.amount !== null && t.amount !== "" ? Number(t.amount).toFixed(decPlaces) : "",
+                        paymentType: t.paymentType || (cashSaleByDefault ? "Cash" : ""),
+                        refNo: t.transactionRef || t.referenceNumber || t.refNo || "",
                         id: t.suppliersTransactionId || Date.now()
                     },
                     ...splitList.map((st, idx) => ({
-                        amountPaid: st.amount !== undefined && st.amount !== null && st.amount !== "" ? Number(st.amount).toFixed(decPlaces) : "",
-                        paymentType: st.paymentType || "Cash",
-                        refNo: st.referenceNumber || st.refNo || "",
+                        amountPaid: st.paidAmount || st.amount !== undefined && st.amount !== null && st.amount !== "" ? Number(st.amount).toFixed(decPlaces) : "",
+                        paymentType: st.paymentType || (cashSaleByDefault ? "Cash" : ""),
+                        refNo: st.transactionRef || st.referenceNumber || st.refNo || "",
                         id: st.suppliersTransactionId || (Date.now() + idx + 1)
                     }))
                 ];
@@ -176,6 +193,25 @@ const PaymentOutFormPage = () => {
                 return typeObj;
             });
 
+            let normalizedTime24 = transactionTime;
+            let timeToSend;
+            if (addTimeOnTransactions && transactionTime) {
+                const timeStr = transactionTime.trim().toLowerCase();
+                const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                let [h, m] = cleanTime.split(':').map(Number);
+                if (!isNaN(h) && !isNaN(m)) {
+                    if (timeStr.includes('pm') && h < 12) h += 12;
+                    if (timeStr.includes('am') && h === 12) h = 0;
+                    normalizedTime24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    timeToSend = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+                } else {
+                    timeToSend = transactionTime;
+                }
+            }
+
             let res;
             if (selectedFile) {
                 const formData = new FormData();
@@ -190,7 +226,8 @@ const PaymentOutFormPage = () => {
                     amount: Number(paidAmount),
                     paymentType: payments[0].paymentType,
                     transactionInfo: description,
-                    paymentTypes
+                    paymentTypes,
+                    ...(timeToSend ? { time: timeToSend } : {})
                 };
                 res = await purchaseService.updateTransaction(jwtToken, id, payload);
             }
@@ -317,6 +354,42 @@ const PaymentOutFormPage = () => {
                                 readOnly
                             />
                         </div>
+                        {addTimeOnTransactions && (
+                            <div className={styles.field}>
+                                <label>Time</label>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <select
+                                        className={`${styles.select} ${styles.readOnly}`}
+                                        value={transactionTime ? String(parseInt(transactionTime.split(':')[0]) % 12 || 12).padStart(2, '0') : '12'}
+                                        disabled={true}
+                                    >
+                                        {[...Array(12)].map((_, i) => {
+                                            const h = String(i + 1).padStart(2, '0');
+                                            return <option key={h} value={h}>{h}</option>;
+                                        })}
+                                    </select>
+                                    <span>:</span>
+                                    <select
+                                        className={`${styles.select} ${styles.readOnly}`}
+                                        value={transactionTime ? transactionTime.split(':')[1] : '00'}
+                                        disabled={true}
+                                    >
+                                        {[...Array(60)].map((_, i) => {
+                                            const m = String(i).padStart(2, '0');
+                                            return <option key={m} value={m}>{m}</option>;
+                                        })}
+                                    </select>
+                                    <select
+                                        className={`${styles.select} ${styles.readOnly}`}
+                                        value={transactionTime && parseInt(transactionTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
+                                        disabled={true}
+                                    >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.gridRow}>
@@ -394,6 +467,7 @@ const PaymentOutFormPage = () => {
                                                 setPayments(newPayments);
                                             }}
                                         >
+                                            <option value="">Select Payment Type</option>
                                             {['Cash', 'Cheque', 'UPI', 'Card', 'Bank'].map(type => (
                                                 <option key={type} value={type}>{type}</option>
                                             ))}
@@ -482,7 +556,7 @@ const PaymentOutFormPage = () => {
                             <div
                                 className={styles.addPaymentLink}
                                 onClick={() => {
-                                    setPayments([...payments, { amountPaid: "", paymentType: "Cash", refNo: "", id: Date.now() }]);
+                                    setPayments([...payments, { amountPaid: "", paymentType: cashSaleByDefault ? "Cash" : "", refNo: "", id: Date.now() }]);
                                     setErrors(prev => {
                                         const newErr = { ...prev };
                                         delete newErr.unbalanced;

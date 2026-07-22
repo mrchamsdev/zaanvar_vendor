@@ -1036,17 +1036,16 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                     <td className={styles.timeCell}>{b.time}</td>
                     <td>
                       <span
-                        className={
-                          b.status === "UPCOMING" || b.status === "PENDING" || b.status === "CONFIRMED" || b.status === "SCHEDULED"
-                            ? styles.statusUpcoming
-                            : b.status === "COMPLETED"
-                              ? styles.statusCompleted
-                              : b.status === "ONGOING" || b.status === "IN PROGRESS"
-                                ? styles.statusOngoing
-                                : b.status === "UNASSIGNED"
-                                  ? styles.statusUnassigned
-                                  : styles.statusCanceled
-                        }
+                        className={(() => {
+                          const s = (b.status || "").toUpperCase();
+                          if (s === "TODAY") return styles.statusToday;
+                          if (s === "RESCHEDULED" || s === "RESCHEDULE") return styles.statusRescheduled;
+                          if (s === "CANCELED" || s === "CANCELLED") return styles.statusCanceled;
+                          if (s === "COMPLETED") return styles.statusCompleted;
+                          if (s === "ONGOING" || s === "IN PROGRESS" || s === "IN_PROGRESS") return styles.statusOngoing;
+                          if (s === "UNASSIGNED") return styles.statusUnassigned;
+                          return styles.statusUpcoming;
+                        })()}
                       >
                         {b.status}
                       </span>
@@ -1539,7 +1538,6 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             "Check-Out",
             "Print",
             // "Assign Groomer",
-            "Approve",
             "Update Payment status",
             "Generate Invoice"
           ].filter((action) => {

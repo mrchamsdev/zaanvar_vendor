@@ -144,7 +144,13 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
             if (selectedDateOnly > todayDateOnly) {
                 newErrors.transactionDate = "Amount paid date cannot be in the future";
             } else if (selectedDateOnly.getTime() === todayDateOnly.getTime() && addTimeOnTransactions && transactionTime) {
-                const [hours, minutes] = transactionTime.split(':').map(Number);
+                const timeStr = transactionTime.trim().toLowerCase();
+                const isPM = timeStr.includes('pm');
+                const isAM = timeStr.includes('am');
+                const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                let [hours, minutes] = cleanTime.split(':').map(Number);
+                if (isPM && hours < 12) hours += 12;
+                if (isAM && hours === 12) hours = 0;
                 const enteredDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
                 if (enteredDateTime > today) {
                     newErrors.transactionTime = "Amount paid time cannot be in the future";
@@ -179,15 +185,35 @@ const AddPaymentOut = ({ isOpen, onClose, onRefresh }) => {
 
         setLoading(true);
         try {
+            let normalizedTime24 = transactionTime;
+            let timeToSend;
+            if (addTimeOnTransactions && transactionTime) {
+                const timeStr = transactionTime.trim().toLowerCase();
+                const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                let [h, m] = cleanTime.split(':').map(Number);
+                if (!isNaN(h) && !isNaN(m)) {
+                    if (timeStr.includes('pm') && h < 12) h += 12;
+                    if (timeStr.includes('am') && h === 12) h = 0;
+                    normalizedTime24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    timeToSend = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+                } else {
+                    timeToSend = transactionTime;
+                }
+            }
+
             const payload = {
                 debitOrCredit: "Debit",
                 paymentFrom: "payment out",
                 branchId: branchId,
                 supplierId: Number(selectedSupplierId),
-                ...(addTimeOnTransactions && transactionTime
+                ...(timeToSend ? { time: timeToSend } : {}),
+                ...(addTimeOnTransactions && normalizedTime24
                     ? withTimeZone(
                           "userTransactionDate",
-                          new Date(`${transactionDate}T${transactionTime}:00`)
+                          new Date(`${transactionDate}T${normalizedTime24}:00`)
                       )
                     : dateOnlyWithTimeZone(
                           "userTransactionDate",

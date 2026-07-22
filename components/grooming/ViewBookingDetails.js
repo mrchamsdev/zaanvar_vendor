@@ -7,7 +7,6 @@ import { VENDOR_API_URL } from "../utilities/Constants";
 const menuActions = [
   "Edit", "Reschedule", "Cancel", "Check-In", "Check-Out", 
   "Print", // "Assign Groomer", 
-  "Approve", 
   "Update Payment status", "Generate Invoice"
 ];
 

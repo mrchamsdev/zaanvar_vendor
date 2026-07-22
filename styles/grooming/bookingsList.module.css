@@ -487,6 +487,20 @@
   display: inline-block;
 }
 
+.statusToday {
+  color: #0070f3; /* TODAY: Blue */
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-block;
+}
+
+.statusRescheduled {
+  color: #8a2be2; /* RESCHEDULED: Purple */
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-block;
+}
+
 .customerName {
   font-weight: 600;
   color: #333;

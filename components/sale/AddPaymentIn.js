@@ -245,7 +245,18 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     referenceNumber: isPayment ? (data.transactionRef || (data.paymentMethods && data.paymentMethods.find(pm => pm.transactionRef)?.transactionRef) || "") : (data.userOrderId || ""),
                     description: data.description || "",
                     image: data.paymentImg || data.transactionImg || data.image || null,
-                    userOrderId: data.userOrderId || (isPayment ? data.order?.userOrderId : "") || ""
+                    userOrderId: data.userOrderId || (isPayment ? data.order?.userOrderId : "") || "",
+                    time: (() => {
+                        const t = data.time;
+                        if (!t) return "";
+                        const cleaned = t.trim().toLowerCase().replace(/[a-z\s]/gi, '').replace(';', ':');
+                        let [h, m] = cleaned.split(':').map(Number);
+                        if (isNaN(h) || isNaN(m)) return "";
+                        const isPM = t.toLowerCase().includes('pm');
+                        if (isPM && h < 12) h += 12;
+                        if (!isPM && t.toLowerCase().includes('am') && h === 12) h = 0;
+                        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    })()
                 });
 
                 let hasWalletPayment = false;
@@ -254,7 +265,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                 if (data.paymentMethods && data.paymentMethods.length > 0) {
                     const nonWallet = [];
                     data.paymentMethods.forEach(pm => {
-                        const m = pm.paymentMethod || pm.method || "Cash";
+                        const m = pm.paymentMethod || pm.method || (cashSaleByDefault ? "Cash" : "");
                         if (m === "Wallet") {
                             hasWalletPayment = true;
                             walletPaidAmt = parseFloat(pm.amount || 0);
@@ -274,7 +285,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                         walletPaidAmt = parseFloat(amt);
                         setPayments([{ method: cashSaleByDefault ? "Cash" : "", amount: "", referenceNumber: "" }]);
                     } else {
-                        setPayments([{ method: data.paymentMethod || "Cash", amount: amt, referenceNumber: data.referenceNumber || data.transactionRef || "" }]);
+                        setPayments([{ method: data.paymentMethod || (cashSaleByDefault ? "Cash" : ""), amount: amt, referenceNumber: data.referenceNumber || data.transactionRef || "" }]);
                     }
                 }
                 setUseWallet(hasWalletPayment);
@@ -417,7 +428,13 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
             if (selectedDateOnly > todayDateOnly) {
                 newErrors.date = "Amount paid date cannot be in the future";
             } else if (selectedDateOnly.getTime() === todayDateOnly.getTime() && addTimeOnTransactions && formData.time) {
-                const [hours, minutes] = formData.time.split(':').map(Number);
+                const timeStr = formData.time.trim().toLowerCase();
+                const isPM = timeStr.includes('pm');
+                const isAM = timeStr.includes('am');
+                const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                let [hours, minutes] = cleanTime.split(':').map(Number);
+                if (isPM && hours < 12) hours += 12;
+                if (isAM && hours === 12) hours = 0;
                 const enteredDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
                 if (enteredDateTime > today) {
                     newErrors.time = "Amount paid time cannot be in the future";
@@ -454,6 +471,23 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
         setLoading(true);
         try {
             let res;
+            
+            let timeToSend;
+            if (addTimeOnTransactions && formData.time) {
+                const timeStr = formData.time.trim().toLowerCase();
+                const cleanTime = timeStr.replace(/[a-z\s]/gi, '').replace(';', ':');
+                let [h, m] = cleanTime.split(':').map(Number);
+                if (!isNaN(h) && !isNaN(m)) {
+                    if (timeStr.includes('pm') && h < 12) h += 12;
+                    if (timeStr.includes('am') && h === 12) h = 0;
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    timeToSend = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+                } else {
+                    timeToSend = formData.time;
+                }
+            }
+
             if (mode === 'edit' && paymentId) {
                 const validPayments = payments.filter(p => parseFloat(p.amount) > 0);
                 const paymentMethods = validPayments.map(p => ({
@@ -481,7 +515,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     description: formData.description,
                     paymentMethods,
                     userOrderId: linkedTxns.length > 0 ? null : (formData.userOrderId ? parseInt(formData.userOrderId) : null),
-                    ...(addTimeOnTransactions && formData.time ? { time: formData.time } : {}),
+                    ...(timeToSend ? { time: timeToSend } : {}),
                     ...(linkedTxns.length > 0 ? {
                         orders: linkedTxns.map(t => ({
                             userOrderId: Number(t.id || t.userOrderId),
@@ -518,7 +552,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                     description: formData.description,
                     paymentMethods,
                     userOrderId: linkedTxns.length > 0 ? null : (formData.userOrderId ? parseInt(formData.userOrderId) : null),
-                    ...(addTimeOnTransactions && formData.time ? { time: formData.time } : {}),
+                    ...(timeToSend ? { time: timeToSend } : {}),
                     ...(linkedTxns.length > 0 ? {
                         orders: linkedTxns.map(t => ({
                             userOrderId: Number(t.id || t.userOrderId),
@@ -966,6 +1000,7 @@ const AddPaymentIn = ({ isOpen, onClose, onRefresh, mode = 'add', paymentId, pre
                                         disabled={isViewOnly}
                                         style={{ marginTop: '2px' }}
                                     >
+                                        <option value="">Select Payment Type</option>
                                         <option value="Cash">Cash</option>
                                         <option value="UPI">UPI</option>
                                         <option value="Card">Card</option>
