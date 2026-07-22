@@ -100,7 +100,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-const TaxesGSTSettings = ({ settings, onChange }) => {
+const TaxesGSTSettings = ({ settings, onChange, addEdit = true, canDelete = true }) => {
   const g = settings;
   const { jwtToken } = useStore();
   const { branchId } = useDashboardData({ skipReviews: true });
@@ -400,6 +400,7 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
           <div className={styles.cardTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               Tax Rates
+              {addEdit && (
               <button
                 type="button"
                 onClick={handleOpenAddRate}
@@ -411,6 +412,7 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
               </button>
+              )}
             </div>
           </div>
 
@@ -425,12 +427,16 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontWeight: 600, fontSize: 13 }}>{rate.value}</span>
                   <div className={styles.listRowActions}>
+                    {addEdit && (
                     <div onClick={() => handleOpenEditRate(rate)} style={{ cursor: "pointer", display: "inline-flex" }}>
                       <EditIcon />
                     </div>
+                    )}
+                    {canDelete && (
                     <div onClick={() => confirmDeleteRate(rate)} style={{ cursor: "pointer", display: "inline-flex" }}>
                       <TrashIcon />
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -445,6 +451,7 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
           <div className={styles.cardTitle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               Tax Group
+              {addEdit && (
               <button
                 type="button"
                 onClick={handleOpenAddGroup}
@@ -456,6 +463,7 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
               </button>
+              )}
             </div>
             <button
               type="button"
@@ -481,12 +489,16 @@ const TaxesGSTSettings = ({ settings, onChange }) => {
                   <div className={styles.listRowSub}>{getGroupComponentText(group)}</div>
                 </div>
                 <div className={styles.listRowActions}>
+                  {addEdit && (
                   <div onClick={() => handleOpenEditGroup(group)} style={{ cursor: "pointer", display: "inline-flex" }}>
                     <EditIcon />
                   </div>
+                  )}
+                  {canDelete && (
                   <div onClick={() => confirmDeleteGroup(group)} style={{ cursor: "pointer", display: "inline-flex" }}>
                     <TrashIcon />
                   </div>
+                  )}
                 </div>
               </div>
             ))

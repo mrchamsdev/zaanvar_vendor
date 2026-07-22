@@ -2,10 +2,12 @@ import React from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import PaymentInList from "../../components/sale/PaymentInList";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import usePermissions from "../../components/utilities/usePermissions";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
 import AddPaymentIn from "../../components/sale/AddPaymentIn";
 import dashboardStyles from "../../styles/dashboard/dashboard.module.css";
+import useStore from "../../components/state/useStore";
 
 const PaymentInPage = () => {
     const router = useRouter();
@@ -14,6 +16,8 @@ const PaymentInPage = () => {
 
     const [isReady, setIsReady] = React.useState(false);
     const [isPdf, setIsPdf] = React.useState(false);
+
+    const { addEdit: hasAddAccess, noAccess } = usePermissions("Sale", "Payment In");
 
     React.useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -24,9 +28,6 @@ const PaymentInPage = () => {
             setIsReady(true);
         }
     }, []);
-
-        // Removed redundant branch effect that caused infinite loops
-
 
     const handleBranchChange = (e) => {
         router.push({
@@ -52,23 +53,25 @@ const PaymentInPage = () => {
 
     const customRight = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '20px' }}>
-            <button 
-                onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
-                style={{
-                    background: '#E93E64',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                <FiPlus /> Add Payment In
-            </button>
+            {hasAddAccess && (
+                <button 
+                    onClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
+                    style={{
+                        background: '#E93E64',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}
+                >
+                    <FiPlus /> Add Payment In
+                </button>
+            )}
             <FiSettings style={{ fontSize: '20px', color: '#666', cursor: 'pointer' }} />
         </div>
     );
@@ -78,6 +81,16 @@ const PaymentInPage = () => {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
                 Loading...
             </div>
+        );
+    }
+
+    if (noAccess) {
+        return (
+            <DashboardLayout customTopbarLeft={customLeft}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', background: '#fff', fontSize: '18px', color: '#666' }}>
+                    You do not have permission to view this page.
+                </div>
+            </DashboardLayout>
         );
     }
 
@@ -100,6 +113,7 @@ const PaymentInPage = () => {
             customTopbarRight={customRight}
         >
             <PaymentInList 
+                hasAddAccess={hasAddAccess}
                 onAddClick={() => router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true })}
             />
             

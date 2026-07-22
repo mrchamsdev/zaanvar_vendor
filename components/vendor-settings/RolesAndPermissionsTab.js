@@ -3,7 +3,7 @@ import AddRolesPermission from "../settings/add-roles-permission";
 import { getRoles } from "../../services/rolesService";
 import useDashboardData from "../dashboard/useDashboardData";
 
-const RolesAndPermissionsTab = () => {
+const RolesAndPermissionsTab = ({ addEdit = true, canDelete = true }) => {
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState("add");
   const [roles, setRoles] = useState([]);
@@ -28,12 +28,14 @@ const RolesAndPermissionsTab = () => {
     <div style={{ padding: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Roles & Permissions</h2>
+        {addEdit && (
         <button 
           onClick={() => { setMode("add"); setSelectedRole(null); setShowModal(true); }}
           style={{ background: '#d81b60', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
         >
           + Add New Role
         </button>
+        )}
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #eaeaea', borderRadius: '8px', padding: '16px' }}>
@@ -57,12 +59,14 @@ const RolesAndPermissionsTab = () => {
                   >
                     View
                   </span>
+                  {addEdit && (
                   <span 
                     onClick={() => { setSelectedRole(role); setMode("edit"); setShowModal(true); }}
                     style={{ color: '#d81b60', cursor: 'pointer' }}
                   >
                     Edit
                   </span>
+                  )}
                 </td>
               </tr>
             ))}

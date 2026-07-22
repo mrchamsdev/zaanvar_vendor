@@ -299,7 +299,7 @@ import PrintInvoiceTemplate from "../shared/PrintInvoiceTemplate";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
-const SalesInvoiceList = ({ onAddClick }) => {
+const SalesInvoiceList = ({ onAddClick, hasAddAccess = true }) => {
     const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
@@ -861,8 +861,8 @@ const SalesInvoiceList = ({ onAddClick }) => {
                     <Loader message="Loading Invoices..." />
                 ) : invoices.length === 0 ? (
                     <EmptyState
-                        buttonText="Add Sale Invoice"
-                        onAddClick={onAddClick}
+                        buttonText={hasAddAccess ? "Add Sale Invoice" : undefined}
+                        onAddClick={hasAddAccess ? onAddClick : undefined}
                     />
                 ) : (
                     <div className={styles.tableContainer}>

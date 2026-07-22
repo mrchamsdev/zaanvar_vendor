@@ -177,6 +177,7 @@ const CustomersPage = () => {
               onBack={() => setManagerConfig(null)}
               isSplit={false}
               onEdit={() => openManager("Edit", managerConfig.data)}
+              addEdit={addEdit}
             />
           </div>
         ) : (

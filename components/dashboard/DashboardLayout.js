@@ -366,9 +366,14 @@ const DashboardLayout = ({
     if (isSuperAdmin || !userRole) return true; // superadmin or no role data yet = full access
     const perms = userRole.permissions || [];
     if (serviceName) {
-      const normalizedService = serviceName.trim().toLowerCase();
+      let normalizedService = serviceName.trim().toLowerCase();
+      // Handle mapping from menu label to permission serviceName
+      if (normalizedService === "sales invoice") normalizedService = "sale invoice";
+      if (normalizedService === "sales return") normalizedService = "sale return";
+
       const perm = perms.find(
-        p => p.module === moduleName && (p.serviceName || "").trim().toLowerCase() === normalizedService
+        p => p.module.trim().toLowerCase() === moduleName.trim().toLowerCase() && 
+             (p.serviceName || "").trim().toLowerCase() === normalizedService
       );
       if (!perm) return true; // not listed = not restricted
       return !perm.noAccess;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import VendorSettingsLayout from "../../components/vendor-settings/VendorSettingsLayout";
+import VendorSettingsLayout, { TABS } from "../../components/vendor-settings/VendorSettingsLayout";
 import GeneralSettings from "../../components/vendor-settings/GeneralSettings";
 import TransactionSettings from "../../components/vendor-settings/TransactionSettings";
 import TaxesGSTSettings from "../../components/vendor-settings/TaxesGSTSettings";
@@ -22,6 +22,7 @@ import {
 } from "../../services/settingsService";
 import useStore from "../../components/state/useStore";
 import useDashboardData from "../../components/dashboard/useDashboardData";
+import usePermissions from "../../components/utilities/usePermissions";
 
 export default function VendorSettingsPage() {
   const router = useRouter();
@@ -30,6 +31,9 @@ export default function VendorSettingsPage() {
 
   /* ── Active tab from URL query ── */
   const activeTab = (router.query.tab || "General");
+  const tabConfig = TABS.find(t => t.key === activeTab);
+  const serviceName = tabConfig ? tabConfig.label : "";
+  const { addEdit, canDelete } = usePermissions("Settings", serviceName);
 
   // When URL carries ?branchId=X, wait until the hook has synced to that
   // branch before we treat branchId as ready — prevents stale-branch flicker.
@@ -178,6 +182,8 @@ export default function VendorSettingsPage() {
           <TaxesGSTSettings
             settings={settings.tax || {}}
             onChange={updateSection("tax")}
+            addEdit={addEdit}
+            canDelete={canDelete}
           />
         );
       case "TransactionMessage":
@@ -192,6 +198,8 @@ export default function VendorSettingsPage() {
           <SupplierCustomerSettings
             settings={settings.party}
             onChange={updateSection("party")}
+            addEdit={addEdit}
+            canDelete={canDelete}
           />
         );
       case "ItemSettings":
@@ -199,16 +207,18 @@ export default function VendorSettingsPage() {
           <ItemSettings
             settings={settings.item}
             onChange={updateSection("item")}
+            addEdit={addEdit}
+            canDelete={canDelete}
           />
         );
       case "ServicesPackages":
-        return <ServicesPackagesSettings setTopbarActions={setTopbarActions} />;
+        return <ServicesPackagesSettings setTopbarActions={setTopbarActions} addEdit={addEdit} canDelete={canDelete} />;
       case "RoomsCapacity":
-        return <RoomsCapacitySettings setTopbarActions={setTopbarActions} isAddingRoom={isAddingRoom} setIsAddingRoom={setIsAddingRoom} />;
+        return <RoomsCapacitySettings setTopbarActions={setTopbarActions} isAddingRoom={isAddingRoom} setIsAddingRoom={setIsAddingRoom} addEdit={addEdit} canDelete={canDelete} />;
       case "RolesAndPermissions":
-        return <RolesAndPermissionsTab />;
+        return <RolesAndPermissionsTab addEdit={addEdit} canDelete={canDelete} />;
       case "ProfileSettings":
-        return <ProfileSettings />;
+        return <ProfileSettings addEdit={addEdit} canDelete={canDelete} />;
 
       default:
         return (
@@ -234,7 +244,7 @@ export default function VendorSettingsPage() {
     <DashboardLayout
       customTopbarRight={topbarActions ? (
         <div className={roomsCapacityStyles.flexTopbarGroup}>
-          {activeTab === "ServicesPackages" && (
+          {activeTab === "ServicesPackages" && addEdit && (
             <>
               <button 
                 onClick={topbarActions.onAddServiceOrPackage}
@@ -244,7 +254,7 @@ export default function VendorSettingsPage() {
               </button>
             </>
           )}
-          {activeTab === "RoomsCapacity" && (
+          {activeTab === "RoomsCapacity" && addEdit && (
             <button 
               onClick={topbarActions.onAddRooms}
               className={roomsCapacityStyles.btnPinkTopbar}

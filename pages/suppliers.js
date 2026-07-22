@@ -12,6 +12,7 @@ import ConfirmationModal from "../components/inventory/confirmation-modal";
 import useDashboardData from "../components/dashboard/useDashboardData";
 import { useRouter } from "next/router";
 import { FiX } from "react-icons/fi";
+import usePermissions from "../components/utilities/usePermissions";
 
 const IconPlus = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -32,6 +33,8 @@ const SuppliersPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [managerTrigger, setManagerTrigger] = useState(0);
   const [errorPopupMessage, setErrorPopupMessage] = useState(null);
+
+  const { view, addEdit, canDelete, noAccess } = usePermissions("Supplier", "");
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -159,14 +162,21 @@ const SuppliersPage = () => {
     <DashboardLayout
       customTopbarLeft={customLeft}
       customTopbarRight={(
-        <button
-          className={styles.addBtn}
-          onClick={() => openManager("Add", null)}
-        >
-          <IconPlus /> Add Supplier
-        </button>
+        addEdit ? (
+          <button
+            className={styles.addBtn}
+            onClick={() => openManager("Add", null)}
+          >
+            <IconPlus /> Add Supplier
+          </button>
+        ) : null
       )}
     >
+      {noAccess ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', background: '#fff', fontSize: '18px', color: '#666' }}>
+            You do not have permission to view this page.
+        </div>
+      ) : (
       <div className={styles.container}>
         <div className={styles.topSection}>
           <div className={styles.statusTabsRow}>
@@ -242,7 +252,9 @@ const SuppliersPage = () => {
             }
             setShowDeleteConfirm(true);
           }}
-          onAddClick={() => openManager("Add", null)}
+          onAddClick={addEdit ? () => openManager("Add", null) : null}
+          addEdit={addEdit}
+          canDelete={canDelete}
         />
 
         {managerConfig && (
@@ -250,6 +262,8 @@ const SuppliersPage = () => {
             mode={managerConfig.mode}
             initialData={managerConfig.data}
             trigger={managerTrigger}
+            addEdit={addEdit}
+            canDelete={canDelete}
             onClose={() => {
               setManagerConfig(null);
               fetchSuppliers();
@@ -361,6 +375,7 @@ const SuppliersPage = () => {
           </div>
         )}
       </div>
+      )}
     </DashboardLayout>
   );
 };

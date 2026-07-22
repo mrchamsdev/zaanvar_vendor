@@ -25,7 +25,7 @@ const IconX = () => (
   </svg>
 );
 
-const SupplierFormManager = ({ onClose, mode = "Add", initialData, trigger }) => {
+const SupplierFormManager = ({ onClose, mode = "Add", initialData, trigger, addEdit = true, canDelete = true }) => {
   const [tabs, setTabs] = useState([]);
 
   const [activeTabId, setActiveTabId] = useState(null);
@@ -251,6 +251,8 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
                       }
                     }} 
                     isSplit={splitMode} 
+                    addEdit={addEdit}
+                    canDelete={canDelete}
                   />
                 ) : (
                   <SupplierForm 
@@ -286,6 +288,8 @@ const SupplierFormManager = ({ onClose, mode = "Add", initialData, trigger }) =>
                     data={tab.data} 
                     onBack={() => setSplitTabIds([splitTabIds[0], null])} 
                     isSplit={splitMode} 
+                    addEdit={addEdit}
+                    canDelete={canDelete}
                   />
                 ) : (
                   <SupplierForm 

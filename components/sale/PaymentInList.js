@@ -330,7 +330,7 @@ import Loader from "../utilities/Loader";
 import useCurrencySymbol from "@/components/utilities/useCurrencySymbol";
 import { getAmountDecimalPlaces } from "../utilities/formatAmount";
 
-const PaymentInList = ({ onAddClick }) => {
+const PaymentInList = ({ onAddClick, hasAddAccess = true }) => {
     const currencySymbol = useCurrencySymbol();
 
     const router = useRouter();
@@ -979,8 +979,8 @@ const PaymentInList = ({ onAddClick }) => {
                 <Loader message="Loading Payments..." />
             ) : payments.length === 0 ? (
                 <EmptyState
-                    buttonText="Add Payment In"
-                    onAddClick={onAddClick}
+                    buttonText={hasAddAccess ? "Add Payment In" : undefined}
+                    onAddClick={hasAddAccess ? onAddClick : undefined}
                 />
             ) : (
                 <div className={styles.tableContainer}>
@@ -1187,7 +1187,9 @@ const PaymentInList = ({ onAddClick }) => {
                                                             {activeDropdown === idx && (
                                                                 <div className={styles.dropdownMenu}>
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, view: 'true', id: p.paymentId } }); }}>View</div>
-                                                                    <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
+                                                                    {hasAddAccess && (
+                                                                        <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); router.push({ query: { ...router.query, edit: 'true', id: p.paymentId } }); }}>Edit</div>
+                                                                    )}
                                                                     <div className={styles.dropdownItem} onClick={() => { setActiveDropdown(null); window.open(`${window.location.pathname}?view=true&id=${p.paymentId}&pdf=true`, '_blank'); }}>Open PDF</div>
 
                                                                     <div className={styles.dropdownItem} onClick={() => {

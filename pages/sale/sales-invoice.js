@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import SalesInvoiceList from "../../components/sale/SalesInvoiceList";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
+import usePermissions from "../../components/utilities/usePermissions";
 import { FiPlus, FiSettings } from "react-icons/fi";
 import { useRouter } from "next/router";
 import SaleInvoiceManager from "../../components/sale/SaleInvoiceManager";
@@ -18,15 +19,7 @@ const SalesInvoicePage = () => {
     const [isPdf, setIsPdf] = React.useState(false);
     const [managerTrigger, setManagerTrigger] = React.useState(0);
 
-    const { rolesData } = useStore();
-    const hasAddAccess = React.useMemo(() => {
-        if (!rolesData) return true;
-        const module = rolesData.find(m => m.module === "Sale");
-        if (!module) return true;
-        const service = module.services.find(s => s.serviceName === "Sale Invoice");
-        if (!service) return true;
-        return service.addEdit !== false;
-    }, [rolesData]);
+    const { addEdit: hasAddAccess, noAccess } = usePermissions("Sale", "Sale Invoice");
 
     React.useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -68,6 +61,16 @@ const SalesInvoicePage = () => {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff', fontSize: '16px', color: '#666' }}>
                 Loading...
             </div>
+        );
+    }
+
+    if (noAccess) {
+        return (
+            <DashboardLayout customTopbarLeft={customLeft}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', background: '#fff', fontSize: '18px', color: '#666' }}>
+                    You do not have permission to view this page.
+                </div>
+            </DashboardLayout>
         );
     }
 
@@ -117,6 +120,7 @@ const SalesInvoicePage = () => {
             customTopbarRight={customRight}
         >
             <SalesInvoiceList
+                hasAddAccess={hasAddAccess}
                 onAddClick={() => {
                     setManagerTrigger(prev => prev + 1);
                     router.push({ pathname: router.pathname, query: { ...router.query, add: 'true' } }, undefined, { shallow: true });
@@ -128,6 +132,7 @@ const SalesInvoicePage = () => {
                 mode={router.query.add === 'true' ? 'add' : (router.query.view === 'true' ? 'view' : 'edit')}
                 saleId={router.query.id}
                 trigger={managerTrigger}
+                hasAddAccess={hasAddAccess}
                 onClose={() => {
                     if (router.query.returnUrl) {
                         router.push(router.query.returnUrl);
