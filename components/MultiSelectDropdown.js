@@ -18,7 +18,9 @@ const MultiSelectDropdown = ({
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef(null);
 
-  const safeSelectedIds = Array.isArray(selectedIds) ? selectedIds : [];
+  const safeSelectedIds = (Array.isArray(selectedIds) ? selectedIds : []).map(
+    id => (typeof id === "object" && id !== null ? (id.id || id.serviceId || id.name || String(id)) : id)
+  );
 
   // Handle selection toggle
   const handleSelect = (id) => {
@@ -76,10 +78,12 @@ const MultiSelectDropdown = ({
         <div className={styles["selected-items"]}>
           {safeSelectedIds.length > 0 ? (
             safeSelectedIds.map((id) => {
-              const item = listItems.find((li) => li.id === id);
+              const item = listItems.find((li) => String(li.id) === String(id));
+              const displayName = item ? (typeof item.name === 'object' ? String(item.name.name || item.name) : String(item.name)) : String(id);
+              const keyStr = String(id);
               return (
-                <div key={id} className={isSingleSelect ? "" : styles["chip"]} style={isSingleSelect ? { color: "#121212", fontSize: "14px" } : {}}>
-                  {item?.name}
+                <div key={keyStr} className={isSingleSelect ? "" : styles["chip"]} style={isSingleSelect ? { color: "#121212", fontSize: "14px" } : {}}>
+                  {displayName}
                   {!isSingleSelect && (
                     <span
                       onClick={(e) => {
@@ -136,15 +140,17 @@ const MultiSelectDropdown = ({
           )}
           {/* Selected Items */}
           {safeSelectedIds.map((id) => {
-            const item = filteredList.find((li) => li.id === id);
+            const item = filteredList.find((li) => String(li.id) === String(id));
             if (item) {
+              const keyStr = String(id);
+              const displayName = typeof item.name === 'object' ? String(item.name.name || item.name) : String(item.name);
               return (
                 <div
-                  key={id}
+                  key={keyStr}
                   className={`${styles["dropdown-item"]} ${styles["selected"]}`}
                   onClick={() => handleSelect(id)}
                 >
-                  {!isSingleSelect && <input type="checkbox" checked readOnly />} {item.name}
+                  {!isSingleSelect && <input type="checkbox" checked readOnly />} {displayName}
                 </div>
               );
             }
@@ -154,14 +160,16 @@ const MultiSelectDropdown = ({
           {/* Remaining Items */}
           {filteredList.map((item) => {
             if (!safeSelectedIds.includes(item.id)) {
+              const keyStr = String(item.id);
+              const displayName = typeof item.name === 'object' ? String(item.name.name || item.name) : String(item.name);
               return (
                 <div
-                  key={item.id}
+                  key={keyStr}
                   className={styles["dropdown-item"]}
                   onClick={() => handleSelect(item.id)}
                 >
                   {!isSingleSelect && <input type="checkbox" checked={safeSelectedIds.includes(item.id)} readOnly />}{" "}
-                  {item.name}
+                  {displayName}
                 </div>
               );
             }

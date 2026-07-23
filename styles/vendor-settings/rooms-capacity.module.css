@@ -710,6 +710,14 @@
   grid-template-columns: 3fr 1.2fr 1.5fr 1.5fr 1.5fr 80px;
 }
 
+.gridDaycareRoomsOn {
+  grid-template-columns: 2.5fr 1.4fr 1.2fr 1.3fr 1.5fr 80px;
+}
+
+.gridDaycareRoomsOff {
+  grid-template-columns: 2.2fr 1.3fr 1.1fr 1.2fr 1.4fr 1.2fr 80px;
+}
+
 .addRoomFormEl {
   display: flex;
   flex-direction: column;

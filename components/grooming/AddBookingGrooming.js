@@ -6,6 +6,8 @@ import { customerService } from "../../services/customerService";
 import useStore from "../state/useStore";
 import { VENDOR_API_URL } from "../utilities/Constants";
 import MultiSelectDropdown from "../MultiSelectDropdown";
+import { getSettings } from "../../services/settingsService";
+import useCurrencySymbol from "../utilities/useCurrencySymbol";
 
 // Removed mockCustomers, using dynamic fetching
 
@@ -23,6 +25,7 @@ const timeSlots = [
 ];
 
 const AddBookingGrooming = ({ bookingId, onClose }) => {
+  const currencySymbol = useCurrencySymbol();
   const [activeTab, setActiveTab] = useState("Basic Details");
   const [bookingDetails, setBookingDetails] = useState(null);
   const [customerType, setCustomerType] = useState("Existed"); // 'Existed' or 'New'
@@ -42,23 +45,43 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const [newPetDetails, setNewPetDetails] = useState({ petName: '', breed: '', petType: '', petGender: '', age: '', size: '', ageType: 'approx', years: '', months: '', dateOfBirth: '' });
   const [newPetImageFile, setNewPetImageFile] = useState(null);
   const [isSavingPet, setIsSavingPet] = useState(false);
+  const [configuredRooms, setConfiguredRooms] = useState([]);
 
   useEffect(() => {
     if (selectedBranchId) {
-      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=services`)
+      const headers = jwtToken ? { "Authorization": `Bearer ${jwtToken}` } : {};
+
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=services`, { headers })
         .then(res => res.json())
         .then(data => {
-          if (data.status === "success" && data.data && data.data.services) {
-            setAvailableServices(data.data.services.filter(s => s.id));
+          const list = data.data?.services || (Array.isArray(data.data) ? data.data : (data.services || []));
+          if (list && list.length > 0) {
+            setAvailableServices(list.map((s, idx) => {
+              const nameStr = Array.isArray(s.serviceName) ? s.serviceName.join(", ") : (s.serviceName || s.name || s.otherServiceName || `Service ${idx + 1}`);
+              return {
+                ...s,
+                id: String(s.id || s._id || s.serviceId || nameStr),
+                serviceName: nameStr,
+                price: Number(s.price || s.priceMin || s.priceMax) || 0
+              };
+            }));
+          } else {
+            setAvailableServices([]);
           }
         })
         .catch(err => console.error("Error fetching services:", err));
 
-      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=packages`)
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=packages`, { headers })
         .then(res => res.json())
         .then(data => {
-          if (data.status === "success" && data.data && data.data.packages) {
-            setAvailablePackages(data.data.packages.filter(p => p.id));
+          const list = data.data?.packages || (Array.isArray(data.data) ? data.data : (data.packages || []));
+          if (list && list.length > 0) {
+            setAvailablePackages(list.map((p, idx) => ({
+              ...p,
+              id: String(p.id || p._id || p.packageId || p.packageName || p.name || `pkg_${idx}`)
+            })));
+          } else {
+            setAvailablePackages([]);
           }
         })
         .catch(err => console.error("Error fetching packages:", err));
@@ -72,8 +95,18 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
           }
         })
         .catch(err => console.error("Error fetching staff:", err));
+
+      if (jwtToken) {
+        getSettings(jwtToken, selectedBranchId)
+          .then(res => {
+            const settingsData = res?.data?.settings || res?.settings || {};
+            const daycareRooms = settingsData?.roomsAndCapacity?.daycare?.rooms || [];
+            setConfiguredRooms(daycareRooms);
+          })
+          .catch(err => console.error("Error fetching settings rooms:", err));
+      }
     }
-  }, [selectedBranchId]);
+  }, [selectedBranchId, jwtToken]);
 
   useEffect(() => {
     if (jwtToken) {
@@ -132,7 +165,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
       const registerPetDetails = (pet, app, type) => {
         const petProfile = pet.petProfile || {};
-        const pId = pet.customerPetId || petProfile.petId;
+        const pId = pet.customerPetId || petProfile.petId || petProfile.id || pet.id;
+        if (!pId) return;
 
         // Add to fetched pets if not already present
         if (!fetchedPets.some(p => p.id === pId)) {
@@ -174,12 +208,16 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             const hr12 = hr % 12 || 12;
             return `${String(hr12).padStart(2, '0')}:${m} ${ampm}`;
           };
+          const existingBuffer = details[pId].bufferTime;
+          const newBuffer = (pet.bufferMinutes !== undefined && pet.bufferMinutes !== null && Number(pet.bufferMinutes) > 0)
+            ? String(pet.bufferMinutes)
+            : (existingBuffer && existingBuffer !== "0" ? existingBuffer : "0");
           const displaySlotTime = app.startTime && app.endTime ? `${formatTime(app.startTime)} - ${formatTime(app.endTime)}` : "";
 
           Object.assign(details[pId], {
             groomingType: srv.serviceType === "Package" ? "Package" : (srv.serviceType === "Subscription" ? "Subscription" : "Services"),
             selectedPackage: srv.selectedPackage || "",
-            selectedServices: srv.selectedServices || [],
+            selectedServices: (srv.selectedServices || []).map(s => typeof s === 'object' && s !== null ? String(s.id || s.serviceId || s.name) : String(s)),
             assignedGroomer: app.groomerID || "",
             appointmentDate: app.appointmentDate || "",
             selectedSlotId: app.slotId || "",
@@ -189,7 +227,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             unassigned: app.isUnassigned || false,
             hours: String(hours),
             minutes: String(minutes),
-            bufferTime: String(pet.bufferMinutes !== undefined && pet.bufferMinutes !== null ? pet.bufferMinutes : 0),
+            bufferTime: newBuffer,
             petConditionNotes: pet.petConditionNotes || "Mild skin allergies."
           });
         } else if (type === "Clinic") {
@@ -206,16 +244,32 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             clinicSymptoms: app.symptoms || ""
           });
         } else if (type === "Day Care") {
+          const dcDateObj = app.dates?.[0] || {};
+          const format12Time = (timeStr) => {
+            if (!timeStr) return "09:00 AM";
+            const parts = timeStr.split(":");
+            let hr = parseInt(parts[0]);
+            const ampm = hr >= 12 ? "PM" : "AM";
+            hr = hr % 12 || 12;
+            return `${String(hr).padStart(2, "0")}:${parts[1] || "00"} ${ampm}`;
+          };
+
+          const checkin12 = format12Time(dcDateObj.checkInTime || app.checkinTime);
+          const checkout12 = format12Time(dcDateObj.checkOutTime || app.checkoutTime);
+          const isFoodYes = app.foodProviding === true || app.foodProviding === "Yes" || app.foodProviding === "true";
+          const fetchedAddonNames = (b.addons || []).map(a => a.addonName || a.name || a.addonServiceType).filter(Boolean);
+
           Object.assign(details[pId], {
-            daycareDate: app.appointmentDate || "",
-            daycareCheckin: app.checkinTime || "00:00",
-            daycareCheckout: app.checkoutTime || "00:00",
-            daycareFood: app.foodProviding || "",
-            daycareRoom: app.assignedRoom || "",
-            daycareRate: String(app.roomRate || ""),
-            daycareAddonServiceType: app.addonServiceType || "",
+            daycareDate: dcDateObj.date || app.appointmentDate || "",
+            daycareCheckin: checkin12,
+            daycareCheckout: checkout12,
+            daycareFood: isFoodYes ? "Yes" : "No",
+            daycareRoom: dcDateObj.assignedRoom || app.assignedRoom || "",
+            daycareRate: String(dcDateObj.roomRate || app.roomRate || ""),
+            daycareAddonServiceType: app.addonServiceType || "Daycare",
             daycareAddonName: app.addonName || "",
-            daycareAddonQty: String(app.addonQty || "")
+            daycareAddonSelected: fetchedAddonNames.length > 0 ? fetchedAddonNames : (app.addonName ? [app.addonName] : []),
+            daycareAddonQty: String(fetchedAddonNames.length || app.addonQty || "0")
           });
         }
       };
@@ -236,8 +290,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
       setTaxToggled(parseFloat(b.taxAmount) > 0);
       if (parseFloat(b.subTotal) > 0) {
         setTaxPercentInput(String(Math.round(parseFloat(b.taxAmount) / parseFloat(b.subTotal) * 100)));
-        setDiscountPercentInput(String(Math.round(parseFloat(b.discountAmount) / parseFloat(b.subTotal) * 100)));
       }
+      setDiscountPercentInput(b.discountAmount ? String(Math.round(parseFloat(b.discountAmount))) : "");
       setDiscountToggled(parseFloat(b.discountAmount) > 0);
       setPaidAmount(String(Math.round(parseFloat(b.paidAmount))));
       setRoundOffToggled(true);
@@ -251,7 +305,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const [taxToggled, setTaxToggled] = useState(false);
   const [discountToggled, setDiscountToggled] = useState(false);
   const [taxPercentInput, setTaxPercentInput] = useState("0");
-  const [discountPercentInput, setDiscountPercentInput] = useState("0");
+  const [discountPercentInput, setDiscountPercentInput] = useState("");
   const [roundOffToggled, setRoundOffToggled] = useState(false);
   const [paidAmount, setPaidAmount] = useState("0");
 
@@ -332,6 +386,52 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
     });
   };
 
+  const handleServicesChange = (petId, serviceIds) => {
+    const ids = serviceIds || [];
+    const selectedServicesData = availableServices.filter(s =>
+      ids.some(id => String(id) === String(s.id || s._id || s.serviceId || s.serviceName))
+    );
+
+    let totalDuration = selectedServicesData.reduce((sum, s) => {
+      const d = Number(s.duration || s.durationMinutes || s.timeTaken || 60) || 60;
+      return sum + d;
+    }, 0);
+
+    if (totalDuration === 0 && ids.length > 0) {
+      totalDuration = ids.length * 60;
+    }
+
+    const calculatedHours = ids.length > 0 ? String(Math.floor(totalDuration / 60)) : "";
+    const calculatedMinutes = ids.length > 0 ? String(totalDuration % 60) : "";
+
+    const hasApiBufferTime = selectedServicesData.some(s => s.bufferTime !== undefined && s.bufferTime !== null && s.bufferTime !== "");
+    const apiBufferTime = hasApiBufferTime ? String(selectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || 0), 0)) : "";
+
+    setPetServiceDetails(prev => {
+      const currentState = prev[petId] || {
+        assignedGroomer: "",
+        unassigned: false,
+        selectedTime: "",
+        groomingType: "Services",
+        selectedServices: [],
+        serviceType: [],
+        hours: "",
+        minutes: "",
+        bufferTime: ""
+      };
+      return {
+        ...prev,
+        [petId]: {
+          ...currentState,
+          selectedServices: ids,
+          hours: calculatedHours,
+          minutes: calculatedMinutes,
+          bufferTime: hasApiBufferTime ? apiBufferTime : (currentState.bufferTime || "0")
+        }
+      };
+    });
+  };
+
   const convertTimeTo24h = (timeStr) => {
     if (!timeStr) return "10:00:00";
     const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
@@ -360,6 +460,45 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
       }
     }
   }, [taxToggled, discountToggled, petServiceDetails, selectedPets, availableServices]);
+
+  useEffect(() => {
+    if (availableServices.length > 0 && selectedPets.length > 0) {
+      setPetServiceDetails(prev => {
+        let updated = false;
+        const nextState = { ...prev };
+        selectedPets.forEach((pet, idx) => {
+          const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+          const petState = nextState[petId];
+          if (petState && petState.selectedServices && petState.selectedServices.length > 0) {
+            const selectedServicesData = availableServices.filter(s =>
+              petState.selectedServices.some(id => String(id) === String(s.id || s._id || s.serviceId || s.serviceName))
+            );
+            if (selectedServicesData.length > 0) {
+              let totalDuration = selectedServicesData.reduce((sum, s) => {
+                const d = Number(s.duration || s.durationMinutes || s.timeTaken || 60) || 60;
+                return sum + d;
+              }, 0);
+              const calculatedHours = String(Math.floor(totalDuration / 60));
+              const calculatedMinutes = String(totalDuration % 60);
+              const calculatedServiceBuffer = String(selectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || Number(s.bufferMinutes) || 0), 0));
+              const finalBuffer = (petState.bufferTime && petState.bufferTime !== "0") ? petState.bufferTime : calculatedServiceBuffer;
+
+              if (petState.hours !== calculatedHours || petState.minutes !== calculatedMinutes || petState.bufferTime !== finalBuffer) {
+                nextState[petId] = {
+                  ...petState,
+                  hours: calculatedHours,
+                  minutes: calculatedMinutes,
+                  bufferTime: finalBuffer
+                };
+                updated = true;
+              }
+            }
+          }
+        });
+        return updated ? nextState : prev;
+      });
+    }
+  }, [availableServices, selectedPets]);
 
 
   useEffect(() => {
@@ -429,41 +568,6 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
     });
   };
 
-  const handleServicesChange = (petId, ids) => {
-    const selectedServicesData = availableServices.filter(s => ids.includes(s.id));
-    const totalDuration = selectedServicesData.reduce((sum, s) => sum + (Number(s.duration) || 0), 0);
-
-    const calculatedHours = Math.floor(totalDuration / 60);
-    const calculatedMinutes = totalDuration % 60;
-
-    const hasApiBufferTime = selectedServicesData.some(s => s.bufferTime !== undefined && s.bufferTime !== null && s.bufferTime !== "");
-    const apiBufferTime = hasApiBufferTime ? selectedServicesData.reduce((sum, s) => sum + (Number(s.bufferTime) || 0), 0) : "";
-
-    setPetServiceDetails(prev => {
-      const currentState = prev[petId] || {
-        assignedGroomer: "",
-        unassigned: false,
-        selectedTime: "",
-        groomingType: "Services",
-        selectedServices: [],
-        serviceType: [],
-        hours: "",
-        minutes: "",
-        bufferTime: ""
-      };
-
-      return {
-        ...prev,
-        [petId]: {
-          ...currentState,
-          selectedServices: ids,
-          hours: totalDuration > 0 ? calculatedHours : "",
-          minutes: totalDuration > 0 ? calculatedMinutes : "",
-          bufferTime: hasApiBufferTime ? apiBufferTime : (currentState.bufferTime || "0")
-        }
-      };
-    });
-  };
 
   const handleNext = async () => {
     if (activeTab === "Basic Details") {
@@ -525,10 +629,16 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         const pState = petServiceDetails[pId] || {};
         const isGrooming = !pState.serviceType || pState.serviceType.length === 0 || pState.serviceType.includes("Grooming");
         if (!isGrooming) return false;
-        if (!pState.selectedSlotId) return true;
+        if (!pState.selectedSlotId && !pState.startTime && !pState.selectedTime) return true;
         const slots = petSlotsData[pId]?.slots || [];
-        const slot = slots.find(s => String(s.slotID) === String(pState.selectedSlotId));
-        if (slot && slot.status === 'Full') return true;
+        const slot = slots.find(s =>
+          (pState.selectedSlotId && String(s.slotID) === String(pState.selectedSlotId)) ||
+          (pState.startTime && s.startTime && s.startTime.substring(0, 5) === pState.startTime.substring(0, 5))
+        );
+        const isOwnSlot = (slot && pState.selectedSlotId && String(slot.slotID) === String(pState.selectedSlotId)) ||
+                          (slot && pState.startTime && slot.startTime && slot.startTime.substring(0, 5) === pState.startTime.substring(0, 5)) ||
+                          !!bookingDetails;
+        if (slot && slot.status === 'Full' && !isOwnSlot) return true;
         return false;
       });
       if (invalidPet) {
@@ -587,6 +697,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
           }));
 
           const petBasePrice = servicesWithDetails.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+          const durationInMinutes = (parseInt(petState.hours || 0) * 60) + parseInt(petState.minutes || 0);
+          const bufferInMinutes = parseInt(petState.bufferTime || 0);
 
           const petEntry = {
             petName: pet.petName || pet.rawDetails?.petName || "",
@@ -595,6 +707,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             gender: pet.gender || pet.petGender || pet.rawDetails?.petGender || "Male",
             petSize: pet.size || pet.rawDetails?.size || "Medium",
             approximateAge: pet.approximateAge || pet.age || pet.rawDetails?.age || "1Y 0M",
+            durationMinutes: durationInMinutes > 0 ? durationInMinutes : 60,
+            bufferMinutes: bufferInMinutes,
             services: {
               serviceType: petState.groomingType === "Package" ? "Package" : "Individual",
               selectedServices: selectedServicesObjects,
@@ -641,44 +755,109 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
           const daycarePets = finalSelectedPets.filter((pet, idx) => {
             const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
             const petState = petServiceDetails[petId] || {};
-            return petState.serviceType && petState.serviceType.includes("Day Care");
+            return petState.serviceType && (petState.serviceType.includes("Day Care") || petState.serviceType.includes("DayCare"));
           });
           if (daycarePets.length === 0) return undefined;
 
           const petNames = daycarePets.map(p => p.petName || p.rawDetails?.petName || "");
           const firstDaycareState = petServiceDetails[daycarePets[0].id || daycarePets[0].vendorCustomerPetId || daycarePets[0].petId || 0] || {};
 
+          const format24 = (timeStr) => {
+            if (!timeStr) return "09:00:00";
+            if (timeStr.includes("AM") || timeStr.includes("PM")) {
+              return convertTimeTo24h(timeStr);
+            }
+            return timeStr;
+          };
+
+          const datesArray = [
+            {
+              date: firstDaycareState.daycareDate || firstPetState.appointmentDate || getTodayDateString(),
+              checkInTime: format24(firstDaycareState.daycareCheckin || "09:00 AM"),
+              checkOutTime: format24(firstDaycareState.daycareCheckout || "06:00 PM"),
+              assignedRoom: firstDaycareState.daycareRoom || "Standard Room 01",
+              roomRate: parseFloat(firstDaycareState.daycareRate) || 1500.00
+            }
+          ];
+
+          const addonsArray = [];
+          daycarePets.forEach(pet => {
+            const pId = pet.id || pet.vendorCustomerPetId || pet.petId;
+            const pState = petServiceDetails[pId] || {};
+            const selectedAddonIds = pState.daycareAddonSelected || [];
+            selectedAddonIds.forEach(id => {
+              const foundSrv = availableServices.find(s => String(s.id) === String(id));
+              const addonName = foundSrv ? (Array.isArray(foundSrv.serviceName) ? foundSrv.serviceName.join(", ") : (foundSrv.serviceName || foundSrv.name)) : String(id);
+              const addonPrice = foundSrv ? (Number(foundSrv.price) || 0) : 250;
+              const addonCat = foundSrv ? (foundSrv.category || foundSrv.serviceCategory || foundSrv.type || "") : "";
+              addonsArray.push({
+                serviceType: addonCat.toLowerCase().includes("grooming") ? "Grooming" : "DayCare",
+                addonName: addonName,
+                price: addonPrice,
+                quantity: 1
+              });
+            });
+          });
+
+          const isFoodProvided = firstDaycareState.daycareFood === "Yes" || firstDaycareState.daycareFood === true;
+
           return {
-            foodProviding: firstDaycareState.daycareFood === "Yes" || true,
-            instructions: "Daycare stay for pets",
+            foodProviding: isFoodProvided,
+            instructions: firstDaycareState.instructions || "Daycare stay for pets",
             pets: petNames,
-            dates: [
-              {
-                date: firstDaycareState.daycareDate || firstPetState.appointmentDate || "2026-07-22",
-                checkInTime: firstDaycareState.daycareCheckin || "11:00:00",
-                checkOutTime: firstDaycareState.daycareCheckout || "18:00:00",
-                assignedRoom: firstDaycareState.daycareRoom || "Standard Room 01",
-                roomRate: parseFloat(firstDaycareState.daycareRate) || 1500.00
-              }
-            ],
-            addons: []
+            dates: datesArray,
+            addons: addonsArray
           };
         };
+
+        const buildGroomingEntries = () => {
+          const entries = [];
+          finalSelectedPets.forEach((pet, idx) => {
+            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const petState = petServiceDetails[petId] || {};
+            const isGrooming = !petState.serviceType || petState.serviceType.length === 0 || petState.serviceType.includes("Grooming");
+
+            if (isGrooming) {
+              const petEntry = buildGroomingPetEntry(pet, idx);
+              entries.push({
+                slotId: petState.selectedSlotId ? parseInt(petState.selectedSlotId) : undefined,
+                groomerID: petState.assignedGroomer ? parseInt(petState.assignedGroomer) : 145,
+                appointmentDate: petState.appointmentDate || getTodayDateString(),
+                startTime: petState.startTime || "09:00:00",
+                endTime: petState.endTime || "10:00:00",
+                agreementType: "Grooming",
+                pets: [petEntry]
+              });
+            }
+          });
+          return entries;
+        };
+
+        const clinicEntries = buildClinicEntries();
+        const daycareObj = buildDaycareObject();
+        const groomingEntries = buildGroomingEntries();
+
+        const formattedServiceType = (() => {
+          const types = activeServiceTypes.map(t => (t === "Day Care" || t === "DayCare") ? "DayCare" : t);
+          return types.length === 1 ? types[0] : types;
+        })();
+
+        const petsArray = finalSelectedPets.map(pet => ({
+          petName: pet.petName || pet.rawDetails?.petName || "",
+          petType: pet.petType || pet.rawDetails?.petType || "Dog",
+          breed: pet.breed || pet.rawDetails?.breed || "",
+          gender: pet.gender || pet.petGender || pet.rawDetails?.petGender || "Male",
+          petSize: pet.size || pet.rawDetails?.size || "Medium",
+          approximateAge: pet.approximateAge || pet.age || pet.rawDetails?.age || "1Y 0M",
+          ...(pet.id && !String(pet.id).startsWith("temp_") ? { customerPetId: pet.id } : {})
+        }));
 
         let payload;
         if (bookingId) {
           payload = {
             status: "Booked",
             paymentStatus: paymentStatus,
-            grooming: [{
-              slotId: parseInt(firstPetState.selectedSlotId),
-              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 145,
-              appointmentDate: firstPetState.appointmentDate,
-              startTime: firstPetState.startTime || "09:00:00",
-              endTime: firstPetState.endTime || "10:00:00",
-              agreementType: "Grooming",
-              pets: finalSelectedPets.map((pet, idx) => buildGroomingPetEntry(pet, idx))
-            }],
+            grooming: groomingEntries,
             subTotal: baseTotal,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
@@ -686,14 +865,17 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             paidAmount: parsedPaidAmount,
             paymentMethod: "Cash"
           };
+          if (clinicEntries.length > 0) payload.clinic = clinicEntries;
+          if (daycareObj) payload.daycare = daycareObj;
         } else {
           payload = {
             branchId: parseInt(selectedBranchId),
-            serviceType: activeServiceTypes,
+            serviceType: formattedServiceType,
             bookingSource: "Walk-in",
             bookingMode: firstPetState.bookingMode || "AtStore",
             notes: firstPetState.notes || "Booking appointment",
             createdBy: 1,
+            pets: petsArray,
             subTotal: baseTotal,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
@@ -714,30 +896,20 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             payload.customerId = actualCustomerId;
           }
 
-          if (activeServiceTypes.includes("Grooming")) {
-            payload.grooming = [{
-              slotId: parseInt(firstPetState.selectedSlotId),
-              groomerID: firstPetState.assignedGroomer ? parseInt(firstPetState.assignedGroomer) : 145,
-              appointmentDate: firstPetState.appointmentDate,
-              startTime: firstPetState.startTime || "09:00:00",
-              endTime: firstPetState.endTime || "10:00:00",
-              agreementType: "Grooming",
-              pets: finalSelectedPets.map((pet, idx) => buildGroomingPetEntry(pet, idx))
-            }];
+          if (groomingEntries.length > 0) {
+            payload.grooming = groomingEntries;
           }
 
-          const clinicEntries = buildClinicEntries();
           if (clinicEntries.length > 0) {
             payload.clinic = clinicEntries;
           }
 
-          const daycareObj = buildDaycareObject();
           if (daycareObj) {
             payload.daycare = daycareObj;
           }
         }
 
-                const url = bookingId
+        const url = bookingId
           ? `${VENDOR_API_URL}vendor/grooming-booking/bookings/${bookingId}`
           : `${VENDOR_API_URL}vendor/grooming-booking/bookings`;
         const method = bookingId ? "PUT" : "POST";
@@ -910,15 +1082,15 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>First Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter your first name here" value={newCustomerDetails.firstName} onChange={e => setNewCustomerDetails({...newCustomerDetails, firstName: e.target.value})} />
+                      <input type="text" className={styles.input} placeholder="Enter your first name here" value={newCustomerDetails.firstName} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, firstName: e.target.value })} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Last Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter your last name here" value={newCustomerDetails.lastName} onChange={e => setNewCustomerDetails({...newCustomerDetails, lastName: e.target.value})} />
+                      <input type="text" className={styles.input} placeholder="Enter your last name here" value={newCustomerDetails.lastName} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, lastName: e.target.value })} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Gender</label>
-                      <select className={styles.select} value={newCustomerDetails.gender || ""} onChange={e => setNewCustomerDetails({...newCustomerDetails, gender: e.target.value})}>
+                      <select className={styles.select} value={newCustomerDetails.gender || ""} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, gender: e.target.value })}>
                         <option value="">Select Your Gender here</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -926,11 +1098,11 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Mobile Number</label>
-                      <input type="text" className={styles.input} placeholder="Enter your number here" value={newCustomerDetails.mobileNumber} onChange={e => setNewCustomerDetails({...newCustomerDetails, mobileNumber: e.target.value})} />
+                      <input type="text" className={styles.input} placeholder="Enter your number here" value={newCustomerDetails.mobileNumber} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, mobileNumber: e.target.value })} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Email Id <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
-                      <input type="email" className={styles.input} placeholder="Enter your id here" value={newCustomerDetails.email} onChange={e => setNewCustomerDetails({...newCustomerDetails, email: e.target.value})} />
+                      <input type="email" className={styles.input} placeholder="Enter your id here" value={newCustomerDetails.email} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, email: e.target.value })} />
                     </div>
                   </div>
                 )}
@@ -1023,11 +1195,11 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Name</label>
-                      <input type="text" className={styles.input} placeholder="Enter pet name" value={newPetDetails.petName} onChange={e => setNewPetDetails({...newPetDetails, petName: e.target.value})} />
+                      <input type="text" className={styles.input} placeholder="Enter pet name" value={newPetDetails.petName} onChange={e => setNewPetDetails({ ...newPetDetails, petName: e.target.value })} />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Type</label>
-                      <select className={styles.select} value={newPetDetails.petType} onChange={e => setNewPetDetails({...newPetDetails, petType: e.target.value, breed: ''})}>
+                      <select className={styles.select} value={newPetDetails.petType} onChange={e => setNewPetDetails({ ...newPetDetails, petType: e.target.value, breed: '' })}>
                         <option value="">Choose pet type</option>
                         <option value="Dog">Dog</option>
                         <option value="Cat">Cat</option>
@@ -1038,7 +1210,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Breed</label>
-                      <select className={styles.select} value={newPetDetails.breed} onChange={e => setNewPetDetails({...newPetDetails, breed: e.target.value})}>
+                      <select className={styles.select} value={newPetDetails.breed} onChange={e => setNewPetDetails({ ...newPetDetails, breed: e.target.value })}>
                         <option value="">Choose pet breed</option>
                         {newPetDetails.petType === 'Dog' && (<>
                           <option value="Golden Retriever">Golden Retriever</option>
@@ -1079,7 +1251,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Gender</label>
-                      <select className={styles.select} value={newPetDetails.petGender} onChange={e => setNewPetDetails({...newPetDetails, petGender: e.target.value})}>
+                      <select className={styles.select} value={newPetDetails.petGender} onChange={e => setNewPetDetails({ ...newPetDetails, petGender: e.target.value })}>
                         <option value="">Choose pet gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -1087,7 +1259,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Pet Size</label>
-                      <select className={styles.select} value={newPetDetails.size} onChange={e => setNewPetDetails({...newPetDetails, size: e.target.value})}>
+                      <select className={styles.select} value={newPetDetails.size} onChange={e => setNewPetDetails({ ...newPetDetails, size: e.target.value })}>
                         <option value="">Choose pet size</option>
                         <option value="Toy">Toy</option>
                         <option value="Small">Small</option>
@@ -1103,29 +1275,29 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     <label className={styles.label} style={{ display: 'block', marginBottom: '0.75rem' }}>Pet Age</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                        <input type="radio" checked={newPetDetails.ageType === 'approx'} onChange={() => setNewPetDetails({...newPetDetails, ageType: 'approx'})} />
+                        <input type="radio" checked={newPetDetails.ageType === 'approx'} onChange={() => setNewPetDetails({ ...newPetDetails, ageType: 'approx' })} />
                         Approximate Age
                       </label>
                       {newPetDetails.ageType === 'approx' && (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
                           <div>
                             <label className={styles.label}>Years</label>
-                            <input type="number" min="0" className={styles.input} placeholder="0" value={newPetDetails.years} onChange={e => setNewPetDetails({...newPetDetails, years: e.target.value, age: `${e.target.value || 0}Y ${newPetDetails.months || 0}M`})} />
+                            <input type="number" min="0" className={styles.input} placeholder="0" value={newPetDetails.years} onChange={e => setNewPetDetails({ ...newPetDetails, years: e.target.value, age: `${e.target.value || 0}Y ${newPetDetails.months || 0}M` })} />
                           </div>
                           <div>
                             <label className={styles.label}>Months</label>
-                            <input type="number" min="0" max="11" className={styles.input} placeholder="0" value={newPetDetails.months} onChange={e => setNewPetDetails({...newPetDetails, months: e.target.value, age: `${newPetDetails.years || 0}Y ${e.target.value || 0}M`})} />
+                            <input type="number" min="0" max="11" className={styles.input} placeholder="0" value={newPetDetails.months} onChange={e => setNewPetDetails({ ...newPetDetails, months: e.target.value, age: `${newPetDetails.years || 0}Y ${e.target.value || 0}M` })} />
                           </div>
                         </div>
                       )}
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
-                        <input type="radio" checked={newPetDetails.ageType === 'exact'} onChange={() => setNewPetDetails({...newPetDetails, ageType: 'exact'})} />
+                        <input type="radio" checked={newPetDetails.ageType === 'exact'} onChange={() => setNewPetDetails({ ...newPetDetails, ageType: 'exact' })} />
                         Exact Age
                       </label>
                       {newPetDetails.ageType === 'exact' && (
                         <div style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', maxWidth: '300px' }}>
                           <label className={styles.label}>Date of Birth</label>
-                          <input type="date" className={styles.input} value={newPetDetails.dateOfBirth} onChange={e => setNewPetDetails({...newPetDetails, dateOfBirth: e.target.value, age: e.target.value})} />
+                          <input type="date" className={styles.input} value={newPetDetails.dateOfBirth} onChange={e => setNewPetDetails({ ...newPetDetails, dateOfBirth: e.target.value, age: e.target.value })} />
                         </div>
                       )}
                     </div>
@@ -1199,7 +1371,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                     updatePetState(petId, 'unassigned', false);
                                   }}
                                 >
-                                  <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={32} height={32} className={styles.avatar} alt="Avatar" />
+                                  <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" unoptimized width={32} height={32} className={styles.avatar} alt="Avatar" />
                                   {g.staffName}
                                 </div>
                               )) : <div style={{ color: '#888', fontSize: '14px', fontStyle: 'italic' }}>No groomers found for this branch.</div>}
@@ -1229,12 +1401,18 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   const d = new Date();
                                   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                                 })()}
-                                max={(() => {
-                                  const d = new Date();
-                                  d.setDate(d.getDate() + 6);
-                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                                })()}
-                                onChange={(e) => updatePetState(petId, 'appointmentDate', e.target.value)}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const todayStr = (() => {
+                                    const d = new Date();
+                                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                  })();
+                                  if (val && val < todayStr) {
+                                    toast.error("Past dates are not allowed for appointment date");
+                                    return;
+                                  }
+                                  updatePetState(petId, 'appointmentDate', val);
+                                }}
                               />
                             </div>
                           </div>
@@ -1248,31 +1426,38 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   const isPM = parseInt(h) >= 12;
                                   const displayH = (parseInt(h) % 12) || 12;
                                   const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
-                                  const isFull = slot.status === 'Full';
+
+                                  const isOwnBookedSlot = (slot.slotID && petState.selectedSlotId && String(slot.slotID) === String(petState.selectedSlotId)) ||
+                                                        (petState.startTime && slot.startTime && petState.startTime.substring(0, 5) === slot.startTime.substring(0, 5)) ||
+                                                        (petState.selectedTime && formattedTime && petState.selectedTime === formattedTime);
+                                  const isFull = (slot.status === 'Full' || slot.bookedCount >= slot.capacity) && !isOwnBookedSlot;
+                                  const isSelected = isOwnBookedSlot;
 
                                   // Check if selected by another pet in this session
                                   const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
                                     const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
-                                    if (otherPetId === petId) return false;
-                                    const otherState = petServiceDetails[otherPetId];
+                                    if (String(otherPetId) === String(petId)) return false;
+                                    const otherState = petServiceDetails[otherPetId] || petServiceDetails[String(otherPetId)] || petServiceDetails[otherIdx];
                                     if (!otherState) return false;
                                     return otherState.appointmentDate === petState.appointmentDate &&
                                       String(otherState.assignedGroomer) === String(petState.assignedGroomer) &&
                                       !otherState.unassigned &&
-                                      (slot.slotID && otherState.selectedSlotId ? String(otherState.selectedSlotId) === String(slot.slotID) : otherState.startTime === slot.startTime);
+                                      (
+                                        (slot.slotID && otherState.selectedSlotId ? String(otherState.selectedSlotId) === String(slot.slotID) : false) ||
+                                        (otherState.startTime && slot.startTime ? otherState.startTime.substring(0, 5) === slot.startTime.substring(0, 5) : false) ||
+                                        (otherState.selectedTime && formattedTime ? otherState.selectedTime === formattedTime : false)
+                                      );
                                   });
 
                                   let buttonStyle = {};
-                                  if (isFull) {
-                                    buttonStyle = { borderColor: 'red', color: 'red', background: '#ffe6e6', cursor: 'not-allowed' };
-                                  } else if (isOccupiedByOther) {
-                                    buttonStyle = { borderColor: '#dcdcdc', color: '#888', background: '#f0f0f0', cursor: 'not-allowed' };
+                                  if (!isSelected && (isFull || isOccupiedByOther)) {
+                                    buttonStyle = { borderColor: '#d1d5db', color: '#6b7280', backgroundColor: '#e5e7eb', cursor: 'not-allowed' };
                                   }
 
                                   return (
                                     <button
                                       key={slot.slotID}
-                                      className={`${styles.timeBtn} ${petState.selectedTime === formattedTime ? styles.timeBtnActive : ""}`}
+                                      className={`${styles.timeBtn} ${isSelected ? styles.timeBtnActive : ""}`}
                                       style={buttonStyle}
                                       disabled={isFull || isOccupiedByOther}
                                       onClick={() => {
@@ -1295,24 +1480,26 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   // Check if selected by another pet in this session
                                   const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
                                     const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
-                                    if (otherPetId === petId) return false;
-                                    const otherState = petServiceDetails[otherPetId];
+                                    if (String(otherPetId) === String(petId)) return false;
+                                    const otherState = petServiceDetails[otherPetId] || petServiceDetails[String(otherPetId)] || petServiceDetails[otherIdx];
                                     if (!otherState) return false;
                                     return otherState.appointmentDate === petState.appointmentDate &&
                                       String(otherState.assignedGroomer) === String(petState.assignedGroomer) &&
                                       !otherState.unassigned &&
-                                      otherState.startTime === startTime;
+                                      (otherState.startTime === startTime || otherState.selectedTime === time);
                                   });
 
+                                  const isSelected = petState.selectedTime === time || (petState.startTime && startTime && petState.startTime.substring(0, 5) === startTime.substring(0, 5));
+
                                   let buttonStyle = {};
-                                  if (isOccupiedByOther) {
-                                    buttonStyle = { borderColor: '#dcdcdc', color: '#888', background: '#f0f0f0', cursor: 'not-allowed' };
+                                  if (!isSelected && isOccupiedByOther) {
+                                    buttonStyle = { borderColor: '#d1d5db', color: '#6b7280', backgroundColor: '#e5e7eb', cursor: 'not-allowed' };
                                   }
 
                                   return (
                                     <button
                                       key={time}
-                                      className={`${styles.timeBtn} ${petState.selectedTime === time ? styles.timeBtnActive : ""}`}
+                                      className={`${styles.timeBtn} ${isSelected ? styles.timeBtnActive : ""}`}
                                       style={buttonStyle}
                                       disabled={isOccupiedByOther}
                                       onClick={() => {
@@ -1351,71 +1538,92 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                               </label>
                             </div>
 
-                            {petState.groomingType === "Services" && (
-                              <div className={styles.formGroup} style={{ maxWidth: '650px' }}>
-                                <label className={styles.label}>Grooming Services <span style={{ color: '#888', fontSize: '0.75rem' }}>(Multiple Selections)</span></label>
-                                <MultiSelectDropdown
-                                  heading="Choose your services here"
-                                  listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                                  selectedIds={petState.selectedServices || []}
-                                  setSelectedIds={(ids) => handleServicesChange(petId, ids)}
-                                />
-                              </div>
-                            )}
-                            {petState.groomingType === "Package" && (
-                              <div className={styles.formGrid}>
-                                <div className={styles.formGroup}>
-                                  <label className={styles.label}>Grooming Packages</label>
-                                  <select
-                                    className={styles.select}
-                                    value={petState.selectedPackage || ""}
-                                    onChange={(e) => handlePackageChange(petId, e.target.value)}
-                                  >
-                                    <option value="">Choose here</option>
-                                    {availablePackages.map(pkg => (
-                                      <option key={pkg.id} value={pkg.id}>
-                                        {pkg.serviceName || pkg.packageName} (Ã¢â€šÂ¹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className={styles.formGroup}>
-                                  <MultiSelectDropdown
-                                    heading="Choose your services here"
-                                    listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                                    selectedIds={petState.selectedServices || []}
-                                    setSelectedIds={(ids) => handleServicesChange(petId, ids)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                            {petState.groomingType === "Subscription" && (
-                              <div className={styles.formGrid}>
-                                <div className={styles.formGroup}>
-                                  <label className={styles.label}>Grooming Packages</label>
-                                  <select
-                                    className={styles.select}
-                                    value={petState.selectedPackage || ""}
-                                    onChange={(e) => handlePackageChange(petId, e.target.value)}
-                                  >
-                                    <option value="">Choose here</option>
-                                    {availablePackages.map(pkg => (
-                                      <option key={pkg.id} value={pkg.id}>
-                                        {pkg.serviceName || pkg.packageName} (Ã¢â€šÂ¹ {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className={styles.formGroup}>
-                                  <MultiSelectDropdown
-                                    heading="Choose your services here"
-                                    listItems={availableServices.map(s => ({ id: s.id, name: Array.isArray(s.serviceName) ? s.serviceName.join(", ") : s.serviceName }))}
-                                    selectedIds={petState.selectedServices || []}
-                                    setSelectedIds={(ids) => handleServicesChange(petId, ids)}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                            {(() => {
+                              const groomingServicesList = availableServices.filter(s => {
+                                const cat = (s.category || s.serviceCategory || s.type || "").toLowerCase();
+                                return !cat || cat === "grooming" || cat === "grooming services";
+                              });
+
+                              const servicesForDropdown = groomingServicesList.map(s => {
+                                const nameStr = Array.isArray(s.serviceName) ? s.serviceName.join(", ") : (s.serviceName || s.name || "Service");
+                                return {
+                                  id: String(s.id || s._id || s.serviceId || nameStr),
+                                  name: nameStr
+                                };
+                              });
+
+                              const packagesForDropdown = availablePackages;
+
+                              return (
+                                <>
+                                  {petState.groomingType === "Services" && (
+                                    <div className={styles.formGroup} style={{ maxWidth: '650px' }}>
+                                      <label className={styles.label}>Grooming Services <span style={{ color: '#888', fontSize: '0.75rem' }}>(Multiple Selections)</span></label>
+                                      <MultiSelectDropdown
+                                        heading="Choose your services here"
+                                        listItems={servicesForDropdown}
+                                        selectedIds={petState.selectedServices || []}
+                                        setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                      />
+                                    </div>
+                                  )}
+                                  {petState.groomingType === "Package" && (
+                                    <div className={styles.formGrid}>
+                                      <div className={styles.formGroup}>
+                                        <label className={styles.label}>Grooming Packages</label>
+                                        <select
+                                          className={styles.select}
+                                          value={petState.selectedPackage || ""}
+                                          onChange={(e) => handlePackageChange(petId, e.target.value)}
+                                        >
+                                          <option value="">Choose here</option>
+                                          {packagesForDropdown.map(pkg => (
+                                            <option key={pkg.id} value={pkg.id}>
+                                              {pkg.serviceName || pkg.packageName} ({currencySymbol} {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className={styles.formGroup}>
+                                        <MultiSelectDropdown
+                                          heading="Choose your services here"
+                                          listItems={servicesForDropdown}
+                                          selectedIds={petState.selectedServices || []}
+                                          setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {petState.groomingType === "Subscription" && (
+                                    <div className={styles.formGrid}>
+                                      <div className={styles.formGroup}>
+                                        <label className={styles.label}>Grooming Packages</label>
+                                        <select
+                                          className={styles.select}
+                                          value={petState.selectedPackage || ""}
+                                          onChange={(e) => handlePackageChange(petId, e.target.value)}
+                                        >
+                                          <option value="">Choose here</option>
+                                          {packagesForDropdown.map(pkg => (
+                                            <option key={pkg.id} value={pkg.id}>
+                                              {pkg.serviceName || pkg.packageName} ({currencySymbol} {pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price})
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className={styles.formGroup}>
+                                        <MultiSelectDropdown
+                                          heading="Choose your services here"
+                                          listItems={servicesForDropdown}
+                                          selectedIds={petState.selectedServices || []}
+                                          setSelectedIds={(ids) => handleServicesChange(petId, ids)}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
 
                           <div>
@@ -1449,28 +1657,18 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                               </div>
                               <div className={styles.formGroup}>
                                 <label className={styles.label}>Add Buffer for extra time required</label>
-                                {petHasApiBufferTime ? (
-                                  <input
-                                    type="text"
-                                    className={styles.input}
-                                    value={`${petApiBufferTime} minutes`}
-                                    readOnly
-                                    style={{ backgroundColor: '#f5f6fa', cursor: 'not-allowed' }}
-                                  />
-                                ) : (
-                                  <input
-                                    type="text"
-                                    className={styles.input}
-                                    placeholder="Enter Mins here"
-                                    value={petState.bufferTime || ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (/^\d*$/.test(val)) {
-                                        updatePetState(petId, 'bufferTime', val);
-                                      }
-                                    }}
-                                  />
-                                )}
+                                <input
+                                  type="text"
+                                  className={styles.input}
+                                  placeholder="Enter Mins here"
+                                  value={petState.bufferTime !== undefined && petState.bufferTime !== null ? String(petState.bufferTime) : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (/^\d*$/.test(val)) {
+                                      updatePetState(petId, 'bufferTime', val);
+                                    }
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -1525,7 +1723,22 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 type="date"
                                 className={styles.input}
                                 value={petState.clinicAppointmentDate || ""}
-                                onChange={(e) => updatePetState(petId, 'clinicAppointmentDate', e.target.value)}
+                                min={(() => {
+                                  const d = new Date();
+                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                })()}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const todayStr = (() => {
+                                    const d = new Date();
+                                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                  })();
+                                  if (val && val < todayStr) {
+                                    toast.error("Past dates are not allowed for appointment date");
+                                    return;
+                                  }
+                                  updatePetState(petId, 'clinicAppointmentDate', val);
+                                }}
                               />
                             </div>
                             <div className={styles.formGroup}>
@@ -1674,10 +1887,25 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 type="date"
                                 className={styles.input}
                                 value={petState.daycareDate || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareDate', e.target.value)}
+                                min={(() => {
+                                  const d = new Date();
+                                  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                })()}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const todayStr = (() => {
+                                    const d = new Date();
+                                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                  })();
+                                  if (val && val < todayStr) {
+                                    toast.error("Past dates are not allowed for appointment date");
+                                    return;
+                                  }
+                                  updatePetState(petId, 'daycareDate', val);
+                                }}
                               />
                             </div>
-                             <div className={styles.formGroup}>
+                            <div className={styles.formGroup}>
                               <label className={styles.label}>Check In Time</label>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <select
@@ -1736,51 +1964,89 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                           </div>
                           <div style={{ color: '#e9315d', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginBottom: '2rem', textDecoration: 'underline' }}>+ Add more</div>
 
-                          <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '15px', fontWeight: '600', color: '#555' }}>Room Allocation</h4>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-end' }}>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Food Providing</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareFood || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareFood', e.target.value)}
-                              >
-                                <option value="">Select food</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                              </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Assigned Room</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareRoom || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareRoom', e.target.value)}
-                              >
-                                <option value="">Select here</option>
-                                <option value="Room A">Room A</option>
-                                <option value="Room B">Room B</option>
-                              </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Room Rate</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareRate || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareRate', e.target.value)}
-                              >
-                                <option value="">Select rate</option>
-                                <option value="500">Ã¢â€šÂ¹ 500 / day</option>
-                                <option value="1000">Ã¢â€šÂ¹ 1000 / day</option>
-                              </select>
-                            </div>
-                            <button
-                              className={styles.iconBtn}
-                              style={{ height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                          </div>
+                          {(() => {
+                            const daycareConfiguredRooms = configuredRooms.length > 0
+                              ? configuredRooms
+                              : (useStore.getState()?.vendorSettings?.roomsAndCapacity?.daycare?.rooms || []);
+
+                            return (
+                              <>
+                                <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '15px', fontWeight: '600', color: '#555' }}>Room Allocation</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-end' }}>
+                                  <div className={styles.formGroup}>
+                                    <label className={styles.label}>Assigned Room</label>
+                                    <select
+                                      className={styles.select}
+                                      value={petState.daycareRoom || ""}
+                                      onChange={(e) => {
+                                        const selectedRoomName = e.target.value;
+                                        updatePetState(petId, 'daycareRoom', selectedRoomName);
+
+                                        const matchedRoom = daycareConfiguredRooms.find(
+                                          r => (r.roomName || r.name) === selectedRoomName
+                                        );
+
+                                        if (matchedRoom) {
+                                          const isFoodYes = matchedRoom.foodProvided === true || matchedRoom.foodProvided === "Yes" || matchedRoom.foodProvided === "true";
+                                          updatePetState(petId, 'daycareFood', isFoodYes ? "Yes" : "No");
+
+                                          if (matchedRoom.price !== undefined && matchedRoom.price !== null) {
+                                            updatePetState(petId, 'daycareRate', String(matchedRoom.price));
+                                          }
+                                        }
+                                      }}
+                                    >
+                                      <option value="">Select here</option>
+                                      {daycareConfiguredRooms.length > 0 ? (
+                                        daycareConfiguredRooms.map((r, idx) => {
+                                          const roomLabel = r.roomName || r.name || `Room ${idx + 1}`;
+                                          return (
+                                            <option key={r.id || idx} value={roomLabel}>
+                                              {roomLabel}
+                                            </option>
+                                          );
+                                        })
+                                      ) : (
+                                        <>
+                                          <option value="Room A">Room A</option>
+                                          <option value="Room B">Room B</option>
+                                        </>
+                                      )}
+                                    </select>
+                                  </div>
+                                  <div className={styles.formGroup}>
+                                    <label className={styles.label}>Food Providing</label>
+                                    <select
+                                      className={styles.select}
+                                      value={petState.daycareFood || ""}
+                                      disabled
+                                      style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed', color: '#333' }}
+                                    >
+                                      <option value="">Select food</option>
+                                      <option value="Yes">Yes</option>
+                                      <option value="No">No</option>
+                                    </select>
+                                  </div>
+                                  <div className={styles.formGroup}>
+                                    <label className={styles.label}>Room Rate</label>
+                                    <input
+                                      type="text"
+                                      className={styles.input}
+                                      placeholder="Enter rate"
+                                      value={petState.daycareRate || ""}
+                                      onChange={(e) => updatePetState(petId, 'daycareRate', e.target.value)}
+                                    />
+                                  </div>
+                                  <button
+                                    className={styles.iconBtn}
+                                    style={{ height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
+                                  </button>
+                                </div>
+                              </>
+                            );
+                          })()}
 
                           <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '15px', fontWeight: '600', color: '#555' }}>Addon's</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '1rem', alignItems: 'flex-end' }}>
@@ -1788,36 +2054,67 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                               <label className={styles.label}>Service Type</label>
                               <select
                                 className={styles.select}
-                                value={petState.daycareAddonServiceType || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareAddonServiceType', e.target.value)}
+                                value="Daycare"
+                                onChange={(e) => {
+                                  updatePetState(petId, 'daycareAddonServiceType', "Daycare");
+                                }}
                               >
-                                <option value="">Select here</option>
-                                <option value="Grooming">Grooming</option>
+                                <option value="Daycare">Daycare</option>
                               </select>
                             </div>
                             <div className={styles.formGroup}>
-                              <label className={styles.label}>Addon's</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareAddonName || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareAddonName', e.target.value)}
-                              >
-                                <option value="">Select here</option>
-                                <option value="Nail Trim">Nail Trim</option>
-                                <option value="Bath">Bath</option>
-                              </select>
+                              {(() => {
+                                const daycareCategoryServices = availableServices.filter(s => {
+                                  const cat = (s.category || s.serviceCategory || s.type || "").toLowerCase();
+                                  return cat === "daycare" || cat === "day care";
+                                });
+                                const defaultDaycareAddons = [
+                                  { id: "Extra Meal / Food", name: "Extra Meal / Food" },
+                                  { id: "Dog Walking (30 mins)", name: "Dog Walking (30 mins)" },
+                                  { id: "Medication Admin", name: "Medication Admin" },
+                                  { id: "Swimming Session", name: "Swimming Session" },
+                                  { id: "Playtime & Socialization", name: "Playtime & Socialization" },
+                                  { id: "Special Treat / Snack", name: "Special Treat / Snack" },
+                                  { id: "De-shedding Treatment", name: "De-shedding Treatment" },
+                                  { id: "Fur Brushing", name: "Fur Brushing" },
+                                  { id: "Tick & Flea Treatment", name: "Tick & Flea Treatment" }
+                                ];
+                                const baseList = daycareCategoryServices.length > 0
+                                  ? daycareCategoryServices.map(s => ({ id: s.id || s.serviceName || s.name, name: s.serviceName || s.name }))
+                                  : defaultDaycareAddons;
+
+                                const selectedAddonNames = petState.daycareAddonSelected || [];
+                                const extraAddonItems = selectedAddonNames.map(n => ({ id: n, name: n }));
+
+                                const addonListItems = [...baseList];
+                                extraAddonItems.forEach(item => {
+                                  if (!addonListItems.some(x => String(x.id) === String(item.id))) {
+                                    addonListItems.push(item);
+                                  }
+                                });
+
+                                return (
+                                  <MultiSelectDropdown
+                                    heading="Addon's"
+                                    listItems={addonListItems}
+                                    selectedIds={petState.daycareAddonSelected || []}
+                                    setSelectedIds={(ids) => {
+                                      updatePetState(petId, 'daycareAddonSelected', ids);
+                                      updatePetState(petId, 'daycareAddonQty', String(ids.length));
+                                    }}
+                                  />
+                                );
+                              })()}
                             </div>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Quantity</label>
-                              <select
-                                className={styles.select}
-                                value={petState.daycareAddonQty || ""}
-                                onChange={(e) => updatePetState(petId, 'daycareAddonQty', e.target.value)}
-                              >
-                                <option value="">Select quantity</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                              </select>
+                              <input
+                                type="text"
+                                className={styles.input}
+                                value={String((petState.daycareAddonSelected || []).length)}
+                                readOnly
+                                style={{ backgroundColor: '#f9fafb', cursor: 'default', textAlign: 'center' }}
+                              />
                             </div>
                             <button
                               className={styles.iconBtn}
@@ -1838,30 +2135,101 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         )}
 
         {activeTab === "Service Agreement" && (() => {
-          const selectedServicesList = getSelectedServicesWithDetails();
-          const baseTotal = selectedServicesList.reduce((sum, item) => sum + item.price, 0);
+          const getTodayDateString = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          };
+
+          let baseTotal = 0;
+
+          const petSummaryList = (selectedPets.length > 0 ? selectedPets : [{ petName: 'VICTORIA' }]).map((pet, idx) => {
+            const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+            const petState = petServiceDetails[petId] || {};
+            const serviceTypes = (petState.serviceType && petState.serviceType.length > 0) ? petState.serviceType : ["Grooming"];
+
+            let petGroomingTotal = 0;
+            let petClinicTotal = 0;
+            let petDaycareTotal = 0;
+
+            const groomingServices = [];
+            if (serviceTypes.includes("Grooming")) {
+              if (petState.groomingType === "Package" && petState.selectedPackage) {
+                const pkg = availablePackages.find(p => p.id === petState.selectedPackage);
+                if (pkg) {
+                  const price = Number(pkg.discountPrice !== undefined && pkg.discountPrice !== null ? pkg.discountPrice : pkg.price) || 0;
+                  groomingServices.push({ serviceName: pkg.serviceName || pkg.packageName || "Package", price });
+                  petGroomingTotal += price;
+                }
+              }
+              if (petState.selectedServices) {
+                petState.selectedServices.forEach(sId => {
+                  const service = availableServices.find(s => s.id === sId);
+                  if (service) {
+                    const pkg = petState.selectedPackage ? availablePackages.find(p => p.id === petState.selectedPackage) : null;
+                    const isIncludedInPkg = pkg && pkg.services?.filter(Boolean).includes(sId);
+                    const price = isIncludedInPkg ? 0 : (Number(service.price) || 0);
+                    groomingServices.push({ serviceName: Array.isArray(service.serviceName) ? service.serviceName.join(", ") : service.serviceName, price, isIncludedInPkg });
+                    petGroomingTotal += price;
+                  }
+                });
+              }
+            }
+
+            const clinicServices = [];
+            if (serviceTypes.includes("Clinic")) {
+              clinicServices.push({ serviceName: petState.clinicConsultationReason || "General Checkup", price: 500 });
+              petClinicTotal += 500;
+            }
+
+            let daycareRoomPrice = 0;
+            let daycareAddonPrice = 0;
+            if (serviceTypes.includes("Day Care")) {
+              daycareRoomPrice = Number(petState.daycareRate) || 0;
+              daycareAddonPrice = (petState.daycareAddonSelected || []).reduce((sum, id) => {
+                const service = availableServices.find(s => String(s.id) === String(id) || s.serviceName === id || s.name === id);
+                const price = service ? Number(service.discountPrice !== undefined && service.discountPrice !== null ? service.discountPrice : service.price) : 0;
+                return sum + (isNaN(price) ? 0 : price);
+              }, 0);
+              petDaycareTotal = daycareRoomPrice + daycareAddonPrice;
+            }
+
+            const petTotal = petGroomingTotal + petClinicTotal + petDaycareTotal;
+            baseTotal += petTotal;
+
+            return {
+              pet,
+              petId,
+              petState,
+              serviceTypes,
+              groomingServices,
+              petGroomingTotal,
+              clinicServices,
+              petClinicTotal,
+              daycareRoomPrice,
+              daycareAddonPrice,
+              petDaycareTotal,
+              petTotal
+            };
+          });
 
           const taxPercent = taxToggled ? (parseFloat(taxPercentInput) || 0) : 0;
           const taxAmount = Math.round(baseTotal * taxPercent / 100);
           const afterTaxTotal = baseTotal + taxAmount;
 
-          const discountPercent = discountToggled ? (parseFloat(discountPercentInput) || 0) : 0;
-          const discountAmount = Math.round(afterTaxTotal * discountPercent / 100);
-          const unroundedTotal = afterTaxTotal - discountAmount;
+          const discountAmount = discountToggled ? (parseFloat(discountPercentInput) || 0) : 0;
+          const unroundedTotal = Math.max(0, afterTaxTotal - discountAmount);
 
           const finalTotal = roundOffToggled ? Math.round(unroundedTotal) : unroundedTotal;
           const roundOffValue = (finalTotal - unroundedTotal).toFixed(2);
           const parsedPaidAmount = parseFloat(paidAmount) || 0;
           const pendingAmount = Math.max(0, finalTotal - parsedPaidAmount);
 
-          const firstPetId = selectedPets[0]?.id || selectedPets[0]?.vendorCustomerPetId || selectedPets[0]?.petId || 0;
-          const firstPetState = petServiceDetails[firstPetId] || {};
-          const firstGroomer = groomersList.find(g => g.userId === firstPetState.assignedGroomer);
-
           return (
             <div>
-              <div className={styles.summaryGrid}>
-                <div className={styles.summaryCard}>
+              {/* Top Container */}
+              <div style={{ border: '1px solid #eaeaea', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#fff', marginBottom: '2rem' }}>
+                {/* Customer Details Top Card */}
+                <div className={styles.summaryCard} style={{ marginBottom: '1.5rem', width: '100%' }}>
                   <h4 className={styles.summaryTitle}>Customer Details</h4>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Customer Name</span>
@@ -1881,71 +2249,341 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                   </div>
                 </div>
 
-                {selectedPets.length > 0 ? selectedPets.map((pet, idx) => (
-                  <div key={idx} className={styles.summaryCard}>
-                    <h4 className={styles.summaryTitle}>Pet {idx + 1} Details</h4>
-                    <div className={styles.petAvatarWrapper}>
-                      <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                      <span className={styles.summaryValue}>{(pet.petName || 'Unnamed').toUpperCase()}</span>
-                    </div>
-                  </div>
-                )) : (
-                  <div className={styles.summaryCard}>
-                    <h4 className={styles.summaryTitle}>Pet One Details</h4>
-                    <div className={styles.petAvatarWrapper}>
-                      <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                      <span className={styles.summaryValue}>VICTORIA</span>
-                    </div>
-                  </div>
-                )}
+                {/* 2-Column Grid for Pet One and Pet Two Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
+                  {/* Column 1: Pet One Details & Services & Costs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {petSummaryList[0] && (() => {
+                      const item = petSummaryList[0];
+                      const { pet, petState, serviceTypes } = item;
+                      const firstGroomer = groomersList.find(g => g.userId === petState.assignedGroomer);
+                      const firstDoctor = doctorsList.find(d => d.userId === petState.clinicDoctor);
 
-                <div className={styles.summaryCard}>
-                  <h4 className={styles.summaryTitle}>Grooming Details</h4>
-                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{firstPetState.appointmentDate || "22/05/2026"}</span></div>
-                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{firstPetState.selectedTime || "9:00 AM"}</span></div>
-                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{firstPetState.bookingMode || "In House Grooming"}</span></div>
-                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>Service</span></div>
-                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{firstGroomer ? firstGroomer.staffName : "Unassigned"}</span></div>
+                      return (
+                        <>
+                          <div className={styles.summaryCard}>
+                            <h4 className={styles.summaryTitle}>Pet One Details</h4>
+                            <div className={styles.petAvatarWrapper}>
+                              <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                              <span className={styles.summaryValue}>{(pet.petName || 'Unnamed').toUpperCase()}</span>
+                            </div>
+                          </div>
+
+                          {/* Grooming Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Grooming") && (
+                            <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                              <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4f46e5' }}></span>
+                                Grooming Service
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Grooming Details</h4>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.appointmentDate || getTodayDateString()}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petState.selectedTime || "9:00 AM"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{petState.bookingMode || "In House Grooming"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>{petState.groomingType === "Package" ? "Package" : "Service"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{firstGroomer ? firstGroomer.staffName : "Unassigned"}</span></div>
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
+                                {item.groomingServices.map((gItem, gIdx) => (
+                                  <div key={gIdx} className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>{gItem.serviceName}</span>
+                                    <span className={styles.summaryValue}>{gItem.isIncludedInPkg ? "" : `${currencySymbol} ${gItem.price}`}</span>
+                                  </div>
+                                ))}
+                                <div className={styles.summaryRow}>
+                                  <span className={styles.summaryLabel}>Total Amount</span>
+                                  <span className={styles.summaryValue}>{currencySymbol} {item.petGroomingTotal}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Daycare Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Day Care") && (() => {
+                            const daycareAddonNames = (petState.daycareAddonSelected || []).map(id => {
+                              const found = availableServices.find(s => String(s.id) === String(id) || s.serviceName === id || s.name === id);
+                              return found ? (found.serviceName || found.name) : id;
+                            });
+
+                            return (
+                              <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0891b2' }}></span>
+                                  Daycare Service
+                                </div>
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Daycare Details</h4>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.daycareDate || getTodayDateString()}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Check In / Check Out Time</span><span className={styles.summaryValue}>{`${petState.daycareCheckin || "07:00 AM"} - ${petState.daycareCheckout || "05:00 PM"}`}</span></div>
+                                </div>
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Room Allocation Details</h4>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Food Providing</span><span className={styles.summaryValue}>{petState.daycareFood || "No"}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Room</span><span className={styles.summaryValue}>{petState.daycareRoom || "N/A"}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Room Rate</span><span className={styles.summaryValue}>{currencySymbol} {petState.daycareRate || "0"}</span></div>
+                                </div>
+
+                                {daycareAddonNames.length > 0 && (
+                                  <div className={styles.summaryCard}>
+                                    <h4 className={styles.summaryTitle}>Addon's</h4>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Service Type</span>
+                                      <span className={styles.summaryValue}>Daycare</span>
+                                    </div>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Addon's</span>
+                                      <span className={styles.summaryValue}>
+                                        {daycareAddonNames.join(", ")}
+                                      </span>
+                                    </div>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Quantity</span>
+                                      <span className={styles.summaryValue}>
+                                        {String(daycareAddonNames.length).padStart(2, "0")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Daycare Cost Details</h4>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Room Rate</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.daycareRoomPrice}</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Food</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} 0</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Addon's</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.daycareAddonPrice}</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Total Amount</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.petDaycareTotal}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Clinic Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Clinic") && (
+                            <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                              <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#059669' }}></span>
+                                Clinic Service
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Clinic Details</h4>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.clinicAppointmentDate || getTodayDateString()}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petState.clinicAppointmentTime || "9:00 AM"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{petState.clinicBookingType || "In-Store"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type of Consultation</span><span className={styles.summaryValue}>{petState.clinicConsultationReason || "General Checkup"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Doctor</span><span className={styles.summaryValue}>{firstDoctor ? firstDoctor.staffName : "Unassigned"}</span></div>
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Clinic Cost Details</h4>
+                                {item.clinicServices.map((cItem, cIdx) => (
+                                  <div key={cIdx} className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>{cItem.serviceName}</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {cItem.price}</span>
+                                  </div>
+                                ))}
+                                <div className={styles.summaryRow}>
+                                  <span className={styles.summaryLabel}>Total Amount</span>
+                                  <span className={styles.summaryValue}>{currencySymbol} {item.petClinicTotal}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Column 2: Pet Two Details & Services & Costs */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {petSummaryList[1] && (() => {
+                      const item = petSummaryList[1];
+                      const { pet, petState, serviceTypes } = item;
+                      const firstGroomer = groomersList.find(g => g.userId === petState.assignedGroomer);
+                      const firstDoctor = doctorsList.find(d => d.userId === petState.clinicDoctor);
+
+                      return (
+                        <>
+                          <div className={styles.summaryCard}>
+                            <h4 className={styles.summaryTitle}>Pet Two Details</h4>
+                            <div className={styles.petAvatarWrapper}>
+                              <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                              <span className={styles.summaryValue}>{(pet.petName || 'Unnamed').toUpperCase()}</span>
+                            </div>
+                          </div>
+
+                          {/* Grooming Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Grooming") && (
+                            <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                              <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4f46e5' }}></span>
+                                Grooming Service
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Grooming Details</h4>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.appointmentDate || getTodayDateString()}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petState.selectedTime || "9:00 AM"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{petState.bookingMode || "In House Grooming"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>{petState.groomingType === "Package" ? "Package" : "Service"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{firstGroomer ? firstGroomer.staffName : "Unassigned"}</span></div>
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
+                                {item.groomingServices.map((gItem, gIdx) => (
+                                  <div key={gIdx} className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>{gItem.serviceName}</span>
+                                    <span className={styles.summaryValue}>{gItem.isIncludedInPkg ? "" : `${currencySymbol} ${gItem.price}`}</span>
+                                  </div>
+                                ))}
+                                <div className={styles.summaryRow}>
+                                  <span className={styles.summaryLabel}>Total Amount</span>
+                                  <span className={styles.summaryValue}>{currencySymbol} {item.petGroomingTotal}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Daycare Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Day Care") && (() => {
+                            const daycareAddonNames = (petState.daycareAddonSelected || []).map(id => {
+                              const found = availableServices.find(s => String(s.id) === String(id) || s.serviceName === id || s.name === id);
+                              return found ? (found.serviceName || found.name) : id;
+                            });
+
+                            return (
+                              <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0891b2' }}></span>
+                                  Daycare Service
+                                </div>
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Daycare Details</h4>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.daycareDate || getTodayDateString()}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Check In / Check Out Time</span><span className={styles.summaryValue}>{`${petState.daycareCheckin || "07:00 AM"} - ${petState.daycareCheckout || "05:00 PM"}`}</span></div>
+                                </div>
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Room Allocation Details</h4>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Food Providing</span><span className={styles.summaryValue}>{petState.daycareFood || "No"}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Room</span><span className={styles.summaryValue}>{petState.daycareRoom || "N/A"}</span></div>
+                                  <div className={styles.summaryRow}><span className={styles.summaryLabel}>Room Rate</span><span className={styles.summaryValue}>{currencySymbol} {petState.daycareRate || "0"}</span></div>
+                                </div>
+
+                                {daycareAddonNames.length > 0 && (
+                                  <div className={styles.summaryCard}>
+                                    <h4 className={styles.summaryTitle}>Addon's</h4>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Service Type</span>
+                                      <span className={styles.summaryValue}>Daycare</span>
+                                    </div>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Addon's</span>
+                                      <span className={styles.summaryValue}>
+                                        {daycareAddonNames.join(", ")}
+                                      </span>
+                                    </div>
+                                    <div className={styles.summaryRow}>
+                                      <span className={styles.summaryLabel}>Quantity</span>
+                                      <span className={styles.summaryValue}>
+                                        {String(daycareAddonNames.length).padStart(2, "0")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className={styles.summaryCard}>
+                                  <h4 className={styles.summaryTitle}>Daycare Cost Details</h4>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Room Rate</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.daycareRoomPrice}</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Food</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} 0</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Addon's</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.daycareAddonPrice}</span>
+                                  </div>
+                                  <div className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>Total Amount</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {item.petDaycareTotal}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Clinic Block: Wrapped in a distinct bordered container */}
+                          {serviceTypes.includes("Clinic") && (
+                            <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                              <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#059669' }}></span>
+                                Clinic Service
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Clinic Details</h4>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{petState.clinicAppointmentDate || getTodayDateString()}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petState.clinicAppointmentTime || "9:00 AM"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{petState.clinicBookingType || "In-Store"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type of Consultation</span><span className={styles.summaryValue}>{petState.clinicConsultationReason || "General Checkup"}</span></div>
+                                <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Doctor</span><span className={styles.summaryValue}>{firstDoctor ? firstDoctor.staffName : "Unassigned"}</span></div>
+                              </div>
+                              <div className={styles.summaryCard}>
+                                <h4 className={styles.summaryTitle}>Clinic Cost Details</h4>
+                                {item.clinicServices.map((cItem, cIdx) => (
+                                  <div key={cIdx} className={styles.summaryRow}>
+                                    <span className={styles.summaryLabel}>{cItem.serviceName}</span>
+                                    <span className={styles.summaryValue}>{currencySymbol} {cItem.price}</span>
+                                  </div>
+                                ))}
+                                <div className={styles.summaryRow}>
+                                  <span className={styles.summaryLabel}>Total Amount</span>
+                                  <span className={styles.summaryValue}>{currencySymbol} {item.petClinicTotal}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
-
               </div>
 
-              <div className={styles.summaryGrid} style={{ alignItems: 'flex-start' }}>
-                <div className={styles.paymentSection}>
-                  <h4 className={styles.summaryTitle} style={{ fontSize: '0.85rem', color: '#666' }}>Payment Details</h4>
-                  <div className={styles.formGrid}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Payment Type</label>
-                      <select className={styles.select}>
-                        <option>Cash</option>
-                      </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.label}>Paid Amount</label>
-                      <input
-                        type="number"
-                        className={styles.input}
-                        value={paidAmount}
-                        onChange={(e) => setPaidAmount(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <button className={styles.addPetBtn} style={{ alignSelf: 'flex-start', marginTop: '1rem', fontSize: '0.75rem' }}>+ADD ANOTHER PAYMENT</button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-                  <div className={styles.summaryCard}>
-                    <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
-                    {selectedServicesList.map((item, idx) => (
-                      <div key={idx} className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{item.serviceName}</span>
-                        <span className={styles.summaryValue}>{item.isIncludedInPkg ? "" : `Ã¢â€šÂ¹ ${item.price}`}</span>
+              {/* Bottom Container */}
+              <div style={{ border: '1px solid #eaeaea', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#fff' }}>
+                <div className={styles.summaryGrid} style={{ alignItems: 'flex-start' }}>
+                  <div className={styles.paymentSection}>
+                    <h4 className={styles.summaryTitle} style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>Payment Details</h4>
+                    <div className={styles.formGrid}>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Payment Type</label>
+                        <select className={styles.select}>
+                          <option>Cash</option>
+                        </select>
                       </div>
-                    ))}
-                    <div className={styles.summaryRow}>
-                      <span className={styles.summaryLabel}>Total Amount</span>
-                      <span className={styles.summaryValue}>Ã¢â€šÂ¹ {baseTotal}</span>
+                      <div className={styles.formGroup}>
+                        <label className={styles.label}>Paid Amount</label>
+                        <input
+                          type="number"
+                          className={styles.input}
+                          value={paidAmount}
+                          onChange={(e) => setPaidAmount(e.target.value)}
+                        />
+                      </div>
                     </div>
+                    <button className={styles.addPetBtn} style={{ alignSelf: 'flex-start', marginTop: '1rem', fontSize: '0.75rem' }}>+ADD ANOTHER PAYMENT</button>
                   </div>
 
                   <div className={styles.costBreakdownSection}>
@@ -1953,7 +2591,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel}>Total</span>
-                      <strong>Ã¢â€šÂ¹ {baseTotal}</strong>
+                      <strong>{currencySymbol} {baseTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -1968,22 +2606,22 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                       </div>
                     </div>
 
-                    <div className={styles.costRow}>
-                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Tax in % percentage</span>
-                      <input
-                        type="text"
-                        className={styles.costInput}
-                        value={taxPercentInput + "%"}
-                        onChange={(e) => {
-                          const val = e.target.value.replace('%', '');
-                          if (/^\d*$/.test(val)) setTaxPercentInput(val);
-                        }}
-                      />
-                    </div>
+                    {taxToggled && (
+                      <div className={styles.costRow}>
+                        <span className={styles.costLabel} style={{ color: '#6c757d' }}>Tax in %</span>
+                        <input
+                          type="number"
+                          className={styles.costInput}
+                          placeholder="0"
+                          value={taxPercentInput}
+                          onChange={(e) => setTaxPercentInput(e.target.value)}
+                        />
+                      </div>
+                    )}
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax Total Amount</span>
-                      <strong>Ã¢â€šÂ¹ {afterTaxTotal}</strong>
+                      <strong>{currencySymbol} {afterTaxTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -1998,22 +2636,22 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                       </div>
                     </div>
 
-                    <div className={styles.costRow}>
-                      <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount in % percentage</span>
-                      <input
-                        type="text"
-                        className={styles.costInput}
-                        value={discountPercentInput + "%"}
-                        onChange={(e) => {
-                          const val = e.target.value.replace('%', '');
-                          if (/^\d*$/.test(val)) setDiscountPercentInput(val);
-                        }}
-                      />
-                    </div>
+                    {discountToggled && (
+                      <div className={styles.costRow}>
+                        <span className={styles.costLabel} style={{ color: '#6c757d' }}>Discount Amount</span>
+                        <input
+                          type="number"
+                          className={styles.costInput}
+                          placeholder="0"
+                          value={discountPercentInput}
+                          onChange={(e) => setDiscountPercentInput(e.target.value)}
+                        />
+                      </div>
+                    )}
 
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
-                      <strong>Ã¢â€šÂ¹ {finalTotal}</strong>
+                      <strong>{currencySymbol} {finalTotal}</strong>
                     </div>
 
                     <div className={styles.costRow}>
@@ -2038,12 +2676,12 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                     <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
                     <div className={styles.costRow}>
                       <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
-                      <strong>Ã¢â€šÂ¹ {parsedPaidAmount}</strong>
+                      <strong>{currencySymbol} {parsedPaidAmount}</strong>
                     </div>
 
                     <div className={styles.totalPending}>
                       <span>Total Pending Amount</span>
-                      <span>Ã¢â€šÂ¹ {pendingAmount}</span>
+                      <span>{currencySymbol} {pendingAmount}</span>
                     </div>
                   </div>
                 </div>

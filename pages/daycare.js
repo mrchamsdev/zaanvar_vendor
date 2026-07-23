@@ -1,24 +1,96 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+import BookingsList from "../components/grooming/BookingsList";
+import AddBookingGrooming from "../components/grooming/AddBookingGrooming";
+import ViewBookingDetails from "../components/grooming/ViewBookingDetails";
 
 export default function DayCarePage() {
+  const router = useRouter();
+  const [isAddingBooking, setIsAddingBooking] = useState(false);
+  const [isViewingDetails, setIsViewingDetails] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
+
   const topbarButtons = [
-        // { label: "+ Add Rooms",    color: "purple", action: "addRooms"    },
-        // { label: "+ Add Bookings", color: "red",    action: "addBookings" },
-        // { label: "+ Add More",     color: "gray",   action: "addMore"     },
+    { label: "+ Add Bookings", color: "pink", action: "addBookings" }
   ];
 
+  // Sync state with URL query parameters on load/refresh
+  useEffect(() => {
+    if (router.isReady) {
+      if (router.query.edit === "true" && router.query.bookingId) {
+        setSelectedBookingId(router.query.bookingId);
+        setIsAddingBooking(true);
+        setIsViewingDetails(false);
+      } else if (router.query.view === "true" && router.query.bookingId) {
+        setSelectedBookingId(router.query.bookingId);
+        setIsViewingDetails(true);
+        setIsAddingBooking(false);
+      }
+    }
+  }, [router.isReady, router.query.edit, router.query.view, router.query.bookingId]);
+
+  const handleTopbarAction = (action) => {
+    if (action === "addBookings") {
+      setIsAddingBooking(true);
+      setIsViewingDetails(false);
+    } else if (action === "viewDetails") {
+      setIsViewingDetails(true);
+      setIsAddingBooking(false);
+    }
+  };
+
+  const handleCloseEdit = () => {
+    setIsAddingBooking(false);
+    setSelectedBookingId(null);
+    const { edit, bookingId, ...restQuery } = router.query;
+    router.push({
+      pathname: router.pathname,
+      query: restQuery
+    }, undefined, { shallow: true });
+  };
+
+  const handleCloseView = () => {
+    setIsViewingDetails(false);
+    setSelectedBookingId(null);
+    const { view, bookingId, ...restQuery } = router.query;
+    router.push({
+      pathname: router.pathname,
+      query: restQuery
+    }, undefined, { shallow: true });
+  };
+
+  if (isAddingBooking) {
+    return <AddBookingGrooming bookingId={selectedBookingId} defaultServiceType="Day Care" onClose={handleCloseEdit} />;
+  }
+
+  if (isViewingDetails) {
+    return <ViewBookingDetails bookingId={selectedBookingId} onClose={handleCloseView} />;
+  }
+
   return (
-    <DashboardLayout topbarButtons={topbarButtons}>
-      <div style={{ padding: "clamp(16px,2vw,32px)", textAlign: "center", marginTop: "10vh" }}>
-        <h2 style={{ fontSize: "clamp(20px,2.2vw,28px)", fontWeight: 700, color: "#111" }}>
-          Day Care
-        </h2>
-        <p style={{ fontSize: "clamp(13px,1.1vw,16px)", color: "#888", marginTop: 8 }}>
-        This section is under development.
-        Please visit again soon to explore new updates.
-        </p>
-      </div>
+    <DashboardLayout topbarButtons={topbarButtons} onTopbarAction={handleTopbarAction}>
+      <BookingsList
+        serviceType="Day Care"
+        onViewDetails={(booking) => {
+          const rawId = booking.rawId || booking.id;
+          setSelectedBookingId(rawId);
+          setIsViewingDetails(true);
+          router.push({
+            pathname: router.pathname,
+            query: { ...router.query, view: "true", bookingId: rawId }
+          }, undefined, { shallow: true });
+        }}
+        onEdit={(booking) => {
+          const rawId = booking.rawId || booking.id;
+          setSelectedBookingId(rawId);
+          setIsAddingBooking(true);
+          router.push({
+            pathname: router.pathname,
+            query: { ...router.query, edit: "true", bookingId: rawId }
+          }, undefined, { shallow: true });
+        }}
+      />
     </DashboardLayout>
   );
 }

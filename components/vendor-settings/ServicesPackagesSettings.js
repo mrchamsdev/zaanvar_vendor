@@ -38,6 +38,7 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
   }, [activeTab, setTopbarActions]);
 
   const selectedBranchId = useStore((state) => state.selectedBranchId);
+  const jwtToken = useStore((state) => state.jwtToken);
   const cleanBranchId = String(selectedBranchId || 90).replace(/^B-/, "");
 
   const [services, setServices] = useState([]);
@@ -47,7 +48,8 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
   const fetchOfferings = async () => {
     try {
       const typeStr = activeTab === "Services" ? "services" : "packages";
-      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}?type=${typeStr}`);
+      const headers = jwtToken ? { "Authorization": `Bearer ${jwtToken}` } : {};
+      const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}?type=${typeStr}`, { headers });
       const json = await res.json();
       
       if (json.status === "success" || json.data || Array.isArray(json)) {
@@ -160,8 +162,10 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
     if (!itemToDelete) return;
     try {
       const typeStr = itemToDelete.type === "service" ? "services" : "packages";
+      const headers = jwtToken ? { "Authorization": `Bearer ${jwtToken}` } : {};
       const res = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${itemToDelete.id}?type=${typeStr}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
       if (res.ok) {
         if (itemToDelete.type === "service") {
@@ -182,21 +186,26 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
 
   const handleSaveService = async (saved) => {
     try {
-      const isEdit = String(saved.id).startsWith("off-");
-      const url = isEdit 
-        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${saved.id}` 
+      const isEdit = Boolean(editingItem && editingItem.id);
+      const targetId = editingItem?.id;
+      const url = (isEdit && targetId) 
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${targetId}` 
         : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}`;
         
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(jwtToken ? { "Authorization": `Bearer ${jwtToken}` } : {})
+        },
         body: JSON.stringify({ type: "services", data: saved.apiPayload })
       });
 
       if (res.ok) {
         fetchOfferings(); // Refresh the list
       } else {
-        alert("Failed to save service.");
+        const errData = await res.json().catch(() => ({}));
+        alert(`Failed to save service: ${errData.message || res.statusText || "Server error"}`);
       }
     } catch (err) {
       console.error(err);
@@ -208,21 +217,26 @@ const ServicesPackagesSettings = ({ setTopbarActions, addEdit = true, canDelete 
 
   const handleSavePackage = async (saved) => {
     try {
-      const isEdit = String(saved.id).startsWith("off-");
-      const url = isEdit 
-        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${saved.id}` 
+      const isEdit = Boolean(editingItem && editingItem.id);
+      const targetId = editingItem?.id;
+      const url = (isEdit && targetId) 
+        ? `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}/${targetId}` 
         : `${VENDOR_API_URL}vendor/grooming-booking/offerings/${cleanBranchId}`;
         
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(jwtToken ? { "Authorization": `Bearer ${jwtToken}` } : {})
+        },
         body: JSON.stringify({ type: "packages", data: saved.apiPayload })
       });
 
       if (res.ok) {
         fetchOfferings(); // Refresh the list
       } else {
-        alert("Failed to save package.");
+        const errData = await res.json().catch(() => ({}));
+        alert(`Failed to save package: ${errData.message || res.statusText || "Server error"}`);
       }
     } catch (err) {
       console.error(err);

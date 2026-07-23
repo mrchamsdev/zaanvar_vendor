@@ -102,7 +102,7 @@ const IconClose = () => (
   </svg>
 );
 
-export default function BookingsList({ onViewDetails, onEdit }) {
+export default function BookingsList({ onViewDetails, onEdit, serviceType = "Grooming" }) {
   const { jwtToken, selectedBranchId, userInfo } = useStore();
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,16 +118,23 @@ export default function BookingsList({ onViewDetails, onEdit }) {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [availableServices, setAvailableServices] = useState([]);
 
-  const transformBookingsData = (rawBookings, currentServices = []) => {
+  const transformBookingsData = (rawBookings, currentServices = [], targetServiceType = "Grooming") => {
     if (!Array.isArray(rawBookings)) return [];
     return rawBookings.map(b => {
+      const isDaycareType = targetServiceType === "Day Care" || (Array.isArray(b.serviceType) && b.serviceType.includes("Day Care"));
+      
+      const dcApp = b.daycareAppointments?.[0] || {};
+      const dcDateObj = dcApp.dates?.[0] || {};
+      
       const appointment = b.appointments?.[0] || {};
       const groomerObj = appointment.groomer || {};
       const customerObj = b.customer || {};
 
+      let rawAppointmentDate = isDaycareType ? (dcDateObj.date || appointment.appointmentDate) : appointment.appointmentDate;
+
       let formattedDate = "";
-      if (appointment.appointmentDate) {
-        const d = new Date(appointment.appointmentDate);
+      if (rawAppointmentDate) {
+        const d = new Date(rawAppointmentDate);
         const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
         formattedDate = `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
       }
@@ -141,14 +148,41 @@ export default function BookingsList({ onViewDetails, onEdit }) {
         return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
       };
 
-      const startTimeFormatted = formatTime(appointment.startTime);
-      const endTimeFormatted = formatTime(appointment.endTime);
-      const timeRange = startTimeFormatted && endTimeFormatted ? `${startTimeFormatted} - ${endTimeFormatted}` : "----";
+      const checkInTimeRaw = dcDateObj.checkInTime || appointment.startTime || "09:00:00";
+      const checkOutTimeRaw = dcDateObj.checkOutTime || appointment.endTime || "18:00:00";
 
-      const petObj = appointment.pets?.[0] || appointment.customerPet || appointment.pet || b.pets?.[0] || b.bookingPets?.[0] || {};
+      const formatDateTimeShort = (dateStr, timeStr) => {
+        if (!dateStr) return "----";
+        const d = new Date(dateStr);
+        const monthShorts = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const month = monthShorts[d.getMonth()];
+        const day = String(d.getDate()).padStart(2, '0');
+        const [h, m] = (timeStr || "00:00").split(':');
+        return `${month} ${day}, ${h}:${m}`;
+      };
+
+      const checkInFormatted = formatDateTimeShort(rawAppointmentDate, checkInTimeRaw);
+      const checkOutFormatted = formatDateTimeShort(rawAppointmentDate, checkOutTimeRaw);
+
+      let petNamesList = [];
+      if (isDaycareType && dcApp.pets && Array.isArray(dcApp.pets)) {
+        petNamesList = dcApp.pets.map(p => p.petProfile?.petName || p.petName).filter(Boolean);
+      }
+      if (petNamesList.length === 0 && b.appointments && Array.isArray(b.appointments)) {
+        b.appointments.forEach(app => {
+          if (app.pets && Array.isArray(app.pets)) {
+            app.pets.forEach(p => {
+              const name = p.petProfile?.petName || p.petName;
+              if (name && !petNamesList.includes(name)) petNamesList.push(name);
+            });
+          }
+        });
+      }
+      const petNameDisplay = petNamesList.length > 0 ? petNamesList.join(", ") : (appointment.pets?.[0]?.petName || "----");
+
+      const petObj = appointment.pets?.[0] || {};
       const petProfile = petObj.petProfile || {};
-      const petName = petObj.petName || petObj.name || "----";
-      const petBreed = petProfile.breed || petObj.breed || petObj.petBreed || "----";
+      const petBreed = petProfile.breed || petObj.breed || "----";
 
       const servicesList = [];
       if (b.appointments && Array.isArray(b.appointments)) {
@@ -159,18 +193,14 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                 pet.services.forEach(srv => {
                   if (srv.serviceNames && Array.isArray(srv.serviceNames) && srv.serviceNames.length > 0) {
                     srv.serviceNames.forEach(name => {
-                      if (name && !servicesList.includes(name)) {
-                        servicesList.push(name);
-                      }
+                      if (name && !servicesList.includes(name)) servicesList.push(name);
                     });
                   } else if (srv.selectedServices && Array.isArray(srv.selectedServices)) {
                     srv.selectedServices.forEach(sId => {
                       const listToUse = currentServices.length > 0 ? currentServices : availableServices;
                       const found = listToUse.find(s => s.id === sId);
                       const name = found ? (Array.isArray(found.serviceName) ? found.serviceName[0] : found.serviceName) : null;
-                      if (name && !servicesList.includes(name)) {
-                        servicesList.push(name);
-                      }
+                      if (name && !servicesList.includes(name)) servicesList.push(name);
                     });
                   }
                 });
@@ -180,43 +210,46 @@ export default function BookingsList({ onViewDetails, onEdit }) {
         });
       }
 
-      const startHour = appointment.startTime ? parseInt(appointment.startTime.split(':')[0]) : 11;
+      const startHour = checkInTimeRaw ? parseInt(checkInTimeRaw.split(':')[0]) : 9;
 
       return {
-        id: String(b.bookingID).padStart(5, '0'),
+        id: `BK-${String(b.bookingID).padStart(4, '0')}`,
         rawId: b.bookingID,
-        appointmentId: appointment.appointmentID || appointment.appointmentId,
+        appointmentId: dcApp.appointmentID || appointment.appointmentID,
         date: formattedDate || "----",
-        time: timeRange,
+        time: `${formatTime(checkInTimeRaw)} - ${formatTime(checkOutTimeRaw)}`,
+        checkIn: checkInFormatted,
+        checkOut: checkOutFormatted,
         bookingStatus: b.bookingStatus || b.status || "",
         status: (b.bookingStatus || b.status || "Pending").replace(/_/g, ' ').toUpperCase(),
         customerName: ((customerObj.firstName || "") + " " + (customerObj.lastName || "")).trim() || "----",
         contact: customerObj.phoneNumber ? `+91 ${customerObj.phoneNumber}` : "----",
-        petName,
+        petName: petNameDisplay,
         petBreed,
-        service: b.serviceType || "----",
+        service: isDaycareType ? "Daycare" : (Array.isArray(b.serviceType) ? b.serviceType.join(", ") : (b.serviceType || "Grooming")),
         hasExtraService: b.isMultiPet || false,
-        groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "----",
+        groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "Unassigned",
         groomerId: appointment.groomerID || groomerObj.groomerID || groomerObj.userId,
-        rawDate: appointment.appointmentDate,
+        rawDate: rawAppointmentDate,
         slotId: appointment.slotId || appointment.slotID,
-        startTime: appointment.startTime,
-        endTime: appointment.endTime,
-        amount: `₹ ${Math.round(parseFloat(b.totalAmount))}`,
+        startTime: checkInTimeRaw,
+        endTime: checkOutTimeRaw,
+        amount: `₹ ${Math.round(parseFloat(b.totalAmount || 0))}`,
         paymentStatus: b.paymentStatus || "Unpaid",
-        serviceStatus: appointment.status || "----",
+        serviceStatus: dcApp.status || appointment.status || "----",
         servicesList,
         startHour,
         createdOn: b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : "----",
-        type: b.bookingMode === "AtStore" ? "In Store Grooming" : "In House Grooming"
+        type: b.bookingMode === "AtStore" ? "In Store" : "Online"
       };
     });
   };
 
   useEffect(() => {
-    if (selectedBranchId) {
+    const activeBranchId = selectedBranchId || userInfo?.branchId || (Array.isArray(userInfo?.branchIds) ? userInfo.branchIds[0] : null) || 90;
+    if (activeBranchId) {
       // First fetch offerings (services list) to allow ID-to-name mapping
-      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${selectedBranchId}?type=services`, {
+      fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${activeBranchId}?type=services`, {
         headers: {
           "Authorization": `Bearer ${jwtToken}`
         }
@@ -226,8 +259,9 @@ export default function BookingsList({ onViewDetails, onEdit }) {
           const services = offRes.status === "success" && offRes.data?.services ? offRes.data.services : [];
           setAvailableServices(services);
           
-          // Then fetch bookings
-          return fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${selectedBranchId}`, {
+          const apiServiceType = (serviceType === "Day Care" || serviceType === "Daycare") ? "Day Care" : "Grooming";
+          // Then fetch bookings for specified serviceType
+          return fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${activeBranchId}&serviceType=${encodeURIComponent(apiServiceType)}`, {
             headers: {
               "Authorization": `Bearer ${jwtToken}`
             }
@@ -235,13 +269,13 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             .then(res => res.json())
             .then(data => {
               if (data.status === "success" && data.data) {
-                setBookings(transformBookingsData(data.data, services));
+                setBookings(transformBookingsData(data.data, services, serviceType));
               }
             });
         })
         .catch(err => console.error("Error fetching bookings/offerings:", err));
     }
-  }, [selectedBranchId, jwtToken]);
+  }, [selectedBranchId, userInfo, jwtToken, serviceType]);
 
   useEffect(() => {
     if (selectedBranchId && jwtToken) {
@@ -998,6 +1032,7 @@ export default function BookingsList({ onViewDetails, onEdit }) {
             <CalendarDayView
               bookings={filteredBookings}
               selectedDate={selectedDate}
+              isDaycare={serviceType === "Day Care"}
             />
           )}
         </div>
@@ -1008,101 +1043,158 @@ export default function BookingsList({ onViewDetails, onEdit }) {
         <div className={styles.tableWrapper}>
           <div className={styles.tableInner}>
             <table className={styles.bookingsTable}>
-              <thead>
-                <tr>
-                  <th className={styles.colBookingId}>Booking ID</th>
-                  <th className={styles.colDate}>Date</th>
-                  <th className={styles.colTime}>Time</th>
-                  <th className={styles.colStatus}>Status</th>
-                  <th className={styles.colCustomer}>Customer Name</th>
-                  <th className={styles.colContact}>Contact</th>
-                  <th className={styles.colPet}>Pet</th>
-                  <th className={styles.colService}>Services</th>
-                  <th className={styles.colGroomer}>Groomer</th>
-                  <th className={styles.colAmount}>Amount</th>
-                  <th className={styles.colPaymentStatus}>Payment Status</th>
-                  <th className={styles.colCreatedOn}>Created On</th>
-                  <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>Actions</th>
-                </tr>
-              </thead>
+              {serviceType === "Day Care" ? (
+                <thead>
+                  <tr>
+                    <th className={styles.colBookingId}>BOOKING ID</th>
+                    <th className={styles.colPet}>Pet Name</th>
+                    <th className={styles.colCustomer}>Owner</th>
+                    <th className={styles.colService}>Service</th>
+                    <th className={styles.colDate}>Check-In</th>
+                    <th className={styles.colDate}>Check-Out</th>
+                    <th className={styles.colStatus}>Status</th>
+                    <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>ACTIONS</th>
+                  </tr>
+                </thead>
+              ) : (
+                <thead>
+                  <tr>
+                    <th className={styles.colBookingId}>Booking ID</th>
+                    <th className={styles.colDate}>Date</th>
+                    <th className={styles.colTime}>Time</th>
+                    <th className={styles.colStatus}>Status</th>
+                    <th className={styles.colCustomer}>Customer Name</th>
+                    <th className={styles.colContact}>Contact</th>
+                    <th className={styles.colPet}>Pet</th>
+                    <th className={styles.colService}>Services</th>
+                    <th className={styles.colGroomer}>Groomer</th>
+                    <th className={styles.colAmount}>Amount</th>
+                    <th className={styles.colPaymentStatus}>Payment Status</th>
+                    <th className={styles.colCreatedOn}>Created On</th>
+                    <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>Actions</th>
+                  </tr>
+                </thead>
+              )}
               <tbody>
                 {filteredBookings.map((b, idx) => (
-                  <tr
-                    key={b.id}
-                    className={activeMenuId === b.id ? styles.activeRow : ""}
-                  >
-                    <td className={styles.idCell}>{b.id}</td>
-                    <td className={styles.dateCell}>{b.date}</td>
-                    <td className={styles.timeCell}>{b.time}</td>
-                    <td>
-                      <span
-                        className={(() => {
+                  serviceType === "Day Care" ? (
+                    <tr key={b.id} className={activeMenuId === b.id ? styles.activeRow : ""}>
+                      <td className={styles.idCell} style={{ fontWeight: 600 }}>{b.id}</td>
+                      <td className={styles.petName} style={{ fontWeight: 600 }}>{b.petName}</td>
+                      <td className={styles.customerName} style={{ fontWeight: 600 }}>{b.customerName}</td>
+                      <td><span className={styles.serviceBadgePink}>{b.service}</span></td>
+                      <td>{b.checkIn}</td>
+                      <td>{b.checkOut}</td>
+                      <td>
+                        {(() => {
                           const s = (b.status || "").toUpperCase();
-                          if (s === "TODAY") return styles.statusToday;
-                          if (s === "RESCHEDULED" || s === "RESCHEDULE") return styles.statusRescheduled;
-                          if (s === "CANCELED" || s === "CANCELLED") return styles.statusCanceled;
-                          if (s === "COMPLETED") return styles.statusCompleted;
-                          if (s === "ONGOING" || s === "IN PROGRESS" || s === "IN_PROGRESS") return styles.statusOngoing;
-                          if (s === "UNASSIGNED") return styles.statusUnassigned;
-                          return styles.statusUpcoming;
+                          if (s.includes("CHECKED") || s.includes("CHECK-IN")) {
+                            return <span className={styles.statusPillCheckedIn}>Checked-IN</span>;
+                          }
+                          if (s.includes("CONFIRM") || s === "UPCOMING" || s === "TODAY" || s === "BOOKED") {
+                            return <span className={styles.statusPillConfirmed}>Confirmed</span>;
+                          }
+                          if (s.includes("COMPLETE")) {
+                            return <span className={styles.statusPillCompleted}>Completed</span>;
+                          }
+                          if (s.includes("CANCEL")) {
+                            return <span className={styles.statusPillCancel}>Cancel</span>;
+                          }
+                          return <span className={styles.statusPillConfirmed}>{b.status}</span>;
                         })()}
-                      >
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className={styles.customerName}>{b.customerName}</td>
-                    <td className={styles.contactCell}>{b.contact}</td>
-                    <td>
-                      <div className={styles.petName}>{b.petName}</div>
-                      <div className={styles.petBreed}>{b.petBreed}</div>
-                    </td>
-                    <td>
-                      <div className={styles.serviceWrapper}>
-                        {b.servicesList && b.servicesList.length > 0 ? (
-                          <>
-                            <span className={styles.serviceBadgePink}>{b.servicesList[0]}</span>
-                            {b.servicesList.length > 1 && (
-                              <span
-                                className={styles.extraServiceCountBadge}
-                                onClick={(e) => handlePlusClick(e, b)}
-                              >
-                                +{b.servicesList.length - 1}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className={styles.serviceBadgePink}>{b.service || "----"}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className={styles.groomerCell}>{b.groomer}</td>
-                    <td className={styles.amountCell}>{b.amount}</td>
-                    <td className={getPaymentStatusClass(b.paymentStatus)}>{b.paymentStatus}</td>
-                    <td className={styles.createdOnCell}>{b.createdOn}</td>
-                    <td className={`${styles.stickyActionsCell} ${activeMenuId === b.id ? styles.activeActionsCell : ""}`}>
-                      <div className={styles.actionsCell}>
-                        {/* Call */}
-                        <button className={styles.actionIconBtn} onClick={() => alert(`Calling ${b.customerName}...`)}>
-                          <IconPhone />
-                        </button>
-                        {/* Eye */}
-                        <button className={styles.actionIconBtn} onClick={() => handleActionClick("View Details", b)}>
-                          <IconEye />
-                        </button>
-                        {/* WhatsApp */}
-                        <button className={styles.actionIconBtn} onClick={() => alert(`Opening WhatsApp chat with ${b.customerName}...`)}>
-                          <IconWhatsApp />
-                        </button>
-                        {/* Three-dots menu */}
-                        <button
-                          className={styles.threeDotBtn}
-                          onClick={(e) => handleThreeDotClick(e, b)}
+                      </td>
+                      <td className={`${styles.stickyActionsCell} ${activeMenuId === b.id ? styles.activeActionsCell : ""}`}>
+                        <div className={styles.actionsCell} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button className={styles.actionIconBtn} onClick={() => onEdit(b)} title="Edit">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          </button>
+                          <button className={styles.actionIconBtn} onClick={() => handleActionClick("View Details", b)} title="View">
+                            <IconEye />
+                          </button>
+                          <button className={styles.threeDotBtn} onClick={(e) => handleThreeDotClick(e, b)} title="More">
+                            <IconThreeDots />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr
+                      key={b.id}
+                      className={activeMenuId === b.id ? styles.activeRow : ""}
+                    >
+                      <td className={styles.idCell}>{b.id}</td>
+                      <td className={styles.dateCell}>{b.date}</td>
+                      <td className={styles.timeCell}>{b.time}</td>
+                      <td>
+                        <span
+                          className={(() => {
+                            const s = (b.status || "").toUpperCase();
+                            if (s === "TODAY") return styles.statusToday;
+                            if (s === "RESCHEDULED" || s === "RESCHEDULE") return styles.statusRescheduled;
+                            if (s === "CANCELED" || s === "CANCELLED") return styles.statusCanceled;
+                            if (s === "COMPLETED") return styles.statusCompleted;
+                            if (s === "ONGOING" || s === "IN PROGRESS" || s === "IN_PROGRESS") return styles.statusOngoing;
+                            if (s === "UNASSIGNED") return styles.statusUnassigned;
+                            return styles.statusUpcoming;
+                          })()}
                         >
-                          <IconThreeDots />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className={styles.customerName}>{b.customerName}</td>
+                      <td className={styles.contactCell}>{b.contact}</td>
+                      <td>
+                        <div className={styles.petName}>{b.petName}</div>
+                        <div className={styles.petBreed}>{b.petBreed}</div>
+                      </td>
+                      <td>
+                        <div className={styles.serviceWrapper}>
+                          {b.servicesList && b.servicesList.length > 0 ? (
+                            <>
+                              <span className={styles.serviceBadgePink}>{b.servicesList[0]}</span>
+                              {b.servicesList.length > 1 && (
+                                <span
+                                  className={styles.extraServiceCountBadge}
+                                  onClick={(e) => handlePlusClick(e, b)}
+                                >
+                                  +{b.servicesList.length - 1}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className={styles.serviceBadgePink}>{b.service || "----"}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className={styles.groomerCell}>{b.groomer}</td>
+                      <td className={styles.amountCell}>{b.amount}</td>
+                      <td className={getPaymentStatusClass(b.paymentStatus)}>{b.paymentStatus}</td>
+                      <td className={styles.createdOnCell}>{b.createdOn}</td>
+                      <td className={`${styles.stickyActionsCell} ${activeMenuId === b.id ? styles.activeActionsCell : ""}`}>
+                        <div className={styles.actionsCell}>
+                          {/* Call */}
+                          <button className={styles.actionIconBtn} onClick={() => alert(`Calling ${b.customerName}...`)}>
+                            <IconPhone />
+                          </button>
+                          {/* Eye */}
+                          <button className={styles.actionIconBtn} onClick={() => handleActionClick("View Details", b)}>
+                            <IconEye />
+                          </button>
+                          {/* WhatsApp */}
+                          <button className={styles.actionIconBtn} onClick={() => alert(`Opening WhatsApp chat with ${b.customerName}...`)}>
+                            <IconWhatsApp />
+                          </button>
+                          {/* Three-dots menu */}
+                          <button
+                            className={styles.threeDotBtn}
+                            onClick={(e) => handleThreeDotClick(e, b)}
+                          >
+                            <IconThreeDots />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>
@@ -1389,7 +1481,22 @@ export default function BookingsList({ onViewDetails, onEdit }) {
                   className={styles.formInput} 
                   value={rescheduleDate} 
                   required
-                  onChange={(e) => setRescheduleDate(e.target.value)} 
+                  min={(() => {
+                    const d = new Date();
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  })()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const todayStr = (() => {
+                      const d = new Date();
+                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    })();
+                    if (val && val < todayStr) {
+                      toast.error("Past dates are not allowed for appointment date");
+                      return;
+                    }
+                    setRescheduleDate(val);
+                  }} 
                 />
               </div>
               <div className={styles.formGroup}>
@@ -1795,40 +1902,38 @@ function CalendarWeekView({ bookings, selectedDate = new Date(), onDayClick }) {
 /* ═══════════════════════════════════════════════
  * CALENDAR DAY VIEW
  * ═══════════════════════════════════════════════ */
-function CalendarDayView({ bookings, selectedDate = new Date() }) {
+function CalendarDayView({ bookings, selectedDate = new Date(), isDaycare = false }) {
   const today = new Date();
 
   // get bookings for the selectedDate
   const dayBookings = bookings.filter(b => {
-    const d = parseBookingDate(b.date);
+    const d = parseBookingDate(b.date || b.rawDate);
     return d &&
       d.getDate() === selectedDate.getDate() &&
       d.getMonth() === selectedDate.getMonth() &&
       d.getFullYear() === selectedDate.getFullYear();
   });
 
-  // Extract unique groomer names from day bookings
-  const uniqueGroomers = [];
-  dayBookings.forEach(b => {
-    const groomerName = b.groomer || "Unassigned";
-    if (!uniqueGroomers.includes(groomerName)) {
-      uniqueGroomers.push(groomerName);
-    }
-  });
+  const columns = isDaycare ? ["Schedule"] : (() => {
+    const uniqueGroomers = [];
+    dayBookings.forEach(b => {
+      const groomerName = b.groomer || "Unassigned";
+      if (!uniqueGroomers.includes(groomerName)) {
+        uniqueGroomers.push(groomerName);
+      }
+    });
+    if (uniqueGroomers.length === 0) uniqueGroomers.push("Unassigned");
+    return uniqueGroomers;
+  })();
 
-  // Default to Unassigned if there are no groomers or bookings
-  if (uniqueGroomers.length === 0) {
-    uniqueGroomers.push("Unassigned");
-  }
-
-  // Group bookings by groomer name and hour index
-  const bookingsByGroomerAndHour = {};
+  // Group bookings by column name and hour index
+  const bookingsByColAndHour = {};
   dayBookings.forEach((b, idx) => {
-    const groomerName = b.groomer || "Unassigned";
+    const colName = isDaycare ? "Schedule" : (b.groomer || "Unassigned");
     const hourIndex = b.startHour !== undefined ? (b.startHour === 0 ? 24 : b.startHour) : 11;
-    const key = `${groomerName}-${hourIndex}`;
-    if (!bookingsByGroomerAndHour[key]) bookingsByGroomerAndHour[key] = [];
-    bookingsByGroomerAndHour[key].push({ ...b, _idx: idx });
+    const key = `${colName}-${hourIndex}`;
+    if (!bookingsByColAndHour[key]) bookingsByColAndHour[key] = [];
+    bookingsByColAndHour[key].push({ ...b, _idx: idx });
   });
 
   return (
@@ -1836,7 +1941,7 @@ function CalendarDayView({ bookings, selectedDate = new Date() }) {
       {/* Header */}
       <div className={styles.weekHeader}>
         <div className={styles.weekTimeGutter} />
-        {uniqueGroomers.map((g, i) => (
+        {columns.map((g, i) => (
           <div key={i} className={styles.weekDayHeader}>
             <div className={styles.weekDayName} style={{ fontWeight: 600 }}>{g}</div>
           </div>
@@ -1847,8 +1952,8 @@ function CalendarDayView({ bookings, selectedDate = new Date() }) {
         {HOURS.map((h, hi) => (
           <div key={hi} className={styles.weekRow}>
             <div className={styles.weekTimeLabel}>{h}</div>
-            {uniqueGroomers.map((g, gi) => {
-              const events = bookingsByGroomerAndHour[`${g}-${hi}`] || [];
+            {columns.map((g, gi) => {
+              const events = bookingsByColAndHour[`${g}-${hi}`] || [];
               return (
                 <div key={gi} className={styles.weekCell}>
                   {events.map((ev, ei) => {
@@ -1856,7 +1961,7 @@ function CalendarDayView({ bookings, selectedDate = new Date() }) {
                     return (
                       <div key={ei} className={styles.calChip} style={{ background: color.bg, color: color.text, borderLeft: `3px solid ${color.text}` }}>
                         <span className={styles.calChipName}>{ev.petName || ev.customerName}</span>
-                        <span className={styles.calChipType}>{ev.type}</span>
+                        <span className={styles.calChipType}>{ev.service || ev.type}</span>
                       </div>
                     );
                   })}
