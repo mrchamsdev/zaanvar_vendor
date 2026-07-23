@@ -23,7 +23,7 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
     const daycareRooms = vendorSettings?.roomsAndCapacity?.daycare?.rooms || [];
     
     const mappedClinicRooms = clinicRooms.map(r => ({ ...r, spaceType: "Clinic", roomType: "Custom Room", available: r.numberOfRooms, name: r.roomName, isVacant: true }));
-    const mappedDaycareRooms = daycareRooms.map(r => ({ ...r, spaceType: "Daycare", roomType: "Custom Room", available: r.numberOfRooms, name: r.roomName, isVacant: true }));
+    const mappedDaycareRooms = daycareRooms.map(r => ({ ...r, spaceType: "Daycare", roomType: "Custom Room", available: r.numberOfRooms, name: r.roomName, isVacant: true, foodProvided: r.foodProvided ?? false }));
     
     setRooms([...mappedClinicRooms, ...mappedDaycareRooms]);
   }, [vendorSettings]);
@@ -226,6 +226,11 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
                         <span className={styles.roomName}>{room.name}</span>
                         <span className={styles.capacityText}>Capacity: {String(room.capacity).padStart(2, "0")}</span>
                         <span className={styles.availableText}>Available: {String(room.available).padStart(2, "0")}</span>
+                        {room.spaceType === "Daycare" && (
+                          <span style={{ fontSize: "11px", color: room.foodProvided ? "#10b981" : "#6b7280", fontWeight: "600" }}>
+                            Food Provided: {room.foodProvided ? "Yes" : "No"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -258,6 +263,11 @@ const RoomsCapacitySettings = ({ setTopbarActions, isAddingRoom, setIsAddingRoom
                         <span className={styles.roomName}>{room.name}</span>
                         <span className={styles.capacityText}>Capacity: {String(room.capacity).padStart(2, "0")}</span>
                         <span className={styles.availableText}>Available: {String(room.available).padStart(2, "0")}</span>
+                        {room.spaceType === "Daycare" && (
+                          <span style={{ fontSize: "11px", color: room.foodProvided ? "#10b981" : "#6b7280", fontWeight: "600" }}>
+                            Food Provided: {room.foodProvided ? "Yes" : "No"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}

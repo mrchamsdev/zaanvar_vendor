@@ -501,6 +501,63 @@
   display: inline-block;
 }
 
+/* Daycare Outline Status Pills */
+.statusPillCheckedIn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #f59e0b;
+  background-color: #ffffff;
+  color: #333333;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.statusPillConfirmed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #a855f7;
+  background-color: #ffffff;
+  color: #333333;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.statusPillCompleted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #22c55e;
+  background-color: #ffffff;
+  color: #333333;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.statusPillCancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #6b7280;
+  background-color: #ffffff;
+  color: #333333;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .customerName {
   font-weight: 600;
   color: #333;

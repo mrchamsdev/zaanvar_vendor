@@ -201,7 +201,9 @@ function buildMenuFromVendor(userInfo) {
       path: "/bookings",
       icon: <IconProducts />,
       subItems: [
-        { label: "Grooming", path: "/grooming/booking" }]
+        { label: "Grooming", path: "/grooming/booking" },
+        { label: "Daycare", path: "/daycare" }
+      ]
     },
     {
       label: "Inventory",

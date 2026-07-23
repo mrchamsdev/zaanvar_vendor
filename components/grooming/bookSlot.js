@@ -59,7 +59,14 @@ const BookSlot = () => {
         <div className={styles.row}>
           <div className={styles.field}>
             <label>Date</label>
-            <input className={styles.input} type="date" />
+            <input
+              className={styles.input}
+              type="date"
+              min={(() => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              })()}
+            />
           </div>
           <div className={styles.field}>
             <label>Time</label>

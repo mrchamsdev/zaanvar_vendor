@@ -44,8 +44,8 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
   const daycareCheckInTo = `${daycareCheckInHour} ${daycareCheckInPeriod}`;
   const daycareCheckOut = `${daycareCheckOutHour} ${daycareCheckOutPeriod}`;
 
-  const [daycareRooms, setDaycareRooms] = useState(daycareData.rooms?.length ? daycareData.rooms.map(r => ({ ...r, numRooms: String(r.numberOfRooms || r.numRooms || "00"), capacity: String(r.capacity || "0000") })) : [
-    { id: "dr1", roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000" }
+  const [daycareRooms, setDaycareRooms] = useState(daycareData.rooms?.length ? daycareData.rooms.map(r => ({ ...r, numRooms: String(r.numberOfRooms || r.numRooms || "00"), capacity: String(r.capacity || "0000"), foodProvided: r.foodProvided ?? false })) : [
+    { id: "dr1", roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000", foodProvided: false }
   ]);
   const [daycareChargeBy, setDaycareChargeBy] = useState(daycareData.chargeBy || "Do you charge by number of days or number of nights?");
   const [daycareRates, setDaycareRates] = useState(daycareData.rates?.length ? daycareData.rates : [
@@ -103,7 +103,7 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
   };
 
   const addDaycareRoomRow = () => {
-    setDaycareRooms(prev => [...prev, { id: `dr_${Date.now()}`, roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000" }]);
+    setDaycareRooms(prev => [...prev, { id: `dr_${Date.now()}`, roomName: "", numRooms: "00", petType: "Dog", capacity: "0000", price: "000", foodProvided: false }]);
   };
   const removeDaycareRoomRow = (id) => {
     if (daycareRooms.length > 1) setDaycareRooms(prev => prev.filter(r => r.id !== id));
@@ -125,7 +125,12 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const formatRooms = (rArray) => rArray.map(r => ({ ...r, numberOfRooms: parseInt(r.numRooms) || 0, capacity: parseInt(r.capacity) || 0 }));
+    const formatRooms = (rArray) => rArray.map(r => ({
+      ...r,
+      numberOfRooms: parseInt(r.numRooms) || 0,
+      capacity: parseInt(r.capacity) || 0,
+      foodProvided: Boolean(r.foodProvided)
+    }));
     const formatRates = (rArray) => rArray.map(r => ({ ...r, price: parseInt(r.price) || 0 }));
     
     const apiPayload = {
@@ -460,9 +465,10 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
 
               <div className={styles.formCardWithMargin}>
                 <div 
-                  className={`${styles.rowHeaders} ${independentRooms ? styles.gridRoomsOn : styles.gridRoomsOff}`}
+                  className={`${styles.rowHeaders} ${independentRooms ? styles.gridDaycareRoomsOn : styles.gridDaycareRoomsOff}`}
                 >
-                  <div className={styles.colHeader}>Room Name</div>
+                  <div className={styles.colHeader}>Assigned Room</div>
+                  <div className={styles.colHeader}>Food Providing</div>
                   <div className={styles.colHeader}>Number of Rooms</div>
                   <div className={styles.colHeader}>{independentRooms ? "Pet Type" : "Animal Type"}</div>
                   <div className={styles.colHeader}>Beds / Room Capacity</div>
@@ -473,7 +479,7 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
                 {daycareRooms.map((row) => (
                   <div 
                     key={row.id} 
-                    className={`${styles.rowInputs} ${independentRooms ? styles.gridRoomsOn : styles.gridRoomsOff}`}
+                    className={`${styles.rowInputs} ${independentRooms ? styles.gridDaycareRoomsOn : styles.gridDaycareRoomsOff}`}
                   >
                     <input
                       type="text"
@@ -482,6 +488,15 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
                       value={row.roomName}
                       onChange={(e) => updateDaycareRoomRow(row.id, "roomName", e.target.value)}
                     />
+                    <select
+                      className={styles.formFieldInput}
+                      value={row.foodProvided === true ? "true" : row.foodProvided === false ? "false" : ""}
+                      onChange={(e) => updateDaycareRoomRow(row.id, "foodProvided", e.target.value === "true")}
+                    >
+                      <option value="">Select Food</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
                     <input
                       type="text"
                       className={styles.formFieldInput}
