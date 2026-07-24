@@ -356,7 +356,10 @@ const DashboardLayout = ({
   /* ── role-based sidebar filtering ── */
   const currentUserId = userInfo?.userId || userInfo?.id || userInfo?._id;
   const userRoleStr = userInfo?.role;
-  const isSuperAdmin = userRoleStr === "superadmin";
+  const isSuperAdmin =
+    userRoleStr === "superadmin" ||
+    userInfo?.userType === "Admin" ||
+    userInfo?.professionalRoleType === "superadmin";
 
   // Find the role for the current user by their userId inside role.userIds
   const userRole = !isSuperAdmin && roles?.find(
