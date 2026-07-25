@@ -152,15 +152,20 @@ export default function useDashboardData(options = {}) {
     return () => clearInterval(intervalId);
   }, [jwtToken, branchId, setRoles]);
 
-  /* ── fetch reviews & ratings when branch is known ── */
+  /* ── fetch reviews & ratings when branch or company is known ── */
   useEffect(() => {
-    if (!jwtToken || !branchId || skipReviews) return;
+    if (!jwtToken || skipReviews) return;
+    if (!companyId && !branchId) return;
 
     const webApi = new WebApimanager(jwtToken);
     setReviewsLoading(true);
 
+    const url = companyId
+      ? `vendor-reviews/get-reviews?companyId=${companyId}`
+      : `vendor-reviews/get-reviews?branchId=${branchId}`;
+
     webApi
-      .get(`vendor-reviews/branch/${branchId}`)
+      .get(url)
       .then((res) => {
         const data = res?.data || res;
         const list = data?.reviews || data?.data || data || [];
@@ -175,7 +180,7 @@ export default function useDashboardData(options = {}) {
         setReviewsError(err?.message || "Failed");
       })
       .finally(() => setReviewsLoading(false));
-  }, [jwtToken, branchId, skipReviews]);
+  }, [jwtToken, branchId, companyId, skipReviews]);
 
   return {
     /* ── auth / hydration ── */

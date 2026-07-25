@@ -193,7 +193,6 @@ const BRANCH_SERVICE_MAP = {
 function buildMenuFromVendor(userInfo) {
   const base = [
     { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
-    { label: "Timing Slots", path: "/timing-slots", icon: <IconClock /> },
     { label: "Reviews", path: "/reviews", icon: <IconStar /> },
     { label: "Profile", path: "/profile", icon: <IconUser /> },
     {

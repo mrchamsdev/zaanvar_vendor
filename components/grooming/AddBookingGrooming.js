@@ -8,6 +8,7 @@ import { VENDOR_API_URL } from "../utilities/Constants";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import { getSettings } from "../../services/settingsService";
 import useCurrencySymbol from "../utilities/useCurrencySymbol";
+import { useRouter } from "next/router";
 
 // Removed mockCustomers, using dynamic fetching
 
@@ -25,13 +26,14 @@ const timeSlots = [
 ];
 
 const AddBookingGrooming = ({ bookingId, onClose }) => {
+  const router = useRouter();
   const currencySymbol = useCurrencySymbol();
   const [activeTab, setActiveTab] = useState("Basic Details");
   const [bookingDetails, setBookingDetails] = useState(null);
   const [customerType, setCustomerType] = useState("Existed"); // 'Existed' or 'New'
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const { jwtToken, selectedBranchId } = useStore();
+  const { jwtToken, selectedBranchId, userInfo } = useStore();
   const [customers, setCustomers] = useState([]);
   const [selectedPets, setSelectedPets] = useState([]);
   const [customerSearchText, setCustomerSearchText] = useState("");
@@ -90,8 +92,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         .then(res => res.json())
         .then(data => {
           if (data.status === "success" && data.data) {
-            setGroomersList(data.data.filter(staff => staff.role && staff.role.toLowerCase() === 'groomer'));
-            setDoctorsList(data.data.filter(staff => staff.role && staff.role.toLowerCase() === 'doctor'));
+            setGroomersList(data.data.filter(staff => staff.role && staff.role.toLowerCase().startsWith('groomer')));
+            setDoctorsList(data.data.filter(staff => staff.role && staff.role.toLowerCase().startsWith('doctor')));
           }
         })
         .catch(err => console.error("Error fetching staff:", err));
@@ -128,9 +130,87 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         }
       })
         .then(res => res.json())
-        .then(res => {
+        .then(async res => {
           if (res.status === "success" && res.data) {
-            setBookingDetails(res.data);
+            let mainBooking = res.data;
+
+            // Check if there are other booking IDs in appointments/daycare/clinic (e.g. split bookings)
+            const otherBookingIds = new Set();
+            (mainBooking.appointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+            (mainBooking.daycareAppointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+            (mainBooking.clinicAppointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+
+            if (otherBookingIds.size > 0) {
+              const fetchPromises = Array.from(otherBookingIds).map(id =>
+                fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${id}`, {
+                  headers: { "Authorization": `Bearer ${jwtToken}` }
+                }).then(r => r.json()).catch(() => null)
+              );
+              const otherResults = await Promise.all(fetchPromises);
+              otherResults.forEach(otherRes => {
+                if (otherRes && otherRes.status === "success" && otherRes.data) {
+                  const ob = otherRes.data;
+                  if (ob.appointments) {
+                    mainBooking.appointments = [
+                      ...(mainBooking.appointments || []),
+                      ...ob.appointments
+                    ];
+                  }
+                  if (ob.daycareAppointments) {
+                    mainBooking.daycareAppointments = [
+                      ...(mainBooking.daycareAppointments || []),
+                      ...ob.daycareAppointments
+                    ];
+                  }
+                  if (ob.clinicAppointments) {
+                    mainBooking.clinicAppointments = [
+                      ...(mainBooking.clinicAppointments || []),
+                      ...ob.clinicAppointments
+                    ];
+                  }
+                }
+              });
+
+              // De-duplicate appointments
+              if (mainBooking.appointments) {
+                const seen = new Set();
+                mainBooking.appointments = mainBooking.appointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+              if (mainBooking.daycareAppointments) {
+                const seen = new Set();
+                mainBooking.daycareAppointments = mainBooking.daycareAppointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+              if (mainBooking.clinicAppointments) {
+                const seen = new Set();
+                mainBooking.clinicAppointments = mainBooking.clinicAppointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+            }
+
+            setBookingDetails(mainBooking);
           }
         })
         .catch(err => console.error("Error loading booking details for edit:", err));
@@ -141,6 +221,45 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   useEffect(() => {
     if (bookingDetails && customers.length > 0) {
       const b = bookingDetails;
+
+      // Extract all selected services from the booking details to populate them in availableServices if they are missing
+      const bookingServices = [];
+      const addService = (s) => {
+        if (!s || !s.id) return;
+        const nameStr = s.name || s.serviceName || s.otherServiceName || "Service";
+        if (!bookingServices.some(x => String(x.id) === String(s.id))) {
+          bookingServices.push({
+            id: String(s.id),
+            serviceName: nameStr,
+            price: Number(s.price) || 0
+          });
+        }
+      };
+
+      (b.appointments || []).forEach(app => {
+        (app.pets || []).forEach(pet => {
+          const servicesArray = Array.isArray(pet.services) ? pet.services : [];
+          servicesArray.forEach(srvItem => {
+            if (srvItem.selectedServices && Array.isArray(srvItem.selectedServices)) {
+              srvItem.selectedServices.forEach(s => addService(s));
+            } else if (srvItem.id) {
+              addService(srvItem);
+            }
+          });
+        });
+      });
+
+      if (bookingServices.length > 0) {
+        setAvailableServices(prev => {
+          const updated = [...prev];
+          bookingServices.forEach(bs => {
+            if (!updated.some(x => String(x.id) === String(bs.id))) {
+              updated.push(bs);
+            }
+          });
+          return updated;
+        });
+      }
 
       // Find customer in list to get the pets array
       const matchedCustomer = customers.find(c => (c.id == b.customerId || c.vendorCustomerId == b.customerId));
@@ -196,17 +315,16 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
 
         // Populate specific fields based on service type
         if (type === "Grooming") {
-          const srv = pet.services?.[0] || {};
           const hours = Math.floor((pet.durationMinutes || 60) / 60);
           const minutes = (pet.durationMinutes || 60) % 60;
 
           const formatTime = (timeStr) => {
             if (!timeStr) return "";
-            const [h, m] = timeStr.split(':');
-            const hr = parseInt(h);
+            const parts = timeStr.split(':');
+            const hr = parseInt(parts[0]);
             const ampm = hr >= 12 ? "PM" : "AM";
             const hr12 = hr % 12 || 12;
-            return `${String(hr12).padStart(2, '0')}:${m} ${ampm}`;
+            return `${String(hr12).padStart(2, '0')}:${parts[1] || "00"} ${ampm}`;
           };
           const existingBuffer = details[pId].bufferTime;
           const newBuffer = (pet.bufferMinutes !== undefined && pet.bufferMinutes !== null && Number(pet.bufferMinutes) > 0)
@@ -214,10 +332,42 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             : (existingBuffer && existingBuffer !== "0" ? existingBuffer : "0");
           const displaySlotTime = app.startTime && app.endTime ? `${formatTime(app.startTime)} - ${formatTime(app.endTime)}` : "";
 
+          // Robust parsing of flat/nested services
+          let selectedServicesIds = [];
+          let groomingType = "Services";
+          let selectedPackage = "";
+
+          const servicesArray = Array.isArray(pet.services) ? pet.services : [];
+          const firstSrv = servicesArray[0] || pet.services || {};
+
+          if (firstSrv.selectedServices && Array.isArray(firstSrv.selectedServices)) {
+            // Nested structure
+            selectedServicesIds = firstSrv.selectedServices.map(s => typeof s === 'object' && s !== null ? String(s.id || s.serviceId || s.name) : String(s));
+            if (firstSrv.serviceType === "Package" || firstSrv.selectedPackage) {
+              groomingType = "Package";
+              selectedPackage = firstSrv.selectedPackage || firstSrv.id || firstSrv.serviceId || "";
+            }
+          } else if (pet.services?.selectedServices && Array.isArray(pet.services.selectedServices)) {
+            // Root-nested structure
+            selectedServicesIds = pet.services.selectedServices.map(s => typeof s === 'object' && s !== null ? String(s.id || s.serviceId || s.name) : String(s));
+            if (pet.services.serviceType === "Package" || pet.services.selectedPackage) {
+              groomingType = "Package";
+              selectedPackage = pet.services.selectedPackage || "";
+            }
+          } else {
+            // Flat array structure
+            selectedServicesIds = servicesArray.map(s => String(s.id || s.serviceId || s.name));
+            const pkgSrv = servicesArray.find(s => s.serviceType === "Package" || s.type === "Package" || s.selectedPackage);
+            if (pkgSrv) {
+              groomingType = "Package";
+              selectedPackage = pkgSrv.selectedPackage || pkgSrv.id || pkgSrv.serviceId || "";
+            }
+          }
+
           Object.assign(details[pId], {
-            groomingType: srv.serviceType === "Package" ? "Package" : (srv.serviceType === "Subscription" ? "Subscription" : "Services"),
-            selectedPackage: srv.selectedPackage || "",
-            selectedServices: (srv.selectedServices || []).map(s => typeof s === 'object' && s !== null ? String(s.id || s.serviceId || s.name) : String(s)),
+            groomingType,
+            selectedPackage,
+            selectedServices: selectedServicesIds,
             assignedGroomer: app.groomerID || "",
             appointmentDate: app.appointmentDate || "",
             selectedSlotId: app.slotId || "",
@@ -231,6 +381,16 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             petConditionNotes: pet.petConditionNotes || "Mild skin allergies."
           });
         } else if (type === "Clinic") {
+          const formatTime = (timeStr) => {
+            if (!timeStr) return "";
+            const parts = timeStr.split(':');
+            const hr = parseInt(parts[0]);
+            const ampm = hr >= 12 ? "PM" : "AM";
+            const hr12 = hr % 12 || 12;
+            return `${String(hr12).padStart(2, '0')}:${parts[1] || "00"} ${ampm}`;
+          };
+          const displayClinicSlotTime = app.startTime && app.endTime ? `${formatTime(app.startTime)} - ${formatTime(app.endTime)}` : (app.appointmentTime || "");
+
           Object.assign(details[pId], {
             clinicConsultationType: app.consultationType || "First Consultation",
             clinicAppointmentDate: app.appointmentDate || "",
@@ -241,7 +401,12 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             clinicMinutes: String((app.durationMinutes || 30) % 60),
             clinicBuffer: String(app.bufferMinutes || "0"),
             clinicDoctor: app.doctorId || app.doctorID || "",
-            clinicSymptoms: app.symptoms || ""
+            clinicSymptoms: app.symptoms || "",
+            clinicSelectedTime: displayClinicSlotTime,
+            clinicStartTime: app.startTime || app.appointmentTime || "",
+            clinicEndTime: app.endTime || "",
+            clinicSelectedSlotId: app.slotId || "",
+            clinicUnassigned: app.isUnassigned || false
           });
         } else if (type === "Day Care") {
           const dcDateObj = app.dates?.[0] || {};
@@ -301,6 +466,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   // Service Details State (mapping pet index/id to state object)
   const [petServiceDetails, setPetServiceDetails] = useState({});
   const [petSlotsData, setPetSlotsData] = useState({});
+  const [petClinicSlotsData, setPetClinicSlotsData] = useState({});
 
   const [taxToggled, setTaxToggled] = useState(false);
   const [discountToggled, setDiscountToggled] = useState(false);
@@ -524,8 +690,35 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
     });
   }, [petServiceDetails, selectedPets, selectedBranchId, petSlotsData]);
 
+  useEffect(() => {
+    selectedPets.forEach((pet, idx) => {
+      const petId = pet.id || pet.vendorCustomerPetId || pet.petId || idx;
+      const petState = petServiceDetails[petId];
+      if (petState && petState.clinicAppointmentDate && petState.clinicDoctor && !petState.clinicUnassigned) {
+        const cacheKey = `${petState.clinicAppointmentDate}_${petState.clinicDoctor}`;
+        if (!petClinicSlotsData[petId] || petClinicSlotsData[petId].cacheKey !== cacheKey) {
+          fetch(`${VENDOR_API_URL}branch-clinics/slots/branch/${selectedBranchId}?date=${petState.clinicAppointmentDate}&doctorId=${petState.clinicDoctor}`, {
+            headers: {
+              "Authorization": `Bearer ${jwtToken}`
+            }
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.status === "success" && data.data) {
+                setPetClinicSlotsData(prev => ({
+                  ...prev,
+                  [petId]: { cacheKey, slots: data.data }
+                }));
+              }
+            })
+            .catch(err => console.error("Error fetching clinic slots", err));
+        }
+      }
+    });
+  }, [petServiceDetails, selectedPets, selectedBranchId, petClinicSlotsData, jwtToken]);
+
   const getPetState = (petId) => {
-    return petServiceDetails[petId] || {
+   return petServiceDetails[petId] || {
       assignedGroomer: "",
       unassigned: false,
       selectedTime: "",
@@ -535,6 +728,11 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
       minutes: "",
       bufferTime: "",
       appointmentDate: (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })(),
+      clinicBookingType: "In-Store",
+      clinicAppointmentDate: (() => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       })()
@@ -554,6 +752,11 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
         minutes: "",
         bufferTime: "0",
         appointmentDate: (() => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })(),
+        clinicBookingType: "In-Store",
+        clinicAppointmentDate: (() => {
           const d = new Date();
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         })()
@@ -636,8 +839,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
           (pState.startTime && s.startTime && s.startTime.substring(0, 5) === pState.startTime.substring(0, 5))
         );
         const isOwnSlot = (slot && pState.selectedSlotId && String(slot.slotID) === String(pState.selectedSlotId)) ||
-                          (slot && pState.startTime && slot.startTime && slot.startTime.substring(0, 5) === pState.startTime.substring(0, 5)) ||
-                          !!bookingDetails;
+          (slot && pState.startTime && slot.startTime && slot.startTime.substring(0, 5) === pState.startTime.substring(0, 5)) ||
+          !!bookingDetails;
         if (slot && slot.status === 'Full' && !isOwnSlot) return true;
         return false;
       });
@@ -736,11 +939,13 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                 gender: pet.gender || pet.petGender || pet.rawDetails?.petGender || "Male",
                 approximateAge: pet.approximateAge || pet.age || pet.rawDetails?.age || "1Y 0M",
                 doctorId: petState.clinicDoctor ? parseInt(petState.clinicDoctor) : 3,
+                isUnassigned: petState.clinicUnassigned || false,
+                slotId: petState.clinicSelectedSlotId ? parseInt(petState.clinicSelectedSlotId) : undefined,
                 consultationType: petState.clinicConsultationType || "New Consultation",
                 consultationCategory: petState.clinicConsultationReason || "General Checkup",
                 appointmentDate: petState.clinicAppointmentDate || firstPetState.appointmentDate || "2026-07-22",
-                startTime: petState.clinicAppointmentTime || "10:30:00",
-                endTime: "11:00:00",
+                startTime: petState.clinicStartTime || petState.clinicAppointmentTime || "10:30:00",
+                endTime: petState.clinicEndTime || "11:00:00",
                 symptoms: petState.clinicSymptoms || "Routine checkup",
                 services: [
                   { id: 10, name: "General Checkup Fee", price: 400.00 }
@@ -874,7 +1079,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
             bookingSource: "Walk-in",
             bookingMode: firstPetState.bookingMode || "AtStore",
             notes: firstPetState.notes || "Booking appointment",
-            createdBy: 1,
+            createdBy: userInfo?.userId || userInfo?.id || userInfo?._id || 1,
             pets: petsArray,
             subTotal: baseTotal,
             discountAmount: discountAmount,
@@ -1050,31 +1255,30 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                         <label className={styles.label}>
                           Pet Name {selectedCustomer && `(${(selectedCustomer.pets || selectedCustomer.customerPets || []).length})`}
                         </label>
-                        <select
-                          className={styles.select}
-                          value=""
-                          onChange={(e) => {
-                            const petId = e.target.value;
-                            if (petId) {
-                              const petsList = selectedCustomer.pets || selectedCustomer.customerPets || [];
-                              const pet = petsList.find(p => (p.id == petId || p.vendorCustomerPetId == petId || p.petId == petId));
-                              if (pet && !selectedPets.find(sp => (sp.id || sp.vendorCustomerPetId || sp.petId) === (pet.id || pet.vendorCustomerPetId || pet.petId))) {
-                                setSelectedPets([...selectedPets, pet]);
-                              }
-                            }
-                          }}
-                        >
-                          <option value="">
-                            {selectedPets.length > 0
-                              ? selectedPets.map(pet => pet.petName || pet.name || 'Unnamed Pet').join(", ")
-                              : "Choose here"}
-                          </option>
-                          {selectedCustomer && (selectedCustomer.pets || selectedCustomer.customerPets || []).map(pet => (
-                            <option key={pet.id || pet.vendorCustomerPetId || pet.petId} value={pet.id || pet.vendorCustomerPetId || pet.petId}>
-                              {pet.petName || pet.name || 'Unnamed Pet'}
-                            </option>
-                          ))}
-                        </select>
+                        {(() => {
+                          const petsList = selectedCustomer ? (selectedCustomer.pets || selectedCustomer.customerPets || []) : [];
+                          const listItems = petsList.map(pet => ({
+                            id: String(pet.id || pet.vendorCustomerPetId || pet.petId),
+                            name: pet.petName || pet.name || 'Unnamed Pet'
+                          }));
+                          const selectedIds = selectedPets.map(pet => String(pet.id || pet.vendorCustomerPetId || pet.petId));
+                          const handlePetSelectionChange = (ids) => {
+                            const matchedBackendPets = petsList.filter(pet => {
+                              const petId = String(pet.id || pet.vendorCustomerPetId || pet.petId);
+                              return ids.includes(petId);
+                            });
+                            const localPets = selectedPets.filter(pet => pet.isNewLocally);
+                            setSelectedPets([...matchedBackendPets, ...localPets]);
+                          };
+                          return (
+                            <MultiSelectDropdown
+                              heading=""
+                              listItems={listItems}
+                              selectedIds={selectedIds}
+                              setSelectedIds={handlePetSelectionChange}
+                            />
+                          );
+                        })()}
                       </div>
                     </div>
                   </>
@@ -1132,7 +1336,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                             <div className={styles.petPillPlaceholder}></div>
                           )}
                           <span className={styles.petPillName}>{(pet.petName || pet.name || 'Unknown').toUpperCase()}</span>
-                          <button className={styles.petPillRemove} onClick={() => setSelectedPets(selectedPets.filter(sp => sp !== pet))}>Ãƒâ€”</button>
+                          <button className={styles.petPillRemove} onClick={() => setSelectedPets(selectedPets.filter(sp => sp !== pet))}>{"\u00D7"}</button>
                         </div>
                       ))}
                     </div>
@@ -1428,8 +1632,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
 
                                   const isOwnBookedSlot = (slot.slotID && petState.selectedSlotId && String(slot.slotID) === String(petState.selectedSlotId)) ||
-                                                        (petState.startTime && slot.startTime && petState.startTime.substring(0, 5) === slot.startTime.substring(0, 5)) ||
-                                                        (petState.selectedTime && formattedTime && petState.selectedTime === formattedTime);
+                                    (petState.startTime && slot.startTime && petState.startTime.substring(0, 5) === slot.startTime.substring(0, 5)) ||
+                                    (petState.selectedTime && formattedTime && petState.selectedTime === formattedTime);
                                   const isFull = (slot.status === 'Full' || slot.bookedCount >= slot.capacity) && !isOwnBookedSlot;
                                   const isSelected = isOwnBookedSlot;
 
@@ -1716,7 +1920,19 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                             </label>
                           </div>
 
-                          <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
+                           <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
+                            <div className={styles.formGroup}>
+                              <label className={styles.label}>Booking Type</label>
+                              <select
+                                className={styles.select}
+                                value={petState.clinicBookingType || "In-Store"}
+                                onChange={(e) => updatePetState(petId, 'clinicBookingType', e.target.value)}
+                              >
+                                {/* <option value="Online">Online</option> */}
+                                <option value="In-Store">In-Store</option>
+                                <option value="Home-visit">Home-visit</option>
+                              </select>
+                            </div>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Appointment Date</label>
                               <input
@@ -1741,40 +1957,184 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 }}
                               />
                             </div>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Appointment Time</label>
-                              <select
-                                className={styles.select}
-                                value={petState.clinicAppointmentTime || ""}
-                                onChange={(e) => updatePetState(petId, 'clinicAppointmentTime', e.target.value)}
-                              >
-                                <option value="">Select the Time</option>
-                                <option value="09:00 AM">09:00 AM</option>
-                                <option value="10:00 AM">10:00 AM</option>
-                                <option value="11:00 AM">11:00 AM</option>
-                                <option value="12:00 PM">12:00 PM</option>
-                                <option value="01:00 PM">01:00 PM</option>
-                                <option value="02:00 PM">02:00 PM</option>
-                                <option value="03:00 PM">03:00 PM</option>
-                                <option value="04:00 PM">04:00 PM</option>
-                                <option value="05:00 PM">05:00 PM</option>
-                              </select>
+                          </div>
+
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Assigned Doctor for the service</label>
+                            <div className={styles.groomerGrid}>
+                              {doctorsList.length > 0 ? doctorsList.map(d => (
+                                <div
+                                  key={d.userId}
+                                  className={`${styles.groomerChip} ${petState.clinicDoctor === d.userId && !petState.clinicUnassigned ? styles.groomerChipActive : ""}`}
+                                  onClick={() => {
+                                    updatePetState(petId, 'clinicDoctor', d.userId);
+                                    updatePetState(petId, 'clinicUnassigned', false);
+                                  }}
+                                >
+                                  <Image src="https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png" unoptimized width={32} height={32} className={styles.avatar} alt="Avatar" />
+                                  {d.staffName}
+                                </div>
+                              )) : <div style={{ color: '#888', fontSize: '14px', fontStyle: 'italic' }}>No doctors found for this branch.</div>}
                             </div>
+                            <label className={styles.checkboxLabel}>
+                              <input type="checkbox" checked={petState.clinicUnassigned || false} onChange={(e) => updatePetState(petId, 'clinicUnassigned', e.target.checked)} />
+                              Mark it as unassigned
+                            </label>
+                          </div>
+
+                          <div style={{ marginBottom: '2rem' }}>
+                            <label className={styles.label} style={{ display: 'block', marginBottom: '1rem' }}>Select Appointment Time Slots</label>
+                            {(() => {
+                              const selectedDoc = doctorsList.find(d => String(d.userId) === String(petState.clinicDoctor));
+                              const docName = selectedDoc ? selectedDoc.staffName : "Selected Doctor";
+
+                              if (petClinicSlotsData[petId]?.slots) {
+                                const slots = petClinicSlotsData[petId].slots;
+
+                                if (slots.length === 0) {
+                                  return (
+                                    <div style={{ color: '#e9315d', fontWeight: '600', padding: '1rem', border: '1px dashed #e9315d', borderRadius: '8px', backgroundColor: '#fff5f7' }}>
+                                      Doctor {docName} is not available on selected date
+                                    </div>
+                                  );
+                                }
+
+                                const allBooked = slots.every(slot => {
+                                  const isOwnBookedSlot = (slot.slotID && petState.clinicSelectedSlotId && String(slot.slotID) === String(petState.clinicSelectedSlotId)) ||
+                                    (petState.clinicStartTime && slot.startTime && petState.clinicStartTime.substring(0, 5) === slot.startTime.substring(0, 5)) ||
+                                    (petState.clinicSelectedTime && slot.startTime && petState.clinicSelectedTime.includes(slot.startTime.substring(0, 5)));
+                                  return (slot.status === 'Full' || slot.bookedCount >= slot.capacity) && !isOwnBookedSlot;
+                                });
+
+                                if (allBooked) {
+                                  return (
+                                    <div style={{ color: '#e9315d', fontWeight: '600', padding: '1rem', border: '1px dashed #e9315d', borderRadius: '8px', backgroundColor: '#fff5f7' }}>
+                                      All slots are booked on selected date for {docName}. Please change the date
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div className={styles.timeGrid}>
+                                    {slots.map(slot => {
+                                      const [h, m] = slot.startTime.split(':');
+                                      const isPM = parseInt(h) >= 12;
+                                      const displayH = (parseInt(h) % 12) || 12;
+                                      const formattedTime = `${String(displayH).padStart(2, '0')}:${m} ${isPM ? 'PM' : 'AM'}`;
+
+                                      const isOwnBookedSlot = (slot.slotID && petState.clinicSelectedSlotId && String(slot.slotID) === String(petState.clinicSelectedSlotId)) ||
+                                        (petState.clinicStartTime && slot.startTime && petState.clinicStartTime.substring(0, 5) === slot.startTime.substring(0, 5)) ||
+                                        (petState.clinicSelectedTime && formattedTime && petState.clinicSelectedTime === formattedTime);
+                                      const isFull = (slot.status === 'Full' || slot.bookedCount >= slot.capacity) && !isOwnBookedSlot;
+                                      const isSelected = isOwnBookedSlot;
+
+                                      const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
+                                        const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
+                                        if (String(otherPetId) === String(petId)) return false;
+                                        const otherState = petServiceDetails[otherPetId] || petServiceDetails[String(otherPetId)] || petServiceDetails[otherIdx];
+                                        if (!otherState) return false;
+                                        return otherState.clinicAppointmentDate === petState.clinicAppointmentDate &&
+                                          String(otherState.clinicDoctor) === String(petState.clinicDoctor) &&
+                                          !otherState.clinicUnassigned &&
+                                          (
+                                            (slot.slotID && otherState.clinicSelectedSlotId ? String(otherState.clinicSelectedSlotId) === String(slot.slotID) : false) ||
+                                            (otherState.clinicStartTime && slot.startTime ? otherState.clinicStartTime.substring(0, 5) === slot.startTime.substring(0, 5) : false) ||
+                                            (otherState.clinicSelectedTime && formattedTime ? otherState.clinicSelectedTime === formattedTime : false)
+                                          );
+                                      });
+
+                                      let buttonStyle = {};
+                                      if (!isSelected && (isFull || isOccupiedByOther)) {
+                                        buttonStyle = { borderColor: '#d1d5db', color: '#6b7280', backgroundColor: '#e5e7eb', cursor: 'not-allowed' };
+                                      }
+
+                                      return (
+                                        <button
+                                          key={slot.slotID}
+                                          className={`${styles.timeBtn} ${isSelected ? styles.timeBtnActive : ""}`}
+                                          style={buttonStyle}
+                                          disabled={isFull || isOccupiedByOther}
+                                          onClick={() => {
+                                            if (!isFull && !isOccupiedByOther) {
+                                              updatePetState(petId, 'clinicSelectedTime', formattedTime);
+                                              updatePetState(petId, 'clinicSelectedSlotId', slot.slotID);
+                                              updatePetState(petId, 'clinicStartTime', slot.startTime);
+                                              updatePetState(petId, 'clinicEndTime', slot.endTime);
+                                            }
+                                          }}
+                                        >
+                                          {formattedTime}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              }
+
+                              // Fallback / Initial State: Show static slot list (or date prompt)
+                              if (!petState.clinicAppointmentDate || !petState.clinicDoctor || petState.clinicUnassigned) {
+                                return (
+                                  <div style={{ color: '#888', fontStyle: 'italic', fontSize: '14px', padding: '0.5rem' }}>
+                                    Please select a Doctor and Appointment Date to view available slots.
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className={styles.timeGrid}>
+                                  {timeSlots.map(time => {
+                                    const startTime = convertTimeTo24h(time);
+
+                                    const isOccupiedByOther = selectedPets.some((otherPet, otherIdx) => {
+                                      const otherPetId = otherPet.id || otherPet.vendorCustomerPetId || otherPet.petId || otherIdx;
+                                      if (String(otherPetId) === String(petId)) return false;
+                                      const otherState = petServiceDetails[otherPetId] || petServiceDetails[String(otherPetId)] || petServiceDetails[otherIdx];
+                                      if (!otherState) return false;
+                                      return otherState.clinicAppointmentDate === petState.clinicAppointmentDate &&
+                                        String(otherState.clinicDoctor) === String(petState.clinicDoctor) &&
+                                        !otherState.clinicUnassigned &&
+                                        (otherState.clinicStartTime === startTime || otherState.clinicSelectedTime === time);
+                                    });
+
+                                    const isSelected = petState.clinicSelectedTime === time || petState.clinicStartTime === startTime;
+
+                                    let buttonStyle = {};
+                                    if (!isSelected && isOccupiedByOther) {
+                                      buttonStyle = { borderColor: '#d1d5db', color: '#6b7280', backgroundColor: '#e5e7eb', cursor: 'not-allowed' };
+                                    }
+
+                                    return (
+                                      <button
+                                        key={time}
+                                        className={`${styles.timeBtn} ${isSelected ? styles.timeBtnActive : ""}`}
+                                        style={buttonStyle}
+                                        disabled={isOccupiedByOther}
+                                        onClick={() => {
+                                          if (!isOccupiedByOther) {
+                                            updatePetState(petId, 'clinicSelectedTime', time);
+                                            updatePetState(petId, 'clinicStartTime', startTime);
+                                            const [h, m] = startTime.split(':');
+                                            let endM = parseInt(m) + 30;
+                                            let endH = parseInt(h);
+                                            if (endM >= 60) {
+                                              endM -= 60;
+                                              endH += 1;
+                                            }
+                                            const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`;
+                                            updatePetState(petId, 'clinicEndTime', endTime);
+                                          }
+                                        }}
+                                      >
+                                        {time}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Booking Type</label>
-                              <select
-                                className={styles.select}
-                                value={petState.clinicBookingType || ""}
-                                onChange={(e) => updatePetState(petId, 'clinicBookingType', e.target.value)}
-                              >
-                                <option value="Online">Online</option>
-                                <option value="In-Store">In-Store</option>
-                                <option value="Home-visit">Home-visit</option>
-                              </select>
-                            </div>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Type of consultation</label>
                               <select
@@ -1785,69 +2145,6 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 <option value="Vaccination">Vaccination</option>
                                 <option value="General Checkup">General Checkup</option>
                                 <option value="Deworming">Deworming</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <h4 className={styles.label} style={{ display: 'block', marginBottom: '1rem', fontSize: '16px', fontWeight: '600', color: '#666' }}>Time taken for appointment</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-start', gap: '2rem' }}>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Hours</label>
-                                <select
-                                  className={styles.select}
-                                  value={petState.clinicHours || ""}
-                                  onChange={(e) => updatePetState(petId, 'clinicHours', e.target.value)}
-                                >
-                                  <option value="">Choose Hours here</option>
-                                  {Array.from({ length: 15 }, (_, i) => (
-                                    <option key={`ch-${i}`} value={i}>{String(i).padStart(2, "0")} hr</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Minutes</label>
-                                <select
-                                  className={styles.select}
-                                  value={petState.clinicMinutes || ""}
-                                  onChange={(e) => updatePetState(petId, 'clinicMinutes', e.target.value)}
-                                >
-                                  <option value="">Choose Mins here</option>
-                                  {Array.from({ length: 60 }, (_, i) => i).map(m => (
-                                    <option key={`cm-${m}`} value={m}>{String(m).padStart(2, "0")} minutes</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className={styles.formGroup}>
-                                <label className={styles.label}>Add Buffer for extra time required</label>
-                                <select
-                                  className={styles.select}
-                                  value={petState.clinicBuffer || ""}
-                                  onChange={(e) => updatePetState(petId, 'clinicBuffer', e.target.value)}
-                                >
-                                  <option value="">Choose Buffer here</option>
-                                  <option value="15">15 minutes</option>
-                                  <option value="30">30 minutes</option>
-                                  <option value="45">45 minutes</option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                              <label className={styles.label}>Doctor <span style={{ color: '#888', fontSize: '0.75rem' }}>(optional)</span></label>
-                              <select
-                                className={styles.select}
-                                value={petState.clinicDoctor || ""}
-                                onChange={(e) => updatePetState(petId, 'clinicDoctor', e.target.value)}
-                              >
-                                <option value="">Select Doctor</option>
-                                {doctorsList.map(doc => (
-                                  <option key={doc.userId} value={doc.userId}>
-                                    {doc.staffName}
-                                  </option>
-                                ))}
                               </select>
                             </div>
                             <div className={styles.formGroup}>
@@ -1975,44 +2272,62 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 40px', gap: '1.5rem', marginBottom: '2rem', alignItems: 'flex-end' }}>
                                   <div className={styles.formGroup}>
                                     <label className={styles.label}>Assigned Room</label>
-                                    <select
-                                      className={styles.select}
-                                      value={petState.daycareRoom || ""}
-                                      onChange={(e) => {
-                                        const selectedRoomName = e.target.value;
-                                        updatePetState(petId, 'daycareRoom', selectedRoomName);
+                                    {daycareConfiguredRooms.length > 0 ? (
+                                      <select
+                                        className={styles.select}
+                                        value={petState.daycareRoom || ""}
+                                        onChange={(e) => {
+                                          const selectedRoomName = e.target.value;
+                                          updatePetState(petId, 'daycareRoom', selectedRoomName);
 
-                                        const matchedRoom = daycareConfiguredRooms.find(
-                                          r => (r.roomName || r.name) === selectedRoomName
-                                        );
+                                          const matchedRoom = daycareConfiguredRooms.find(
+                                            r => (r.roomName || r.name) === selectedRoomName
+                                          );
 
-                                        if (matchedRoom) {
-                                          const isFoodYes = matchedRoom.foodProvided === true || matchedRoom.foodProvided === "Yes" || matchedRoom.foodProvided === "true";
-                                          updatePetState(petId, 'daycareFood', isFoodYes ? "Yes" : "No");
+                                          if (matchedRoom) {
+                                            const isFoodYes = matchedRoom.foodProvided === true || matchedRoom.foodProvided === "Yes" || matchedRoom.foodProvided === "true";
+                                            updatePetState(petId, 'daycareFood', isFoodYes ? "Yes" : "No");
 
-                                          if (matchedRoom.price !== undefined && matchedRoom.price !== null) {
-                                            updatePetState(petId, 'daycareRate', String(matchedRoom.price));
+                                            if (matchedRoom.price !== undefined && matchedRoom.price !== null) {
+                                              updatePetState(petId, 'daycareRate', String(matchedRoom.price));
+                                            }
                                           }
-                                        }
-                                      }}
-                                    >
-                                      <option value="">Select here</option>
-                                      {daycareConfiguredRooms.length > 0 ? (
-                                        daycareConfiguredRooms.map((r, idx) => {
+                                        }}
+                                      >
+                                        <option value="">Select here</option>
+                                        {daycareConfiguredRooms.map((r, idx) => {
                                           const roomLabel = r.roomName || r.name || `Room ${idx + 1}`;
                                           return (
                                             <option key={r.id || idx} value={roomLabel}>
                                               {roomLabel}
                                             </option>
                                           );
-                                        })
-                                      ) : (
-                                        <>
-                                          <option value="Room A">Room A</option>
-                                          <option value="Room B">Room B</option>
-                                        </>
-                                      )}
-                                    </select>
+                                        })}
+                                      </select>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        style={{
+                                          height: '42px',
+                                          border: '1px dashed #e9315d',
+                                          borderRadius: '6px',
+                                          color: '#e9315d',
+                                          background: 'none',
+                                          padding: '0 1rem',
+                                          cursor: 'pointer',
+                                          fontWeight: '600',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          width: '100%'
+                                        }}
+                                        onClick={() => {
+                                          router.push("/vendor-settings?tab=RoomsCapacity&addRoom=true");
+                                        }}
+                                      >
+                                        + Add Room
+                                      </button>
+                                    )}
                                   </div>
                                   <div className={styles.formGroup}>
                                     <label className={styles.label}>Food Providing</label>
@@ -2068,20 +2383,10 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   const cat = (s.category || s.serviceCategory || s.type || "").toLowerCase();
                                   return cat === "daycare" || cat === "day care";
                                 });
-                                const defaultDaycareAddons = [
-                                  { id: "Extra Meal / Food", name: "Extra Meal / Food" },
-                                  { id: "Dog Walking (30 mins)", name: "Dog Walking (30 mins)" },
-                                  { id: "Medication Admin", name: "Medication Admin" },
-                                  { id: "Swimming Session", name: "Swimming Session" },
-                                  { id: "Playtime & Socialization", name: "Playtime & Socialization" },
-                                  { id: "Special Treat / Snack", name: "Special Treat / Snack" },
-                                  { id: "De-shedding Treatment", name: "De-shedding Treatment" },
-                                  { id: "Fur Brushing", name: "Fur Brushing" },
-                                  { id: "Tick & Flea Treatment", name: "Tick & Flea Treatment" }
-                                ];
-                                const baseList = daycareCategoryServices.length > 0
-                                  ? daycareCategoryServices.map(s => ({ id: s.id || s.serviceName || s.name, name: s.serviceName || s.name }))
-                                  : defaultDaycareAddons;
+                                const baseList = daycareCategoryServices.map(s => {
+                                   const nameStr = s.serviceName || s.name || "";
+                                   return { id: nameStr || String(s.id), name: nameStr };
+                                 });
 
                                 const selectedAddonNames = petState.daycareAddonSelected || [];
                                 const extraAddonItems = selectedAddonNames.map(n => ({ id: n, name: n }));

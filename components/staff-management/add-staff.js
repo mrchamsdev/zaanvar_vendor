@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/staff-management.module.css";
 import useDashboardData from "../dashboard/useDashboardData";
-import { getStaffDetailsById, updateStaffDetails, addBranchStaff, generateGroomerSlots } from "../../services/staffService";
+import { getStaffDetailsById, updateStaffDetails, addBranchStaff, generateGroomerSlots, generateDoctorSlots } from "../../services/staffService";
 import { getRoles } from "../../services/rolesService";
 import { dateOnlyWithTimeZone } from "../../utilities/date-time-utils";
 import { Country, State, City } from "country-state-city";
@@ -749,6 +749,33 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                         console.log("Slots generated successfully");
                       } catch (slotErr) {
                         console.error("Failed to generate slots:", slotErr);
+                      }
+                    }
+
+                    if (newGroomerId && payload.role && payload.role.toLowerCase().startsWith('doctor')) {
+                      const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                      const exceptDaysList = daysOrder.filter(d => workingHours[d]?.isNotAvailable);
+                      
+                      const formatDateStr = (date) => {
+                        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                      };
+                      const fromD = new Date();
+                      const toD = new Date();
+                      toD.setDate(fromD.getDate() + 30); // 30 days of slot generation
+
+                      const slotsPayload = {
+                        branchId: parseInt(selectedBranchId),
+                        doctorId: parseInt(newGroomerId),
+                        fromDate: formatDateStr(fromD),
+                        toDate: formatDateStr(toD),
+                        except: exceptDaysList.length > 0 ? exceptDaysList.join(", ") : "None"
+                      };
+
+                      try {
+                        await generateDoctorSlots(slotsPayload);
+                        console.log("Doctor slots generated successfully");
+                      } catch (slotErr) {
+                        console.error("Failed to generate doctor slots:", slotErr);
                       }
                     }
 

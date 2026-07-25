@@ -4,14 +4,16 @@ import Image from "next/image";
 import useStore from "../state/useStore";
 import { VENDOR_API_URL } from "../utilities/Constants";
 import useCurrencySymbol from "../utilities/useCurrencySymbol";
+import { useRouter } from "next/router";
 
 const menuActions = [
-  "Edit", "Reschedule", "Cancel", "Check-In", "Check-Out", 
-  "Print", // "Assign Groomer", 
+  "Edit", "Reschedule", "Cancel", "Check-In", "Check-Out",
+  "Print",
   "Update Payment status", "Generate Invoice"
 ];
 
 const ViewBookingDetails = ({ bookingId, onClose }) => {
+  const router = useRouter();
   const currencySymbol = useCurrencySymbol();
   const { jwtToken } = useStore();
   const [bookingData, setBookingData] = useState(null);
@@ -40,11 +42,90 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
         }
       })
         .then(res => res.json())
-        .then(res => {
+        .then(async res => {
           if (res.status === "success" && res.data) {
-            setBookingData(res.data);
+            let mainBooking = res.data;
+
+            // Check if there are other booking IDs in appointments/daycare/clinic (e.g. split bookings)
+            const otherBookingIds = new Set();
+            (mainBooking.appointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+            (mainBooking.daycareAppointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+            (mainBooking.clinicAppointments || []).forEach(app => {
+              if (app.bookingId && String(app.bookingId) !== String(bookingId)) {
+                otherBookingIds.add(app.bookingId);
+              }
+            });
+
+            if (otherBookingIds.size > 0) {
+              const fetchPromises = Array.from(otherBookingIds).map(id =>
+                fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings/${id}`, {
+                  headers: { "Authorization": `Bearer ${jwtToken}` }
+                }).then(r => r.json()).catch(() => null)
+              );
+              const otherResults = await Promise.all(fetchPromises);
+              otherResults.forEach(otherRes => {
+                if (otherRes && otherRes.status === "success" && otherRes.data) {
+                  const ob = otherRes.data;
+                  if (ob.appointments) {
+                    mainBooking.appointments = [
+                      ...(mainBooking.appointments || []),
+                      ...ob.appointments
+                    ];
+                  }
+                  if (ob.daycareAppointments) {
+                    mainBooking.daycareAppointments = [
+                      ...(mainBooking.daycareAppointments || []),
+                      ...ob.daycareAppointments
+                    ];
+                  }
+                  if (ob.clinicAppointments) {
+                    mainBooking.clinicAppointments = [
+                      ...(mainBooking.clinicAppointments || []),
+                      ...ob.clinicAppointments
+                    ];
+                  }
+                }
+              });
+
+              // De-duplicate appointments
+              if (mainBooking.appointments) {
+                const seen = new Set();
+                mainBooking.appointments = mainBooking.appointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+              if (mainBooking.daycareAppointments) {
+                const seen = new Set();
+                mainBooking.daycareAppointments = mainBooking.daycareAppointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+              if (mainBooking.clinicAppointments) {
+                const seen = new Set();
+                mainBooking.clinicAppointments = mainBooking.clinicAppointments.filter(app => {
+                  if (seen.has(app.appointmentID)) return false;
+                  seen.add(app.appointmentID);
+                  return true;
+                });
+              }
+            }
+
+            setBookingData(mainBooking);
+
             // Fetch available offerings for service mapping using branchId
-            fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${res.data.branchId}?type=services`)
+            fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${mainBooking.branchId}?type=services`)
               .then(offRes => offRes.json())
               .then(offData => {
                 if (offData.status === "success" && offData.data?.services) {
@@ -103,8 +184,8 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
     );
   }
 
-  const { customer, appointments, subTotal, discountAmount, taxAmount, totalAmount, paidAmount, dueAmount, paymentStatus, status, notes } = bookingData;
-  
+  const { customer, subTotal, discountAmount, taxAmount, totalAmount, paidAmount, dueAmount, paymentStatus, status, notes } = bookingData;
+
   // Format dates for display
   const getFormattedDate = (dateStr) => {
     if (!dateStr) return "";
@@ -113,7 +194,210 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
     return `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
   };
 
-  const mainAppointmentDate = appointments?.[0]?.appointmentDate ? getFormattedDate(appointments[0].appointmentDate) : "";
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+    const [h, m] = timeStr.split(':');
+    const hours = parseInt(h);
+    const displayH = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
+  };
+
+  const mainAppointmentDate = bookingData.appointments?.[0]?.appointmentDate ? getFormattedDate(bookingData.appointments[0].appointmentDate) : "";
+
+  // Extract unique pets from all appointments in bookingData
+  const fetchedPets = [];
+  const addUniquePet = (pet) => {
+    const petProfile = pet.petProfile || {};
+    const petId = pet.customerPetId || petProfile.petId || petProfile.id || pet.id;
+    if (!petId) return;
+    if (!fetchedPets.some(p => p.id === petId)) {
+      fetchedPets.push({
+        id: petId,
+        petName: petProfile.petName || pet.petName || "Unnamed",
+        breed: petProfile.breed || "N/A",
+        photo: petProfile.photo
+      });
+    }
+  };
+
+  (bookingData.appointments || []).forEach(app => {
+    (app.pets || []).forEach(pet => addUniquePet(pet));
+  });
+  (bookingData.daycareAppointments || []).forEach(app => {
+    (app.pets || []).forEach(pet => addUniquePet(pet));
+  });
+  (bookingData.clinicAppointments || []).forEach(app => {
+    (app.pets || []).forEach(pet => addUniquePet(pet));
+  });
+
+  // If no pets are nested in appointments, fall back to root pets array
+  if (fetchedPets.length === 0 && Array.isArray(bookingData.pets)) {
+    bookingData.pets.forEach(pet => {
+      const petId = pet.id || pet.customerPetId || pet.petId;
+      fetchedPets.push({
+        id: petId || "temp",
+        petName: pet.petName || "Unnamed",
+        breed: pet.breed || "N/A",
+        photo: pet.photo
+      });
+    });
+  }
+
+  const petsList = fetchedPets;
+
+  const petSummaryList = petsList.map((pet, idx) => {
+    const petId = pet.id;
+    const petName = pet.petName;
+
+    // Find grooming appointment for this pet
+    let petGroomingApp = null;
+    let petGroomingInfo = null;
+    (bookingData.appointments || []).forEach(app => {
+      const foundPet = (app.pets || []).find(p => {
+        const pId = p.customerPetId || p.petProfile?.petId || p.petProfile?.id || p.id;
+        return (pId && pId === petId) || p.petName === petName || p.petProfile?.petName === petName;
+      });
+      if (foundPet) {
+        petGroomingApp = app;
+        petGroomingInfo = foundPet;
+      }
+    });
+
+    // Find daycare appointment for this pet
+    let petDaycareApp = null;
+    let petDaycareInfo = null;
+    let dcDateObj = {};
+    (bookingData.daycareAppointments || []).forEach(app => {
+      const foundPet = (app.pets || []).find(p => {
+        const pId = p.customerPetId || p.petProfile?.petId || p.petProfile?.id || p.id;
+        return (pId && pId === petId) || p.petName === petName || p.petProfile?.petName === petName || p.petNameDisplay === petName;
+      });
+      if (foundPet) {
+        petDaycareApp = app;
+        petDaycareInfo = foundPet;
+        dcDateObj = app.dates?.[0] || {};
+      }
+    });
+
+    // Find clinic appointment for this pet
+    let petClinicApp = null;
+    let petClinicInfo = null;
+    (bookingData.clinicAppointments || []).forEach(app => {
+      const foundPet = (app.pets || []).find(p => {
+        const pId = p.customerPetId || p.petProfile?.petId || p.petProfile?.id || p.id;
+        return (pId && pId === petId) || p.petName === petName || p.petProfile?.petName === petName;
+      });
+      if (foundPet) {
+        petClinicApp = app;
+        petClinicInfo = foundPet;
+      }
+    });
+
+    const serviceTypes = [];
+    if (petGroomingApp) serviceTypes.push("Grooming");
+    if (petClinicApp) serviceTypes.push("Clinic");
+    if (petDaycareApp) serviceTypes.push("Day Care");
+
+    let petGroomingTotal = 0;
+    const groomingServices = [];
+    if (petGroomingInfo) {
+      const servicesArray = Array.isArray(petGroomingInfo.services) ? petGroomingInfo.services : [];
+      const firstSrv = servicesArray[0] || petGroomingInfo.services || {};
+
+      if (firstSrv.selectedServices && Array.isArray(firstSrv.selectedServices)) {
+        firstSrv.selectedServices.forEach(sItem => {
+          const price = Number(sItem.price) || 0;
+          groomingServices.push({
+            serviceName: sItem.name || sItem.serviceName || getServiceName(sItem),
+            price
+          });
+          petGroomingTotal += price;
+        });
+      } else if (petGroomingInfo.services?.selectedServices && Array.isArray(petGroomingInfo.services.selectedServices)) {
+        petGroomingInfo.services.selectedServices.forEach(sItem => {
+          const price = Number(sItem.price) || 0;
+          groomingServices.push({
+            serviceName: sItem.name || sItem.serviceName || getServiceName(sItem),
+            price
+          });
+          petGroomingTotal += price;
+        });
+      } else if (servicesArray.length > 0) {
+        servicesArray.forEach(srv => {
+          const price = Number(srv.price) || 0;
+          groomingServices.push({
+            serviceName: srv.serviceName || srv.name || getServiceName(srv),
+            price
+          });
+          petGroomingTotal += price;
+        });
+      }
+    }
+
+    let petClinicTotal = 0;
+    const clinicServices = [];
+    if (petClinicInfo) {
+      const srv = Array.isArray(petClinicInfo.services) ? (petClinicInfo.services[0] || {}) : (petClinicInfo.services || {});
+      const price = Number(srv.price) || 500;
+      clinicServices.push({
+        serviceName: petClinicApp.consultationReason || "General Checkup",
+        price
+      });
+      petClinicTotal += price;
+    }
+
+    let daycareRoomPrice = 0;
+    let daycareAddonPrice = 0;
+    let petDaycareTotal = 0;
+    if (petDaycareApp) {
+      daycareRoomPrice = Number(dcDateObj.roomRate) || 0;
+      daycareAddonPrice = (petDaycareApp.addons || []).reduce((sum, addonItem) => {
+        const addonName = addonItem.addonName || addonItem.name || addonItem.addonServiceType;
+        const service = availableServices.find(s =>
+          String(s.id) === String(addonItem.id || addonItem.serviceId) ||
+          s.serviceName === addonName ||
+          s.name === addonName
+        );
+        const price = service ?
+          Number(service.discountPrice !== undefined && service.discountPrice !== null ? service.discountPrice : service.price) :
+          Number(addonItem.price || 0);
+        return sum + price;
+      }, 0);
+      petDaycareTotal = daycareRoomPrice + daycareAddonPrice;
+    }
+
+    const petTotal = petGroomingTotal + petClinicTotal + petDaycareTotal;
+
+    return {
+      pet,
+      serviceTypes,
+      petGroomingApp,
+      petGroomingInfo,
+      groomingServices,
+      petGroomingTotal,
+      petClinicApp,
+      petClinicInfo,
+      clinicServices,
+      petClinicTotal,
+      petDaycareApp,
+      petDaycareInfo,
+      dcDateObj,
+      daycareRoomPrice,
+      daycareAddonPrice,
+      petDaycareTotal,
+      petTotal
+    };
+  });
+
+  const computedSubTotal = petSummaryList.reduce((sum, item) => sum + item.petTotal, 0);
+  const displaySubTotal = computedSubTotal || parseFloat(subTotal) || 0;
+  const displayTaxAmount = parseFloat(taxAmount) || 0;
+  const displayDiscountAmount = parseFloat(discountAmount) || 0;
+  const displayTotalAmount = computedSubTotal ? (computedSubTotal + displayTaxAmount - displayDiscountAmount) : ((parseFloat(totalAmount) || 0) || (displaySubTotal + displayTaxAmount - displayDiscountAmount));
+  const displayPaidAmount = parseFloat(paidAmount) || 0;
+  const displayDueAmount = Math.max(0, displayTotalAmount - displayPaidAmount);
 
   return (
     <div className={styles.container}>
@@ -137,213 +421,275 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
                 <circle cx="12" cy="19" r="1" />
               </svg>
             </button>
-            {showMenu && (
-              <div className={styles.menuDropdown}>
-                {menuActions.map(action => (
-                  <div key={action} className={styles.menuItem} onClick={() => setShowMenu(false)}>
-                    {action}
-                  </div>
-                ))}
-              </div>
-            )}
+            {showMenu && (() => {
+              const bookingStatusUpper = bookingData.bookingStatus?.toUpperCase() || bookingData.status?.toUpperCase();
+              const statusUpper = bookingData.status?.toUpperCase();
+
+              const filteredMenuActions = menuActions.filter(action => {
+                // If completed, hide reschedule, cancel, check-in, check-out, and edit
+                if (bookingStatusUpper === "COMPLETED") {
+                  if (["Reschedule", "Cancel", "Check-In", "Check-Out", "Edit"].includes(action)) {
+                    return false;
+                  }
+                }
+
+                // If in progress, hide reschedule, cancel, check-in, and edit
+                if (bookingStatusUpper === "IN_PROGRESS" || bookingStatusUpper === "IN PROGRESS") {
+                  if (["Reschedule", "Cancel", "Check-In", "Edit"].includes(action)) {
+                    return false;
+                  }
+                }
+
+                if (action === "Check-In") {
+                  return bookingStatusUpper === "TODAY";
+                }
+                if (action === "Check-Out") {
+                  return (
+                    statusUpper === "CHECK-IN" ||
+                    statusUpper === "CHECK IN" ||
+                    statusUpper === "IN PROGRESS" ||
+                    statusUpper === "IN_PROGRESS" ||
+                    bookingStatusUpper === "CHECK-IN" ||
+                    bookingStatusUpper === "CHECK IN" ||
+                    bookingStatusUpper === "IN PROGRESS" ||
+                    bookingStatusUpper === "IN_PROGRESS"
+                  );
+                }
+                return true;
+              });
+
+              return (
+                <div className={styles.menuDropdown}>
+                  {filteredMenuActions.map(action => (
+                    <div
+                      key={action}
+                      className={styles.menuItem}
+                      onClick={() => {
+                        setShowMenu(false);
+                        if (action === "Edit") {
+                          router.push({
+                            pathname: router.pathname,
+                            query: { ...router.query, edit: "true", view: undefined, bookingId: bookingId }
+                          });
+                          if (onClose) onClose();
+                        }
+                      }}
+                    >
+                      {action}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
-        <div className={styles.summaryCard} style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h4 className={styles.summaryTitle}>Customer Details</h4>
-              <div className={styles.summaryRow} style={{ justifyContent: 'flex-start', gap: '2rem' }}>
-                <span className={styles.summaryLabel}>Customer Name</span>
-                <span className={styles.summaryValue}>{customer ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim() : "Guest"}</span>
+        {/* Top Container */}
+        <div style={{ border: '1px solid #eaeaea', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#fff', marginBottom: '2rem' }}>
+          {/* Customer Details Top Card */}
+          <div className={styles.summaryCard} style={{ marginBottom: '1.5rem', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h4 className={styles.summaryTitle}>Customer Details</h4>
+                <div className={styles.summaryRow}>
+                  <span className={styles.summaryLabel}>Customer Name</span>
+                  <span className={styles.summaryValue}>
+                    {customer ? `${customer.firstName || ""} ${customer.lastName || ""}`.trim() : "Guest"}
+                  </span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span className={styles.summaryLabel}>Customer Phone Number</span>
+                  <span className={styles.summaryValue}>
+                    {customer?.phoneNumber || "N/A"}
+                  </span>
+                </div>
               </div>
-              <div className={styles.summaryRow} style={{ justifyContent: 'flex-start', gap: '1rem' }}>
-                <span className={styles.summaryLabel}>Customer Phone Number</span>
-                <span className={styles.summaryValue}>{customer?.phoneNumber || "N/A"}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ textAlign: 'center' }}>
-                <span className={paymentStatus === "Paid" ? styles.badgeCheckedIn : styles.badgePending}>
-                  {paymentStatus === "Paid" ? "Paid" : "Payment Pending"}
-                </span>
-                {paymentStatus !== "Paid" && (
-                  <span className={styles.badgeDue}>Due: ₹ {Math.round(parseFloat(dueAmount) || 0)}</span>
-                )}
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <span className={status === "COMPLETED" ? styles.badgeCheckedIn : styles.badgePending}>
-                  {status ? status.replace(/_/g, ' ') : ""}
-                </span>
-                <span className={styles.badgeDue}>{mainAppointmentDate || "N/A"}</span>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <span className={paymentStatus === "Paid" ? styles.badgeCheckedIn : styles.badgePending}>
+                    {paymentStatus === "Paid" ? "Paid" : "Payment Pending"}
+                  </span>
+                  {paymentStatus !== "Paid" && (
+                    <span className={styles.badgeDue}>Due: ₹ {Math.round(displayDueAmount)}</span>
+                  )}
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <span className={status === "COMPLETED" ? styles.badgeCheckedIn : styles.badgePending}>
+                    {status ? status.replace(/_/g, ' ') : ""}
+                  </span>
+                  <span className={styles.badgeDue}>{mainAppointmentDate || "N/A"}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-          {(() => {
-            const formatTime = (timeStr) => {
-              if (!timeStr) return "";
-              const [h, m] = timeStr.split(':');
-              const hours = parseInt(h);
-              const displayH = hours % 12 || 12;
-              const ampm = hours >= 12 ? 'PM' : 'AM';
-              return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
-            };
+          {/* 2-Column Grid for Pet One and Pet Two Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
+            {petSummaryList.map((item, idx) => {
+              const {
+                pet,
+                serviceTypes,
+                petGroomingApp,
+                groomingServices,
+                petGroomingTotal,
+                petClinicApp,
+                clinicServices,
+                petClinicTotal,
+                petDaycareApp,
+                dcDateObj,
+                daycareRoomPrice,
+                daycareAddonPrice,
+                petDaycareTotal
+              } = item;
 
-            const cards = [];
+              const labelPrefix = idx === 0 ? "One" : "Two";
 
-            (bookingData.appointments || []).forEach((app, appIdx) => {
-              (app.pets || []).forEach((pet, petIdx) => {
-                cards.push({
-                  id: `g-${appIdx}-${petIdx}`,
-                  app,
-                  pet,
-                  petProfile: pet.petProfile || {},
-                  srv: pet.services?.[0] || {},
-                  groomer: app.groomer || {},
-                  serviceCat: "Grooming",
-                  formattedDate: getFormattedDate(app.appointmentDate),
-                  timeRange: app.startTime && app.endTime ? `${formatTime(app.startTime)} — ${formatTime(app.endTime)}` : (app.appointmentTime || "N/A")
-                });
-              });
-            });
+              // Find groomer and doctor names
+              const groomerName = petGroomingApp?.groomer ? (petGroomingApp.groomer.staffName || `${petGroomingApp.groomer.firstName || ""} ${petGroomingApp.groomer.lastName || ""}`.trim()) : "Unassigned";
+              const doctorName = petClinicApp?.doctor ? (petClinicApp.doctor.staffName || `${petClinicApp.doctor.firstName || ""} ${petClinicApp.doctor.lastName || ""}`.trim()) : "Unassigned";
 
-            (bookingData.daycareAppointments || []).forEach((app, appIdx) => {
-              const dcDateObj = app.dates?.[0] || {};
-              const formattedDate = getFormattedDate(dcDateObj.date || app.createdAt);
-              const checkin12 = formatTime(dcDateObj.checkInTime);
-              const checkout12 = formatTime(dcDateObj.checkOutTime);
-
-              (app.pets || []).forEach((pObj, petIdx) => {
-                const petProfile = pObj.petProfile || pObj;
-                cards.push({
-                  id: `dc-${appIdx}-${petIdx}`,
-                  app: {
-                    ...app,
-                    checkinTime: checkin12 || "10:00 AM",
-                    checkoutTime: checkout12 || "06:00 PM",
-                    assignedRoom: dcDateObj.assignedRoom || "N/A",
-                    roomRate: dcDateObj.roomRate || "0",
-                    foodProviding: app.foodProviding ? "Yes" : "No"
-                  },
-                  pet: pObj,
-                  petProfile,
-                  srv: {
-                    price: dcDateObj.roomRate || bookingData.subTotal
-                  },
-                  groomer: {},
-                  serviceCat: "Day Care",
-                  formattedDate,
-                  timeRange: `${checkin12 || "10:00 AM"} — ${checkout12 || "06:00 PM"}`
-                });
-              });
-            });
-
-            (bookingData.clinicAppointments || []).forEach((app, appIdx) => {
-              (app.pets || []).forEach((pet, petIdx) => {
-                cards.push({
-                  id: `c-${appIdx}-${petIdx}`,
-                  app,
-                  pet,
-                  petProfile: pet.petProfile || {},
-                  srv: pet.services?.[0] || {},
-                  groomer: app.doctor || app.groomer || {},
-                  serviceCat: "Clinic",
-                  formattedDate: getFormattedDate(app.appointmentDate),
-                  timeRange: app.appointmentTime || "N/A"
-                });
-              });
-            });
-
-            return cards.map(({ id, app, pet, petProfile, srv, groomer, serviceCat, formattedDate, timeRange }) => (
-              <div key={id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div className={styles.summaryCard} style={{ height: '100%' }}>
-                    <h4 className={styles.summaryTitle}>Pet Details</h4>
+              return (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div className={styles.summaryCard}>
+                    <h4 className={styles.summaryTitle}>Pet {labelPrefix} Details</h4>
                     <div className={styles.petAvatarWrapper}>
-                      <Image src={petProfile.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} unoptimized width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                      <span className={styles.summaryValue}>{(petProfile.petName || pet.petName || 'Unnamed').toUpperCase()} ({petProfile.breed || 'N/A'})</span>
+                      <Image src={pet.photo || "https://zaanvarprods3.b-cdn.net/media/1781498177696-6e698fd1-db1d-4eb4-b957-c87d0c3eb1be.png"} unoptimized width={40} height={40} alt="Pet" style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                      <span className={styles.summaryValue}>{(pet.petName || pet.name || 'Unnamed').toUpperCase()} ({pet.breed || 'N/A'})</span>
                     </div>
                   </div>
 
-                  {serviceCat === "Clinic" ? (
-                    <div className={styles.summaryCard} style={{ height: '100%' }}>
-                      <h4 className={styles.summaryTitle}>Clinic Details</h4>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{formattedDate || "N/A"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{app.appointmentTime || "9:00 AM"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{app.bookingType || "In-Store"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type of Consultation</span><span className={styles.summaryValue}>{app.consultationReason || "General Checkup"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Doctor</span><span className={styles.summaryValue}>{groomer.firstName ? `${groomer.firstName} ${groomer.lastName || ""}`.trim() : "Unassigned"}</span></div>
-                    </div>
-                  ) : (serviceCat === "Day Care" || serviceCat === "Daycare") ? (
-                    <div className={styles.summaryCard} style={{ height: '100%' }}>
-                      <h4 className={styles.summaryTitle}>Daycare Details</h4>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{formattedDate || "N/A"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Check In / Check Out</span><span className={styles.summaryValue}>{`${app.checkinTime || "07:00 AM"} - ${app.checkoutTime || "05:00 PM"}`}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Room</span><span className={styles.summaryValue}>{app.assignedRoom || "N/A"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Food Providing</span><span className={styles.summaryValue}>{app.foodProviding || "No"}</span></div>
-                      {(bookingData.addons || []).length > 0 && (
+                  {/* Grooming Block */}
+                  {serviceTypes.includes("Grooming") && (
+                    <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4f46e5' }}></span>
+                        Grooming Service
+                      </div>
+                      <div className={styles.summaryCard}>
+                        <h4 className={styles.summaryTitle}>Grooming Details</h4>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{getFormattedDate(petGroomingApp.appointmentDate)}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petGroomingApp.startTime && petGroomingApp.endTime ? `${formatTime(petGroomingApp.startTime)} - ${formatTime(petGroomingApp.endTime)}` : "9:00 AM"}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{bookingData.bookingMode === "AtStore" ? "At Store" : (bookingData.bookingMode || "At Store")}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>{bookingData.serviceType || "Grooming"}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{groomerName}</span></div>
+                      </div>
+                      <div className={styles.summaryCard}>
+                        <h4 className={styles.summaryTitle}>Grooming Cost Details</h4>
+                        {groomingServices.map((gItem, gIdx) => (
+                          <div key={gIdx} className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>{gItem.serviceName}</span>
+                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(gItem.price)}</span>
+                          </div>
+                        ))}
                         <div className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>Addons</span>
-                          <span className={styles.summaryValue}>
-                            {bookingData.addons.map(a => a.addonName || a.name || a.addonServiceType).filter(Boolean).join(", ")}
-                          </span>
+                          <span className={styles.summaryLabel}>Total Amount</span>
+                          <span className={styles.summaryValue}>{currencySymbol} {Math.round(petGroomingTotal)}</span>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className={styles.summaryCard} style={{ height: '100%' }}>
-                      <h4 className={styles.summaryTitle}>Grooming Details</h4>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{formattedDate || "N/A"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{timeRange}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{bookingData.bookingMode === "AtStore" ? "At Store" : (bookingData.bookingMode || "At Store")}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type</span><span className={styles.summaryValue}>{bookingData.serviceType || "Grooming"}</span></div>
-                      <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Groomer</span><span className={styles.summaryValue}>{groomer.firstName ? `${groomer.firstName} ${groomer.lastName || ""}`.trim() : "Unassigned"}</span></div>
+                  )}
+
+                  {/* Daycare Block */}
+                  {serviceTypes.includes("Day Care") && (() => {
+                    const daycareAddonNames = (petDaycareApp.addons || []).map(a => a.addonName || a.name || a.addonServiceType).filter(Boolean);
+
+                    return (
+                      <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0891b2' }}></span>
+                          Daycare Service
+                        </div>
+                        <div className={styles.summaryCard}>
+                          <h4 className={styles.summaryTitle}>Daycare Details</h4>
+                          <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{getFormattedDate(dcDateObj.date)}</span></div>
+                          <div className={styles.summaryRow}><span className={styles.summaryLabel}>Check In / Check Out Time</span><span className={styles.summaryValue}>{`${formatTime(dcDateObj.checkInTime) || "07:00 AM"} - ${formatTime(dcDateObj.checkOutTime) || "05:00 PM"}`}</span></div>
+                        </div>
+                        <div className={styles.summaryCard}>
+                          <h4 className={styles.summaryTitle}>Room Allocation Details</h4>
+                          <div className={styles.summaryRow}><span className={styles.summaryLabel}>Food Providing</span><span className={styles.summaryValue}>{petDaycareApp.foodProviding || "No"}</span></div>
+                          <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Room</span><span className={styles.summaryValue}>{dcDateObj.assignedRoom || "N/A"}</span></div>
+                          <div className={styles.summaryRow}><span className={styles.summaryLabel}>Room Rate</span><span className={styles.summaryValue}>{currencySymbol} {Math.round(daycareRoomPrice)}</span></div>
+                        </div>
+
+                        {daycareAddonNames.length > 0 && (
+                          <div className={styles.summaryCard}>
+                            <h4 className={styles.summaryTitle}>Addon's</h4>
+                            <div className={styles.summaryRow}>
+                              <span className={styles.summaryLabel}>Service Type</span>
+                              <span className={styles.summaryValue}>Daycare</span>
+                            </div>
+                            <div className={styles.summaryRow}>
+                              <span className={styles.summaryLabel}>Addon's</span>
+                              <span className={styles.summaryValue}>
+                                {daycareAddonNames.join(", ")}
+                              </span>
+                            </div>
+                            <div className={styles.summaryRow}>
+                              <span className={styles.summaryLabel}>Quantity</span>
+                              <span className={styles.summaryValue}>
+                                {String(daycareAddonNames.length).padStart(2, "0")}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={styles.summaryCard}>
+                          <h4 className={styles.summaryTitle}>Daycare Cost Details</h4>
+                          <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Room Rate</span>
+                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(daycareRoomPrice)}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Food</span>
+                            <span className={styles.summaryValue}>{currencySymbol} 0</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Addon's</span>
+                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(daycareAddonPrice)}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>Total Amount</span>
+                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(petDaycareTotal)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Clinic Block */}
+                  {serviceTypes.includes("Clinic") && (
+                    <div style={{ border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#059669' }}></span>
+                        Clinic Service
+                      </div>
+                      <div className={styles.summaryCard}>
+                        <h4 className={styles.summaryTitle}>Clinic Details</h4>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Date</span><span className={styles.summaryValue}>{getFormattedDate(petClinicApp.appointmentDate)}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Appointment Time</span><span className={styles.summaryValue}>{petClinicApp.appointmentTime || "9:00 AM"}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Booking Type</span><span className={styles.summaryValue}>{petClinicApp.bookingType || "In-Store"}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Type of Consultation</span><span className={styles.summaryValue}>{petClinicApp.consultationReason || "General Checkup"}</span></div>
+                        <div className={styles.summaryRow}><span className={styles.summaryLabel}>Assigned Doctor</span><span className={styles.summaryValue}>{doctorName}</span></div>
+                      </div>
+                      <div className={styles.summaryCard}>
+                        <h4 className={styles.summaryTitle}>Clinic Cost Details</h4>
+                        {clinicServices.map((cItem, cIdx) => (
+                          <div key={cIdx} className={styles.summaryRow}>
+                            <span className={styles.summaryLabel}>{cItem.serviceName}</span>
+                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(cItem.price)}</span>
+                          </div>
+                        ))}
+                        <div className={styles.summaryRow}>
+                          <span className={styles.summaryLabel}>Total Amount</span>
+                          <span className={styles.summaryValue}>{currencySymbol} {Math.round(petClinicTotal)}</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div className={styles.summaryCard} style={{ height: '100%' }}>
-                    <h4 className={styles.summaryTitle}>
-                      {serviceCat === "Clinic" ? "Clinic Cost Details" : ((serviceCat === "Day Care" || serviceCat === "Daycare") ? "Daycare Cost Details" : "Grooming Cost Details")}
-                    </h4>
-                    {srv.selectedServices?.length > 0 ? (
-                      srv.selectedServices.map((sItem, sIdx) => {
-                        const keyStr = typeof sItem === "object" && sItem !== null ? (sItem.id || sItem.name || sIdx) : String(sItem);
-                        const itemPrice = typeof sItem === "object" && sItem !== null && sItem.price !== undefined ? Number(sItem.price) : (Number(srv.price) || 0);
-                        return (
-                          <div key={keyStr} className={styles.summaryRow}>
-                            <span className={styles.summaryLabel}>{getServiceName(sItem)}</span>
-                            <span className={styles.summaryValue}>{currencySymbol} {Math.round(itemPrice)}</span>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className={styles.summaryRow}>
-                        <span className={styles.summaryLabel}>{serviceCat === "Clinic" ? "Consultation Fee" : (serviceCat === "Day Care" ? "Room Rate" : "Service Fee")}</span>
-                        <span className={styles.summaryValue}>{currencySymbol} {Math.round(parseFloat(srv.price || app.roomRate || app.totalAmount || bookingData.subTotal || bookingData.totalAmount) || 0)}</span>
-                      </div>
-                    )}
-                    {(serviceCat === "Day Care" || serviceCat === "Daycare") && (bookingData.addons || []).length > 0 && (
-                      bookingData.addons.map((addonItem, addIdx) => (
-                        <div key={`addon-${addonItem.id || addIdx}`} className={styles.summaryRow}>
-                          <span className={styles.summaryLabel}>{addonItem.addonName || addonItem.name || addonItem.addonServiceType}</span>
-                          <span className={styles.summaryValue}>{currencySymbol} {Math.round(parseFloat(addonItem.price) || 0)}</span>
-                        </div>
-                      ))
-                    )}
-                    <div className={styles.summaryRow}>
-                      <span className={styles.summaryLabel}>Total Amount</span>
-                      <span className={styles.summaryValue}>{currencySymbol} {Math.round(parseFloat(bookingData.totalAmount || bookingData.subTotal || srv.price || app.totalAmount) || 0)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ));
-          })()}
+              );
+            })}
+          </div>
         </div>
 
         {notes && (
@@ -365,43 +711,43 @@ const ViewBookingDetails = ({ bookingId, onClose }) => {
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.label}>Paid Amount</label>
-                <input type="text" className={styles.input} readOnly value={`₹ ${Math.round(parseFloat(paidAmount) || 0)}`} />
+                <input type="text" className={styles.input} readOnly value={`₹ ${Math.round(displayPaidAmount)}`} />
               </div>
             </div>
           </div>
 
           <div className={styles.costBreakdownSection}>
             <h4 className={styles.summaryTitle}>Cost Break Down details</h4>
-            
+
             <div className={styles.costRow}>
               <span className={styles.costLabel}>Total</span>
-              <strong>₹ {Math.round(parseFloat(subTotal) || 0)}</strong>
+              <strong>₹ {Math.round(displaySubTotal)}</strong>
             </div>
 
             <div className={styles.costRow}>
               <span className={styles.costLabel}>Whole Tax Details</span>
-              <strong>₹ {Math.round(parseFloat(taxAmount) || 0)}</strong>
+              <strong>₹ {Math.round(displayTaxAmount)}</strong>
             </div>
 
             <div className={styles.costRow}>
               <span className={styles.costLabel}>Whole Discount Details</span>
-              <strong>₹ {Math.round(parseFloat(discountAmount) || 0)}</strong>
+              <strong>₹ {Math.round(displayDiscountAmount)}</strong>
             </div>
-            
+
             <div className={styles.costRow}>
               <span className={styles.costLabel} style={{ color: '#6c757d' }}>After Tax & Discount Total Amount</span>
-              <strong>₹ {Math.round(parseFloat(totalAmount) || 0)}</strong>
+              <strong>₹ {Math.round(displayTotalAmount)}</strong>
             </div>
 
             <h4 className={styles.summaryTitle} style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Advanced Payment Details</h4>
             <div className={styles.costRow}>
               <span className={styles.costLabel} style={{ color: '#6c757d' }}>Advanced Payment</span>
-              <strong>₹ {Math.round(parseFloat(paidAmount) || 0)}</strong>
+              <strong>₹ {Math.round(displayPaidAmount)}</strong>
             </div>
 
             <div className={styles.totalPending}>
               <span>Total Pending Amount</span>
-              <span>₹ {Math.round(parseFloat(dueAmount) || 0)}</span>
+              <span>₹ {Math.round(displayDueAmount)}</span>
             </div>
           </div>
         </div>

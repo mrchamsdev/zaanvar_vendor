@@ -227,6 +227,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
         petName: petNameDisplay,
         petBreed,
         service: isDaycareType ? "Daycare" : (Array.isArray(b.serviceType) ? b.serviceType.join(", ") : (b.serviceType || "Grooming")),
+        serviceType: b.serviceType || [],
         hasExtraService: b.isMultiPet || false,
         groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "Unassigned",
         groomerId: appointment.groomerID || groomerObj.groomerID || groomerObj.userId,
@@ -1149,18 +1150,12 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
                       </td>
                       <td>
                         <div className={styles.serviceWrapper}>
-                          {b.servicesList && b.servicesList.length > 0 ? (
-                            <>
-                              <span className={styles.serviceBadgePink}>{b.servicesList[0]}</span>
-                              {b.servicesList.length > 1 && (
-                                <span
-                                  className={styles.extraServiceCountBadge}
-                                  onClick={(e) => handlePlusClick(e, b)}
-                                >
-                                  +{b.servicesList.length - 1}
-                                </span>
-                              )}
-                            </>
+                          {b.serviceType && b.serviceType.length > 0 ? (
+                            b.serviceType.map((st, sidx) => (
+                              <span key={sidx} className={styles.serviceBadgePink} style={{ marginRight: '4px' }}>
+                                {st === "DayCare" ? "Day Care" : st}
+                              </span>
+                            ))
                           ) : (
                             <span className={styles.serviceBadgePink}>{b.service || "----"}</span>
                           )}
