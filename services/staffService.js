@@ -30,6 +30,11 @@ export const generateGroomerSlots = async (payload) => {
   return response.data;
 };
 
+export const generateDoctorSlots = async (payload) => {
+  const response = await axios.post(`${BACKEND_URL}branch-clinics/slots/generate`, payload);
+  return response.data;
+};
+
 
 export const updateStaffStatusOrLeave = async (leaveRequestId, payload) => {
   const response = await axios.put(`${BACKEND_URL}vendor-users/branch-staff/leaves/${leaveRequestId}`, payload);

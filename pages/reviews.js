@@ -113,7 +113,7 @@ function getRelativeTime(dateString) {
 }
 
 export default function ReviewsPage() {
-  const { jwtToken } = useStore();
+  const { jwtToken, userInfo } = useStore();
   const {
     reviews: fetchedReviews,
     reviewsLoading,
@@ -151,13 +151,24 @@ export default function ReviewsPage() {
     }
   }, [fetchedReviews]);
 
+  /* Resolve companyId or branchId */
+  const { companyId } = useDashboardData({ skipReviews: true });
+
   /* Refresh local reviews list */
   const refreshReviews = async () => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken) return;
     setIsRefreshing(true);
     const webApi = new WebApimanager(jwtToken);
     try {
-      const res = await webApi.get(`vendor-reviews/branch/${branchId}`);
+      let res;
+      if (companyId) {
+        res = await webApi.get(`vendor-reviews/get-reviews?companyId=${companyId}`);
+      } else if (branchId) {
+        res = await webApi.get(`vendor-reviews/get-reviews?branchId=${branchId}`);
+      } else {
+        setIsRefreshing(false);
+        return;
+      }
       const data = res?.data || res;
       const list = data?.reviews || data?.data || data || [];
       setLocalReviews(Array.isArray(list) ? list : []);
@@ -294,7 +305,12 @@ export default function ReviewsPage() {
 
           {/* Review List */}
           {paginatedReviews.map((rev, i) => {
-            const name = rev.user ? (rev.user.name || `${rev.user.firstName || ""} ${rev.user.lastName || ""}`.trim()) : (rev.userName || rev.reviewerName || "Customer");
+            const name = rev.vendorCustomerName || 
+                         (rev.vendorCustomer ? `${rev.vendorCustomer.firstName || ""} ${rev.vendorCustomer.lastName || ""}`.trim() : null) ||
+                         (rev.user ? (rev.user.name || `${rev.user.firstName || ""} ${rev.user.lastName || ""}`.trim()) : null) ||
+                         rev.userName || 
+                         rev.reviewerName || 
+                         "Customer";
             const rating = parseFloat(rev.rating || 0);
             const comment = rev.reviewComment || "";
             const dateStr = rev.created_at ? getRelativeTime(rev.created_at) : "";
@@ -464,7 +480,9 @@ export default function ReviewsPage() {
 
                     <div className={styles.ownerContent}>
                       <div className={styles.ownerHeader}>
-                        <span className={styles.ownerLabel}>OWNER</span>
+                        <span className={styles.ownerLabel}>
+                          {userInfo ? `${userInfo.firstName || ""} ${userInfo.lastName || ""}`.trim().toUpperCase() || "OWNER" : "OWNER"}
+                        </span>
                         <span className={styles.replyTimeAgo} style={{ color: "#ff4d6a", fontWeight: "600" }}>
                           (JUST NOW)
                         </span>
@@ -515,7 +533,9 @@ export default function ReviewsPage() {
                     {/* Owner Content */}
                     <div className={styles.ownerContent}>
                       <div className={styles.ownerHeader}>
-                        <span className={styles.ownerLabel}>OWNER</span>
+                        <span className={styles.ownerLabel}>
+                          {reply.repliedBy ? reply.repliedBy.toUpperCase() : "OWNER"}
+                        </span>
                         <span className={styles.replyTimeAgo}>
                           ({reply.replyDate ? getRelativeTime(reply.replyDate) : "JUST NOW"})
                         </span>

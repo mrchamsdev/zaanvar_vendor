@@ -53,6 +53,12 @@ export default function VendorSettingsPage() {
   const [topbarActions, setTopbarActions] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
 
+  useEffect(() => {
+    if (router.isReady && router.query.tab === "RoomsCapacity" && router.query.addRoom === "true") {
+      setIsAddingRoom(true);
+    }
+  }, [router.isReady, router.query]);
+
   /* ── Fetch on mount / when effectiveBranchId changes ── */
   useEffect(() => {
     if (!jwtToken || !effectiveBranchId) return;
