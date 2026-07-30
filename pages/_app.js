@@ -193,7 +193,7 @@ export default function App({ Component, pageProps }) {
       </AuthGuard>
 
       <Toaster richColors position="top-right" closeButton />
-      <Chatbot />
+      {/* <Chatbot /> */}
 
       {showMobileRedirectModal && (
         <div style={{

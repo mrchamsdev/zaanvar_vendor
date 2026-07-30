@@ -12,7 +12,8 @@ const MultiSelectDropdown = ({
   display,
   isSingleSelect = false,
   hideSearch = false,
-  customStyles = {}
+  customStyles = {},
+  hasError = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,7 +75,7 @@ const MultiSelectDropdown = ({
       )}
 
       {/* Dropdown Toggle */}
-      <div className={styles["dropdown"]} style={customStyles.dropdown || {}} onClick={() => setIsOpen(!isOpen)}>
+      <div className={`${styles["dropdown"]} ${hasError ? styles["error"] : ""}`} style={customStyles.dropdown || {}} onClick={() => setIsOpen(!isOpen)}>
         <div className={styles["selected-items"]}>
           {safeSelectedIds.length > 0 ? (
             safeSelectedIds.map((id) => {

@@ -118,7 +118,7 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     useEffect(() => {
         const settingsObj = vendorSettings?.settings || vendorSettings;
         const partySettings = settingsObj?.party;
-        if (isOpen && partySettings?.additionalFields) {
+        if (isOpen && partySettings?.additionalFields && !wasRestored.current) {
             const activeFields = (partySettings.additionalFields || [])
                 .filter(f => f.label && f.label.trim() !== "")
                 .map(f => ({
@@ -133,11 +133,44 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
         }
     }, [isOpen, vendorSettings]);
 
+    const wasRestored = useRef(false);
+
     useEffect(() => {
-        if (mode === 'edit' && supplierId) {
+        if (isOpen) {
+            const temp = sessionStorage.getItem("temp_supplier_form");
+            if (temp) {
+                try {
+                    const data = JSON.parse(temp);
+                    if (data.supplierName !== undefined) setSupplierName(data.supplierName);
+                    if (data.supplierType !== undefined) setSupplierType(data.supplierType);
+                    if (data.phone !== undefined) setPhone(data.phone);
+                    if (data.email !== undefined) setEmail(data.email);
+                    if (data.gstin !== undefined) setGstin(data.gstin);
+                    if (data.street !== undefined) setStreet(data.street);
+                    if (data.landmark !== undefined) setLandmark(data.landmark);
+                    if (data.state !== undefined) setState(data.state);
+                    if (data.city !== undefined) setCity(data.city);
+                    if (data.locality !== undefined) setLocality(data.locality);
+                    if (data.areaPinCode !== undefined) setAreaPinCode(data.areaPinCode);
+                    if (data.country !== undefined) setCountry(data.country);
+                    if (data.selectedBranchIds !== undefined) setSelectedBranchIds(data.selectedBranchIds);
+                    if (data.groupName !== undefined) setGroupName(data.groupName);
+                    if (data.assignedProducts !== undefined) setAssignedProducts(data.assignedProducts);
+                    if (data.additionalFields !== undefined) setAdditionalFields(data.additionalFields);
+                    wasRestored.current = true;
+                } catch (e) {
+                    console.error("Failed to restore temp supplier form in AddSupplier:", e);
+                }
+                sessionStorage.removeItem("temp_supplier_form");
+            }
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (mode === 'edit' && supplierId && !wasRestored.current) {
             fetchSupplierDetails();
         }
-    }, [mode, supplierId]);
+    }, [mode, supplierId, isOpen]);
 
     const fetchSupplierDetails = async () => {
         setLoading(true);
@@ -229,10 +262,35 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
     };
 
     const handleSave = async () => {
-        if (!supplierName || !phone || selectedBranchIds.length === 0 || supplierType.length === 0) {
+        const validationErrors = {};
+        if (!supplierName || !supplierName.trim()) {
+            validationErrors.supplierName = "Supplier name is required";
+        }
+        if (!phone || !phone.trim()) {
+            validationErrors.phone = "Phone number is required";
+        }
+        if (!selectedBranchIds || selectedBranchIds.length === 0) {
+            validationErrors.branches = "Branch name is required";
+        }
+        if (!supplierType || supplierType.length === 0) {
+            validationErrors.supplierType = "Supplier type is required";
+        }
+
+        const fieldErrors = {};
+        additionalFields.forEach(f => {
+            if (f.required && (!f.value || !f.value.trim())) {
+                fieldErrors[f.label] = `${f.label} is required`;
+            }
+        });
+
+        const allErrors = { ...validationErrors, ...fieldErrors };
+        if (Object.keys(allErrors).length > 0) {
+            setErrors(allErrors);
             toast.error("Please fill all required fields correctly.");
             return;
         }
+
+        setErrors({});
 
         if (gstin) {
             const trimmedGstin = gstin.trim().toUpperCase();
@@ -246,19 +304,6 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                 toast.error("GSTIN must be exactly 15 characters (e.g., 10 letters and 5 numbers, or standard GSTIN format)");
                 return;
             }
-        }
-
-        const fieldErrors = {};
-        additionalFields.forEach(f => {
-            if (f.required && (!f.value || !f.value.trim())) {
-                fieldErrors[f.label] = `${f.label} is required`;
-            }
-        });
-
-        if (Object.keys(fieldErrors).length > 0) {
-            setErrors(fieldErrors);
-            toast.error("Please fill all required additional fields.");
-            return;
         }
 
         const customFieldsObj = {};
@@ -332,34 +377,86 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                         <div className={styles.field}>
                             <label>Supplier name <span className={styles.requiredStar}>*</span></label>
                             <input
-                                type="text" className={styles.input} placeholder="Enter Supplier Name"
-                                value={supplierName} onChange={(e) => setSupplierName(e.target.value)}
+                                type="text"
+                                className={styles.input}
+                                placeholder="Enter Supplier Name"
+                                value={supplierName}
+                                onChange={(e) => {
+                                    setSupplierName(e.target.value);
+                                    if (errors.supplierName) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.supplierName;
+                                        setErrors(newErrors);
+                                    }
+                                }}
+                                style={errors.supplierName ? { border: "1px solid #FF4D4F", background: "#FFF1F0" } : {}}
                             />
+                            {errors.supplierName && <span style={{ color: "#FF4D4F", fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.supplierName}</span>}
                         </div>
                         <div className={styles.field}>
                             <label>Branch Name <span className={styles.requiredStar}>*</span></label>
                             <MultiSelectDropdown
                                 listItems={branchesList}
                                 selectedIds={selectedBranchIds}
-                                setSelectedIds={setSelectedBranchIds}
+                                setSelectedIds={(ids) => {
+                                    setSelectedBranchIds(ids);
+                                    if (errors.branches) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.branches;
+                                        setErrors(newErrors);
+                                    }
+                                }}
                                 placeholder="Select Branch Name here"
+                                customStyles={{
+                                    dropdown: {
+                                        background: errors.branches ? "#FFF1F0" : "#fff",
+                                        border: errors.branches ? "1px solid #FF4D4F" : "1px solid #E5E7EB",
+                                    }
+                                }}
                             />
+                            {errors.branches && <span style={{ color: "#FF4D4F", fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.branches}</span>}
                         </div>
                         <div className={styles.field}>
                             <label>Supplier Type <span className={styles.requiredStar}>*</span></label>
                             <MultiSelectDropdown
                                 listItems={supplierTypes}
                                 selectedIds={supplierType}
-                                setSelectedIds={setSupplierType}
+                                setSelectedIds={(ids) => {
+                                    setSupplierType(ids);
+                                    if (errors.supplierType) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.supplierType;
+                                        setErrors(newErrors);
+                                    }
+                                }}
                                 placeholder="Select Supplier Type here"
+                                customStyles={{
+                                    dropdown: {
+                                        background: errors.supplierType ? "#FFF1F0" : "#fff",
+                                        border: errors.supplierType ? "1px solid #FF4D4F" : "1px solid #E5E7EB",
+                                    }
+                                }}
                             />
+                            {errors.supplierType && <span style={{ color: "#FF4D4F", fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.supplierType}</span>}
                         </div>
                         <div className={styles.field}>
                             <label>Phone Number <span className={styles.requiredStar}>*</span></label>
                             <input
-                                type="text" className={styles.input} placeholder="Enter Phone Number"
-                                value={phone} onChange={(e) => setPhone(e.target.value)}
+                                type="text"
+                                className={styles.input}
+                                placeholder="Enter Phone Number"
+                                value={phone}
+                                onChange={(e) => {
+                                    setPhone(e.target.value);
+                                    if (errors.phone) {
+                                        const newErrors = { ...errors };
+                                        delete newErrors.phone;
+                                        setErrors(newErrors);
+                                    }
+                                }}
+                                style={errors.phone ? { border: "1px solid #FF4D4F", background: "#FFF1F0" } : {}}
                             />
+                            {errors.phone && <span style={{ color: "#FF4D4F", fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.phone}</span>}
                         </div>
                         <div className={styles.field}>
                             <label>E-mail ID</label>
@@ -486,14 +583,39 @@ const AddSupplier = ({ isOpen, onClose, onRefresh, mode = 'add', supplierId }) =
                                     <select className={styles.select} style={{ appearance: 'none', width: '100%', minHeight: '48px' }} 
                                         value={row.taxGroupId || ""} 
                                         onChange={(e) => {
-                                            const next = [...assignedProducts];
-                                            next[index].taxGroupId = e.target.value;
-                                            setAssignedProducts(next);
+                                            if (e.target.value === "__add_tax_group__") {
+                                                const formState = {
+                                                    supplierName,
+                                                    supplierType,
+                                                    selectedBranchIds,
+                                                    phone,
+                                                    email,
+                                                    gstin,
+                                                    street,
+                                                    landmark,
+                                                    state,
+                                                    city,
+                                                    locality,
+                                                    areaPinCode,
+                                                    country,
+                                                    groupName,
+                                                    assignedProducts,
+                                                    additionalFields
+                                                };
+                                                sessionStorage.setItem("temp_supplier_form", JSON.stringify(formState));
+                                                const activeBranchId = selectedBranchId || branchId;
+                                                router.push(`/vendor-settings?tab=TaxesGST&branchId=${activeBranchId}&from=suppliers&showTaxList=true`);
+                                            } else {
+                                                const next = [...assignedProducts];
+                                                next[index].taxGroupId = e.target.value;
+                                                setAssignedProducts(next);
+                                            }
                                         }}>
                                         <option value="">Select GST Group</option>
                                         {(Array.isArray(taxGroups) ? taxGroups : []).map((g) => (
                                             <option key={g.id || g.taxGroupId} value={g.id || g.taxGroupId}>{g.name}</option>
                                         ))}
+                                        <option value="__add_tax_group__">+ Add Tax Group</option>
                                     </select>
                                     <FiChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999', pointerEvents: 'none' }} />
                                 </div>
