@@ -25,7 +25,7 @@ const timeSlots = [
   "04:30 PM", "05:30 PM", "06:30 PM", "07:30 PM", "08:30 PM"
 ];
 
-const AddBookingGrooming = ({ bookingId, onClose }) => {
+const AddBookingGrooming = ({ bookingId, onClose, defaultServiceType }) => {
   const router = useRouter();
   const currencySymbol = useCurrencySymbol();
   const [activeTab, setActiveTab] = useState("Basic Details");
@@ -718,7 +718,8 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   }, [petServiceDetails, selectedPets, selectedBranchId, petClinicSlotsData, jwtToken]);
 
   const getPetState = (petId) => {
-   return petServiceDetails[petId] || {
+    return petServiceDetails[petId] || {
+      serviceType: defaultServiceType ? [defaultServiceType] : [],
       assignedGroomer: "",
       unassigned: false,
       selectedTime: "",
@@ -742,12 +743,12 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
   const updatePetState = (petId, field, value) => {
     setPetServiceDetails(prev => {
       const currentState = prev[petId] || {
+        serviceType: defaultServiceType ? [defaultServiceType] : [],
         assignedGroomer: "",
         unassigned: false,
         selectedTime: "",
         groomingType: "Services",
         selectedServices: [],
-        serviceType: [],
         hours: "",
         minutes: "",
         bufferTime: "0",
@@ -1920,7 +1921,7 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                             </label>
                           </div>
 
-                           <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
+                          <div className={styles.formGrid} style={{ marginBottom: '1.5rem' }}>
                             <div className={styles.formGroup}>
                               <label className={styles.label}>Booking Type</label>
                               <select
@@ -2384,9 +2385,9 @@ const AddBookingGrooming = ({ bookingId, onClose }) => {
                                   return cat === "daycare" || cat === "day care";
                                 });
                                 const baseList = daycareCategoryServices.map(s => {
-                                   const nameStr = s.serviceName || s.name || "";
-                                   return { id: nameStr || String(s.id), name: nameStr };
-                                 });
+                                  const nameStr = s.serviceName || s.name || "";
+                                  return { id: nameStr || String(s.id), name: nameStr };
+                                });
 
                                 const selectedAddonNames = petState.daycareAddonSelected || [];
                                 const extraAddonItems = selectedAddonNames.map(n => ({ id: n, name: n }));

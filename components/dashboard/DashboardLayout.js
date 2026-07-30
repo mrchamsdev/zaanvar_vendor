@@ -201,7 +201,8 @@ function buildMenuFromVendor(userInfo) {
       icon: <IconProducts />,
       subItems: [
         { label: "Grooming", path: "/grooming/booking" },
-        { label: "Daycare", path: "/daycare" }
+        { label: "Daycare", path: "/daycare" },
+        { label: "Clinic", path: "/clinic" }
       ]
     },
     {
@@ -327,7 +328,7 @@ const DashboardLayout = ({
     if (parts.length > 0) {
       const parentPath = "/" + parts[0];
       setExpandedMenus(prev => ({ ...prev, [parentPath]: true }));
-      if (parentPath === "/grooming") {
+      if (parentPath === "/grooming" || parentPath === "/clinic") {
         setExpandedMenus(prev => ({ ...prev, ["/bookings"]: true }));
       }
     }

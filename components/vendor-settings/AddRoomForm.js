@@ -88,8 +88,16 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
   const removeClinicRoomRow = (id) => {
     if (clinicRooms.length > 1) setClinicRooms(prev => prev.filter(r => r.id !== id));
   };
+  const cleanNumberInput = (val) => {
+    const digitsOnly = val.replace(/\D/g, "");
+    if (digitsOnly === "") return "";
+    const noLeadingZeros = digitsOnly.replace(/^0+/, "");
+    return noLeadingZeros === "" ? "0" : noLeadingZeros;
+  };
+
   const updateClinicRoomRow = (id, field, val) => {
-    setClinicRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r));
+    const cleanedVal = ["numRooms", "capacity", "price"].includes(field) ? cleanNumberInput(val) : val;
+    setClinicRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: cleanedVal } : r));
   };
 
   const addClinicRateRow = () => {
@@ -99,7 +107,8 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
     if (clinicRates.length > 1) setClinicRates(prev => prev.filter(r => r.id !== id));
   };
   const updateClinicRateRow = (id, field, val) => {
-    setClinicRates(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r));
+    const cleanedVal = field === "price" ? cleanNumberInput(val) : val;
+    setClinicRates(prev => prev.map(r => r.id === id ? { ...r, [field]: cleanedVal } : r));
   };
 
   const addDaycareRoomRow = () => {
@@ -109,7 +118,8 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
     if (daycareRooms.length > 1) setDaycareRooms(prev => prev.filter(r => r.id !== id));
   };
   const updateDaycareRoomRow = (id, field, val) => {
-    setDaycareRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r));
+    const cleanedVal = ["numRooms", "capacity", "price"].includes(field) ? cleanNumberInput(val) : val;
+    setDaycareRooms(prev => prev.map(r => r.id === id ? { ...r, [field]: cleanedVal } : r));
   };
 
   const addDaycareRateRow = () => {
@@ -119,7 +129,8 @@ const AddRoomForm = ({ onCancel, onSave, initialData }) => {
     if (daycareRates.length > 1) setDaycareRates(prev => prev.filter(r => r.id !== id));
   };
   const updateDaycareRateRow = (id, field, val) => {
-    setDaycareRates(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r));
+    const cleanedVal = field === "price" ? cleanNumberInput(val) : val;
+    setDaycareRates(prev => prev.map(r => r.id === id ? { ...r, [field]: cleanedVal } : r));
   };
 
   const handleSubmit = (e) => {

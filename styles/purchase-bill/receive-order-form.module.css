@@ -130,7 +130,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 25px 5px 25px 2px;
+    padding: 50px 5px 25px 2px;
     scrollbar-width: thin;
     gap: 32px;
 }
@@ -198,8 +198,10 @@
 
 .infoTooltip[data-tooltip]::after {
     content: attr(data-tooltip);
-    position: fixed;
-    transform: translate(-50%, calc(-100% - 15px));
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
     background: #333;
     color: #fff;
     padding: 6px 10px;
