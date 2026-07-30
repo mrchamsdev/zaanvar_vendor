@@ -36,6 +36,21 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
       return acc;
     }, {})
   );
+  const [copyToAll, setCopyToAll] = useState(true);
+
+  const handleCopyToAllChange = (checked) => {
+    setCopyToAll(checked);
+    if (checked) {
+      setWorkingHours(prev => {
+        const sundaySettings = prev['Sunday'];
+        const updated = { ...prev };
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(day => {
+          updated[day] = { ...sundaySettings };
+        });
+        return updated;
+      });
+    }
+  };
 
   const { branches } = useDashboardData({ skipReviews: true }) || { branches: [] };
 
@@ -80,6 +95,24 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
       getStaffDetailsById(staffId)
         .then(data => {
           const details = data?.data || data || {};
+          
+          if (details.addresses && Array.isArray(details.addresses)) {
+            const resAddr = details.addresses.find(a => a.type === "Residential" || a.type === "residential");
+            if (resAddr) {
+              details.residentialAddress = {
+                ...resAddr,
+                areaStreet: resAddr.areaStreet || resAddr.area || ""
+              };
+            }
+            const permAddr = details.addresses.find(a => a.type === "Permanent" || a.type === "permanent");
+            if (permAddr) {
+              details.permanentAddress = {
+                ...permAddr,
+                areaStreet: permAddr.areaStreet || permAddr.area || ""
+              };
+            }
+          }
+
           setStaffDetails(details);
           setSelectedBranchId(details.branchId || "");
           setSelectedRoleId(details.roleId || details.role || "");
@@ -199,6 +232,24 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
         .catch(err => console.error(err));
     }
   }, [selectedBranchId, branches]);
+
+  useEffect(() => {
+    if (rolesList.length > 0 && staffDetails && !selectedRoleId) {
+      const matchedRole = rolesList.find(r => 
+        (r.roleName && (
+          r.roleName.toLowerCase() === (staffDetails.professionalRoleType || "").toLowerCase() ||
+          r.roleName.toLowerCase() === (staffDetails.userType || "").toLowerCase()
+        )) ||
+        (r.name && (
+          r.name.toLowerCase() === (staffDetails.professionalRoleType || "").toLowerCase() ||
+          r.name.toLowerCase() === (staffDetails.userType || "").toLowerCase()
+        ))
+      );
+      if (matchedRole) {
+        setSelectedRoleId(matchedRole.id);
+      }
+    }
+  }, [rolesList, staffDetails, selectedRoleId]);
 
   const handleRoleChange = (e) => {
     const roleId = e.target.value;
@@ -542,7 +593,11 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '32px', marginBottom: '16px' }}>
                     <div className={styles.sectionTitle} style={{ margin: 0 }}>Assigned working hours</div>
                     <div className={styles.checkboxWrap} style={{ marginTop: 0 }}>
-                      <input type="checkbox" defaultChecked /> Copy to all days
+                      <input 
+                        type="checkbox" 
+                        checked={copyToAll} 
+                        onChange={(e) => handleCopyToAllChange(e.target.checked)} 
+                      /> Copy to all days
                     </div>
                   </div>
 
@@ -562,10 +617,23 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                               checked={workingHours[day].isNotAvailable}
                               onChange={(e) => {
                                 const checked = e.target.checked;
-                                setWorkingHours(prev => ({
-                                  ...prev,
-                                  [day]: { ...prev[day], isNotAvailable: checked }
-                                }));
+                                if (day === 'Sunday' && copyToAll) {
+                                  setWorkingHours(prev => {
+                                    const updated = { ...prev };
+                                    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(d => {
+                                      updated[d] = { ...updated[d], isNotAvailable: checked };
+                                    });
+                                    return updated;
+                                  });
+                                } else {
+                                  if (day !== 'Sunday') {
+                                    setCopyToAll(false);
+                                  }
+                                  setWorkingHours(prev => ({
+                                    ...prev,
+                                    [day]: { ...prev[day], isNotAvailable: checked }
+                                  }));
+                                }
                               }}
                             />
                             <span className={`${styles.slider} ${styles.round}`}></span>
@@ -581,7 +649,26 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                             value={workingHours[day].startTime}
                             disabled={workingHours[day].isNotAvailable}
                             style={{ opacity: workingHours[day].isNotAvailable ? 0.5 : 1, cursor: workingHours[day].isNotAvailable ? 'not-allowed' : 'auto' }}
-                            onChange={(e) => setWorkingHours(prev => ({ ...prev, [day]: { ...prev[day], startTime: e.target.value } }))}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (day === 'Sunday' && copyToAll) {
+                                setWorkingHours(prev => {
+                                  const updated = { ...prev };
+                                  ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(d => {
+                                    updated[d] = { ...updated[d], startTime: val };
+                                  });
+                                  return updated;
+                                });
+                              } else {
+                                if (day !== 'Sunday') {
+                                  setCopyToAll(false);
+                                }
+                                setWorkingHours(prev => ({
+                                  ...prev,
+                                  [day]: { ...prev[day], startTime: val }
+                                }));
+                              }
+                            }}
                           />
                           <span style={{ fontSize: '12px', color: '#666' }}>TO</span>
                           <input
@@ -591,7 +678,26 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
                             value={workingHours[day].endTime}
                             disabled={workingHours[day].isNotAvailable}
                             style={{ opacity: workingHours[day].isNotAvailable ? 0.5 : 1, cursor: workingHours[day].isNotAvailable ? 'not-allowed' : 'auto' }}
-                            onChange={(e) => setWorkingHours(prev => ({ ...prev, [day]: { ...prev[day], endTime: e.target.value } }))}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (day === 'Sunday' && copyToAll) {
+                                setWorkingHours(prev => {
+                                  const updated = { ...prev };
+                                  ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].forEach(d => {
+                                    updated[d] = { ...updated[d], endTime: val };
+                                  });
+                                  return updated;
+                                });
+                              } else {
+                                if (day !== 'Sunday') {
+                                  setCopyToAll(false);
+                                }
+                                setWorkingHours(prev => ({
+                                  ...prev,
+                                  [day]: { ...prev[day], endTime: val }
+                                }));
+                              }
+                            }}
                           />
                         </div>
                       </div>

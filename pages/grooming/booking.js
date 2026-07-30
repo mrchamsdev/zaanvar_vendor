@@ -71,6 +71,10 @@ const Booking = () => {
   return (
     <DashboardLayout topbarButtons={topbarButtons} onTopbarAction={handleTopbarAction}>
       <BookingsList
+        onAddBooking={() => {
+          setIsAddingBooking(true);
+          setIsViewingDetails(false);
+        }}
         onViewDetails={(booking) => {
           const rawId = booking.rawId || booking.id;
           setSelectedBookingId(rawId);

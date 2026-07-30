@@ -10,7 +10,7 @@ const AddPackageModal = ({ onClose, onSave, initialData }) => {
   const [branch, setBranch] = useState(initialData?.branch || "");
   const [category, setCategory] = useState(initialData?.category || "");
   const [packageName, setPackageName] = useState(initialData?.packageName || "");
-  const [selectedServices, setSelectedServices] = useState(initialData?.services ? initialData.services.map(s => s.id || s) : []);
+  const [selectedServices, setSelectedServices] = useState(initialData?.services ? initialData.services.filter(Boolean).map(s => s.id || s) : []);
   const [petTypes, setPetTypes] = useState(initialData?.petType ? initialData.petType.split(",").map(p => p.trim()) : []);
   const [price, setPrice] = useState(initialData?.price || "");
   const [discountPercent, setDiscountPercent] = useState(initialData?.discountPercent || "");

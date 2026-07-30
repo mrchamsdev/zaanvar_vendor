@@ -146,7 +146,28 @@ const AddRolesPermission = ({ show, onClose, mode = "view", initialData = null }
                   )}
                 </div>
 
-                <div className={styles.sectionTitle}>Permission Details</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div className={styles.sectionTitle} style={{ margin: 0 }}>Permission Details</div>
+                  {mode !== "view" && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#333', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={permissions.length > 0 && permissions.every(p => p.view && p.addEdit && p.delete)} 
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setPermissions(prev => prev.map(p => ({
+                            ...p,
+                            view: checked,
+                            addEdit: checked,
+                            delete: checked
+                          })));
+                        }}
+                        style={{ cursor: 'pointer', accentColor: '#000' }}
+                      />
+                      Select All
+                    </label>
+                  )}
+                </div>
                 <table className={styles.permissionsTable}>
                   <thead>
                     <tr>

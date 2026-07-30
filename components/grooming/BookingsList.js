@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import styles from "../../styles/grooming/bookingsList.module.css";
 import useStore from "../state/useStore";
 import { VENDOR_API_URL } from "../utilities/Constants";
+import { withTimeZone } from "../../utilities/date-time-utils";
+import { toast } from "sonner";
 
 // SVG Icons
 const IconPlus = () => (
@@ -102,7 +104,7 @@ const IconClose = () => (
   </svg>
 );
 
-export default function BookingsList({ onViewDetails, onEdit, serviceType = "Grooming" }) {
+export default function BookingsList({ onViewDetails, onEdit, serviceType = "Grooming", onAddBooking }) {
   const { jwtToken, selectedBranchId, userInfo } = useStore();
   const [bookings, setBookings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,19 +120,40 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [availableServices, setAvailableServices] = useState([]);
 
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const reloadBookings = () => setReloadTrigger(prev => prev + 1);
+
+  const [paymentType, setPaymentType] = useState("Full"); // "Full" or "Partial"
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [paymentDate, setPaymentDate] = useState("");
+
+  const parseAmountNum = (amountStr) => {
+    if (!amountStr) return 0;
+    const cleaned = amountStr.replace(/[^\d.]/g, "");
+    return parseFloat(cleaned) || 0;
+  };
+
   const transformBookingsData = (rawBookings, currentServices = [], targetServiceType = "Grooming") => {
     if (!Array.isArray(rawBookings)) return [];
     return rawBookings.map(b => {
       const isDaycareType = targetServiceType === "Day Care" || (Array.isArray(b.serviceType) && b.serviceType.includes("Day Care"));
+      const isClinicType = targetServiceType === "Clinic" || (Array.isArray(b.serviceType) && b.serviceType.includes("Clinic"));
       
       const dcApp = b.daycareAppointments?.[0] || {};
       const dcDateObj = dcApp.dates?.[0] || {};
+      
+      const clinicApp = b.clinicAppointments?.[0] || {};
+      const doctorObj = clinicApp.doctor || {};
       
       const appointment = b.appointments?.[0] || {};
       const groomerObj = appointment.groomer || {};
       const customerObj = b.customer || {};
 
-      let rawAppointmentDate = isDaycareType ? (dcDateObj.date || appointment.appointmentDate) : appointment.appointmentDate;
+      let rawAppointmentDate = isDaycareType 
+        ? (dcDateObj.date || appointment.appointmentDate) 
+        : (isClinicType ? (clinicApp.appointmentDate || appointment.appointmentDate) : appointment.appointmentDate);
 
       let formattedDate = "";
       if (rawAppointmentDate) {
@@ -148,8 +171,12 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
         return `${String(displayH).padStart(2, '0')}:${m} ${ampm}`;
       };
 
-      const checkInTimeRaw = dcDateObj.checkInTime || appointment.startTime || "09:00:00";
-      const checkOutTimeRaw = dcDateObj.checkOutTime || appointment.endTime || "18:00:00";
+      const checkInTimeRaw = isDaycareType 
+        ? (dcDateObj.checkInTime || "09:00:00") 
+        : (isClinicType ? (clinicApp.startTime || clinicApp.appointmentTime || "09:00:00") : (appointment.startTime || "09:00:00"));
+      const checkOutTimeRaw = isDaycareType 
+        ? (dcDateObj.checkOutTime || "18:00:00") 
+        : (isClinicType ? (clinicApp.endTime || "09:30:00") : (appointment.endTime || "18:00:00"));
 
       const formatDateTimeShort = (dateStr, timeStr) => {
         if (!dateStr) return "----";
@@ -168,6 +195,9 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
       if (isDaycareType && dcApp.pets && Array.isArray(dcApp.pets)) {
         petNamesList = dcApp.pets.map(p => p.petProfile?.petName || p.petName).filter(Boolean);
       }
+      if (isClinicType && clinicApp.pets && Array.isArray(clinicApp.pets)) {
+        petNamesList = clinicApp.pets.map(p => p.petProfile?.petName || p.petName).filter(Boolean);
+      }
       if (petNamesList.length === 0 && b.appointments && Array.isArray(b.appointments)) {
         b.appointments.forEach(app => {
           if (app.pets && Array.isArray(app.pets)) {
@@ -180,7 +210,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
       }
       const petNameDisplay = petNamesList.length > 0 ? petNamesList.join(", ") : (appointment.pets?.[0]?.petName || "----");
 
-      const petObj = appointment.pets?.[0] || {};
+      const petObj = isClinicType ? (clinicApp.pets?.[0] || {}) : (appointment.pets?.[0] || {});
       const petProfile = petObj.petProfile || {};
       const petBreed = petProfile.breed || petObj.breed || "----";
 
@@ -215,7 +245,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
       return {
         id: `BK-${String(b.bookingID).padStart(4, '0')}`,
         rawId: b.bookingID,
-        appointmentId: dcApp.appointmentID || appointment.appointmentID,
+        appointmentId: dcApp.appointmentID || clinicApp.appointmentID || appointment.appointmentID,
         date: formattedDate || "----",
         time: `${formatTime(checkInTimeRaw)} - ${formatTime(checkOutTimeRaw)}`,
         checkIn: checkInFormatted,
@@ -226,18 +256,23 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
         contact: customerObj.phoneNumber ? `+91 ${customerObj.phoneNumber}` : "----",
         petName: petNameDisplay,
         petBreed,
-        service: isDaycareType ? "Daycare" : (Array.isArray(b.serviceType) ? b.serviceType.join(", ") : (b.serviceType || "Grooming")),
-        serviceType: b.serviceType || [],
+        service: isDaycareType ? "Daycare" : (isClinicType ? "Clinic" : (Array.isArray(b.serviceType) ? b.serviceType.join(", ") : (b.serviceType || "Grooming"))),
+        serviceType: Array.isArray(b.serviceType) ? b.serviceType : (b.serviceType ? [b.serviceType] : []),
         hasExtraService: b.isMultiPet || false,
-        groomer: groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "Unassigned",
-        groomerId: appointment.groomerID || groomerObj.groomerID || groomerObj.userId,
+        groomer: isClinicType
+          ? (doctorObj.staffName ? doctorObj.staffName : doctorObj.firstName ? ((doctorObj.firstName || "") + " " + (doctorObj.lastName || "")).trim() : "Unassigned")
+          : (groomerObj.firstName ? ((groomerObj.firstName || "") + " " + (groomerObj.lastName || "")).trim() : "Unassigned"),
+        groomerId: isClinicType
+          ? (clinicApp.doctorID || clinicApp.doctorId || doctorObj.doctorID || doctorObj.userId)
+          : (appointment.groomerID || groomerObj.groomerID || groomerObj.userId),
         rawDate: rawAppointmentDate,
-        slotId: appointment.slotId || appointment.slotID,
+        slotId: clinicApp.slotId || clinicApp.slotID || appointment.slotId || appointment.slotID,
         startTime: checkInTimeRaw,
         endTime: checkOutTimeRaw,
         amount: `₹ ${Math.round(parseFloat(b.totalAmount || 0))}`,
+        dueAmount: b.dueAmount != null ? String(b.dueAmount) : String(Math.max(0, (parseFloat(b.totalAmount || 0) - parseFloat(b.paidAmount || 0)))),
         paymentStatus: b.paymentStatus || "Unpaid",
-        serviceStatus: dcApp.status || appointment.status || "----",
+        serviceStatus: clinicApp.status || dcApp.status || appointment.status || "----",
         servicesList,
         startHour,
         createdOn: b.createdAt ? new Date(b.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : "----",
@@ -249,6 +284,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
   useEffect(() => {
     const activeBranchId = selectedBranchId || userInfo?.branchId || (Array.isArray(userInfo?.branchIds) ? userInfo.branchIds[0] : null) || 90;
     if (activeBranchId) {
+      setLoadingBookings(true);
       // First fetch offerings (services list) to allow ID-to-name mapping
       fetch(`${VENDOR_API_URL}vendor/grooming-booking/offerings/${activeBranchId}?type=services`, {
         headers: {
@@ -260,7 +296,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
           const services = offRes.status === "success" && offRes.data?.services ? offRes.data.services : [];
           setAvailableServices(services);
           
-          const apiServiceType = (serviceType === "Day Care" || serviceType === "Daycare") ? "Day Care" : "Grooming";
+          const apiServiceType = (serviceType === "Day Care" || serviceType === "Daycare") ? "Day Care" : (serviceType === "Clinic" ? "Clinic" : "Grooming");
           // Then fetch bookings for specified serviceType
           return fetch(`${VENDOR_API_URL}vendor/grooming-booking/bookings?branchId=${activeBranchId}&serviceType=${encodeURIComponent(apiServiceType)}`, {
             headers: {
@@ -274,9 +310,12 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
               }
             });
         })
-        .catch(err => console.error("Error fetching bookings/offerings:", err));
+        .catch(err => console.error("Error fetching bookings/offerings:", err))
+        .finally(() => setLoadingBookings(false));
+    } else {
+      setLoadingBookings(false);
     }
-  }, [selectedBranchId, userInfo, jwtToken, serviceType]);
+  }, [selectedBranchId, userInfo, jwtToken, serviceType, reloadTrigger]);
 
   useEffect(() => {
     if (selectedBranchId && jwtToken) {
@@ -736,6 +775,50 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
     }
   };
 
+  const handleConfirmPayment = async () => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      toast.error("Please enter a valid amount.");
+      return;
+    }
+
+    try {
+      const pickedDate = new Date(paymentDate);
+      const now = new Date();
+      pickedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
+      const payload = {
+        bookingId: selectedBooking.rawId || selectedBooking.id,
+        branchId: selectedBranchId || userInfo?.branchId || 1,
+        amount: parseFloat(paymentAmount),
+        paymentMethod: paymentMethod,
+        paymentFor: "Booking",
+        createdBy: userInfo?.userId || userInfo?.id || 1,
+        ...withTimeZone("paidAt", pickedDate)
+      };
+
+      const response = await fetch(`${VENDOR_API_URL}vendor/grooming-booking/payments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (data.status === "success" || data.message === "success") {
+        toast.success("Payment recorded successfully!");
+        setShowAdvancedPaymentModal(false);
+        reloadBookings();
+      } else {
+        toast.error("Failed to record payment: " + (data.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Error recording payment:", err);
+      toast.error("An error occurred while recording the payment.");
+    }
+  };
+
   const filterRef = useRef(null);
 
   // Handle outside click to close menus
@@ -830,6 +913,15 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
       setRescheduleSlots([]);
       setShowRescheduleModal(true);
     } else if (action === "Update Payment status") {
+      const amtNum = parseAmountNum(booking.amount);
+      setPaymentType("Full");
+      setPaymentAmount(String(amtNum));
+      setPaymentMethod("Cash");
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const d = String(today.getDate()).padStart(2, '0');
+      setPaymentDate(`${y}-${m}-${d}`);
       setShowAdvancedPaymentModal(true);
     } else if (action === "View Details") {
       if (onViewDetails) onViewDetails(booking);
@@ -1009,8 +1101,21 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
         </div>
       </div>
 
+      {loadingBookings && (
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', color: '#888', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #f3f3f3', borderTop: '3px solid #ff4b82', animation: 'spin 1s linear infinite' }} />
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <span>Loading bookings...</span>
+        </div>
+      )}
+
       {/* ── CALENDAR VIEW ── */}
-      {viewMode === "Calendar" && (
+      {viewMode === "Calendar" && !loadingBookings && (
         <div className={styles.calendarArea}>
           {/* ── MONTH VIEW ── */}
           {viewPeriod === "Month" && (
@@ -1040,11 +1145,43 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
       )}
 
       {/* Bookings Table with scrollable and sticky action column */}
-      {viewMode === "Table" && (
-        <div className={styles.tableWrapper}>
-          <div className={styles.tableInner}>
-            <table className={styles.bookingsTable}>
-              {serviceType === "Day Care" ? (
+      {viewMode === "Table" && !loadingBookings && (
+        filteredBookings.length === 0 ? (
+          <div className={styles.emptyBookingsContainer}>
+            <div className={styles.emptyBookingsText}>No bookings found</div>
+            <button 
+              className={styles.emptyBookingsBtn}
+              onClick={() => {
+                if (onAddBooking) {
+                  onAddBooking();
+                } else if (onEdit) {
+                  onEdit({ id: null });
+                }
+              }}
+            >
+              + Add Booking
+            </button>
+          </div>
+        ) : (
+          <div className={styles.tableWrapper}>
+            <div className={styles.tableInner}>
+              <table className={styles.bookingsTable}>
+              {serviceType === "Clinic" ? (
+                <thead>
+                  <tr>
+                    <th className={styles.colBookingId}>CASE ID</th>
+                    <th className={styles.colDate}>BOOKING DATE</th>
+                    <th className={styles.colCustomer}>CUSTOMER NAME</th>
+                    <th className={styles.colPet}>PET</th>
+                    <th className={styles.colContact}>CONTACT</th>
+                    <th className={styles.colGroomer}>DOCTOR</th>
+                    <th className={styles.colCreatedOn}>CREATED ON</th>
+                    <th>PRESCRIPTION</th>
+                    <th className={styles.colStatus}>STATUS</th>
+                    <th className={`${styles.stickyActionsHeader} ${styles.colStickyActions}`}>ACTIONS</th>
+                  </tr>
+                </thead>
+              ) : serviceType === "Day Care" ? (
                 <thead>
                   <tr>
                     <th className={styles.colBookingId}>BOOKING ID</th>
@@ -1078,7 +1215,89 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
               )}
               <tbody>
                 {filteredBookings.map((b, idx) => (
-                  serviceType === "Day Care" ? (
+                  serviceType === "Clinic" ? (
+                    <tr key={b.id} className={activeMenuId === b.id ? styles.activeRow : ""}>
+                      <td className={styles.idCell} style={{ fontWeight: 600 }}>{String(b.rawId || "").padStart(5, '0')}</td>
+                      <td className={styles.dateCell} style={{ fontWeight: 600 }}>
+                        {(() => {
+                          if (!b.rawDate) return b.date;
+                          const d = new Date(b.rawDate);
+                          if (isNaN(d.getTime())) return b.date;
+                          const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+                          return `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+                        })()}
+                      </td>
+                      <td className={styles.customerName} style={{ fontWeight: 600 }}>{String(b.customerName || "").toUpperCase()}</td>
+                      <td>
+                        <div className={styles.petName} style={{ fontWeight: 600 }}>{String(b.petName || "").toUpperCase()}</div>
+                        <div className={styles.petBreed} style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase' }}>{b.petBreed}</div>
+                      </td>
+                      <td className={styles.contactCell}>{b.contact}</td>
+                      <td className={styles.groomerCell}>
+                        {(() => {
+                          const docName = String(b.groomer || "UNASSIGNED").toUpperCase().replace("DR. ", "").replace("DR ", "");
+                          return docName === "UNASSIGNED" ? "UNASSIGNED" : `DR. ${docName}`;
+                        })()}
+                      </td>
+                      <td className={styles.createdOnCell}>
+                        {(() => {
+                          const datePart = b.createdOn.split(",")[0] || b.createdOn;
+                          const d = new Date(datePart);
+                          if (isNaN(d.getTime())) return datePart;
+                          const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+                          return `${String(d.getDate()).padStart(2, '0')} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+                        })()}
+                      </td>
+                      <td>
+                        {b.status === "COMPLETED" || b.status === "CANCELED" || b.status === "CANCELLED" ? (
+                          <span style={{ fontSize: '11px', backgroundColor: '#ffe5ec', color: '#ff2d55', border: 'none', padding: '4px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                            UPLOADED
+                          </span>
+                        ) : (
+                          "-----"
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={(() => {
+                            const s = (b.status || "").toUpperCase();
+                            if (s === "TODAY") return styles.statusToday;
+                            if (s === "RESCHEDULED" || s === "RESCHEDULE") return styles.statusRescheduled;
+                            if (s === "CANCELED" || s === "CANCELLED") return styles.statusCanceled;
+                            if (s === "COMPLETED") return styles.statusCompleted;
+                            if (s === "ONGOING" || s === "IN PROGRESS" || s === "IN_PROGRESS") return styles.statusOngoing;
+                            if (s === "UNASSIGNED") return styles.statusUnassigned;
+                            return styles.statusUpcoming;
+                          })()}
+                        >
+                          {b.status === "CONFIRMED" || b.status === "BOOKED" ? "PENDING" : b.status}
+                        </span>
+                      </td>
+                      <td className={`${styles.stickyActionsCell} ${activeMenuId === b.id ? styles.activeActionsCell : ""}`}>
+                        <div className={styles.actionsCell} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            style={{
+                              backgroundColor: '#de3151',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onClick={() => onEdit(b)}
+                          >
+                            Complete APT
+                          </button>
+                          <button className={styles.threeDotBtn} onClick={(e) => handleThreeDotClick(e, b)} title="More">
+                            <IconThreeDots />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : serviceType === "Day Care" ? (
                     <tr key={b.id} className={activeMenuId === b.id ? styles.activeRow : ""}>
                       <td className={styles.idCell} style={{ fontWeight: 600 }}>{b.id}</td>
                       <td className={styles.petName} style={{ fontWeight: 600 }}>{b.petName}</td>
@@ -1150,12 +1369,18 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
                       </td>
                       <td>
                         <div className={styles.serviceWrapper}>
-                          {b.serviceType && b.serviceType.length > 0 ? (
-                            b.serviceType.map((st, sidx) => (
-                              <span key={sidx} className={styles.serviceBadgePink} style={{ marginRight: '4px' }}>
-                                {st === "DayCare" ? "Day Care" : st}
-                              </span>
-                            ))
+                          {Array.isArray(b.serviceType) && b.serviceType.length > 0 ? (
+                            b.serviceType
+                              .filter(st => {
+                                const normalizedSt = (st === "DayCare" || st === "Day Care") ? "daycare" : st.toLowerCase();
+                                const normalizedServiceType = (serviceType === "Day Care" || serviceType === "Daycare") ? "daycare" : serviceType.toLowerCase();
+                                return normalizedSt === normalizedServiceType;
+                              })
+                              .map((st, sidx) => (
+                                <span key={sidx} className={styles.serviceBadgePink} style={{ marginRight: '4px' }}>
+                                  {st === "DayCare" ? "Day Care" : st}
+                                </span>
+                              ))
                           ) : (
                             <span className={styles.serviceBadgePink}>{b.service || "----"}</span>
                           )}
@@ -1195,7 +1420,7 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
             </table>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Confirm Check-IN Modal */}
       {showCheckInModal && selectedBooking && (
@@ -1588,35 +1813,64 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
               <h3 className={styles.modalTitle}>Advanced Payment</h3>
               <button className={styles.closeBtn} onClick={() => setShowAdvancedPaymentModal(false)}><IconClose /></button>
             </div>
-            <div className={styles.paymentRadioRow}>
-              <div className={styles.radioCircleEmpty}></div>
+            <div 
+              className={styles.paymentRadioRow} 
+              onClick={() => {
+                setPaymentType("Full");
+                setPaymentAmount(String(parseAmountNum(selectedBooking.amount)));
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className={paymentType === "Full" ? styles.radioCircleFilled : styles.radioCircleEmpty}></div>
               <span>Full Amount : {selectedBooking.amount}</span>
             </div>
-            <div className={styles.paymentRadioRow}>
-              <div className={styles.radioCircleFilled}></div>
+            <div 
+              className={styles.paymentRadioRow} 
+              onClick={() => {
+                setPaymentType("Partial");
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className={paymentType === "Partial" ? styles.radioCircleFilled : styles.radioCircleEmpty}></div>
               <span>Partial Amount</span>
             </div>
             <div className={styles.formGroup} style={{ marginBottom: 16 }}>
-              <label className={styles.formLabel}>Date</label>
-              <input type="text" className={styles.formInput} placeholder="₹ Enter amount" />
+              <label className={styles.formLabel}>Amount</label>
+              <input 
+                type="text" 
+                className={styles.formInput} 
+                placeholder="₹ Enter amount" 
+                value={paymentAmount}
+                disabled={paymentType === "Full"}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
             </div>
             <div className={styles.formGrid2}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Payment date</label>
-                <input type="text" className={styles.formInput} defaultValue={selectedBooking.date} />
+                <input 
+                  type="date" 
+                  className={styles.formInput} 
+                  value={paymentDate} 
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Mode of payment</label>
-                <select className={styles.formInput}>
-                  <option>Cash</option>
-                  <option>Card</option>
-                  <option>UPI</option>
+                <select 
+                  className={styles.formInput}
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                  <option value="UPI">UPI</option>
                 </select>
               </div>
             </div>
             <div className={styles.modalActionsRow}>
               <button className={styles.btnOutlinePink} onClick={() => setShowAdvancedPaymentModal(false)}>Cancel</button>
-              <button className={styles.btnSolidPink} onClick={() => setShowAdvancedPaymentModal(false)}>Confirm</button>
+              <button className={styles.btnSolidPink} onClick={handleConfirmPayment}>Confirm</button>
             </div>
           </div>
         </div>
@@ -1655,6 +1909,13 @@ export default function BookingsList({ onViewDetails, onEdit, serviceType = "Gro
             // If in progress, hide reschedule, cancel, approve, check-in, and edit
             if (bookingStatusUpper === "IN_PROGRESS" || bookingStatusUpper === "IN PROGRESS") {
               if (["Reschedule", "Cancel", "Approve", "Check-In", "Edit"].includes(action)) {
+                return false;
+              }
+            }
+
+            if (action === "Update Payment status") {
+              const due = parseFloat(selectedBooking.dueAmount) || 0;
+              if (due <= 0) {
                 return false;
               }
             }

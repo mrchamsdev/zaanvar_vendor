@@ -453,21 +453,24 @@
 }
 
 .statusUpcoming {
-  color: #ff9800; /* PENDING / UPCOMING: Orange */
+  color: #ff9800;
+  /* PENDING / UPCOMING: Orange */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
 }
 
 .statusCompleted {
-  color: #33a103; /* COMPLETED: Green */
+  color: #33a103;
+  /* COMPLETED: Green */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
 }
 
 .statusOngoing {
-  color: #d6c811; /* ONGOING: Yellow/Gold */
+  color: #d6c811;
+  /* ONGOING: Yellow/Gold */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
@@ -481,21 +484,24 @@
 }
 
 .statusCanceled {
-  color: #ff3b30; /* CANCELED: Red */
+  color: #ff3b30;
+  /* CANCELED: Red */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
 }
 
 .statusToday {
-  color: #0070f3; /* TODAY: Blue */
+  color: #0070f3;
+  /* TODAY: Blue */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
 }
 
 .statusRescheduled {
-  color: #8a2be2; /* RESCHEDULED: Purple */
+  color: #8a2be2;
+  /* RESCHEDULED: Purple */
   font-weight: 700;
   font-size: 13px;
   display: inline-block;
@@ -1575,9 +1581,53 @@
   background-origin: content-box;
   background-attachment: local;
   transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 10px;
 }
 
 .notesTextarea:focus {
   border-color: #de3151;
   box-shadow: 0 0 0 3px rgba(222, 49, 81, 0.1);
+}
+
+.emptyBookingsContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eef0f2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  margin-top: 16px;
+}
+
+.emptyBookingsText {
+  font-size: 16px;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.emptyBookingsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #de3151;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.emptyBookingsBtn:hover {
+  background-color: #be1c3c;
+}
+
+.emptyBookingsBtn:active {
+  transform: scale(0.98);
 }
