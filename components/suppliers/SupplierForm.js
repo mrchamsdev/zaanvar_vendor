@@ -53,6 +53,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const [discountValue, setDiscountValue] = useState("");
     const [discountUnit, setDiscountUnit] = useState("Percentage (%)");
     const [branchError, setBranchError] = useState("");
+    const [discountMinOrderValueError, setDiscountMinOrderValueError] = useState("");
+    const [discountTimePeriodDaysError, setDiscountTimePeriodDaysError] = useState("");
+    const [discountValueError, setDiscountValueError] = useState("");
 
     const [groupName, setGroupName] = useState("");
     const [supplierGroups, setSupplierGroups] = useState([]);
@@ -154,9 +157,49 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
     const supplierId = initialData?.supplierId;
     const isInitialized = useRef(false);
     const hasUserEditedBranches = useRef(false);
+    const wasRestored = useRef(false);
 
     useEffect(() => {
-        if (supplierId && jwtToken) {
+        const temp = sessionStorage.getItem("temp_supplier_form");
+        if (temp) {
+            try {
+                const data = JSON.parse(temp);
+                if (data.supplierName !== undefined) setSupplierName(data.supplierName);
+                if (data.supplierType !== undefined) setSupplierType(data.supplierType);
+                if (data.phone !== undefined) setPhone(data.phone);
+                if (data.email !== undefined) setEmail(data.email);
+                if (data.gstin !== undefined) setGstin(data.gstin);
+                if (data.street !== undefined) setStreet(data.street);
+                if (data.landmark !== undefined) setLandmark(data.landmark);
+                if (data.state !== undefined) setState(data.state);
+                if (data.city !== undefined) setCity(data.city);
+                if (data.locality !== undefined) setLocality(data.locality);
+                if (data.areaPinCode !== undefined) setAreaPinCode(data.areaPinCode);
+                if (data.country !== undefined) setCountry(data.country);
+                if (data.selectedBranchIds !== undefined) {
+                    setSelectedBranchIds(data.selectedBranchIds);
+                    hasUserEditedBranches.current = true;
+                }
+                if (data.groupName !== undefined) setGroupName(data.groupName);
+                if (data.discountType !== undefined) setDiscountType(data.discountType);
+                if (data.discountMinOrderValue !== undefined) setDiscountMinOrderValue(data.discountMinOrderValue);
+                if (data.discountTimePeriodDays !== undefined) setDiscountTimePeriodDays(data.discountTimePeriodDays);
+                if (data.discountValue !== undefined) setDiscountValue(data.discountValue);
+                if (data.discountUnit !== undefined) setDiscountUnit(data.discountUnit);
+                if (data.assignedProducts !== undefined) setAssignedProducts(data.assignedProducts);
+                if (data.additionalFields !== undefined) setAdditionalFields(data.additionalFields);
+                
+                wasRestored.current = true;
+                isInitialized.current = true;
+            } catch (e) {
+                console.error("Failed to restore temp supplier form:", e);
+            }
+            sessionStorage.removeItem("temp_supplier_form");
+        }
+    }, []);
+
+    useEffect(() => {
+        if (supplierId && jwtToken && !wasRestored.current) {
             const fetchFullDetails = async () => {
                 try {
                     const activeBranchId = selectedBranchId || branchId;
@@ -494,6 +537,33 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
         });
         setAdditionalErrors(fieldErrors);
 
+        if (discountType) {
+            if (!discountMinOrderValue) {
+                setDiscountMinOrderValueError("Min order value is required");
+                hasError = true;
+            } else {
+                setDiscountMinOrderValueError("");
+            }
+
+            if (discountType === "Time Based" && !discountTimePeriodDays) {
+                setDiscountTimePeriodDaysError("Minimum time period to pay is required");
+                hasError = true;
+            } else {
+                setDiscountTimePeriodDaysError("");
+            }
+
+            if (!discountValue) {
+                setDiscountValueError("Discount is required");
+                hasError = true;
+            } else {
+                setDiscountValueError("");
+            }
+        } else {
+            setDiscountMinOrderValueError("");
+            setDiscountTimePeriodDaysError("");
+            setDiscountValueError("");
+        }
+
         if (hasError) {
             toast.error("Please fill all required fields correctly.");
             return;
@@ -616,10 +686,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                     if (branchError) setBranchError("");
                                 }}
                                 placeholder="Select Branch Name here"
+                                hasError={!!branchError}
                                 customStyles={{
                                     dropdown: {
-                                        background: branchError ? '#FFF1F0' : '#fff',
-                                        border: branchError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
                                         minHeight: '52px',
@@ -639,10 +708,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                 selectedIds={supplierType}
                                 setSelectedIds={(ids) => { setSupplierType(ids); if (supplierTypeError) setSupplierTypeError(""); }}
                                 placeholder="Select Supplier Type here"
+                                hasError={!!supplierTypeError}
                                 customStyles={{
                                     dropdown: {
-                                        background: supplierTypeError ? '#FFF1F0' : '#fff',
-                                        border: supplierTypeError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
                                         padding: '14px 16px',
                                         borderRadius: '8px',
                                         minHeight: '52px',
@@ -863,14 +931,44 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         style={{ boxSizing: 'border-box', width: '100%', padding: '14px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#fff', fontSize: '14px', color: '#333', appearance: 'none', outline: 'none', minHeight: '48px' }}
                                         value={row.taxGroupId || ""}
                                         onChange={(e) => {
-                                            const next = [...assignedProducts];
-                                            next[index].taxGroupId = e.target.value;
-                                            setAssignedProducts(next);
+                                            if (e.target.value === "__add_tax_group__") {
+                                                const formState = {
+                                                    supplierName,
+                                                    supplierType,
+                                                    selectedBranchIds,
+                                                    phone,
+                                                    email,
+                                                    gstin,
+                                                    street,
+                                                    landmark,
+                                                    state,
+                                                    city,
+                                                    locality,
+                                                    areaPinCode,
+                                                    country,
+                                                    groupName,
+                                                    discountType,
+                                                    discountMinOrderValue,
+                                                    discountTimePeriodDays,
+                                                    discountValue,
+                                                    discountUnit,
+                                                    assignedProducts,
+                                                    additionalFields
+                                                };
+                                                sessionStorage.setItem("temp_supplier_form", JSON.stringify(formState));
+                                                const activeBranchId = selectedBranchId || branchId;
+                                                router.push(`/vendor-settings?tab=TaxesGST&branchId=${activeBranchId}&from=suppliers&showTaxList=true`);
+                                            } else {
+                                                const next = [...assignedProducts];
+                                                next[index].taxGroupId = e.target.value;
+                                                setAssignedProducts(next);
+                                            }
                                         }}>
                                         <option value="">Select GST Group</option>
                                         {(Array.isArray(taxGroups) ? taxGroups : []).map((g) => (
                                             <option key={g.id || g.taxGroupId} value={g.id || g.taxGroupId}>{g.name}</option>
                                         ))}
+                                        <option value="__add_tax_group__">+ Add Tax Group</option>
                                     </select>
                                     <FiChevronDown style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#777', pointerEvents: 'none', fontSize: '18px' }} />
                                 </div>
@@ -926,6 +1024,9 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         setDiscountMinOrderValue("");
                                         setDiscountTimePeriodDays("");
                                         setDiscountValue("");
+                                        setDiscountMinOrderValueError("");
+                                        setDiscountTimePeriodDaysError("");
+                                        setDiscountValueError("");
                                     }}
                                 >
                                     <option value="">Select Discount Type</option>
@@ -940,54 +1041,87 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
 
                         {discountType && (
                             <div className={styles.field}>
-                                <label>Min Order Value</label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Min Order Value <span style={{ color: '#FF4D4F' }}>*</span>
+                                </label>
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.whiteBg}`}
+                                    style={{
+                                        border: discountMinOrderValueError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        background: discountMinOrderValueError ? '#FFF1F0' : '#fff'
+                                    }}
                                     placeholder="Enter min order value"
                                     value={discountMinOrderValue}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === "" || /^\d*\.?\d*$/.test(val)) setDiscountMinOrderValue(val);
+                                        if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                                            setDiscountMinOrderValue(val);
+                                            if (discountMinOrderValueError) setDiscountMinOrderValueError("");
+                                        }
                                     }}
                                 />
+                                {discountMinOrderValueError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{discountMinOrderValueError}</span>}
                             </div>
                         )}
 
                         {discountType === "Time Based" && (
                             <div className={styles.field}>
-                                <label>Minimum time period to pay (Days)</label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Minimum time period to pay (Days) <span style={{ color: '#FF4D4F' }}>*</span>
+                                </label>
                                 <input
                                     type="text"
                                     className={`${styles.input} ${styles.whiteBg}`}
+                                    style={{
+                                        border: discountTimePeriodDaysError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                        background: discountTimePeriodDaysError ? '#FFF1F0' : '#fff'
+                                    }}
                                     placeholder="Enter number of days"
                                     value={discountTimePeriodDays}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === "" || /^\d+$/.test(val)) setDiscountTimePeriodDays(val);
+                                        if (val === "" || /^\d+$/.test(val)) {
+                                            setDiscountTimePeriodDays(val);
+                                            if (discountTimePeriodDaysError) setDiscountTimePeriodDaysError("");
+                                        }
                                     }}
                                 />
+                                {discountTimePeriodDaysError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{discountTimePeriodDaysError}</span>}
                             </div>
                         )}
 
                         {discountType && (
                             <div className={styles.field}>
-                                <label>Discount</label>
-                                <div className={styles.discountInputGroup}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Discount <span style={{ color: '#FF4D4F' }}>*</span>
+                                </label>
+                                <div className={styles.discountInputGroup} style={{
+                                    border: discountValueError ? '1px solid #FF4D4F' : '1px solid #E5E7EB',
+                                    borderRadius: '8px',
+                                    overflow: 'hidden'
+                                }}>
                                     <input
                                         type="text"
                                         className={`${styles.input} ${styles.discountInputWrap} ${styles.whiteBg}`}
+                                        style={{
+                                            border: 'none',
+                                            background: discountValueError ? '#FFF1F0' : '#fff'
+                                        }}
                                         placeholder="Enter discount"
                                         value={discountValue}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            if (val === "" || /^\d*\.?\d*$/.test(val)) setDiscountValue(val);
+                                            if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                                                setDiscountValue(val);
+                                                if (discountValueError) setDiscountValueError("");
+                                            }
                                         }}
                                     />
-                                    <div className={styles.discountSelectWrap}>
+                                    <div className={styles.discountSelectWrap} style={{ background: discountValueError ? '#FFF1F0' : '#fff' }}>
                                         <select
                                             className={`${styles.select} ${styles.whiteBg}`}
-                                            style={{ appearance: 'none', cursor: 'pointer' }}
+                                            style={{ appearance: 'none', cursor: 'pointer', border: 'none', background: 'transparent' }}
                                             value={discountUnit}
                                             onChange={(e) => setDiscountUnit(e.target.value)}
                                         >
@@ -999,6 +1133,7 @@ const SupplierForm = ({ initialData, onSave, onBack, mode = 'Add', onChange }) =
                                         </div>
                                     </div>
                                 </div>
+                                {discountValueError && <span style={{ color: '#FF4D4F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{discountValueError}</span>}
                             </div>
                         )}
                     </div>

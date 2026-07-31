@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "../../styles/vendor-settings/settings.module.css";
 import useStore from "../../components/state/useStore";
+import { useRouter } from "next/router";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import {
   getTaxRates,
@@ -104,8 +105,15 @@ const TaxesGSTSettings = ({ settings, onChange, addEdit = true, canDelete = true
   const g = settings;
   const { jwtToken } = useStore();
   const { branchId } = useDashboardData({ skipReviews: true });
+  const router = useRouter();
 
   const [showTaxList, setShowTaxList] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady && router.query.showTaxList === "true") {
+      setShowTaxList(true);
+    }
+  }, [router.isReady, router.query.showTaxList]);
 
   // API tax rates state
   const [apiTaxRates, setApiTaxRates] = useState([]);
@@ -309,6 +317,9 @@ const TaxesGSTSettings = ({ settings, onChange, addEdit = true, canDelete = true
       fetchGroups();
       setShowAddGroup(false);
       setEditingGroup(null);
+      if (router.query.from === "suppliers") {
+        router.push(`/suppliers?branchId=${branchId}&action=add`);
+      }
     } catch (err) {
       console.error("Failed to save tax group:", err);
       toast.error("Failed to save tax group");

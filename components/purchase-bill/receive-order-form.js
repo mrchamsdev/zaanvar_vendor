@@ -148,7 +148,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 if (taxIncluded && taxRate > 0 && batch.originalCostPrice !== undefined && batch.originalCostPrice !== "") {
                                     const original = Number(batch.originalCostPrice);
                                     if (!isNaN(original) && original > 0) {
-                                        const taxExclusive = original / (1 + taxRate / 100);
+                                        const taxExclusive = original - (original * taxRate / 100);
                                         displayCostPrice = taxExclusive.toFixed(getAmountDecimalPlaces());
                                     }
                                 }
@@ -1094,7 +1094,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                     </div>
 
                     <div className={styles.globalInputs}>
-                        {!transactionWiseTax && (
+                        {transactionWiseTax && (
                             <div className={styles.inputGroup}>
                                 <label className={styles.infoLabel}>Overall TAX</label>
                                 <div className={styles.combinedInput}>
@@ -1110,7 +1110,7 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 </div>
                             </div>
                         )}
-                        {!transactionWiseDiscount && (
+                        {transactionWiseDiscount && (
                             <div className={styles.inputGroup}>
                                 <label className={styles.infoLabel}>Overall Discount</label>
                                 <div className={styles.combinedInput}>
@@ -1153,10 +1153,10 @@ const ReceiveOrderForm = ({ requestId, onClose, onSave, mode = "edit", initialDa
                                 <div className={styles.breakdownRow}><span>Item Tax</span><span>{currencySymbol} {totals.itemTaxTotal.toFixed(getAmountDecimalPlaces())}</span></div>
                                 <div className={styles.breakdownDivider} />
                                 <div className={styles.breakdownRow}><span>Subtotal</span><span>{currencySymbol} {breakdown.subtotal.toFixed(getAmountDecimalPlaces())}</span></div>
-                                {!transactionWiseDiscount && (
+                                {transactionWiseDiscount && (
                                     <div className={styles.breakdownRow}><span> Overall Discount</span><span>- {currencySymbol} {breakdown.discountVal.toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
-                                {!transactionWiseTax && (
+                                {transactionWiseTax && (
                                     <div className={styles.breakdownRow}><span>Overall Tax</span><span>{currencySymbol} {breakdown.taxVal.toFixed(getAmountDecimalPlaces())}</span></div>
                                 )}
                                 {Number(previousCredit) > 0 && (

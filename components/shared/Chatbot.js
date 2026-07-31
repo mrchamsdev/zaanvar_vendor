@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { FiMessageCircle, FiX, FiSend, FiZap, FiAlertCircle } from 'react-icons/fi';
+import { FiMessageCircle, FiX, FiSend, FiZap, FiAlertCircle, FiTrash2, FiMic, FiMicOff } from 'react-icons/fi';
 import styles from '../../styles/shared/chatbot.module.css';
 
 // Render bot text with simple markdown: **bold** and bullet points
@@ -41,8 +41,62 @@ export default function Chatbot() {
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const sendMessageRef = useRef(null);
 
   const router = useRouter();
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const rec = new SpeechRecognition();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.lang = 'en-IN';
+
+        rec.onstart = () => {
+          setIsListening(true);
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+        };
+
+        rec.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript && transcript.trim()) {
+            sendMessageRef.current?.(transcript);
+          }
+        };
+
+        rec.onerror = (event) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+        };
+
+        recognitionRef.current = rec;
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Voice input is not supported in your browser. Please try using Google Chrome, Microsoft Edge, or Safari.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+  };
 
   // Auto-collapse state & inactivity timer
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -57,6 +111,17 @@ export default function Chatbot() {
         setIsCollapsed(true);
       }, 10000);
     }
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        sender: 'bot',
+        text: "Hi there! 👋 I'm your Zaanvar Agent.\n\nI can help you with **Products**, **Stock**, **Purchases**, **Sales**, and **Customers**.\n\nWhat would you like to know?"
+      }
+    ]);
+    setInputValue('');
+    setApiError(null);
   };
 
   useEffect(() => {
@@ -210,8 +275,8 @@ export default function Chatbot() {
   return (
     <div
       className={styles.chatbotContainer}
-      style={{ 
-        bottom: `${position.bottom}px`, 
+      style={{
+        bottom: `${position.bottom}px`,
         right: isCollapsed && !isOpen ? '0px' : `${position.right}px`,
         transition: 'right 0.3s ease, bottom 0.3s ease'
       }}
@@ -219,10 +284,16 @@ export default function Chatbot() {
       {isOpen && (
         <div
           className={styles.chatWindow}
-          style={openBelow
-            ? { bottom: 'auto', top: '75px' }   // open downward
-            : { bottom: '75px', top: 'auto' }    // open upward (default)
-          }
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '30px',
+            top: 'auto',
+            height: 'calc(100vh - 110px)',
+            maxHeight: '550px',
+            minHeight: '350px',
+            zIndex: 99999
+          }}
         >
           {/* Header */}
           <div className={styles.chatHeader}>
@@ -232,12 +303,35 @@ export default function Chatbot() {
               </div>
               <div>
                 <h3 className={styles.title}>Zaanvar Agent</h3>
-                <p className={styles.subtitle}>AI-powered • Always here to help</p>
+                <p className={styles.subtitle}>✨ Smart Assistant</p>
               </div>
             </div>
-            <button className={styles.closeButton} onClick={toggleChat}>
-              <FiX />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button 
+                onClick={handleClearChat} 
+                title="Clear Chat" 
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: 'white', 
+                  cursor: 'pointer', 
+                  fontSize: '18px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  opacity: 0.8,
+                  padding: '4px',
+                  transition: 'opacity 0.2s, transform 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                <FiTrash2 />
+              </button>
+              <button className={styles.closeButton} onClick={toggleChat}>
+                <FiX />
+              </button>
+            </div>
           </div>
 
           {/* API Key warning banner */}
@@ -299,12 +393,20 @@ export default function Chatbot() {
               ref={inputRef}
               type="text"
               className={styles.input}
-              placeholder="Ask anything about Zaanvar..."
+              placeholder={isListening ? "Listening... Speak now!" : "Ask anything about Zaanvar..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isTyping}
             />
+            <button
+              onClick={toggleListening}
+              className={`${styles.micButton} ${isListening ? styles.micListening : ''}`}
+              title={isListening ? "Stop Listening" : "Voice Input (Speech to Text)"}
+              type="button"
+            >
+              {isListening ? <FiMicOff /> : <FiMic />}
+            </button>
             <button
               className={styles.sendButton}
               onClick={() => sendMessage()}
@@ -316,30 +418,32 @@ export default function Chatbot() {
         </div>
       )}
 
-      {/* Floating Action Button */}
-      <button
-        className={isCollapsed && !isOpen ? styles.chatButtonCollapsed : styles.chatButton}
-        onClick={() => {
-          if (isCollapsed) {
-            setIsCollapsed(false);
-            startInactivityTimer();
-          } else {
-            toggleChat();
-          }
-        }}
-        onMouseEnter={() => {
-          if (isCollapsed) {
-            setIsCollapsed(false);
-            startInactivityTimer();
-          }
-        }}
-        onMouseDown={handleDragStart}
-        onTouchStart={handleDragStart}
-        title="Ask Zaanvar Agent"
-        style={{ cursor: isOpen ? 'pointer' : 'grab' }}
-      >
-        {isCollapsed && !isOpen ? null : (isOpen ? <FiX /> : <FiMessageCircle />)}
-      </button>
+      {/* Floating Action Button - Hidden when chat window is open */}
+      {!isOpen && (
+        <button
+          className={isCollapsed ? styles.chatButtonCollapsed : styles.chatButton}
+          onClick={() => {
+            if (isCollapsed) {
+              setIsCollapsed(false);
+              startInactivityTimer();
+            } else {
+              toggleChat();
+            }
+          }}
+          onMouseEnter={() => {
+            if (isCollapsed) {
+              setIsCollapsed(false);
+              startInactivityTimer();
+            }
+          }}
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          title="Ask Zaanvar Agent"
+          style={{ cursor: 'grab' }}
+        >
+          {isCollapsed ? null : <FiMessageCircle />}
+        </button>
+      )}
     </div>
   );
 }

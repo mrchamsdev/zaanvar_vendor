@@ -271,8 +271,6 @@ const ProductForm = ({
     return [];
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [isPetDropdownOpen, setIsPetDropdownOpen] = useState(false);
-  const petDropdownRef = useRef(null);
 
   // Dynamic Categories and Subcategories state
   const [categoriesList, setCategoriesList] = useState([]);
@@ -457,6 +455,8 @@ const ProductForm = ({
             skuNumber: v.SKU || "",
             eanUpc: v.barcode || v.eanUpcNumber || "",
             minStock: v.minStockAlert ?? 0,
+            mrp: v.mrp !== undefined && v.mrp !== null && v.mrp !== "" ? Number(v.mrp).toFixed(getAmountDecimalPlaces()) : "",
+            sellingPrice: v.sellingPrice !== undefined && v.sellingPrice !== null && v.sellingPrice !== "" ? Number(v.sellingPrice).toFixed(getAmountDecimalPlaces()) : "",
             images:
               (v.productImgs || v.productImages || v.images || [])?.map(
                 (img) =>
@@ -593,6 +593,7 @@ const ProductForm = ({
   };
 
   const handlePriceInput = (index, field, value) => {
+    const decPlaces = getAmountDecimalPlaces();
     // Allow digits and at most one decimal point
     let val = value.replace(/[^\d.]/g, "");
     const parts = val.split(".");
@@ -601,10 +602,10 @@ const ProductForm = ({
       val = parts[0] + "." + parts.slice(1).join("");
     }
 
-    // Restrict to 2 decimal places if there is a decimal point
+    // Restrict to configured decimal places if there is a decimal point
     const cleanParts = val.split(".");
-    if (cleanParts.length === 2 && cleanParts[1].length > 2) {
-      val = cleanParts[0] + "." + cleanParts[1].substring(0, 2);
+    if (cleanParts.length === 2 && cleanParts[1].length > decPlaces) {
+      val = cleanParts[0] + "." + cleanParts[1].substring(0, decPlaces);
     }
 
     updateVariant(index, field, val);
@@ -1030,53 +1031,7 @@ const ProductForm = ({
       window.removeEventListener("triggerProductSave", handleGlobalSave);
   }, [handleSave]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        petDropdownRef.current &&
-        !petDropdownRef.current.contains(event.target)
-      ) {
-        setIsPetDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
-  const handlePetTypeToggle = (type) => {
-    setSelectedPetTypes((prev) => {
-      const next = prev.includes(type)
-        ? prev.filter((t) => t !== type)
-        : [...prev, type];
-
-      // Clear error if at least one type is selected
-      if (next.length > 0 && formErrors.petType) {
-        const newErrors = { ...formErrors };
-        delete newErrors.petType;
-        setFormErrors(newErrors);
-      }
-
-      return next;
-    });
-  };
-
-  const handleSelectAllPetTypes = () => {
-    let next = [];
-    if (selectedPetTypes.length === PET_TYPES.length) {
-      next = [];
-    } else {
-      next = [...PET_TYPES];
-    }
-
-    setSelectedPetTypes(next);
-
-    // Clear error if selection is not empty
-    if (next.length > 0 && formErrors.petType) {
-      const newErrors = { ...formErrors };
-      delete newErrors.petType;
-      setFormErrors(newErrors);
-    }
-  };
 
   const addVariant = () =>
     setVariants((prev) => [
@@ -1316,63 +1271,30 @@ const ProductForm = ({
           <label>
             Pet Type <span>*</span>
           </label>
-          <div
-            className={`${styles.multiSelectContainer} ${isPetDropdownOpen ? styles.multiSelectActive : ""} ${formErrors.petType ? styles.errorField : ""}`}
-            ref={petDropdownRef}
-            onClick={() => setIsPetDropdownOpen(!isPetDropdownOpen)}
-          >
-            <div className={styles.multiSelectValues}>
-              {selectedPetTypes.length === 0 && (
-                <span className={styles.placeholderText}>Select Pet Types</span>
-              )}
-              {selectedPetTypes.map((t) => (
-                <div key={t} className={styles.tag}>
-                  {t}
-                  <span
-                    className={styles.removeTag}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePetTypeToggle(t);
-                    }}
-                  >
-                    ✕
-                  </span>
-                </div>
-              ))}
-            </div>
-            <IconChevron />
-
-            {isPetDropdownOpen && (
-              <div
-                className={styles.optionsDropdown}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {PET_TYPES.filter((t) => !selectedPetTypes.includes(t)).map(
-                  (t) => (
-                    <div
-                      key={t}
-                      className={styles.optionItem}
-                      onClick={() => {
-                        handlePetTypeToggle(t);
-                        setIsPetDropdownOpen(false);
-                      }}
-                    >
-                      {t}
-                    </div>
-                  ),
-                )}
-                {PET_TYPES.filter((t) => !selectedPetTypes.includes(t))
-                  .length === 0 && (
-                    <div
-                      className={styles.optionItem}
-                      style={{ color: "#999", cursor: "default" }}
-                    >
-                      All types selected
-                    </div>
-                  )}
-              </div>
-            )}
-          </div>
+          <MultiSelectDropdown
+            listItems={PET_TYPES.map((t) => ({ id: t, name: t }))}
+            selectedIds={selectedPetTypes}
+            setSelectedIds={(ids) => {
+              setSelectedPetTypes(ids);
+              if (formErrors.petType) {
+                const newErrors = { ...formErrors };
+                delete newErrors.petType;
+                setFormErrors(newErrors);
+              }
+            }}
+            placeholder="Select Pet Types"
+            hideSearch={true}
+            customStyles={{
+              dropdown: {
+                background: formErrors.petType ? "#FFF1F0" : "#fcfcfc",
+                border: formErrors.petType ? "1px solid #FF4D4F" : "1px solid var(--color-border-dark)",
+                borderRadius: "8px",
+                minHeight: "44px",
+                width: "100%",
+                boxSizing: "border-box"
+              }
+            }}
+          />
           {formErrors.petType && (
             <div className={styles.errorMessage}>{formErrors.petType}</div>
           )}
@@ -1501,9 +1423,13 @@ const ProductForm = ({
                   className={!sup.SupplierId ? styles.placeholderSelect : ""}
                 >
                   <option value="">Select Supplier</option>
-                  {suppliersList.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
+                  {suppliersList.map(s => {
+                    const isAlreadySelected = selectedSuppliers.some((supItem, supIdx) => supIdx !== idx && String(supItem.SupplierId) === String(s.id));
+                    if (isAlreadySelected) return null;
+                    return (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    );
+                  })}
                 </select>
                 <div className={styles.selectIcon}><IconChevron /></div>
               </div>

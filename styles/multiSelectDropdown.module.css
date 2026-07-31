@@ -129,7 +129,7 @@
 }
 
 .search-input {
-  width: 100%;
+  width: 97%;
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -182,4 +182,9 @@
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
   background: #999;
+}
+
+.error {
+  border-color: #FF4D4F !important;
+  background-color: #FFF1F0 !important;
 }
