@@ -11,6 +11,12 @@ const LOGO_URL =
   "https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg";
 
 /* ── Inline SVG icons ─────────────────────────────────────── */
+const IconHome = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
 const IconGrid = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -191,6 +197,23 @@ const BRANCH_SERVICE_MAP = {
 };
 
 function buildMenuFromVendor(userInfo) {
+  // If the user has no business claimed yet, show the simplified onboarding sidebar
+  const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+
+  if (hasNoBusiness) {
+    return [
+      { label: "Home", path: "/claim-business", icon: <IconHome /> },
+      { label: "Reviews", path: "#", icon: <IconStar /> },
+      { label: "Profile", path: "#", icon: <IconUser /> },
+      { label: "Change Password", path: "#", icon: <IconSettings /> },
+      { label: "My Subscription", path: "#", icon: <IconPackage /> },
+      { label: "Privacy & Policy", path: "#", icon: <IconReviews /> },
+      { label: "Terms of use", path: "#", icon: <IconReviews /> },
+      { label: "Terms & Conditions", path: "#", icon: <IconReviews /> },
+      { label: "Support", path: "#", icon: <IconShop /> },
+    ];
+  }
+
   const base = [
     { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
     { label: "Reviews", path: "/reviews", icon: <IconStar /> },
@@ -393,30 +416,34 @@ const DashboardLayout = ({
   // Roles have loaded when the array is non-empty (populated by useDashboardData polling)
   const rolesLoaded = Array.isArray(roles) && roles.length > 0;
 
-  const filteredMenuItems = isSuperAdmin
-    ? menuItems                          // superadmin: always show everything
-    : !rolesLoaded
-      ? []                               // roles not yet fetched: show nothing to prevent flash
-      : !userRole
-        ? menuItems                      // roles loaded but no matching role: safe default = show all
-        : menuItems.reduce((acc, item) => {
-            if (item.subItems && item.subItems.length > 0) {
-              // Filter sub-items individually
-              const visibleSubs = item.subItems.filter(sub =>
-                isAccessible(item.label, sub.label)
-              );
-              // Only include the parent if at least one sub-item is visible
-              if (visibleSubs.length > 0) {
-                acc.push({ ...item, subItems: visibleSubs });
+  const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+
+  const filteredMenuItems = hasNoBusiness
+    ? menuItems
+    : isSuperAdmin
+      ? menuItems
+      : !rolesLoaded
+        ? []
+        : !userRole
+          ? menuItems
+          : menuItems.reduce((acc, item) => {
+              if (item.subItems && item.subItems.length > 0) {
+                // Filter sub-items individually
+                const visibleSubs = item.subItems.filter(sub =>
+                  isAccessible(item.label, sub.label)
+                );
+                // Only include the parent if at least one sub-item is visible
+                if (visibleSubs.length > 0) {
+                  acc.push({ ...item, subItems: visibleSubs });
+                }
+              } else {
+                // Top-level item with no children (e.g. Customers, Supplier)
+                if (isAccessible(item.label)) {
+                  acc.push(item);
+                }
               }
-            } else {
-              // Top-level item with no children (e.g. Customers, Supplier)
-              if (isAccessible(item.label)) {
-                acc.push(item);
-              }
-            }
-            return acc;
-          }, []);
+              return acc;
+            }, []);
 
   /* ── avatar ── */
   const firstName = userInfo?.firstName || "";
@@ -485,7 +512,7 @@ const DashboardLayout = ({
             const isExpanded = expandedMenus[item.path];
 
             return (
-              <li key={item.path} className={isActive ? styles.active : ""}>
+              <li key={item.path} className={isActive ? (hasNoBusiness ? styles.activeBlue : styles.active) : ""}>
                 {!hasSub ? (
                   <Link href={appendBranchId(item.path)} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
                     <span className={styles.navIcon}>{item.icon}</span>

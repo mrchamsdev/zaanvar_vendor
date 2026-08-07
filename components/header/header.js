@@ -13,6 +13,9 @@ const Header = () => {
   const handleLogin = () => {
     Router.push("/login")
   }
+  const handleRegister = () => {
+    Router.push("/login?view=register")
+  }
   const handleListYourBusiness = () => {
     Router.push("/register")
   }
@@ -127,6 +130,7 @@ const Header = () => {
           </nav>
 
           <div className={style["button-container"]}>
+            <button className={style["btn-outline"]} onClick={handleRegister}>Register</button>
             <button className={style["btn-outline"]} onClick={handleLogin}>LOGIN</button>
             {/*  <button className={style["btn-outline"]} onClick={handleListYourBusiness}>List Your Business</button> */}
             <button onClick={handleOnclick}
@@ -178,6 +182,9 @@ const Header = () => {
             </nav>
 
             <div className={style["mobile-actions"]}>
+              <button className={style["btn-outline"]} onClick={() => { closeMenu(); handleRegister() }}>
+                Register
+              </button>
               <button className={style["btn-outline"]} onClick={() => { closeMenu(); handleLogin() }}>
                 LOGIN
               </button>

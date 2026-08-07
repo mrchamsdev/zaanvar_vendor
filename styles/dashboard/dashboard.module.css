@@ -189,6 +189,15 @@
   padding-left: calc(clamp(12px, 1.4vw, 20px) - 8px);
 }
 
+.sidebarNav li.activeBlue a,
+.sidebarNav li.activeBlue div.navGroupHeader {
+  background: #f0f6ff;
+  color: #1a73e8;
+  border-radius: 8px;
+  margin: 0 8px;
+  padding-left: calc(clamp(12px, 1.4vw, 20px) - 8px);
+}
+
 .sidebarNav li .navIcon {
   flex-shrink: 0;
   width: 18px;
