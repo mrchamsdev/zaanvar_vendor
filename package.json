@@ -14,6 +14,7 @@
     "@mui/material": "^7.3.4",
     "axios": "^1.13.0",
     "country-state-city": "^3.2.1",
+    "h265-stream-player": "^1.0.4",
     "html2pdf.js": "^0.14.0",
     "html5-qrcode": "^2.3.8",
     "js-cookie": "^3.0.5",

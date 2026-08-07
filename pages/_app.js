@@ -28,7 +28,6 @@ const AUTH_REDIRECT_ROUTES = [
   "/login",
   "/about",
   "/about-us",
-  "/register",
   "/sign-up",
   "/book-demo",
   "/contact-us"
@@ -46,11 +45,13 @@ const PROTECTED_PREFIXES = [
   "/training",
   "/grooming",
   "/pet-sales",
+  "/onboarding",
+  "/claim-business",
 ];
 
 function AuthGuard({ children }) {
   const router = useRouter();
-  const { jwtToken, _hasHydrated } = useStore();
+  const { jwtToken, userInfo, _hasHydrated } = useStore();
 
   useEffect(() => {
     if (!_hasHydrated) return; // wait until Zustand rehydrates from localStorage
@@ -58,9 +59,32 @@ function AuthGuard({ children }) {
     const path = router.pathname;
 
     if (jwtToken) {
-      // Logged-in user tries to access a public-only route → send to dashboard
+      // If user has no business, redirect from dashboard/services to /onboarding
+      const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+      const isDashboardOrService = [
+        "/dashboard",
+        "/timing-slots",
+        "/reviews",
+        "/clinic",
+        "/pet-shop",
+        "/daycare",
+        "/training",
+        "/grooming",
+        "/pet-sales"
+      ].some((prefix) => path.startsWith(prefix));
+
+      if (hasNoBusiness && isDashboardOrService) {
+        router.replace("/onboarding");
+        return;
+      }
+
+      // Logged-in user tries to access a public-only route → send to dashboard (or onboarding if no business)
       if (AUTH_REDIRECT_ROUTES.includes(path)) {
-        router.replace("/dashboard");
+        if (hasNoBusiness) {
+          router.replace("/onboarding");
+        } else {
+          router.replace("/dashboard");
+        }
       }
     } else {
       // Guest tries to access a protected route → send to login
@@ -69,7 +93,7 @@ function AuthGuard({ children }) {
         router.replace("/login");
       }
     }
-  }, [_hasHydrated, jwtToken, router.pathname]);
+  }, [_hasHydrated, jwtToken, userInfo, router.pathname]);
 
   return children;
 }

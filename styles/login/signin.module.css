@@ -568,6 +568,89 @@
   text-decoration: underline;
 }
 
+/* ── Tab toggle row (desktop) ── */
+.newTabRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f5f5f5;
+  border-radius: 999px;
+  padding: 4px;
+  width: 100%;
+  max-width: clamp(280px, 32vw, 400px);
+}
+
+.newTabBtn {
+  flex: 1;
+  padding: clamp(8px, 1vh, 12px) clamp(12px, 1.5vw, 24px);
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 500;
+  color: #777;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.newTabBtnActive {
+  background: #f5790c;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(245, 121, 12, 0.35);
+}
+
+.newTabBtn:hover:not(.newTabBtnActive) {
+  color: #f5790c;
+}
+
+/* ── Fixed +91 dial code (register form) ── */
+.newDialCodeFixed {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+  padding-right: clamp(6px, 0.8vw, 10px);
+  border-right: 1.5px solid #e4e4e4;
+  margin-right: clamp(4px, 0.5vw, 8px);
+  line-height: 1;
+}
+
+/* ── Tab toggle row (mobile) ── */
+.newMobTabRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f5f5f5;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: clamp(4px, 1vh, 10px);
+}
+
+.newMobTabBtn {
+  flex: 1;
+  padding: clamp(9px, 1.5vh, 13px) clamp(12px, 4vw, 20px);
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: clamp(13px, 3.5vw, 15px);
+  font-weight: 500;
+  color: #777;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.newMobTabBtnActive {
+  background: #f5790c;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(245, 121, 12, 0.35);
+}
+
+.newMobTabBtn:hover:not(.newMobTabBtnActive) {
+  color: #f5790c;
+}
+
 /* SearchableCountryCode adjustments inside mobile form */
 .newMobSearchableCountry :global(.SelectedLabel) {
   padding: 0;
@@ -579,3 +662,164 @@
   width: 250px;
   left: -20px;
 }
+
+/* ══════════════════════════════════════════════════════
+   OTP SCREEN
+   ══════════════════════════════════════════════════════ */
+
+.otpTitle {
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 clamp(10px, 1.5vh, 16px);
+}
+
+.otpSubtitle {
+  font-size: clamp(13px, 1.1vw, 15px);
+  color: #666;
+  line-height: 1.55;
+  text-align: center;
+  margin: 0 0 clamp(14px, 2vh, 22px);
+}
+
+.otpLabel {
+  font-size: clamp(13px, 1.15vw, 15px);
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: clamp(14px, 2vh, 20px);
+}
+
+/* 6-box row */
+.otpBoxRow {
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 1.2vw, 14px);
+  margin-bottom: clamp(16px, 2.5vh, 24px);
+}
+
+.otpBox {
+  width: clamp(40px, 6vw, 54px);
+  height: clamp(44px, 6.5vw, 58px);
+  border: 1.8px solid #ddd;
+  border-radius: clamp(8px, 1vw, 12px);
+  text-align: center;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 600;
+  color: #1a1a1a;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  caret-color: #f5790c;
+}
+
+.otpBox:focus {
+  border-color: #f5790c;
+  box-shadow: 0 0 0 3px rgba(245, 121, 12, 0.15);
+  background: #fff;
+}
+
+.otpBoxFilled {
+  border-color: #f5790c;
+  background: #fff8f3;
+}
+
+.otpError {
+  display: block;
+  color: #e53935;
+  font-size: clamp(11px, 1vw, 13px);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* Resend row */
+.otpResendRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: clamp(16px, 2.5vh, 24px);
+}
+
+.otpResendText {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #888;
+}
+
+.otpResendBtn {
+  font-size: clamp(12px, 1vw, 14px);
+  font-weight: 600;
+  color: #f5790c;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.otpResendBtn:hover:not(.otpResendBtnDisabled) {
+  text-decoration: underline;
+}
+
+.otpResendBtnDisabled {
+  color: #aaa;
+  cursor: default;
+}
+
+/* Back link */
+.otpBackRow {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.otpBackBtn {
+  font-size: clamp(12px, 1vw, 14px);
+  color: #888;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.otpBackBtn:hover {
+  color: #f5790c;
+}
+
+/* ══════════════════════════════════════════════════════
+   TERMS ROW (register form)
+   ══════════════════════════════════════════════════════ */
+
+.termsRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.termsLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: clamp(12px, 1vw, 13px);
+  color: #555;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.termsLabel input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #f5790c;
+}
+
+.termsLink {
+  color: #f5790c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.termsLink:hover {
+  text-decoration: underline;
+}
+
