@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import useStore from "../../components/state/useStore";
 import { WebApimanager } from "../../components/utilities/WebApiManager";
 import swal from "sweetalert";
+import RegisterBusinessModal from "../../components/RegisterBusinessModal";
 
 // ─── Inline SVGs & Helpers ───────────────────────────────────────────────────
 const StarIcon = () => (
@@ -118,7 +119,7 @@ function getRelativeTime(dateString) {
   const diffMin = Math.floor(diffSec / 60);
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
-  
+
   if (diffSec < 60) return "JUST NOW";
   if (diffMin < 60) return `${diffMin} MINUTES AGO`;
   if (diffHour < 24) return `${diffHour} HOURS AGO`;
@@ -137,7 +138,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated } = useStore();
   const dropdownRef = useRef(null);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -148,11 +149,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // ── Ticket and progress state ──
   const [ticketId, setTicketId] = useState(null);
+  const [currentTicketStep, setCurrentTicketStep] = useState("");
   const [ticketReferenceId, setTicketReferenceId] = useState("ZB21234567890");
 
   // ── Verification Option state ──
   const [methodOption, setMethodOption] = useState("video"); // "video" | "later"
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [shopFrontPhoto, setShopFrontPhoto] = useState("");
@@ -172,7 +176,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [scrapedBranchEmail, setScrapedBranchEmail] = useState("");
   const [branchImagesList, setBranchImagesList] = useState([]);
   const [headerBranches, setHeaderBranches] = useState([]);
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -189,8 +193,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const video = document.createElement("video");
-      const canPlayHEVC = video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"') || 
-                          video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"');
+      const canPlayHEVC = video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"') ||
+        video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"');
       const supported = canPlayHEVC === "probably" || canPlayHEVC === "maybe";
       setHevcSupported(supported);
 
@@ -266,7 +270,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // ── Branch selector list state (Verify step) ──
   const [branchesList, setBranchesList] = useState([]);
-  const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
+  const [selectedBranchIndices, setSelectedBranchIndices] = useState([0]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -279,6 +283,19 @@ const ClaimBusiness = ({ forcedView = null }) => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  // Auto-open RegisterBusinessModal or set view based on query params
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const search = window.location.search;
+      if (search.includes("register=true") || search.includes("register=1") || search.includes("onboarding=true")) {
+        setIsRegisterModalOpen(true);
+      }
+      if (search.includes("view=verify_method") || search.includes("view=verify")) {
+        setView("verify_method");
+      }
+    }
+  }, []);
+
   // ── Fetch existing claim progress on mount ──
   useEffect(() => {
     const fetchClaimProgress = async () => {
@@ -286,22 +303,204 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const API_URL = window.location.hostname !== "support.zaanvar.com"
           ? "https://dev.zaanvar.com/api/"
           : "https://prod.zaanvar.com/api/";
-        
+
         const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
+        const isNewClaimQuery = typeof window !== "undefined" && window.location.search.includes("newClaim=true");
+        const forceClaimNew = localStorage.getItem("zaanvar_force_claim_new") === "true";
 
-        const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
-          params: {
-            scrapedBranchId: savedBranchId || undefined
+        const queryParams = {};
+        // Always send vendor_user_id so the API can locate the ticket by user
+        // even if the scraped branch ID is not saved in localStorage yet
+        queryParams.vendor_user_id = userInfo?.userId || userInfo?.id;
+        if (!isNewClaimQuery || !forceClaimNew) {
+          // Also filter by branch when we have it (more precise lookup)
+          if (savedBranchId) {
+            queryParams.scrapedBranchId = savedBranchId;
           }
-        });
+        }
 
-        if (res?.data?.data && (res.data.status === "success" || res.data.status === "DUPLICATE_CLAIM" || res.data.isDuplicateClaim)) {
-          const ticket = res.data.data.ticket || res.data.data;
+        const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
+        const savedFlowType = typeof window !== "undefined" ? localStorage.getItem("zaanvar_flow_type") : null;
+        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const searchTicketId = urlParams?.get("ticketId");
+        const activeTicketId = searchTicketId || savedTicketId;
+        const numUserId = parseInt(userInfo?.userId || userInfo?.id || 233, 10) || 233;
+
+        const isRegisterFlow = savedFlowType === "REGISTER" || (
+          typeof window !== "undefined" && (
+            window.location.search.includes("register=true") ||
+            window.location.search.includes("register=1") ||
+            window.location.search.includes("onboarding=true")
+          )
+        );
+
+        let onboardingTicket = null;
+        let claimTicket = null;
+
+        if (isRegisterFlow) {
+          // ── ONLY trigger vendor/onboarding-ticket/progress for Register your Business flow ──
+          try {
+            const progressParams = {
+              vendorUserId: numUserId,
+              vendor_user_id: numUserId,
+            };
+            if (activeTicketId) {
+              progressParams.ticketId = activeTicketId;
+            }
+            const progressRes = await axios.get(`${API_URL}vendor/onboarding-ticket/progress`, {
+              params: progressParams
+            });
+            if (progressRes?.data) {
+              onboardingTicket =
+                progressRes.data.data?.ticket ||
+                progressRes.data.ticket ||
+                progressRes.data.data ||
+                progressRes.data;
+            }
+          } catch (e) {
+            console.warn("vendor/onboarding-ticket/progress GET error:", e);
+          }
+        } else {
+          // ── ONLY trigger scraped-branches/claim/progress for Claim your Business flow ──
+          try {
+            const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+              params: queryParams
+            });
+            if (res?.data?.data) {
+              claimTicket = res.data.data.ticket || res.data.data;
+              const resData = res?.data;
+              const dynamicBranchId =
+                resData?.data?.branchId ||
+                resData?.data?.branch_id ||
+                resData?.branchId ||
+                resData?.branch_id ||
+                resData?.data?.ticket?.branchId ||
+                resData?.data?.ticket?.branch_id ||
+                resData?.data?.ticket?.draftData?.branchId ||
+                resData?.data?.ticket?.draftData?.branch_id;
+
+              if (dynamicBranchId) {
+                const numId = parseInt(dynamicBranchId, 10);
+                setBackendBranchId(numId);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("zaanvar_claim_backend_branch_id", String(numId));
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("scraped-branches/claim/progress GET error:", e);
+          }
+        }
+
+        if (claimTicket || onboardingTicket) {
+          const ticket =
+            onboardingTicket?.ticket ||
+            onboardingTicket ||
+            claimTicket?.ticket ||
+            claimTicket ||
+            {};
           const step = ticket.currentStep || ticket.current_step;
           const stepUpper = step?.toUpperCase();
 
-          const forceClaimNew = localStorage.getItem("zaanvar_force_claim_new") === "true";
-          const isNewClaimQuery = typeof window !== "undefined" && window.location.search.includes("newClaim=true");
+          setTicketId(ticket.ticket_id || ticket.ticketId || ticket.id || null);
+          if (ticket.ticket_reference_id || ticket.ticketReferenceId) {
+            setTicketReferenceId(ticket.ticket_reference_id || ticket.ticketReferenceId);
+          }
+
+          const rawClaimData = claimTicket || onboardingTicket || {};
+          const draftDataObj = ticket.draftData || ticket.draft_data || {};
+          const extractedBranchId =
+            rawClaimData.branchId ||
+            rawClaimData.branch_id ||
+            ticket.branchId ||
+            ticket.branch_id ||
+            draftDataObj.branchId ||
+            draftDataObj.branch_id ||
+            (Array.isArray(draftDataObj.createdBranchIds) ? draftDataObj.createdBranchIds[0] : null);
+
+          if (extractedBranchId) {
+            const numExtracted = parseInt(extractedBranchId, 10);
+            setBackendBranchId(numExtracted);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("zaanvar_claim_backend_branch_id", String(numExtracted));
+            }
+          }
+
+          if (stepUpper) {
+            setCurrentTicketStep(stepUpper);
+          }
+
+          if (stepUpper === "APPROVED") {
+            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+            setView("submitted");
+            setLoadingProgress(false);
+            return;
+          }
+
+          if (stepUpper === "VERIFIED" || stepUpper === "COMPLETED") {
+            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+            if (router.pathname === "/claim-business") {
+              router.replace("/home");
+            } else {
+              setView("home");
+            }
+            setLoadingProgress(false);
+            return;
+          }
+
+          if (stepUpper === "SUBMITTED" || stepUpper === "VERIFICATION_IN_PROGRESS" || stepUpper === "UNDER_REVIEW") {
+            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+            setView("submitted");
+            setLoadingProgress(false);
+            return;
+          }
+
+          if (stepUpper === "VERIFY_LATER") {
+            setView("verify_later");
+            setLoadingProgress(false);
+            return;
+          }
+
+          const isVerifyView = (typeof window !== "undefined" && (window.location.search.includes("view=verify_method") || window.location.search.includes("view=verify"))) || view === "verify_method";
+
+          if (stepUpper === "VERIFICATION_INSTRUCTIONS" || (typeof window !== "undefined" && window.location.search.includes("instructions=true"))) {
+            setView("verify_method");
+            setIsModalOpen(true);
+            setLoadingProgress(false);
+            return;
+          } else if (isVerifyView || stepUpper === "VERIFICATION_METHOD" || stepUpper === "VERIFICATION_OPTIONS" || stepUpper === "VERIFY_BUSINESS" || stepUpper === "VERIFICATION") {
+            setView("verify_method");
+            setLoadingProgress(false);
+            return;
+          }
+
+          if (stepUpper === "USER_INFO") {
+            setModalInitialTab(0);
+            setIsRegisterModalOpen(true);
+            setLoadingProgress(false);
+            return;
+          } else if (stepUpper === "BUSINESS_INFO") {
+            setModalInitialTab(1);
+            setIsRegisterModalOpen(true);
+            setLoadingProgress(false);
+            return;
+          } else if (stepUpper === "SERVICES_INFO" || stepUpper === "SERVICES") {
+            setModalInitialTab(2);
+            setIsRegisterModalOpen(true);
+            setLoadingProgress(false);
+            return;
+          } else if (stepUpper === "ADDITIONAL_INFO") {
+            setModalInitialTab(3);
+            setIsRegisterModalOpen(true);
+            setLoadingProgress(false);
+            return;
+          }
 
           // If in new claim flow, ignore previously APPROVED ticket to let them claim a new one
           if (forceClaimNew && isNewClaimQuery && stepUpper === "APPROVED" && router.pathname !== "/home") {
@@ -312,12 +511,24 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
           setTicketId(ticket.ticket_id || ticket.id || null);
           if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
-          
-          const claimBranchId = ticket.branchId || ticket.branch_id || res.data.data.branchId || res.data.data.branch_id;
+
+          const draft = ticket.draftData || ticket.draft_data || {};
+          const claimBranchId =
+            draft.branchId ||
+            draft.branch_id ||
+            (Array.isArray(draft.createdBranchIds) ? draft.createdBranchIds[0] : null) ||
+            ticket.branchId ||
+            ticket.branch_id ||
+            res?.data?.data?.branchId ||
+            res?.data?.data?.branch_id;
+
           if (claimBranchId) {
             setBackendBranchId(claimBranchId);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("zaanvar_claim_backend_branch_id", String(claimBranchId));
+            }
           }
-          
+
           const branchId = ticket.scrapedBranchId || ticket.scraped_branch_id;
           if (branchId) {
             localStorage.setItem("zaanvar_claim_scraped_branch_id", branchId);
@@ -327,9 +538,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
           if (branchEmail) {
             setScrapedBranchEmail(branchEmail);
           }
-
-          const draft = ticket.draftData || ticket.draft_data || {};
-
           // Prefill values
           setFormData({
             businessName: draft.companyName || "",
@@ -341,27 +549,27 @@ const ClaimBusiness = ({ forcedView = null }) => {
           });
 
           // Route to the saved step
-          if (stepUpper === "COMPANY_SELECTED") {
+          if (stepUpper === "SELECT_BUSINESS" || stepUpper === "COMPANY_SELECTED") {
             setView("details");
           } else if (stepUpper === "COMPANY_DETAILS") {
             // Reconstruct branches list dynamically from draft company name
             const mainAddr = draft.companyAddress || "";
             const compName = draft.companyName || "";
-            
+
             const fetchDuplicatesOnLoad = async () => {
               try {
                 const API_URL = window.location.hostname !== "support.zaanvar.com"
                   ? "https://dev.zaanvar.com/api/"
                   : "https://prod.zaanvar.com/api/";
-                
+
                 const searchRes = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
                   params: { search: compName }
                 });
-                
+
                 const searchData = searchRes?.data?.data || [];
                 const coreSelected = getCoreName(compName);
                 const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
-                
+
                 const matchedBranches = searchData
                   .filter(r => {
                     const coreItem = getCoreName(r.fullName || r.branchName);
@@ -376,7 +584,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 if (matchedBranches.length === 0) {
                   matchedBranches.push({ id: ticket.scraped_branch_id || 61, title: "Is this your business ?", address: mainAddr });
                 }
-                
+
                 setBranchesList(matchedBranches);
               } catch (err) {
                 setBranchesList([
@@ -444,13 +652,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
       if (!jwtToken || !userInfo) return;
       const currentUserId = userInfo.userId || userInfo.id;
       if (!currentUserId) return;
-      
+
       try {
         const webApi = new WebApimanager(jwtToken);
         const userRes = await webApi.get(`vendor-users/${currentUserId}`);
         const userData = userRes?.data?.data || userRes?.data || userRes || {};
         const branchIds = userData.branchId || userData.branchAssigned || [];
-        
+
         if (Array.isArray(branchIds) && branchIds.length > 0) {
           const branchesData = await Promise.all(
             branchIds.map(async (bId) => {
@@ -469,7 +677,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
             })
           );
           setHeaderBranches(branchesData);
-          
+
           // Auto-select active branch
           if (branchesData.length > 0 && !backendBranchId) {
             const firstId = branchesData[0].id;
@@ -501,11 +709,11 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const API_URL = window.location.hostname !== "support.zaanvar.com"
           ? "https://dev.zaanvar.com/api/"
           : "https://prod.zaanvar.com/api/";
-        
+
         const res = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
           params: { search: searchQuery }
         });
-        
+
         const data = res?.data?.data || [];
         setResults(data);
         if (data.length > 0) {
@@ -526,12 +734,118 @@ const ClaimBusiness = ({ forcedView = null }) => {
   // Set company details from selected branch info
   const handleClaimInitiate = async () => {
     if (!selectedBranch) return;
+
+    const API_URL = window.location.hostname !== "support.zaanvar.com"
+      ? "https://dev.zaanvar.com/api/"
+      : "https://prod.zaanvar.com/api/";
+
+    // 1. Fetch if there is already progress for this specific branch
+    try {
+      const progressRes = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+        params: {
+          scrapedBranchId: selectedBranch.id
+        }
+      });
+
+      if (progressRes?.data?.data && (progressRes.data.status === "success" || progressRes.data.status === "DUPLICATE_CLAIM" || progressRes.data.isDuplicateClaim)) {
+        const ticket = progressRes.data.data.ticket || progressRes.data.data;
+        const step = ticket.currentStep || ticket.current_step;
+        const stepUpper = step?.toUpperCase();
+
+        if (stepUpper && stepUpper !== "APPROVED") {
+          // Found an in-progress ticket! Restore it instead of starting a new claim!
+          localStorage.removeItem("zaanvar_force_claim_new");
+          setTicketId(ticket.ticket_id || ticket.id || null);
+          if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
+
+          const claimBranchId = ticket.branchId || ticket.branch_id || progressRes.data.data.branchId || progressRes.data.data.branch_id;
+          if (claimBranchId) {
+            setBackendBranchId(claimBranchId);
+          }
+
+          localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
+
+          const branchEmail = ticket?.scrapedBranch?.branchEmail || ticket?.scrapedBranch?.email || "";
+          if (branchEmail) {
+            setScrapedBranchEmail(branchEmail);
+          }
+
+          const draft = ticket.draftData || ticket.draft_data || {};
+          setFormData({
+            businessName: draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "",
+            businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "",
+            businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || "",
+            userName: draft.userName || userInfo?.name || "",
+            role: draft.role || ticket.role || "Owner",
+            companyAddress: draft.companyAddress || selectedBranch.branchLocation || ""
+          });
+
+          // Route to the saved step
+          if (stepUpper === "SELECT_BUSINESS" || stepUpper === "COMPANY_SELECTED") {
+            setView("details");
+          } else if (stepUpper === "COMPANY_DETAILS") {
+            const mainAddr = draft.companyAddress || selectedBranch.branchLocation || "";
+            const compName = draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "";
+
+            try {
+              const searchRes = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
+                params: { search: compName }
+              });
+              const searchData = searchRes?.data?.data || [];
+              const coreSelected = getCoreName(compName);
+              const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
+
+              const matchedBranches = searchData
+                .filter(r => {
+                  const coreItem = getCoreName(r.fullName || r.branchName);
+                  return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
+                })
+                .map(r => ({
+                  id: r.id,
+                  title: "Is this your business ?",
+                  address: r.branchLocation || "Location not provided"
+                }));
+              if (matchedBranches.length === 0) {
+                matchedBranches.push({ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr });
+              }
+              setBranchesList(matchedBranches);
+            } catch (err) {
+              setBranchesList([{ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr }]);
+            }
+            setView("branches");
+          } else if (stepUpper === "VERIFY_BUSINESS") {
+            setView("verify_method");
+          } else if (stepUpper === "VERIFICATION_INSTRUCTIONS" || stepUpper === "VERIFICATION_PERMISSIONS" || stepUpper === "VERIFICATION_METHOD") {
+            setView("verify_method");
+            setIsModalOpen(true);
+          } else if (stepUpper === "VERIFY_LATER") {
+            setView("verify_later");
+          } else if (stepUpper === "SUBMITTED") {
+            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+            setView("submitted");
+          } else if (stepUpper === "BUSINESS_VERIFICATION_OTP") {
+            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+            setView("submitted");
+            setShowOtpView(true);
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.log("No progress found for selected branch, proceeding with new claim creation.");
+    }
+
+    // 2. Otherwise, start a brand new claim wizard flow
     localStorage.removeItem("zaanvar_force_claim_new");
     localStorage.removeItem("zaanvar_claim_ticket_id");
     setTicketId(null);
     setTicketReferenceId("ZB21234567890");
     const resolvedName = userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
-    
+
     const companyName = selectedBranch.fullName || selectedBranch.branchName || "";
     const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "";
     const email = selectedBranch.branchEmail || selectedBranch.email || "";
@@ -550,17 +864,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
     });
 
     try {
-      const API_URL = window.location.hostname !== "support.zaanvar.com"
-        ? "https://dev.zaanvar.com/api/"
-        : "https://prod.zaanvar.com/api/";
-
       const vendorUserId = userInfo?.userId || userInfo?.id || 12;
 
       const payload = {
         currentStep: "COMPANY_SELECTED",
         current_step: "COMPANY_SELECTED",
-        ticket_id: ticketId,
-        scraped_branch_id: selectedBranch?.id || 45,
+        ticket_id: null,
+        scraped_branch_id: selectedBranch.id,
         vendor_user_id: vendorUserId,
         companyName: companyName,
         phoneNo: phoneNo,
@@ -587,7 +897,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
       };
 
       const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, payload);
-      
+
       if (res?.data?.status === "success" && res?.data?.data) {
         const ticket = res.data.data.ticket || res.data.data;
         setTicketId(ticket.ticket_id || ticket.id || null);
@@ -640,7 +950,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
       };
 
       const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, payload);
-      
+
       if (res?.data?.status === "success" && res?.data?.data) {
         const ticket = res.data.data.ticket || res.data.data;
         setTicketId(ticket.ticket_id || ticket.id || null);
@@ -670,27 +980,40 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
 
     setBranchesList(matchedBranches);
-    setSelectedBranchIndex(0);
+    setSelectedBranchIndices([0]);
     setView("branches");
   };
 
   // POST progress for Step 1: VERIFY_BUSINESS
   const handleBranchesNext = async () => {
+    if (selectedBranchIndices.length === 0) return;
+
     try {
       const API_URL = window.location.hostname !== "support.zaanvar.com"
         ? "https://dev.zaanvar.com/api/"
         : "https://prod.zaanvar.com/api/";
 
       const vendorUserId = userInfo?.userId || userInfo?.id || 12;
-      const mainAddr = branchesList[selectedBranchIndex]?.address || formData.companyAddress;
 
-      const chosenBranchId = branchesList[selectedBranchIndex]?.id || selectedBranch?.id || 32;
+      // Build arrays for multi-selection
+      const selectedBranchItems = selectedBranchIndices.map(i => branchesList[i]).filter(Boolean);
+      const scrapedBranchIds = selectedBranchItems.map(b => b.id);
+      const chosenBranchId = scrapedBranchIds[0] || selectedBranch?.id || 32;
+      const mainAddr = selectedBranchItems[0]?.address || formData.companyAddress;
+
+      const selectedBranchesPayload = selectedBranchItems.map(b => ({
+        id: b.id,
+        branchName: b.title,
+        branchLocation: b.address,
+        phoneNumber: formData.businessPhone || ""
+      }));
 
       const payload = {
         currentStep: "VERIFY_BUSINESS",
         current_step: "VERIFY_BUSINESS",
         ticket_id: ticketId,
         scraped_branch_id: chosenBranchId,
+        scrapedBranchIds,
         vendor_user_id: vendorUserId,
         shopNumber: "Shop #4",
         buildingName: "Green Plaza",
@@ -706,6 +1029,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
           userName: formData.userName,
           role: formData.role || "Owner",
           companyAddress: formData.companyAddress,
+          scrapedBranchIds,
+          selectedBranches: selectedBranchesPayload,
           shopNumber: "Shop #4",
           buildingName: "Green Plaza",
           landmark: "Near Metro Station",
@@ -721,6 +1046,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
           userName: formData.userName,
           role: formData.role || "Owner",
           companyAddress: formData.companyAddress,
+          scrapedBranchIds,
+          selectedBranches: selectedBranchesPayload,
           shopNumber: "Shop #4",
           buildingName: "Green Plaza",
           landmark: "Near Metro Station",
@@ -746,32 +1073,33 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // POST progress updates on selecting Method and clicking Next
   const handleVerifyMethodNext = async () => {
-    const vendorUserId = userInfo?.userId || userInfo?.id || 12;
-
+    const vendorUserId = userInfo?.userId || userInfo?.id || 233;
     const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
     const activeScrapedBranchId = selectedBranch?.id || (savedBranchId ? parseInt(savedBranchId) : 45);
+    const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
+    const isRegistration = typeof window !== "undefined" && localStorage.getItem("zaanvar_flow_type") === "REGISTER";
+
+    const API_URL = window.location.hostname !== "support.zaanvar.com"
+      ? "https://dev.zaanvar.com/api/"
+      : "https://prod.zaanvar.com/api/";
+
+    const endpoint = isRegistration
+      ? `${API_URL}vendor/onboarding-ticket/progress`
+      : `${API_URL}scraped-branches/claim/progress`;
 
     if (methodOption === "later") {
       try {
-        const API_URL = window.location.hostname !== "support.zaanvar.com"
-          ? "https://dev.zaanvar.com/api/"
-          : "https://prod.zaanvar.com/api/";
-          
-        await axios.post(`${API_URL}scraped-branches/claim/progress`, {
+        await axios.post(endpoint, {
           currentStep: "VERIFY_LATER",
           current_step: "VERIFY_LATER",
-          ticket_id: ticketId,
+          ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
+          ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
           scraped_branch_id: activeScrapedBranchId,
           vendor_user_id: vendorUserId,
+          vendorUserId: vendorUserId,
+          userId: vendorUserId,
+          groomerID: vendorUserId,
           draftData: {
-            companyName: formData.businessName,
-            phoneNo: formData.businessPhone,
-            email: formData.businessEmail,
-            userName: formData.userName,
-            role: formData.role || "Owner",
-            companyAddress: formData.companyAddress
-          },
-          draft_data: {
             companyName: formData.businessName,
             phoneNo: formData.businessPhone,
             email: formData.businessEmail,
@@ -788,82 +1116,19 @@ const ClaimBusiness = ({ forcedView = null }) => {
       return;
     }
 
-    // Otherwise, POST progress step details and show the instructions popup modal!
     try {
-      const API_URL = window.location.hostname !== "support.zaanvar.com"
-        ? "https://dev.zaanvar.com/api/"
-        : "https://prod.zaanvar.com/api/";
-
-      // 1. Post VERIFICATION_METHOD
-      await axios.post(`${API_URL}scraped-branches/claim/progress`, {
-        currentStep: "VERIFICATION_METHOD",
-        current_step: "VERIFICATION_METHOD",
-        ticket_id: ticketId,
-        scraped_branch_id: activeScrapedBranchId,
-        vendor_user_id: vendorUserId,
-        draftData: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress
-        },
-        draft_data: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress
-        }
-      });
-
-      // 2. Post VERIFICATION_OPTIONS
-      await axios.post(`${API_URL}scraped-branches/claim/progress`, {
-        currentStep: "VERIFICATION_OPTIONS",
-        current_step: "VERIFICATION_OPTIONS",
-        ticket_id: ticketId,
-        scraped_branch_id: activeScrapedBranchId,
-        vendor_user_id: vendorUserId,
-        verificationOption: "VIDEO",
-        draftData: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress,
-          verificationOption: "VIDEO"
-        },
-        draft_data: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress,
-          verificationOption: "VIDEO"
-        }
-      });
-
-      // 3. Post VERIFICATION_INSTRUCTIONS
-      await axios.post(`${API_URL}scraped-branches/claim/progress`, {
+      await axios.post(endpoint, {
         currentStep: "VERIFICATION_INSTRUCTIONS",
         current_step: "VERIFICATION_INSTRUCTIONS",
-        ticket_id: ticketId,
+        ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
+        ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
         scraped_branch_id: activeScrapedBranchId,
         vendor_user_id: vendorUserId,
+        vendorUserId: vendorUserId,
+        userId: vendorUserId,
+        groomerID: vendorUserId,
+        verificationOption: "VIDEO",
         draftData: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress,
-          verificationOption: "VIDEO"
-        },
-        draft_data: {
           companyName: formData.businessName,
           phoneNo: formData.businessPhone,
           email: formData.businessEmail,
@@ -874,10 +1139,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }
       });
     } catch (err) {
-      console.error("Failed to post verification method/options progress:", err);
+      console.error("Failed to post verification progress:", err);
     }
 
-    // Toggle Instruction Modal popup!
     setIsModalOpen(true);
   };
 
@@ -907,17 +1171,26 @@ const ClaimBusiness = ({ forcedView = null }) => {
         ? "https://dev.zaanvar.com/api/"
         : "https://prod.zaanvar.com/api/";
 
-      const vendorUserId = userInfo?.userId || userInfo?.id || 12;
-
+      const vendorUserId = userInfo?.userId || userInfo?.id || 233;
       const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
       const activeScrapedBranchId = selectedBranch?.id || (savedBranchId ? parseInt(savedBranchId) : 45);
+      const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
+      const isRegistration = typeof window !== "undefined" && localStorage.getItem("zaanvar_flow_type") === "REGISTER";
+
+      const endpoint = isRegistration
+        ? `${API_URL}vendor/onboarding-ticket/progress`
+        : `${API_URL}scraped-branches/claim/progress`;
 
       const payload = {
         currentStep: "BUSINESS_VERIFICATION_OTP",
         current_step: "BUSINESS_VERIFICATION_OTP",
-        ticket_id: ticketId,
+        ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
+        ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
         scraped_branch_id: activeScrapedBranchId,
         vendor_user_id: vendorUserId,
+        vendorUserId: vendorUserId,
+        userId: vendorUserId,
+        groomerID: vendorUserId,
         companyName: formData.businessName,
         phoneNo: formData.businessPhone,
         email: formData.businessEmail,
@@ -931,24 +1204,29 @@ const ClaimBusiness = ({ forcedView = null }) => {
           userName: formData.userName,
           role: formData.role || "Owner",
           companyAddress: formData.companyAddress
-        },
-        draft_data: {
-          companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
-          email: formData.businessEmail,
-          userName: formData.userName,
-          role: formData.role || "Owner",
-          companyAddress: formData.companyAddress
         }
       };
 
-      const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, payload);
+      const res = await axios.post(endpoint, payload);
       if (res?.data?.status === "success" && res?.data?.data) {
         const ticket = res.data.data.ticket || res.data.data;
         setTicketId(ticket.ticket_id || ticket.id || null);
-        const claimBranchId = ticket.branchId || ticket.branch_id || res.data.data.branchId || res.data.data.branch_id;
+        const draft = ticket.draftData || ticket.draft_data || {};
+        const createdBranchId = Array.isArray(draft.createdBranchIds) ? draft.createdBranchIds[0] : null;
+        const claimBranchId =
+          draft.branchId ||
+          draft.branch_id ||
+          createdBranchId ||
+          ticket.branchId ||
+          ticket.branch_id ||
+          res.data.data.branchId ||
+          res.data.data.branch_id;
+
         if (claimBranchId) {
           setBackendBranchId(claimBranchId);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("zaanvar_claim_backend_branch_id", String(claimBranchId));
+          }
         }
       }
     } catch (err) {
@@ -1014,37 +1292,46 @@ const ClaimBusiness = ({ forcedView = null }) => {
         ? "https://dev.zaanvar.com/api/"
         : "https://prod.zaanvar.com/api/";
 
-      const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
-      const branchIdNum = selectedBranch?.id || (savedBranchId ? parseInt(savedBranchId) : 25);
+      const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+      const targetId = backendBranchId
+        ? parseInt(backendBranchId, 10)
+        : (savedBackendBranchId
+          ? parseInt(savedBackendBranchId, 10)
+          : null);
 
-      const isSecondClaim = headerBranches.length > 0;
-      
-      let res;
-      if (isSecondClaim) {
-        const payload = {
-          scrapedBranchId: branchIdNum,
-          otp: otpString,
-          email: formData.businessEmail || scrapedBranchEmail || selectedBranch?.branchEmail || selectedBranch?.email || ""
-        };
-        res = await axios.post(`${API_URL}scraped-branches/claim/verify`, payload);
-      } else {
-        const payload = {
-          type: "branch",
-          id: backendBranchId ? parseInt(backendBranchId) : branchIdNum,
-          channel: "",
-          otp: otpString
-        };
-        res = await axios.post(`${API_URL}verification/verify-single-otp`, payload);
+      if (!targetId) {
+        toast.error("Branch ID not found in claim progress response.");
+        return;
       }
-      
+
+      const payload = {
+        type: "branch",
+        id: targetId,
+        otp: otpString
+      };
+
+      const res = await axios.post(`${API_URL}verification/verify-single-otp`, payload);
+
       if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
+        toast.success("OTP verified successfully!");
         setIsVerified(true);
+        setView("home");
+        router.replace("/home");
       }
     } catch (err) {
       console.error("Failed to verify OTP code:", err);
       const errMsg = err?.response?.data?.message || err?.message || "Failed to verify OTP.";
       toast.error(errMsg);
     }
+  };
+
+  const handleImageError = (index) => (e) => {
+    const fallbacks = [
+      "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=600&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=600&auto=format&fit=crop"
+    ];
+    e.target.src = fallbacks[index] || fallbacks[0];
   };
 
   const fetchBranchDetailsAndReviews = async (forcedBranchId = null) => {
@@ -1056,12 +1343,12 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
       const webApi = new WebApimanager(jwtToken);
       const res = await webApi.get(`companies/vendor/details?branchId=${bId}`);
-      
+
       const data = res?.data || res;
       console.log("companies/vendor/details response data:", data);
 
       const details = data?.branch || data?.company || data?.data || data || {};
-      
+
       setFormData((prev) => ({
         ...prev,
         businessName: details.companyName || details.branchName || details.name || prev.businessName,
@@ -1084,7 +1371,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
       const rawImages = details.images || details.branchImages || data.images || data.data?.images || [];
       const imagesArr = Array.isArray(rawImages) ? rawImages.filter(Boolean) : [];
-      
+
       const finalImages = [
         imagesArr[0] || details.shopFrontPhoto || details.shop_front_photo || defaultPlaceholders[0],
         imagesArr[1] || details.selfiePhoto || details.selfie_photo || defaultPlaceholders[1],
@@ -1203,7 +1490,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   const handleInstallAppClick = () => {
     const isMac = /Mac|Macintosh|MacIntel|MacPPC|Mac68K/.test(navigator.userAgent || navigator.platform || "");
-    const url = isMac 
+    const url = isMac
       ? "https://apps.apple.com/in/app/zaanvar-business/id6754638999"
       : "https://play.google.com/store/apps/details?id=com.zaanvar.vender";
     window.open(url, "_blank");
@@ -1274,8 +1561,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   </div>
                 </div>
                 <div className={styles.homeHeaderActions}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={styles.actionBtn}
                     onClick={() => toast.success("Ask for Reviews request sent!")}
                   >
@@ -1284,8 +1571,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     </svg>
                     Ask for Reviews
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={styles.actionBtn}
                     onClick={() => toast.info("Opening Timings Editor...")}
                   >
@@ -1297,8 +1584,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     </svg>
                     Edit Timings
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={styles.actionBtn}
                     style={{
                       background: '#10b981',
@@ -1335,28 +1622,29 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   <div style={{ display: 'flex', gap: '12px', width: '100%', position: 'relative' }}>
                     {/* Left main image (large) */}
                     <div style={{ position: 'relative', flex: '1.2', height: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}>
-                      <img 
-                        src={branchImagesList[0] || shopFrontPhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929626969-d10fb7ad-1623-4651-b8fb-30bcf3eebb614425956424229639542.jpg"} 
-                        alt="Branch Photo 1" 
+                      <img
+                        src={branchImagesList[0] || shopFrontPhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929626969-d10fb7ad-1623-4651-b8fb-30bcf3eebb614425956424229639542.jpg"}
+                        alt="Branch Photo 1"
+                        onError={handleImageError(0)}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                      
+
                       {/* Floating Add Photos Button on bottom-left */}
-                      <button 
-                        type="button" 
-                        style={{ 
-                          position: 'absolute', 
-                          bottom: '12px', 
-                          left: '12px', 
-                          background: 'rgba(0, 0, 0, 0.65)', 
-                          border: 'none', 
-                          color: '#ffffff', 
-                          padding: '8px 16px', 
-                          borderRadius: '20px', 
-                          fontSize: '11px', 
-                          fontWeight: '600', 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                      <button
+                        type="button"
+                        style={{
+                          position: 'absolute',
+                          bottom: '12px',
+                          left: '12px',
+                          background: 'rgba(0, 0, 0, 0.65)',
+                          border: 'none',
+                          color: '#ffffff',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
                           gap: '6px',
                           cursor: 'pointer',
                           fontFamily: 'Inter, sans-serif'
@@ -1374,16 +1662,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     {/* Right column (two stacked smaller images) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: '1', height: '220px' }}>
                       <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden' }}>
-                        <img 
-                          src={branchImagesList[1] || selfiePhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg"} 
-                          alt="Branch Photo 2" 
+                        <img
+                          src={branchImagesList[1] || selfiePhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg"}
+                          alt="Branch Photo 2"
+                          onError={handleImageError(1)}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </div>
                       <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden' }}>
-                        <img 
-                          src={branchImagesList[2] || selfiePhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg"} 
-                          alt="Branch Photo 3" 
+                        <img
+                          src={branchImagesList[2] || selfiePhoto || "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg"}
+                          alt="Branch Photo 3"
+                          onError={handleImageError(2)}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </div>
@@ -1408,9 +1698,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       </div>
                     </span>
                   </div>
-                  
-                  <a 
-                    href="#" 
+
+                  <a
+                    href="#"
                     onClick={(e) => { e.preventDefault(); toast.info("Opening Edit Business Information popup..."); }}
                     className={styles.editInfoLink}
                   >
@@ -1439,36 +1729,36 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   )}
 
                   {reviewsList.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((rev, i) => {
-                    const name = rev.vendorCustomerName || 
-                                 (rev.vendorCustomer ? `${rev.vendorCustomer.firstName || ""} ${rev.vendorCustomer.lastName || ""}`.trim() : null) ||
-                                 (rev.user ? (rev.user.name || `${rev.user.firstName || ""} ${rev.user.lastName || ""}`.trim()) : null) ||
-                                 rev.userName || 
-                                 rev.reviewerName || 
-                                 "Customer";
+                    const name = rev.vendorCustomerName ||
+                      (rev.vendorCustomer ? `${rev.vendorCustomer.firstName || ""} ${rev.vendorCustomer.lastName || ""}`.trim() : null) ||
+                      (rev.user ? (rev.user.name || `${rev.user.firstName || ""} ${rev.user.lastName || ""}`.trim()) : null) ||
+                      rev.userName ||
+                      rev.reviewerName ||
+                      "Customer";
                     const rating = parseFloat(rev.rating || 0);
                     const comment = rev.reviewComment || "";
                     const dateStr = rev.created_at ? getRelativeTime(rev.created_at) : "";
-                    
+
                     const repliesList = (rev.replies && rev.replies.length > 0)
                       ? rev.replies
                       : (rev.replyComment ? [{
-                          replyId: rev.replyId,
-                          replyComment: rev.replyComment,
-                          replyDate: rev.replyDate,
-                          replyDateTimeZone: rev.replyDateTimeZone,
-                          repliedBy: rev.repliedBy || "Owner"
-                        }] : []);
+                        replyId: rev.replyId,
+                        replyComment: rev.replyComment,
+                        replyDate: rev.replyDate,
+                        replyDateTimeZone: rev.replyDateTimeZone,
+                        repliedBy: rev.repliedBy || "Owner"
+                      }] : []);
 
                     const hasReply = repliesList.length > 0;
                     const isReplyingThis = replyingReviewId === rev.reviewId;
                     const hasReplyOrEditor = hasReply || isReplyingThis;
-                    
+
                     const isExpanded = !!expandedReviews[rev.reviewId];
                     const repliesToShow = isExpanded ? repliesList : repliesList.slice(0, 1);
 
                     return (
                       <div key={rev.reviewId || i} className={reviewsStyles.reviewCard} style={{ margin: '16px 0', padding: '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        
+
                         {/* Branch Title & Address Header above individual reviews */}
                         <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', fontFamily: 'Inter, sans-serif' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1492,10 +1782,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           {/* Customer Image Avatar */}
                           <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                             {rev.reviewerPhotoUrl || rev.vendorCustomer?.profilePic ? (
-                              <img 
-                                src={rev.reviewerPhotoUrl || rev.vendorCustomer?.profilePic} 
-                                alt="" 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              <img
+                                src={rev.reviewerPhotoUrl || rev.vendorCustomer?.profilePic}
+                                alt=""
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             ) : (
                               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#3b82f6', color: '#ffffff', fontWeight: '600', fontSize: '15px' }}>
@@ -1706,9 +1996,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 {reviewsList.length > rowsPerPage && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Rows per Page: 
-                      <select 
-                        value={rowsPerPage} 
+                      Rows per Page:
+                      <select
+                        value={rowsPerPage}
                         onChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setCurrentPage(1); }}
                         style={{ marginLeft: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '2px 4px', fontSize: '12px' }}
                       >
@@ -1721,16 +2011,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       {(currentPage - 1) * rowsPerPage + 1}-{Math.min(currentPage * rowsPerPage, reviewsList.length)} of {reviewsList.length}
                     </span>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(c => c - 1)}
                         style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '4px', padding: '4px 8px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? '#cbd5e1' : '#1f2937' }}
                       >
                         ◀
                       </button>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(c => c + 1)}
                         style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '4px', padding: '4px 8px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? '#cbd5e1' : '#1f2937' }}
@@ -1751,10 +2041,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     {view === "search"
                       ? searchQuery.trim() ? "Search Result" : "Claim Your Business"
                       : view === "details"
-                      ? "Company Details"
-                      : view === "submitted"
-                      ? "Uploaded Previews"
-                      : "Verify"}
+                        ? "Company Details"
+                        : view === "submitted"
+                          ? "Uploaded Previews"
+                          : "Verify"}
                   </h1>
                   {view !== "submitted" && (
                     <p className={styles.subtitle} style={{ margin: 0 }}>
@@ -1767,740 +2057,902 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   )}
                 </div>
 
-                {/* Vertical Three-dot Menu Option Button inside Verify Later or Submitted Screen */}
-                {(view === "verify_later" || view === "submitted") && (
+                {/* Vertical Three-dot Menu Option Button inside Verify Later, Submitted Screen, or Verify Method Screen (for second claim) */}
+                {(view === "verify_later" || view === "submitted" || (view === "verify_method" && headerBranches.length > 0)) && (
                   <div className={styles.threeDotContainer} ref={dropdownRef}>
                     <button
                       type="button"
-                  className={styles.threeDotBtn}
-                  onClick={() => setIsDropdownOpen((v) => !v)}
-                  aria-label="Options"
-                >
-                  ⋮
-                </button>
-                {isDropdownOpen && (
-                  <div className={styles.threeDotDropdown}>
-                    <button
-                      type="button"
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        toast.info("Help center instructions loaded.");
-                      }}
+                      className={styles.threeDotBtn}
+                      onClick={() => setIsDropdownOpen((v) => !v)}
+                      aria-label="Options"
                     >
-                      • Help
+                      ⋮
                     </button>
-                    <button
-                      type="button"
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        toast.info("Connecting to live support chat...");
-                      }}
-                    >
-                      • Support
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        toast.success("Verify with code initiated. Verification code sent.");
-                      }}
-                    >
-                      • Verify your business with code
-                    </button>
+                    {isDropdownOpen && (
+                      <div className={styles.threeDotDropdown}>
+                        <button
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            toast.info("Help center instructions loaded.");
+                          }}
+                        >
+                          • Help
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            toast.info("Connecting to live support chat...");
+                          }}
+                        >
+                          • Support
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            setView("verify_otp");
+                          }}
+                        >
+                          • Verify your business with code
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          <div style={{ marginTop: "24px" }} />
+              <div style={{ marginTop: "24px" }} />
 
-          {/* STEP 1: SEARCH VIEW */}
-          {view === "search" && (
-            <div className={styles.splitLayout}>
-              {/* Left Column */}
-              <div className={styles.leftCol}>
-                {!searchQuery.trim() ? (
-                  <div className={styles.emptyCard}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://zaanvarprods3.b-cdn.net/media/1786016316488-illustration-set-pet-shop.png"
-                      alt="Search illustration"
-                      className={styles.emptyIllustration}
-                    />
-                    <h2 className={styles.emptyTitle}>Search for your business name</h2>
-                    <p className={styles.emptyDesc}>
-                      Enter your business name to find it on Zaanvar
-                    </p>
+              {/* STEP 1: SEARCH VIEW */}
+              {view === "search" && (
+                <div className={styles.splitLayout}>
+                  {/* Left Column */}
+                  <div className={styles.leftCol}>
+                    {!searchQuery.trim() ? (
+                      <div className={styles.emptyCard}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="https://zaanvarprods3.b-cdn.net/media/1786016316488-illustration-set-pet-shop.png"
+                          alt="Search illustration"
+                          className={styles.emptyIllustration}
+                        />
+                        <h2 className={styles.emptyTitle}>Search for your business name</h2>
+                        <p className={styles.emptyDesc}>
+                          Enter your business name to find it on Zaanvar
+                        </p>
+                      </div>
+                    ) : loading ? (
+                      <div className={styles.resultsList}>
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className={`${styles.resultCard} ${styles.shimmer}`} />
+                        ))}
+                      </div>
+                    ) : results.length === 0 ? (
+                      <div className={styles.emptyCard} style={{ minHeight: "360px" }}>
+                        <h2 className={styles.emptyTitle}>No businesses found</h2>
+                        <p className={styles.emptyDesc}>
+                          We couldn&apos;t find any listed business matching &quot;{searchQuery}&quot;.
+                        </p>
+                        <div className={styles.addNewRow} style={{ marginTop: "24px" }}>
+                          <span className={styles.addNewText}>STILL CAN&apos;T FIND YOUR BUSINESS ?</span>
+                          <button
+                            type="button"
+                            className={styles.addNewBtn}
+                            onClick={() => setIsRegisterModalOpen(true)}
+                          >
+                            ADD NEW BUSINESS
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={styles.resultsList}>
+                          {results.map((item) => {
+                            const name = item.fullName || item.branchName || "Unnamed Business";
+                            const isSelected = selectedBranch?.id === item.id;
+                            const features = item.featureType || [];
+                            const presentType = item.presentDataStoreType || "Independent";
+
+                            return (
+                              <div
+                                key={item.id}
+                                className={`${styles.resultCard} ${isSelected ? styles.resultCardSelected : ""}`}
+                                onClick={() => setSelectedBranch(item)}
+                              >
+                                <div className={styles.storeAvatar}>
+                                  {name.charAt(0).toUpperCase()}
+                                </div>
+
+                                <div className={styles.cardInfo}>
+                                  <div className={styles.cardHeaderRow}>
+                                    <h3 className={styles.storeName}>{name}</h3>
+                                    <span
+                                      className={`${styles.storeBadge} ${presentType.toLowerCase().includes("enterprise") || item.status === "claim_pending"
+                                        ? styles.badgeEnterprise
+                                        : styles.badgeIndependent
+                                        }`}
+                                    >
+                                      {presentType.toLowerCase().includes("manual") ? "Independent" : presentType}
+                                    </span>
+                                  </div>
+
+                                  <div className={styles.ratingRow}>
+                                    <StarIcon />
+                                    <span>4.8 (251) •</span>
+                                    <span className={styles.cardDetails}>
+                                      {features.slice(0, 2).join(", ") || "Pet Business"}
+                                    </span>
+                                  </div>
+
+                                  <div className={styles.cardLocation}>
+                                    {item.branchLocation || "Location not provided"}
+                                  </div>
+                                </div>
+
+                                <div className={`${styles.radioBtn} ${isSelected ? styles.radioBtnChecked : ""}`}>
+                                  {isSelected && <div className={styles.radioInner} />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className={styles.addNewRow}>
+                          <span className={styles.addNewText}>STILL CAN&apos;T FIND YOUR BUSINESS ?</span>
+                          <button
+                            type="button"
+                            className={styles.addNewBtn}
+                            onClick={() => setIsRegisterModalOpen(true)}
+                          >
+                            ADD NEW BUSINESS
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : loading ? (
-                  <div className={styles.resultsList}>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className={`${styles.resultCard} ${styles.shimmer}`} />
-                    ))}
+
+                  {/* Right Column */}
+                  <div className={styles.rightCol} style={{ width: "480px" }}>
+                    {selectedBranch ? (
+                      <div className={styles.previewPanel} style={{ width: "480px" }}>
+                        <h3 className={styles.previewTitle}>Business Preview</h3>
+
+                        <div className={styles.previewImgBox}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              selectedBranch.photos?.[0]?.startsWith("See website:")
+                                ? "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
+                                : selectedBranch.photos?.[0] || "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
+                            }
+                            alt="Business Preview"
+                          />
+                        </div>
+
+                        <div className={styles.previewInfo}>
+                          <h2 className={styles.previewName}>
+                            {selectedBranch.fullName || selectedBranch.branchName || "Unnamed Business"}
+                          </h2>
+                          <span className={styles.previewSub}>
+                            {selectedBranch.featureType?.[0] || selectedBranch.presentDataStoreType || "Pet Store"}
+                          </span>
+                        </div>
+
+                        <div className={styles.divider} />
+
+                        <div className={styles.previewMetaRow}>
+                          <span className={styles.previewMetaIcon}><LocationIcon /></span>
+                          <span>{selectedBranch.branchLocation || "Address not provided"}</span>
+                        </div>
+
+                        <div className={styles.previewMetaRow}>
+                          <span className={styles.previewMetaIcon}><PhoneIcon /></span>
+                          <span>{selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "Phone not provided"}</span>
+                        </div>
+
+                        <div className={styles.divider} />
+
+                        <div>
+                          <h4 className={styles.previewCategoryHeader}>Business Category</h4>
+                          <div className={styles.previewCategoryTag}>
+                            <CategoryIcon />
+                            <span>{selectedBranch.featureType?.join(", ") || "Pet Store"}</span>
+                          </div>
+                        </div>
+
+                        <div className={styles.previewActions}>
+                          <button
+                            type="button"
+                            className={styles.btnSecondary}
+                            onClick={() => setSelectedBranch(null)}
+                          >
+                            This is not my business
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.btnPrimary}
+                            onClick={handleClaimInitiate}
+                          >
+                            Claim This Business
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={styles.sidebarCard}>
+                          <h3 className={styles.sidebarTitle}>Why claim your business ?</h3>
+                          <ul className={styles.whyList}>
+                            {[
+                              "Mange your business information",
+                              "update photos, hours, and more",
+                              "Respond to reviews",
+                              "Get insights about your customers",
+                              "Build trust and grow your business"
+                            ].map((item, idx) => (
+                              <li key={idx} className={styles.whyItem}>
+                                <span className={styles.whyBullet}>🐾</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className={styles.sidebarCard}>
+                          <h3 className={styles.sidebarTitle}>Need Help ?</h3>
+                          <p className={styles.helpText}>
+                            Contact our support team we&apos;re here to help you.
+                          </p>
+                          <button
+                            type="button"
+                            className={styles.supportBtn}
+                            onClick={() => router.push("/contact-us")}
+                          >
+                            Contact Support
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : results.length === 0 ? (
-                  <div className={styles.emptyCard} style={{ minHeight: "360px" }}>
-                    <h2 className={styles.emptyTitle}>No businesses found</h2>
-                    <p className={styles.emptyDesc}>
-                      We couldn&apos;t find any listed business matching &quot;{searchQuery}&quot;.
-                    </p>
-                    <div className={styles.addNewRow} style={{ marginTop: "24px" }}>
-                      <span className={styles.addNewText}>STILL CAN&apos;T FIND YOUR BUSINESS ?</span>
-                      <button
-                        type="button"
-                        className={styles.addNewBtn}
-                        onClick={() => router.push("/register")}
-                      >
-                        ADD NEW BUSINESS
-                      </button>
+                </div>
+              )}
+
+              {/* STEP 2: COMPANY DETAILS FORM VIEW */}
+              {view === "details" && (
+                <div className={styles.splitLayout}>
+                  {/* Form card left */}
+                  <div className={styles.leftCol}>
+                    <div className={styles.formCard}>
+                      <div className={styles.formGrid}>
+                        <div className={styles.formField}>
+                          <label>Company Name</label>
+                          <input
+                            type="text"
+                            placeholder="Company Name"
+                            value={formData.businessName}
+                            onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <label>Company Phone Number</label>
+                          <input
+                            type="text"
+                            placeholder="Company Phone Number"
+                            value={formData.businessPhone}
+                            onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <label>Company Email</label>
+                          <input
+                            type="email"
+                            placeholder="Company Email"
+                            value={formData.businessEmail}
+                            onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <label>User Name</label>
+                          <input
+                            type="text"
+                            placeholder="Enter Here"
+                            value={formData.userName}
+                            onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <label>Role</label>
+                          <input
+                            type="text"
+                            placeholder="Enter here"
+                            value={formData.role}
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          />
+                        </div>
+                        <div className={styles.formField}>
+                          <label>Company Address</label>
+                          <input
+                            type="text"
+                            placeholder="Enter here..."
+                            value={formData.companyAddress}
+                            onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
+                        <button
+                          type="button"
+                          className={styles.btnSecondary}
+                          onClick={handleDetailsBack}
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.btnPrimary}
+                          onClick={handleDetailsNext}
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className={styles.resultsList}>
-                      {results.map((item) => {
-                        const name = item.fullName || item.branchName || "Unnamed Business";
-                        const isSelected = selectedBranch?.id === item.id;
-                        const features = item.featureType || [];
-                        const presentType = item.presentDataStoreType || "Independent";
 
+                  {/* Tips panel right */}
+                  <div className={styles.rightCol} style={{ width: "480px" }}>
+                    <div className={styles.tipsCard}>
+                      <h3 className={styles.sidebarTitle}>Tips</h3>
+                      <ul className={styles.tipsList}>
+                        {[
+                          "Use your real business name",
+                          "Choose the most relevant category",
+                          "Add as much detail as possible",
+                          "You can edit details later"
+                        ].map((item, idx) => (
+                          <li key={idx} className={styles.tipsItem}>
+                            <span className={styles.tipsBullet}>🐾</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
+                        alt="Tips illustration"
+                        className={styles.tipsIllustration}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: BRANCH SELECTION VIEW */}
+              {view === "branches" && (
+                <div>
+                  {/* Progress bar */}
+                  <div className={styles.progressWrapper}>
+                    <div className={styles.progressBar} style={{ width: "40%" }} />
+                  </div>
+
+                  {/* Main Card */}
+                  <div className={styles.verifyCard}>
+                    <h2 className={styles.verifyTitle}>Is this your business ?</h2>
+                    <p className={styles.verifySub}>
+                      It looks like your business might already have a business profile on zaanvar business platform. If you see your business below, select it, and we&apos;ll help improve your business profile.
+                    </p>
+
+                    {/* Branches List */}
+                    <div className={styles.branchList}>
+                      {branchesList.map((branch, idx) => {
+                        const isSelected = selectedBranchIndices.includes(idx);
+                        const toggleSelection = () => {
+                          setSelectedBranchIndices(prev =>
+                            prev.includes(idx)
+                              ? prev.filter(i => i !== idx)
+                              : [...prev, idx]
+                          );
+                        };
                         return (
                           <div
-                            key={item.id}
-                            className={`${styles.resultCard} ${isSelected ? styles.resultCardSelected : ""}`}
-                            onClick={() => setSelectedBranch(item)}
+                            key={idx}
+                            className={`${styles.branchRow} ${isSelected ? styles.branchRowSelected : ""}`}
+                            onClick={toggleSelection}
                           >
-                            <div className={styles.storeAvatar}>
-                              {name.charAt(0).toUpperCase()}
+                            <div className={`${styles.checkboxBtn} ${isSelected ? styles.checkboxBtnChecked : ""}`}>
+                              {isSelected && (
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <polyline points="2,6 5,9 10,3" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
                             </div>
-
-                            <div className={styles.cardInfo}>
-                              <div className={styles.cardHeaderRow}>
-                                <h3 className={styles.storeName}>{name}</h3>
-                                <span
-                                  className={`${styles.storeBadge} ${
-                                    presentType.toLowerCase().includes("enterprise") || item.status === "claim_pending"
-                                      ? styles.badgeEnterprise
-                                      : styles.badgeIndependent
-                                  }`}
-                                >
-                                  {presentType.toLowerCase().includes("manual") ? "Independent" : presentType}
-                                </span>
-                              </div>
-
-                              <div className={styles.ratingRow}>
-                                <StarIcon />
-                                <span>4.8 (251) •</span>
-                                <span className={styles.cardDetails}>
-                                  {features.slice(0, 2).join(", ") || "Pet Business"}
-                                </span>
-                              </div>
-
-                              <div className={styles.cardLocation}>
-                                {item.branchLocation || "Location not provided"}
-                              </div>
-                            </div>
-
-                            <div className={`${styles.radioBtn} ${isSelected ? styles.radioBtnChecked : ""}`}>
-                              {isSelected && <div className={styles.radioInner} />}
+                            <div className={styles.branchRowContent}>
+                              <h4 className={styles.branchRowTitle}>{branch.title}</h4>
+                              <p className={styles.branchRowDesc}>{branch.address}</p>
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className={styles.addNewRow}>
-                      <span className={styles.addNewText}>STILL CAN&apos;T FIND YOUR BUSINESS ?</span>
-                      <button
-                        type="button"
-                        className={styles.addNewBtn}
-                        onClick={() => router.push("/register")}
-                      >
-                        ADD NEW BUSINESS
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Right Column */}
-              <div className={styles.rightCol} style={{ width: "480px" }}>
-                {selectedBranch ? (
-                  <div className={styles.previewPanel} style={{ width: "480px" }}>
-                    <h3 className={styles.previewTitle}>Business Preview</h3>
-
-                    <div className={styles.previewImgBox}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={
-                          selectedBranch.photos?.[0]?.startsWith("See website:")
-                            ? "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
-                            : selectedBranch.photos?.[0] || "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
-                        }
-                        alt="Business Preview"
-                      />
-                    </div>
-
-                    <div className={styles.previewInfo}>
-                      <h2 className={styles.previewName}>
-                        {selectedBranch.fullName || selectedBranch.branchName || "Unnamed Business"}
-                      </h2>
-                      <span className={styles.previewSub}>
-                        {selectedBranch.featureType?.[0] || selectedBranch.presentDataStoreType || "Pet Store"}
-                      </span>
-                    </div>
-
-                    <div className={styles.divider} />
-
-                    <div className={styles.previewMetaRow}>
-                      <span className={styles.previewMetaIcon}><LocationIcon /></span>
-                      <span>{selectedBranch.branchLocation || "Address not provided"}</span>
-                    </div>
-
-                    <div className={styles.previewMetaRow}>
-                      <span className={styles.previewMetaIcon}><PhoneIcon /></span>
-                      <span>{selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "Phone not provided"}</span>
-                    </div>
-
-                    <div className={styles.divider} />
-
-                    <div>
-                      <h4 className={styles.previewCategoryHeader}>Business Category</h4>
-                      <div className={styles.previewCategoryTag}>
-                        <CategoryIcon />
-                        <span>{selectedBranch.featureType?.join(", ") || "Pet Store"}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.previewActions}>
+                    <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
                       <button
                         type="button"
                         className={styles.btnSecondary}
-                        onClick={() => setSelectedBranch(null)}
+                        onClick={handleBranchesBack}
                       >
-                        This is not my business
+                        Back
                       </button>
                       <button
                         type="button"
                         className={styles.btnPrimary}
-                        onClick={handleClaimInitiate}
+                        onClick={handleBranchesNext}
                       >
-                        Claim This Business
+                        Next
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <div className={styles.sidebarCard}>
-                      <h3 className={styles.sidebarTitle}>Why claim your business ?</h3>
-                      <ul className={styles.whyList}>
-                        {[
-                          "Mange your business information",
-                          "update photos, hours, and more",
-                          "Respond to reviews",
-                          "Get insights about your customers",
-                          "Build trust and grow your business"
-                        ].map((item, idx) => (
-                          <li key={idx} className={styles.whyItem}>
-                            <span className={styles.whyBullet}>🐾</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                </div>
+              )}
 
-                    <div className={styles.sidebarCard}>
-                      <h3 className={styles.sidebarTitle}>Need Help ?</h3>
-                      <p className={styles.helpText}>
-                        Contact our support team we&apos;re here to help you.
-                      </p>
-                      <button
-                        type="button"
-                        className={styles.supportBtn}
-                        onClick={() => router.push("/contact-us")}
-                      >
-                        Contact Support
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: COMPANY DETAILS FORM VIEW */}
-          {view === "details" && (
-            <div className={styles.splitLayout}>
-              {/* Form card left */}
-              <div className={styles.leftCol}>
-                <div className={styles.formCard}>
-                  <div className={styles.formGrid}>
-                    <div className={styles.formField}>
-                      <label>Company Name</label>
-                      <input
-                        type="text"
-                        placeholder="Company Name"
-                        value={formData.businessName}
-                        onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.formField}>
-                      <label>Company Phone Number</label>
-                      <input
-                        type="text"
-                        placeholder="Company Phone Number"
-                        value={formData.businessPhone}
-                        onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.formField}>
-                      <label>Company Email</label>
-                      <input
-                        type="email"
-                        placeholder="Company Email"
-                        value={formData.businessEmail}
-                        onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.formField}>
-                      <label>User Name</label>
-                      <input
-                        type="text"
-                        placeholder="Enter Here"
-                        value={formData.userName}
-                        onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.formField}>
-                      <label>Role</label>
-                      <input
-                        type="text"
-                        placeholder="Enter here"
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.formField}>
-                      <label>Company Address</label>
-                      <input
-                        type="text"
-                        placeholder="Enter here..."
-                        value={formData.companyAddress}
-                        onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
-                      />
-                    </div>
+              {/* STEP 4: SELECT VERIFICATION METHOD VIEW */}
+              {view === "verify_method" && (
+                <div>
+                  {/* Progress bar */}
+                  <div className={styles.progressWrapper}>
+                    <div className={styles.progressBar} style={{ width: "65%" }} />
                   </div>
 
-                  <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
-                    <button
-                      type="button"
-                      className={styles.btnSecondary}
-                      onClick={handleDetailsBack}
+                  {/* Main Verification Card */}
+                  <div className={styles.verifyMethodCard}>
+                    <h2 className={styles.verifyMethodTitle}>Select a way to get verified</h2>
+                    <p className={styles.verifyMethodSub}>
+                      Zaanvar needs to verify that you manage this business.
+                    </p>
+                    <a
+                      href="#"
+                      className={styles.learnMoreLink}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toast.info("Opening verification guide...");
+                      }}
                     >
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.btnPrimary}
-                      onClick={handleDetailsNext}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
+                      Learn more about verification.
+                    </a>
 
-              {/* Tips panel right */}
-              <div className={styles.rightCol} style={{ width: "480px" }}>
-                <div className={styles.tipsCard}>
-                  <h3 className={styles.sidebarTitle}>Tips</h3>
-                  <ul className={styles.tipsList}>
-                    {[
-                      "Use your real business name",
-                      "Choose the most relevant category",
-                      "Add as much detail as possible",
-                      "You can edit details later"
-                    ].map((item, idx) => (
-                      <li key={idx} className={styles.tipsItem}>
-                        <span className={styles.tipsBullet}>🐾</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
-                    alt="Tips illustration"
-                    className={styles.tipsIllustration}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: BRANCH SELECTION VIEW */}
-          {view === "branches" && (
-            <div>
-              {/* Progress bar */}
-              <div className={styles.progressWrapper}>
-                <div className={styles.progressBar} style={{ width: "40%" }} />
-              </div>
-
-              {/* Main Card */}
-              <div className={styles.verifyCard}>
-                <h2 className={styles.verifyTitle}>Is this your business ?</h2>
-                <p className={styles.verifySub}>
-                  It looks like your business might already have a business profile on zaanvar business platform. If you see your business below, select it, and we&apos;ll help improve your business profile.
-                </p>
-
-                {/* Branches List */}
-                <div className={styles.branchList}>
-                  {branchesList.map((branch, idx) => {
-                    const isSelected = selectedBranchIndex === idx;
-                    return (
+                    {/* Options Box */}
+                    <div className={styles.optionsBox}>
+                      {/* Option 1: Submit Video */}
                       <div
-                        key={idx}
-                        className={`${styles.branchRow} ${isSelected ? styles.branchRowSelected : ""}`}
-                        onClick={() => setSelectedBranchIndex(idx)}
+                        className={`${styles.optionRow} ${methodOption === "video" ? styles.optionRowSelected : ""}`}
+                        onClick={() => setMethodOption("video")}
                       >
-                        <div className={`${styles.radioBtn} ${isSelected ? styles.radioBtnChecked : ""}`}>
-                          {isSelected && <div className={styles.radioInner} />}
-                        </div>
-                        <div className={styles.branchRowContent}>
-                          <h4 className={styles.branchRowTitle}>{branch.title}</h4>
-                          <p className={styles.branchRowDesc}>{branch.address}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={handleBranchesBack}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={handleBranchesNext}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: SELECT VERIFICATION METHOD VIEW */}
-          {view === "verify_method" && (
-            <div>
-              {/* Progress bar */}
-              <div className={styles.progressWrapper}>
-                <div className={styles.progressBar} style={{ width: "65%" }} />
-              </div>
-
-              {/* Main Verification Card */}
-              <div className={styles.verifyMethodCard}>
-                <h2 className={styles.verifyMethodTitle}>Select a way to get verified</h2>
-                <p className={styles.verifyMethodSub}>
-                  Zaanvar needs to verify that you manage this business.
-                </p>
-                <a
-                  href="#"
-                  className={styles.learnMoreLink}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toast.info("Opening verification guide...");
-                  }}
-                >
-                  Learn more about verification.
-                </a>
-
-                {/* Options Box */}
-                <div className={styles.optionsBox}>
-                  {/* Option 1: Submit Video */}
-                  <div
-                    className={`${styles.optionRow} ${methodOption === "video" ? styles.optionRowSelected : ""}`}
-                    onClick={() => setMethodOption("video")}
-                  >
-                    <div className={styles.optionMain}>
-                      <div className={`${styles.radioBtn} ${methodOption === "video" ? styles.radioBtnChecked : ""}`}>
-                        {methodOption === "video" && <div className={styles.radioInner} />}
-                      </div>
-                      <span className={styles.optionText}>Submit a business video</span>
-                    </div>
-
-                    <div className={styles.optionDetails}>
-                      <div className={`${styles.optionIconBox} ${methodOption === "video" ? styles.optionIconActive : ""}`}>
-                        <IconVideo />
-                      </div>
-                      <div className={styles.optionContentText}>
-                        <h4 className={styles.optionInnerTitle}>Record a video of your business</h4>
-                        <p className={styles.optionDesc}>
-                          Show your location, equipment and proof of management. Your video is only used for verification and won&apos;t be shown publicly.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Option 2: Verify Later */}
-                  <div
-                    className={`${styles.optionRow} ${methodOption === "later" ? styles.optionRowSelected : ""}`}
-                    onClick={() => setMethodOption("later")}
-                  >
-                    <div className={styles.optionMain}>
-                      <div className={`${styles.radioBtn} ${methodOption === "later" ? styles.radioBtnChecked : ""}`}>
-                        {methodOption === "later" && <div className={styles.radioInner} />}
-                      </div>
-                      <span className={styles.optionText}>Verify Later</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={handleVerifyMethodBack}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={handleVerifyMethodNext}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 5: VERIFY LATER WARNING STATE SCREEN */}
-          {view === "verify_later" && (
-            <div>
-              {/* Progress bar */}
-              <div className={styles.progressWrapper}>
-                <div className={styles.progressBar} style={{ width: "80%" }} />
-              </div>
-
-              {/* Main Card */}
-              <div className={styles.verifyMethodCard}>
-                <div className={styles.verifyLaterContainer}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="https://zaanvarprods3.b-cdn.net/media/1786077091689-Group%201000017111.png"
-                    alt="Business is not verified warning"
-                    className={styles.verifyLaterImg}
-                  />
-                  <p className={styles.verifyLaterText}>
-                    Your business is not verified yet. Upload a clear shop front-view video to verify your business and activate your account.
-                  </p>
-                </div>
-
-                {/* Footer Actions */}
-                <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={handleVerifyLaterBack}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={() => setView("verify_method")}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* STEP 6: UPLOADED PREVIEWS (SUBMITTED) VIEW SCREEN */}
-          {view === "submitted" && (
-            <div className={styles.splitLayout}>
-              {/* Left Column - Previews */}
-              <div className={styles.leftCol}>
-                <div className={styles.formCard} style={{ padding: '16px' }}>
-                  {/* Shop Front video */}
-                  <h3 className={styles.previewSectionTitle}>Preview of shop front view video</h3>
-                  <p className={styles.previewSectionSub}>
-                    Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
-                  </p>
-                  
-                  <div className={styles.videoWrapper}>
-                    {videoUpload ? (
-                      <>
-                        <video 
-                          key={hevcSupported && !videoError ? videoUpload : "fallback-h264"} 
-                          src={hevcSupported && !videoError ? videoUpload : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"} 
-                          controls 
-                          className={styles.videoPlayer} 
-                          playsInline
-                          onError={() => setVideoError(true)}
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                        {(!hevcSupported || videoError) && (
-                          <div className={styles.hevcWarningOverlay}>
-                            <h4 className={styles.hevcWarningTitle}>⚠️ H.265/HEVC Fallback</h4>
-                            <p className={styles.hevcWarningText}>
-                              Your browser doesn&apos;t natively support H.265 playback. Playing a sample video in the UI (or download your original video file below).
-                            </p>
-                            <a 
-                              href={videoUpload} 
-                              download 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className={styles.hevcDownloadBtn}
-                            >
-                              Download Original Video
-                            </a>
+                        <div className={styles.optionMain}>
+                          <div className={`${styles.radioBtn} ${methodOption === "video" ? styles.radioBtnChecked : ""}`}>
+                            {methodOption === "video" && <div className={styles.radioInner} />}
                           </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className={styles.noVideoPlaceholder}>No video uploaded</div>
-                    )}
-                  </div>
+                          <span className={styles.optionText}>Submit a business video</span>
+                        </div>
 
-                  <div style={{ marginTop: '16px' }} />
-
-                  {/* Selfie and Shop Front Photos */}
-                  <h3 className={styles.previewSectionTitle}>Add a selfie Photo</h3>
-                  <p className={styles.previewSectionSub}>
-                    Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
-                  </p>
-
-                  <div className={styles.photosRow}>
-                    <div className={styles.photoContainer}>
-                      {shopFrontPhoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={shopFrontPhoto} alt="Shop front" className={styles.photoImg} />
-                      ) : (
-                        <div className={styles.noPhotoPlaceholder}>No shop front photo</div>
-                      )}
-                    </div>
-                    <div className={styles.photoContainer}>
-                      {selfiePhoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={selfiePhoto} alt="Selfie" className={styles.photoImg} />
-                      ) : (
-                        <div className={styles.noPhotoPlaceholder}>No selfie photo</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Status or OTP */}
-              <div className={styles.rightCol} style={{ width: '480px' }}>
-                <div className={styles.submittedRightCard}>
-                  {!showOtpView ? (
-                    <div className={styles.statusContent}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="https://zaanvarprods3.b-cdn.net/media/1786077281636-blocking-internet-icon%201.png"
-                        alt="Verification in progress lock illustration"
-                        className={styles.statusIllustration}
-                      />
-                      <h2 className={styles.statusHeading}>Verification in Progress</h2>
-                      <p className={styles.statusText}>
-                        Your registration has been received and is currently being reviewed. We&apos;ll notify you once verification is complete.
-                      </p>
-                      
-                      <button
-                        type="button"
-                        className={styles.claimCodeLink}
-                        onClick={handleInitiateOtpClaim}
-                      >
-                        Claim your business with code
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.otpContent}>
-                      <button
-                        type="button"
-                        className={styles.otpBackBtn}
-                        onClick={handleCancelOtpClaim}
-                        aria-label="Back to status"
-                      >
-                        ←
-                      </button>
-                      
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
-                        alt="OTP Security shield illustration"
-                        className={styles.otpIllustration}
-                      />
-                      
-                      <h3 className={styles.otpHeading}>Enter OTP here</h3>
-                      <p className={styles.otpSub}>
-                        ENTER THE 6-DIGIT OTP SENT TO YOUR REGISTERED MOBILE NUMBER
-                      </p>
-                      
-                      {/* 6 OTP Inputs */}
-                      <div className={styles.otpInputsRow}>
-                        {otpValues.map((val, idx) => (
-                          <input
-                            key={idx}
-                            id={`otp-input-${idx}`}
-                            type="text"
-                            maxLength="1"
-                            value={val}
-                            className={styles.otpBox}
-                            onChange={(e) => {
-                              const newVals = [...otpValues];
-                              newVals[idx] = e.target.value;
-                              setOtpValues(newVals);
-                              if (e.target.value && idx < 5) {
-                                document.getElementById(`otp-input-${idx + 1}`)?.focus();
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Backspace" && !otpValues[idx] && idx > 0) {
-                                document.getElementById(`otp-input-${idx - 1}`)?.focus();
-                              }
-                            }}
-                          />
-                        ))}
+                        <div className={styles.optionDetails}>
+                          <div className={`${styles.optionIconBox} ${methodOption === "video" ? styles.optionIconActive : ""}`}>
+                            <IconVideo />
+                          </div>
+                          <div className={styles.optionContentText}>
+                            <h4 className={styles.optionInnerTitle}>Record a video of your business</h4>
+                            <p className={styles.optionDesc}>
+                              Show your location, equipment and proof of management. Your video is only used for verification and won&apos;t be shown publicly.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      
-                      <p className={styles.resendOtpText}>
-                        Didn&apos;t Receive code? <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Resending OTP code..."); }} className={styles.resendLink}>Please contact the support</a>
-                      </p>
+
+                      {/* Option 2: Verify Later */}
+                      <div
+                        className={`${styles.optionRow} ${methodOption === "later" ? styles.optionRowSelected : ""}`}
+                        onClick={() => setMethodOption("later")}
+                      >
+                        <div className={styles.optionMain}>
+                          <div className={`${styles.radioBtn} ${methodOption === "later" ? styles.radioBtnChecked : ""}`}>
+                            {methodOption === "later" && <div className={styles.radioInner} />}
+                          </div>
+                          <span className={styles.optionText}>Verify Later</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
+                      <button
+                        type="button"
+                        className={styles.btnSecondary}
+                        onClick={handleVerifyMethodBack}
+                      >
+                        Back
+                      </button>
                       <button
                         type="button"
                         className={styles.btnPrimary}
-                        style={{ width: '100%', marginTop: '24px' }}
-                        onClick={handleVerifyOtp}
+                        onClick={handleVerifyMethodNext}
                       >
-                        Submit
+                        Next
                       </button>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+
+              {/* STEP 4.5: STANDALONE OTP VERIFICATION VIEW FOR SECOND CLAIMS */}
+              {view === "verify_otp" && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '400px' }}>
+                  <div className={styles.verifyCard} style={{ maxWidth: '480px', width: '100%', padding: '32px', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    {/* Back button */}
+                    <button
+                      type="button"
+                      onClick={() => setView("verify_method")}
+                      style={{
+                        position: 'absolute',
+                        top: '20px',
+                        left: '20px',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        border: '1px solid #e2e8f0',
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                      }}
+                      aria-label="Back"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2.5">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </button>
+
+                    {/* Illustration */}
+                    <img
+                      src="https://zaanvarprods3.b-cdn.net/media/1786077325447-mobile-otp%201.png"
+                      alt="OTP Illustration"
+                      style={{ width: '100%', maxWidth: '200px', height: 'auto', marginBottom: '24px', marginTop: '16px' }}
+                    />
+
+                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111111', margin: '0 0 6px 0', fontFamily: 'Inter, sans-serif' }}>
+                      Enter OTP here
+                    </h3>
+                    <p style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 24px 0', padding: '0 12px', lineHeight: '1.4', fontFamily: 'Inter, sans-serif' }}>
+                      ENTER THE 6-DIGIT OTP SENT TO YOUR REGISTERED MOBILE NUMBER
+                    </p>
+
+                    <div style={{ alignSelf: 'flex-start', width: '100%', textAlign: 'left', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '700', color: '#1f2937', fontFamily: 'Inter, sans-serif' }}>
+                        Enter OTP
+                      </label>
+                    </div>
+
+                    {/* 6 OTP Inputs */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', width: '100%', marginBottom: '20px' }}>
+                      {otpValues.map((val, idx) => (
+                        <input
+                          key={idx}
+                          id={`otp-input-verify-${idx}`}
+                          type="text"
+                          maxLength="1"
+                          value={val}
+                          style={{
+                            width: '46px',
+                            height: '46px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            color: '#111111',
+                            outline: 'none',
+                            background: '#ffffff',
+                            fontFamily: 'Inter, sans-serif',
+                            transition: 'border-color 0.2s'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#1a73e8'}
+                          onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                          onChange={(e) => {
+                            const newVals = [...otpValues];
+                            newVals[idx] = e.target.value;
+                            setOtpValues(newVals);
+                            if (e.target.value && idx < 5) {
+                              document.getElementById(`otp-input-verify-${idx + 1}`)?.focus();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Backspace" && !otpValues[idx] && idx > 0) {
+                              document.getElementById(`otp-input-verify-${idx - 1}`)?.focus();
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 24px 0', fontFamily: 'Inter, sans-serif' }}>
+                      Didn&apos;t Receive code?{' '}
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toast.info("Resending OTP code...");
+                        }}
+                        style={{ color: '#1a73e8', fontWeight: '600', textDecoration: 'none' }}
+                      >
+                        Please contact the support
+                      </a>
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      style={{
+                        width: '100%',
+                        background: '#1a73e8',
+                        border: 'none',
+                        color: '#ffffff',
+                        padding: '12px 0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        fontFamily: 'Inter, sans-serif',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={(e) => e.target.style.background = '#1557b0'}
+                      onMouseOut={(e) => e.target.style.background = '#1a73e8'}
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: VERIFY LATER WARNING STATE SCREEN */}
+              {view === "verify_later" && (
+                <div>
+                  {/* Progress bar */}
+                  <div className={styles.progressWrapper}>
+                    <div className={styles.progressBar} style={{ width: "80%" }} />
+                  </div>
+
+                  {/* Main Card */}
+                  <div className={styles.verifyMethodCard}>
+                    <div className={styles.verifyLaterContainer}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="https://zaanvarprods3.b-cdn.net/media/1786077091689-Group%201000017111.png"
+                        alt="Business is not verified warning"
+                        className={styles.verifyLaterImg}
+                      />
+                      <p className={styles.verifyLaterText}>
+                        Your business is not verified yet. Upload a clear shop front-view video to verify your business and activate your account.
+                      </p>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
+                      <button
+                        type="button"
+                        className={styles.btnSecondary}
+                        onClick={handleVerifyLaterBack}
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        onClick={() => setView("verify_method")}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 6: UPLOADED PREVIEWS (SUBMITTED) VIEW SCREEN */}
+              {view === "submitted" && (
+                <div className={styles.splitLayout}>
+                  {/* Left Column - Previews */}
+                  <div className={styles.leftCol}>
+                    <div className={styles.formCard} style={{ padding: '16px' }}>
+                      {currentTicketStep === "APPROVED" && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "4px 12px",
+                            borderRadius: "16px",
+                            backgroundColor: "#e6f4ea",
+                            color: "#137333",
+                            fontSize: "12px",
+                            fontWeight: "700"
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            APPROVED
+                          </span>
+                        </div>
+                      )}
+                      {/* Shop Front video */}
+                      <h3 className={styles.previewSectionTitle}>Preview of shop front view video</h3>
+                      <p className={styles.previewSectionSub}>
+                        Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
+                      </p>
+
+                      <div className={styles.videoWrapper}>
+                        {videoUpload ? (
+                          <>
+                            <video
+                              key={hevcSupported && !videoError ? videoUpload : "fallback-h264"}
+                              src={hevcSupported && !videoError ? videoUpload : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                              controls
+                              className={styles.videoPlayer}
+                              playsInline
+                              onError={() => setVideoError(true)}
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                            {(!hevcSupported || videoError) && (
+                              <div className={styles.hevcWarningOverlay}>
+                                <h4 className={styles.hevcWarningTitle}>⚠️ H.265/HEVC Fallback</h4>
+                                <p className={styles.hevcWarningText}>
+                                  Your browser doesn&apos;t natively support H.265 playback. Playing a sample video in the UI (or download your original video file below).
+                                </p>
+                                <a
+                                  href={videoUpload}
+                                  download
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles.hevcDownloadBtn}
+                                >
+                                  Download Original Video
+                                </a>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className={styles.noVideoPlaceholder}>No video uploaded</div>
+                        )}
+                      </div>
+
+                      <div style={{ marginTop: '16px' }} />
+
+                      {/* Selfie and Shop Front Photos */}
+                      <h3 className={styles.previewSectionTitle}>Add a selfie Photo</h3>
+                      <p className={styles.previewSectionSub}>
+                        Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
+                      </p>
+
+                      <div className={styles.photosRow}>
+                        <div className={styles.photoContainer}>
+                          {shopFrontPhoto ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={shopFrontPhoto} alt="Shop front" className={styles.photoImg} />
+                          ) : (
+                            <div className={styles.noPhotoPlaceholder}>No shop front photo</div>
+                          )}
+                        </div>
+                        <div className={styles.photoContainer}>
+                          {selfiePhoto ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={selfiePhoto} alt="Selfie" className={styles.photoImg} />
+                          ) : (
+                            <div className={styles.noPhotoPlaceholder}>No selfie photo</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Status or OTP */}
+                  <div className={styles.rightCol} style={{ width: '480px' }}>
+                    <div className={styles.submittedRightCard}>
+                      {!showOtpView ? (
+                        <div className={styles.statusContent}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src="https://zaanvarprods3.b-cdn.net/media/1786077281636-blocking-internet-icon%201.png"
+                            alt="Verification in progress lock illustration"
+                            className={styles.statusIllustration}
+                          />
+                          <h2 className={styles.statusHeading}>Verification in Progress</h2>
+                          <p className={styles.statusText}>
+                            Your registration has been received and is currently being reviewed. We&apos;ll notify you once verification is complete.
+                          </p>
+
+                          <button
+                            type="button"
+                            className={styles.claimCodeLink}
+                            onClick={handleInitiateOtpClaim}
+                          >
+                            Claim your business with code
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={styles.otpContent}>
+                          <button
+                            type="button"
+                            className={styles.otpBackBtn}
+                            onClick={handleCancelOtpClaim}
+                            aria-label="Back to status"
+                          >
+                            ←
+                          </button>
+
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
+                            alt="OTP Security shield illustration"
+                            className={styles.otpIllustration}
+                          />
+
+                          <h3 className={styles.otpHeading}>Enter OTP here</h3>
+                          <p className={styles.otpSub}>
+                            ENTER THE 6-DIGIT OTP SENT TO YOUR REGISTERED MOBILE NUMBER
+                          </p>
+
+                          {/* 6 OTP Inputs */}
+                          <div className={styles.otpInputsRow}>
+                            {otpValues.map((val, idx) => (
+                              <input
+                                key={idx}
+                                id={`otp-input-${idx}`}
+                                type="text"
+                                maxLength="1"
+                                value={val}
+                                className={styles.otpBox}
+                                onChange={(e) => {
+                                  const newVals = [...otpValues];
+                                  newVals[idx] = e.target.value;
+                                  setOtpValues(newVals);
+                                  if (e.target.value && idx < 5) {
+                                    document.getElementById(`otp-input-${idx + 1}`)?.focus();
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Backspace" && !otpValues[idx] && idx > 0) {
+                                    document.getElementById(`otp-input-${idx - 1}`)?.focus();
+                                  }
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <p className={styles.resendOtpText}>
+                            Didn&apos;t Receive code? <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Resending OTP code..."); }} className={styles.resendLink}>Please contact the support</a>
+                          </p>
+                          <button
+                            type="button"
+                            className={styles.btnPrimary}
+                            style={{ width: '100%', marginTop: '24px' }}
+                            onClick={handleVerifyOtp}
+                          >
+                            Submit
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
-    </div>
-  </DashboardLayout>
+        </div>
+      </DashboardLayout>
 
       {/* ─── INSTRUCTION MODAL POPUP MODAL ─── */}
       {isModalOpen && (
@@ -2620,9 +3072,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
               marginBottom: "28px"
             }}>
               <svg width="112" height="112" viewBox="0 0 125 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M123.262 69.7221C124.438 71.5433 125 73.5827 125 75.6016C125 79.2541 123.158 82.834 119.797 84.8839C116.539 86.8715 114.604 90.3992 114.604 94.1456C114.604 94.593 114.635 95.0405 114.687 95.4983C114.75 95.9562 114.771 96.4142 114.771 96.8615C114.771 102.356 110.608 107.091 104.989 107.653C102.866 107.861 100.899 108.694 99.2964 109.974C97.6938 111.254 96.4556 112.981 95.7793 115.01C94.2496 119.558 90.0143 122.409 85.4873 122.409C84.2491 122.409 82.99 122.201 81.7619 121.754C81.1583 121.535 80.5443 121.368 79.9201 121.264C79.2957 121.15 78.6713 121.098 78.047 121.098C75.1748 121.098 72.3548 122.243 70.2736 124.376C68.1508 126.561 65.3202 127.654 62.5 127.654C59.6801 127.654 56.8494 126.561 54.7266 124.376C52.6454 122.243 49.8251 121.098 46.953 121.098C45.7043 121.098 44.4452 121.317 43.2379 121.754C42.0098 122.201 40.7508 122.409 39.5125 122.409C34.9855 122.409 30.7502 119.558 29.2207 115.01C28.5442 112.981 27.306 111.254 25.7034 109.974C24.1008 108.694 22.134 107.861 20.0112 107.653C14.3917 107.091 10.2293 102.356 10.2293 96.8615C10.2293 96.4142 10.2501 95.9562 10.3125 95.4983C10.3645 95.0405 10.3958 94.593 10.3958 94.1456C10.3958 90.3994 8.46015 86.8716 5.20324 84.8839C1.842 82.834 0 79.2541 0 75.6016C0 73.5827 0.562148 71.5431 1.73784 69.7221C2.9034 67.9218 3.4757 65.8822 3.4757 63.8218C3.4757 61.7821 2.9034 59.7217 1.73784 57.932C0.562148 56.1108 0 54.0711 0 52.0525C0 48.3999 1.842 44.8306 5.20324 42.7804C8.46033 40.7927 10.3958 37.2546 10.3958 33.5084C10.3958 33.0611 10.3647 32.6135 10.3125 32.1557C10.2501 31.6977 10.2293 31.2399 10.2293 30.7925C10.2293 25.298 14.3917 20.5631 20.0112 20.0011C22.134 19.7825 24.1008 18.9605 25.7034 17.6804C27.306 16.4107 28.5442 14.6836 29.2207 12.6542C30.7502 8.10664 34.996 5.245 39.5228 5.245C40.7612 5.245 42.0098 5.45312 43.2379 5.90047C44.4451 6.34782 45.7041 6.55612 46.953 6.55612C49.8251 6.55612 52.6454 5.41136 54.7266 3.27806C56.8492 1.09269 59.6799 0 62.5 0C65.3202 0 68.1508 1.09269 70.2736 3.27806C73.26 6.33751 77.7557 7.36782 81.7621 5.90047C82.9902 5.45312 84.2388 5.245 85.4772 5.245C90.004 5.245 94.2498 8.10664 95.7795 12.6542C96.4559 14.6836 97.694 16.4107 99.2966 17.6804C100.899 18.9603 102.866 19.7825 104.989 20.0011C110.608 20.5631 114.771 25.298 114.771 30.7925C114.771 31.2399 114.75 31.6977 114.688 32.1557C114.635 32.6135 114.604 33.0611 114.604 33.5084C114.604 37.2548 116.54 40.7927 119.797 42.7804C123.158 44.8304 125 48.3997 125 52.0525C125 54.0711 124.438 56.1109 123.262 57.932C122.097 59.7217 121.524 61.7823 121.524 63.8218C121.524 64.9561 121.701 66.0903 122.055 67.183C122.336 68.0674 122.742 68.9209 123.262 69.7221Z" fill="#42BE45"/>
-                <path d="M124.999 75.6006C124.999 79.2532 123.158 82.833 119.796 84.883C116.539 86.8705 114.604 90.3983 114.604 94.1447C114.604 94.592 114.635 95.0395 114.687 95.4974C114.75 95.9552 114.77 96.4132 114.77 96.8606C114.77 102.355 110.608 107.09 104.988 107.652C102.865 107.86 100.899 108.693 99.296 109.973C97.6935 111.253 96.4552 112.98 95.7789 115.009C94.2492 119.557 90.0139 122.408 85.4869 122.408C84.2487 122.408 82.9896 122.2 81.7615 121.753C81.1579 121.534 80.5439 121.367 79.9197 121.263L28.8145 70.1687C26.1816 67.5254 26.1816 63.2381 28.8145 60.6053C28.9809 60.4388 29.1476 60.2827 29.3244 60.137C31.9781 57.9724 35.9012 58.1182 38.3883 60.6053L51.3131 73.5299L85.071 39.7719C85.2376 39.6159 85.4041 39.4598 85.5809 39.3141C88.2346 37.139 92.1577 37.2953 94.6448 39.7719L122.055 67.1821C122.336 68.0666 122.742 68.9199 123.262 69.7211C124.438 71.5422 124.999 73.5818 124.999 75.6006Z" fill="#42BE45"/>
-                <path d="M94.6393 39.7739C91.9977 37.1326 87.7152 37.1326 85.0735 39.7739L51.3149 73.5329L38.383 60.6014C35.7413 57.9603 31.4581 57.9603 28.817 60.6014C26.1756 63.243 26.1756 67.5255 28.817 70.1672L46.5319 87.8817C47.8528 89.2022 49.5837 89.8628 51.3149 89.8628C53.0459 89.8628 54.7769 89.2022 56.0977 87.8817L94.6393 49.3399C97.2808 46.6981 97.2808 42.4157 94.6393 39.7739Z" fill="white"/>
+                <path d="M123.262 69.7221C124.438 71.5433 125 73.5827 125 75.6016C125 79.2541 123.158 82.834 119.797 84.8839C116.539 86.8715 114.604 90.3992 114.604 94.1456C114.604 94.593 114.635 95.0405 114.687 95.4983C114.75 95.9562 114.771 96.4142 114.771 96.8615C114.771 102.356 110.608 107.091 104.989 107.653C102.866 107.861 100.899 108.694 99.2964 109.974C97.6938 111.254 96.4556 112.981 95.7793 115.01C94.2496 119.558 90.0143 122.409 85.4873 122.409C84.2491 122.409 82.99 122.201 81.7619 121.754C81.1583 121.535 80.5443 121.368 79.9201 121.264C79.2957 121.15 78.6713 121.098 78.047 121.098C75.1748 121.098 72.3548 122.243 70.2736 124.376C68.1508 126.561 65.3202 127.654 62.5 127.654C59.6801 127.654 56.8494 126.561 54.7266 124.376C52.6454 122.243 49.8251 121.098 46.953 121.098C45.7043 121.098 44.4452 121.317 43.2379 121.754C42.0098 122.201 40.7508 122.409 39.5125 122.409C34.9855 122.409 30.7502 119.558 29.2207 115.01C28.5442 112.981 27.306 111.254 25.7034 109.974C24.1008 108.694 22.134 107.861 20.0112 107.653C14.3917 107.091 10.2293 102.356 10.2293 96.8615C10.2293 96.4142 10.2501 95.9562 10.3125 95.4983C10.3645 95.0405 10.3958 94.593 10.3958 94.1456C10.3958 90.3994 8.46015 86.8716 5.20324 84.8839C1.842 82.834 0 79.2541 0 75.6016C0 73.5827 0.562148 71.5431 1.73784 69.7221C2.9034 67.9218 3.4757 65.8822 3.4757 63.8218C3.4757 61.7821 2.9034 59.7217 1.73784 57.932C0.562148 56.1108 0 54.0711 0 52.0525C0 48.3999 1.842 44.8306 5.20324 42.7804C8.46033 40.7927 10.3958 37.2546 10.3958 33.5084C10.3958 33.0611 10.3647 32.6135 10.3125 32.1557C10.2501 31.6977 10.2293 31.2399 10.2293 30.7925C10.2293 25.298 14.3917 20.5631 20.0112 20.0011C22.134 19.7825 24.1008 18.9605 25.7034 17.6804C27.306 16.4107 28.5442 14.6836 29.2207 12.6542C30.7502 8.10664 34.996 5.245 39.5228 5.245C40.7612 5.245 42.0098 5.45312 43.2379 5.90047C44.4451 6.34782 45.7041 6.55612 46.953 6.55612C49.8251 6.55612 52.6454 5.41136 54.7266 3.27806C56.8492 1.09269 59.6799 0 62.5 0C65.3202 0 68.1508 1.09269 70.2736 3.27806C73.26 6.33751 77.7557 7.36782 81.7621 5.90047C82.9902 5.45312 84.2388 5.245 85.4772 5.245C90.004 5.245 94.2498 8.10664 95.7795 12.6542C96.4559 14.6836 97.694 16.4107 99.2966 17.6804C100.899 18.9603 102.866 19.7825 104.989 20.0011C110.608 20.5631 114.771 25.298 114.771 30.7925C114.771 31.2399 114.75 31.6977 114.688 32.1557C114.635 32.6135 114.604 33.0611 114.604 33.5084C114.604 37.2548 116.54 40.7927 119.797 42.7804C123.158 44.8304 125 48.3997 125 52.0525C125 54.0711 124.438 56.1109 123.262 57.932C122.097 59.7217 121.524 61.7823 121.524 63.8218C121.524 64.9561 121.701 66.0903 122.055 67.183C122.336 68.0674 122.742 68.9209 123.262 69.7221Z" fill="#42BE45" />
+                <path d="M124.999 75.6006C124.999 79.2532 123.158 82.833 119.796 84.883C116.539 86.8705 114.604 90.3983 114.604 94.1447C114.604 94.592 114.635 95.0395 114.687 95.4974C114.75 95.9552 114.77 96.4132 114.77 96.8606C114.77 102.355 110.608 107.09 104.988 107.652C102.865 107.86 100.899 108.693 99.296 109.973C97.6935 111.253 96.4552 112.98 95.7789 115.009C94.2492 119.557 90.0139 122.408 85.4869 122.408C84.2487 122.408 82.9896 122.2 81.7615 121.753C81.1579 121.534 80.5439 121.367 79.9197 121.263L28.8145 70.1687C26.1816 67.5254 26.1816 63.2381 28.8145 60.6053C28.9809 60.4388 29.1476 60.2827 29.3244 60.137C31.9781 57.9724 35.9012 58.1182 38.3883 60.6053L51.3131 73.5299L85.071 39.7719C85.2376 39.6159 85.4041 39.4598 85.5809 39.3141C88.2346 37.139 92.1577 37.2953 94.6448 39.7719L122.055 67.1821C122.336 68.0666 122.742 68.9199 123.262 69.7211C124.438 71.5422 124.999 73.5818 124.999 75.6006Z" fill="#42BE45" />
+                <path d="M94.6393 39.7739C91.9977 37.1326 87.7152 37.1326 85.0735 39.7739L51.3149 73.5329L38.383 60.6014C35.7413 57.9603 31.4581 57.9603 28.817 60.6014C26.1756 63.243 26.1756 67.5255 28.817 70.1672L46.5319 87.8817C47.8528 89.2022 49.5837 89.8628 51.3149 89.8628C53.0459 89.8628 54.7769 89.2022 56.0977 87.8817L94.6393 49.3399C97.2808 46.6981 97.2808 42.4157 94.6393 39.7739Z" fill="white" />
               </svg>
             </div>
 
@@ -2648,6 +3100,39 @@ const ClaimBusiness = ({ forcedView = null }) => {
           </div>
         </div>
       )}
+      <RegisterBusinessModal
+        open={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        onSuccess={(data, payload) => {
+          setIsRegisterModalOpen(false);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("zaanvar_flow_type", "REGISTER");
+          }
+          if (data?.ticketId) setTicketId(data.ticketId);
+          if (payload) {
+            setFormData(prev => ({
+              ...prev,
+              businessName: payload.companyName || prev.businessName,
+              businessEmail: payload.vendorEmail || prev.businessEmail,
+              businessPhone: payload.vendorPhoneNumber || prev.businessPhone,
+              userName: payload.vendorName || prev.userName,
+              role: payload.role || prev.role,
+              companyAddress: payload.companyAddress || prev.companyAddress,
+            }));
+            const branchObj = payload.branchDetails?.branches?.[0] || payload.branchDetails || {};
+            setSelectedBranch({
+              fullName: payload.companyName,
+              branchName: branchObj.name || payload.companyName,
+              branchLocation: branchObj.location || payload.companyAddress,
+              mobileNumber: payload.vendorPhoneNumber,
+            });
+          }
+          setView("verify_method");
+          setIsModalOpen(true);
+        }}
+        userInfo={userInfo}
+        initialTab={modalInitialTab}
+      />
     </>
   );
 };
