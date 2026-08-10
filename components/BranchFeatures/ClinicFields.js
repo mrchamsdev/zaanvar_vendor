@@ -15,14 +15,24 @@ const EMPTY_ITEM = {
   serviceFees: {}, // Structure: { [clinicType]: fee }
 };
 
+const DEFAULT_CLINIC_SERVICES = [
+  "General Checkup",
+  "Vaccination",
+  "Deworming",
+  "Dental Care",
+  "Surgery",
+  "Emergency Care",
+  "Consultation",
+];
+
 const ClinicFields = ({
   branch,
   branchIndex,
-  type,
+  type = "Pet Clinic",
   setBranches,
   petList,
   availablePetTypes,
-  serviceOptionsByFeatureType,
+  serviceOptionsByFeatureType = {},
 }) => {
   const currencySymbol = useCurrencySymbol();
 
@@ -131,7 +141,7 @@ const ClinicFields = ({
               }}
             >
               <option value="">-- Select a Service --</option>
-              {serviceOptionsByFeatureType["Pet Clinic"]?.map((service) => (
+              {(serviceOptionsByFeatureType?.["Pet Clinic"] || DEFAULT_CLINIC_SERVICES).map((service) => (
                 <option key={service} value={service}>
                   {service}
                 </option>
