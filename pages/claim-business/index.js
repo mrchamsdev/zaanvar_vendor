@@ -133,6 +133,30 @@ function getRelativeTime(dateString) {
   return months === 1 ? "ONE MONTH AGO" : `${months} MONTHS AGO`;
 }
 
+// Helper: extract URL from either a plain string or the new { url, status } object format
+const parseCertUrl = (val) => {
+  if (!val) return null;
+  if (typeof val === "string") return val;
+  if (typeof val === "object" && val.url) return val.url;
+  return null;
+};
+
+// Helper: build disputeDocs state from a certificates API response (handles both formats)
+const parseCerts = (certs, certUrls) => {
+  const merged = { ...certUrls };
+  // Prefer object values from certs when they have a url
+  Object.entries(certs || {}).forEach(([k, v]) => {
+    if (v !== null && v !== undefined) merged[k] = v;
+  });
+  return {
+    gst: parseCertUrl(merged.gstRegistrationCertificate) || null,
+    shop: parseCertUrl(merged.shopEstablishmentCertificate) || null,
+    msme: parseCertUrl(merged.udyamMsmeCertificate) || null,
+    businessReg: parseCertUrl(merged.businessRegistrationCertificate) || null,
+    tradeLicense: parseCertUrl(merged.tradeLicense) || null
+  };
+};
+
 // ─── Main ClaimBusiness Page ─────────────────────────────────────────────────
 const ClaimBusiness = ({ forcedView = null }) => {
   const router = useRouter();
@@ -148,14 +172,40 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [view, setView] = useState(forcedView || "search");
 
   // ── Ticket and progress state ──
-  const [ticketId, setTicketId] = useState(null);
+  const [ticketId, _setTicketId] = useState(null);
+  const setTicketId = (id) => {
+    _setTicketId(id);
+    if (typeof window !== "undefined") {
+      if (id) {
+        localStorage.setItem("zaanvar_claim_ticket_id", String(id));
+      } else {
+        localStorage.removeItem("zaanvar_claim_ticket_id");
+      }
+    }
+  };
   const [currentTicketStep, setCurrentTicketStep] = useState("");
   const [ticketReferenceId, setTicketReferenceId] = useState("ZB21234567890");
+  const [ticketStatus, setTicketStatus] = useState("Pending");
+  const [isDuplicateClaimModalOpen, setIsDuplicateClaimModalOpen] = useState(false);
+  const [docVerificationType, setDocVerificationType] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("zaanvar_doc_verification_type") || "ticket";
+    }
+    return "ticket";
+  });
+
+  const handleDismissDuplicateClaim = () => {
+    if (typeof window !== "undefined" && backendBranchId) {
+      sessionStorage.setItem(`dismiss_duplicate_claim_${backendBranchId}`, "true");
+    }
+    setIsDuplicateClaimModalOpen(false);
+  };
 
   // ── Verification Option state ──
   const [methodOption, setMethodOption] = useState("video"); // "video" | "later"
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(true);
@@ -163,11 +213,43 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [selfiePhoto, setSelfiePhoto] = useState("");
   const [videoUpload, setVideoUpload] = useState("");
   const [showOtpView, setShowOtpView] = useState(false);
+  const [disputeDocs, setDisputeDocs] = useState({
+    gst: null,
+    shop: null,
+    msme: null,
+    businessReg: null,
+    tradeLicense: null
+  });
+  const [isDisputeSubmitting, setIsDisputeSubmitting] = useState(false);
+  const [showUnderReviewModal, setShowUnderReviewModal] = useState(false);
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
   const [hevcSupported, setHevcSupported] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+
   const playerRef = useRef(null);
+
+  // Prevent background scrolling when dispute modal is open
+  useEffect(() => {
+    if (isDisputeModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isDisputeModalOpen]);
+
+  // Auto-show "Under Review" modal when landing on dispute_docs view with existing submitted docs
+  // useEffect(() => {
+  //   if (view === "dispute_docs") {
+  //     const hasExisting = Object.values(disputeDocs).some(val => typeof val === "string" && val !== null);
+  //     if (hasExisting) {
+  //       setShowUnderReviewModal(true);
+  //     }
+  //   }
+  // }, [view, disputeDocs]);
 
   const [isVerified, setIsVerified] = useState(false);
   const [reviewsList, setReviewsList] = useState([]);
@@ -308,11 +390,22 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const isNewClaimQuery = typeof window !== "undefined" && window.location.search.includes("newClaim=true");
         const forceClaimNew = localStorage.getItem("zaanvar_force_claim_new") === "true";
 
+        // If the vendor explicitly clicked "Claim another business", clear the flag
+        // and immediately show the search wizard — skipping the API lookup so the old
+        // verified ticket doesn't redirect them back to the dashboard.
+        if (forceClaimNew) {
+          localStorage.removeItem("zaanvar_force_claim_new");
+          localStorage.removeItem("zaanvar_claim_ticket_id");
+          setView("search");
+          setLoadingProgress(false);
+          return;
+        }
+
         const queryParams = {};
         // Always send vendor_user_id so the API can locate the ticket by user
         // even if the scraped branch ID is not saved in localStorage yet
         queryParams.vendor_user_id = userInfo?.userId || userInfo?.id;
-        if (!isNewClaimQuery || !forceClaimNew) {
+        if (!isNewClaimQuery) {
           // Also filter by branch when we have it (more precise lookup)
           if (savedBranchId) {
             queryParams.scrapedBranchId = savedBranchId;
@@ -389,6 +482,25 @@ const ClaimBusiness = ({ forcedView = null }) => {
             }
           } catch (e) {
             console.warn("scraped-branches/claim/progress GET error:", e);
+            const errorData = e.response?.data;
+            if (errorData?.data) {
+              claimTicket = errorData.data.ticket || errorData.data;
+              const dynamicBranchId =
+                errorData.data?.branchId ||
+                errorData.data?.branch_id ||
+                errorData.data?.ticket?.branchId ||
+                errorData.data?.ticket?.branch_id ||
+                errorData.data?.ticket?.draftData?.branchId ||
+                errorData.data?.ticket?.draftData?.branch_id;
+
+              if (dynamicBranchId) {
+                const numId = parseInt(dynamicBranchId, 10);
+                setBackendBranchId(numId);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("zaanvar_claim_backend_branch_id", String(numId));
+                }
+              }
+            }
           }
         }
 
@@ -402,7 +514,19 @@ const ClaimBusiness = ({ forcedView = null }) => {
           const step = ticket.currentStep || ticket.current_step;
           const stepUpper = step?.toUpperCase();
 
-          setTicketId(ticket.ticket_id || ticket.ticketId || ticket.id || null);
+          setTicketId(ticket.ticket_id || ticket.ticketId || ticket.id || res?.data?.data?.ticket?.id || res?.data?.data?.id || null);
+          setTicketStatus(ticket.status || "Pending");
+          if (ticket.status === "DUPLICATE_CLAIM") {
+            const isDismissed = typeof window !== "undefined" ? sessionStorage.getItem("dismiss_duplicate_claim") : null;
+            if (!isDismissed) {
+              // If already on DOCUMENT_VERIFICATION step, show Under Review modal instead
+              if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "REJECTED") {
+                // setShowUnderReviewModal(true);
+              } else {
+                setIsDuplicateClaimModalOpen(true);
+              }
+            }
+          }
           if (ticket.ticket_reference_id || ticket.ticketReferenceId) {
             setTicketReferenceId(ticket.ticket_reference_id || ticket.ticketReferenceId);
           }
@@ -412,8 +536,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
           const extractedBranchId =
             rawClaimData.branchId ||
             rawClaimData.branch_id ||
+            rawClaimData.id ||
             ticket.branchId ||
             ticket.branch_id ||
+            ticket.id ||
             draftDataObj.branchId ||
             draftDataObj.branch_id ||
             (Array.isArray(draftDataObj.createdBranchIds) ? draftDataObj.createdBranchIds[0] : null);
@@ -428,6 +554,53 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
           if (stepUpper) {
             setCurrentTicketStep(stepUpper);
+          }
+
+          if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "REJECTED") {
+            setView("dispute_docs");
+            setLoadingProgress(false);
+
+            const tId = ticket.ticket_id || ticket.ticketId || ticket.id || res?.data?.data?.ticket?.id || res?.data?.data?.id || null;
+            const isApproved = ticket.status === "APPROVED" || ticket.claimStatus === "APPROVED" || ticket.status === "VERIFIED" || ticket.claimStatus === "VERIFIED" || ticket.status === "COMPLETED" || ticket.claimStatus === "COMPLETED" || stepUpper === "APPROVED" || stepUpper === "VERIFIED" || stepUpper === "COMPLETED";
+
+            let type = "ticket";
+            if (isApproved) {
+              type = "branch";
+            }
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("zaanvar_doc_verification_type", type);
+            }
+            setDocVerificationType(type);
+
+            const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+            const activeBranchId = backendBranchId || (savedBackendBranchId ? parseInt(savedBackendBranchId) : null);
+            const finalBranchId = activeBranchId || (type === "branch" ? tId : null);
+
+            const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
+            const activeTId = ticketId || (savedTicketId && savedTicketId !== "null" ? savedTicketId : tId);
+            const url = type === "branch" && finalBranchId
+              ? `${API_URL}branches/${finalBranchId}/certificates`
+              : `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`;
+
+            const idToUse = type === "branch" ? finalBranchId : activeTId;
+
+            if (idToUse) {
+              axios.get(url, {
+                headers: { Authorization: `Bearer ${jwtToken}` }
+              }).then(certRes => {
+                if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                  const certData = certRes.data.data;
+                  const certs = certData.certificates || {};
+                  const certUrls = certData.certificateUrls || {};
+                  setTicketStatus(certData.status || "Pending");
+                  setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                  setDisputeDocs(parseCerts(certs, certUrls));
+                }
+              }).catch(e => {
+                console.error("Failed to fetch certificates:", e);
+              });
+            }
+            return;
           }
 
           if (stepUpper === "APPROVED") {
@@ -735,179 +908,255 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const handleClaimInitiate = async () => {
     if (!selectedBranch) return;
 
-    const API_URL = window.location.hostname !== "support.zaanvar.com"
-      ? "https://dev.zaanvar.com/api/"
-      : "https://prod.zaanvar.com/api/";
+    if (selectedBranch.isClaimed || selectedBranch.is_claimed) {
+      setBackendBranchId(selectedBranch.id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("zaanvar_claim_backend_branch_id", String(selectedBranch.id));
+      }
+      setIsDisputeModalOpen(true);
+      return;
+    }
 
-    // 1. Fetch if there is already progress for this specific branch
+    setLoadingProgress(true);
+
     try {
-      const progressRes = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
-        params: {
-          scrapedBranchId: selectedBranch.id
+      const API_URL = window.location.hostname !== "support.zaanvar.com"
+        ? "https://dev.zaanvar.com/api/"
+        : "https://prod.zaanvar.com/api/";
+
+      // 1. Fetch if there is already progress for this specific branch
+      try {
+        const progressRes = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+          params: {
+            scrapedBranchId: selectedBranch.id
+          }
+        });
+
+        if (progressRes?.data?.data && (progressRes.claimStatus.status === "DUPLICATE_CLAIM" || progressRes.data.status === "DUPLICATE_CLAIM" || progressRes.data.isDuplicateClaim)) {
+          const ticket = progressRes.data.data.ticket || progressRes.data.data;
+          const step = ticket.currentStep || ticket.current_step;
+          const stepUpper = step?.toUpperCase();
+
+          if (stepUpper && stepUpper !== "APPROVED") {
+            // Found an in-progress ticket! Restore it instead of starting a new claim!
+            localStorage.removeItem("zaanvar_force_claim_new");
+            setTicketId(ticket.ticket_id || ticket.id || null);
+            if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
+
+            const claimBranchId = ticket.branchId || ticket.branch_id || progressRes.data.data.branchId || progressRes.data.data.branch_id;
+            if (claimBranchId) {
+              setBackendBranchId(claimBranchId);
+            }
+
+            localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
+
+            const branchEmail = ticket?.scrapedBranch?.branchEmail || ticket?.scrapedBranch?.email || "";
+            if (branchEmail) {
+              setScrapedBranchEmail(branchEmail);
+            }
+
+            const draft = ticket.draftData || ticket.draft_data || {};
+            setFormData({
+              businessName: draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "",
+              businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "",
+              businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || "",
+              userName: draft.userName || userInfo?.name || "",
+              role: draft.role || ticket.role || "Owner",
+              companyAddress: draft.companyAddress || selectedBranch.branchLocation || ""
+            });
+
+            // Route to the saved step
+            if (stepUpper === "SELECT_BUSINESS" || stepUpper === "COMPANY_SELECTED") {
+              setView("details");
+            } else if (stepUpper === "COMPANY_DETAILS") {
+              const mainAddr = draft.companyAddress || selectedBranch.branchLocation || "";
+              const compName = draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "";
+
+              try {
+                const searchRes = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
+                  params: { search: compName }
+                });
+                const searchData = searchRes?.data?.data || [];
+                const coreSelected = getCoreName(compName);
+                const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
+
+                const matchedBranches = searchData
+                  .filter(r => {
+                    const coreItem = getCoreName(r.fullName || r.branchName);
+                    return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
+                  })
+                  .map(r => ({
+                    id: r.id,
+                    title: "Is this your business ?",
+                    address: r.branchLocation || "Location not provided"
+                  }));
+                if (matchedBranches.length === 0) {
+                  matchedBranches.push({ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr });
+                }
+                setBranchesList(matchedBranches);
+              } catch (err) {
+                setBranchesList([{ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr }]);
+              }
+              setView("branches");
+            } else if (stepUpper === "VERIFY_BUSINESS") {
+              setView("verify_method");
+            } else if (stepUpper === "VERIFICATION_INSTRUCTIONS" || stepUpper === "VERIFICATION_PERMISSIONS" || stepUpper === "VERIFICATION_METHOD") {
+              setView("verify_method");
+              setIsModalOpen(true);
+            } else if (stepUpper === "VERIFY_LATER") {
+              setView("verify_later");
+            } else if (stepUpper === "SUBMITTED") {
+              setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+              setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+              setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+              setView("submitted");
+            } else if (stepUpper === "BUSINESS_VERIFICATION_OTP") {
+              setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
+              setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
+              setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
+              setView("submitted");
+              setShowOtpView(true);
+            }
+            return;
+          }
         }
+      } catch (err) {
+        console.log("No progress found for selected branch, proceeding with new claim creation.");
+      }
+
+      // 2. Otherwise, start a brand new claim wizard flow
+      localStorage.removeItem("zaanvar_force_claim_new");
+      localStorage.removeItem("zaanvar_claim_ticket_id");
+      setTicketId(null);
+      setTicketReferenceId("ZB21234567890");
+      const resolvedName = userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
+
+      const companyName = selectedBranch.fullName || selectedBranch.branchName || "";
+      const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "";
+      const email = selectedBranch.branchEmail || selectedBranch.email || "";
+      const companyAddress = selectedBranch.branchLocation || "";
+
+      localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
+      setScrapedBranchEmail(email);
+
+      setFormData({
+        businessName: companyName,
+        businessPhone: phoneNo,
+        businessEmail: email,
+        userName: resolvedName,
+        role: formData.role || "Owner",
+        companyAddress: companyAddress
       });
 
-      if (progressRes?.data?.data && (progressRes.data.status === "success" || progressRes.data.status === "DUPLICATE_CLAIM" || progressRes.data.isDuplicateClaim)) {
-        const ticket = progressRes.data.data.ticket || progressRes.data.data;
-        const step = ticket.currentStep || ticket.current_step;
-        const stepUpper = step?.toUpperCase();
+      try {
+        const vendorUserId = userInfo?.userId || userInfo?.id || 12;
 
-        if (stepUpper && stepUpper !== "APPROVED") {
-          // Found an in-progress ticket! Restore it instead of starting a new claim!
-          localStorage.removeItem("zaanvar_force_claim_new");
-          setTicketId(ticket.ticket_id || ticket.id || null);
+        const payload = {
+          currentStep: "COMPANY_SELECTED",
+          current_step: "COMPANY_SELECTED",
+          ticket_id: null,
+          scraped_branch_id: selectedBranch.id,
+          vendor_user_id: vendorUserId,
+          companyName: companyName,
+          phoneNo: phoneNo,
+          email: email,
+          userName: resolvedName,
+          role: "Owner",
+          companyAddress: companyAddress,
+          draftData: {
+            companyName: companyName,
+            phoneNo: phoneNo,
+            email: email,
+            userName: resolvedName,
+            role: "Owner",
+            companyAddress: companyAddress
+          },
+          draft_data: {
+            companyName: companyName,
+            phoneNo: phoneNo,
+            email: email,
+            userName: resolvedName,
+            role: "Owner",
+            companyAddress: companyAddress
+          }
+        };
+
+        const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, payload);
+
+        if (res?.data?.data) {
+          const ticket = res.data.data.ticket || res.data.data;
+          const tId = ticket.ticket_id || ticket.ticketId || ticket.id || res.data?.data?.ticket?.id || res.data?.data?.id || null;
+          setTicketId(tId);
           if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
 
-          const claimBranchId = ticket.branchId || ticket.branch_id || progressRes.data.data.branchId || progressRes.data.data.branch_id;
-          if (claimBranchId) {
-            setBackendBranchId(claimBranchId);
-          }
+          const step = ticket.currentStep || ticket.current_step;
+          const stepUpper = step?.toUpperCase();
+          if (stepUpper === "REJECTED" || stepUpper === "DOCUMENT_VERIFICATION") {
+            setView("dispute_docs");
 
-          localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
-
-          const branchEmail = ticket?.scrapedBranch?.branchEmail || ticket?.scrapedBranch?.email || "";
-          if (branchEmail) {
-            setScrapedBranchEmail(branchEmail);
-          }
-
-          const draft = ticket.draftData || ticket.draft_data || {};
-          setFormData({
-            businessName: draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "",
-            businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "",
-            businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || "",
-            userName: draft.userName || userInfo?.name || "",
-            role: draft.role || ticket.role || "Owner",
-            companyAddress: draft.companyAddress || selectedBranch.branchLocation || ""
-          });
-
-          // Route to the saved step
-          if (stepUpper === "SELECT_BUSINESS" || stepUpper === "COMPANY_SELECTED") {
-            setView("details");
-          } else if (stepUpper === "COMPANY_DETAILS") {
-            const mainAddr = draft.companyAddress || selectedBranch.branchLocation || "";
-            const compName = draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "";
-
-            try {
-              const searchRes = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
-                params: { search: compName }
-              });
-              const searchData = searchRes?.data?.data || [];
-              const coreSelected = getCoreName(compName);
-              const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
-
-              const matchedBranches = searchData
-                .filter(r => {
-                  const coreItem = getCoreName(r.fullName || r.branchName);
-                  return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
-                })
-                .map(r => ({
-                  id: r.id,
-                  title: "Is this your business ?",
-                  address: r.branchLocation || "Location not provided"
-                }));
-              if (matchedBranches.length === 0) {
-                matchedBranches.push({ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr });
+            if (tId) {
+              try {
+                const certRes = await axios.get(`${API_URL}scraped-branches/claim/tickets/${tId}/certificates`, {
+                  headers: { Authorization: `Bearer ${jwtToken}` }
+                });
+                if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                  const certData = certRes.data.data;
+                  const certs = certData.certificates || {};
+                  const certUrls = certData.certificateUrls || {};
+                  setTicketStatus(certData.status || "Pending");
+                  setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                  setDisputeDocs(parseCerts(certs, certUrls));
+                }
+              } catch (certErr) {
+                console.error("Failed to fetch certificates:", certErr);
               }
-              setBranchesList(matchedBranches);
-            } catch (err) {
-              setBranchesList([{ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr }]);
             }
-            setView("branches");
-          } else if (stepUpper === "VERIFY_BUSINESS") {
-            setView("verify_method");
-          } else if (stepUpper === "VERIFICATION_INSTRUCTIONS" || stepUpper === "VERIFICATION_PERMISSIONS" || stepUpper === "VERIFICATION_METHOD") {
-            setView("verify_method");
-            setIsModalOpen(true);
-          } else if (stepUpper === "VERIFY_LATER") {
-            setView("verify_later");
-          } else if (stepUpper === "SUBMITTED") {
-            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
-            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
-            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
-            setView("submitted");
-          } else if (stepUpper === "BUSINESS_VERIFICATION_OTP") {
-            setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
-            setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
-            setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
-            setView("submitted");
-            setShowOtpView(true);
+          } else {
+            setView("details");
           }
-          return;
+        } else {
+          setView("details");
+        }
+      } catch (err) {
+        console.error("Failed to save COMPANY_SELECTED progress:", err);
+        const errorData = err.response?.data;
+        if (errorData?.data) {
+          const ticket = errorData.data.ticket || errorData.data;
+          const tId = ticket.ticket_id || ticket.ticketId || ticket.id || errorData.data?.ticket?.id || errorData.data?.id || null;
+          setTicketId(tId);
+          if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
+
+          const step = ticket.currentStep || ticket.current_step;
+          const stepUpper = step?.toUpperCase();
+          if (stepUpper === "REJECTED" || stepUpper === "DOCUMENT_VERIFICATION") {
+            setView("dispute_docs");
+            if (tId) {
+              try {
+                const certRes = await axios.get(`${API_URL}scraped-branches/claim/tickets/${tId}/certificates`, {
+                  headers: { Authorization: `Bearer ${jwtToken}` }
+                });
+                if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                  const certData = certRes.data.data;
+                  const certs = certData.certificates || {};
+                  const certUrls = certData.certificateUrls || {};
+                  setTicketStatus(certData.status || "Pending");
+                  setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                  setDisputeDocs(parseCerts(certs, certUrls));
+                }
+              } catch (certErr) {
+                console.error("Failed to fetch certificates:", certErr);
+              }
+            }
+          } else {
+            setView("details");
+          }
+        } else {
+          setView("details");
         }
       }
-    } catch (err) {
-      console.log("No progress found for selected branch, proceeding with new claim creation.");
+    } finally {
+      setLoadingProgress(false);
     }
-
-    // 2. Otherwise, start a brand new claim wizard flow
-    localStorage.removeItem("zaanvar_force_claim_new");
-    localStorage.removeItem("zaanvar_claim_ticket_id");
-    setTicketId(null);
-    setTicketReferenceId("ZB21234567890");
-    const resolvedName = userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
-
-    const companyName = selectedBranch.fullName || selectedBranch.branchName || "";
-    const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "";
-    const email = selectedBranch.branchEmail || selectedBranch.email || "";
-    const companyAddress = selectedBranch.branchLocation || "";
-
-    localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
-    setScrapedBranchEmail(email);
-
-    setFormData({
-      businessName: companyName,
-      businessPhone: phoneNo,
-      businessEmail: email,
-      userName: resolvedName,
-      role: formData.role || "Owner",
-      companyAddress: companyAddress
-    });
-
-    try {
-      const vendorUserId = userInfo?.userId || userInfo?.id || 12;
-
-      const payload = {
-        currentStep: "COMPANY_SELECTED",
-        current_step: "COMPANY_SELECTED",
-        ticket_id: null,
-        scraped_branch_id: selectedBranch.id,
-        vendor_user_id: vendorUserId,
-        companyName: companyName,
-        phoneNo: phoneNo,
-        email: email,
-        userName: resolvedName,
-        role: "Owner",
-        companyAddress: companyAddress,
-        draftData: {
-          companyName: companyName,
-          phoneNo: phoneNo,
-          email: email,
-          userName: resolvedName,
-          role: "Owner",
-          companyAddress: companyAddress
-        },
-        draft_data: {
-          companyName: companyName,
-          phoneNo: phoneNo,
-          email: email,
-          userName: resolvedName,
-          role: "Owner",
-          companyAddress: companyAddress
-        }
-      };
-
-      const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, payload);
-
-      if (res?.data?.status === "success" && res?.data?.data) {
-        const ticket = res.data.data.ticket || res.data.data;
-        setTicketId(ticket.ticket_id || ticket.id || null);
-        if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
-      }
-    } catch (err) {
-      console.error("Failed to save COMPANY_SELECTED progress:", err);
-    }
-
-    setView("details");
   };
 
   // POST progress for Step 0: COMPANY_DETAILS
@@ -971,12 +1220,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
       })
       .map(r => ({
         id: r.id,
+        name: r.fullName || r.branchName || "",
         title: "Is this your business ?",
         address: r.branchLocation || "Location not provided"
       }));
 
     if (matchedBranches.length === 0) {
-      matchedBranches.push({ id: selectedBranch?.id || 61, title: "Is this your business ?", address: mainAddr });
+      matchedBranches.push({ id: selectedBranch?.id || 61, name: selectedBranch?.fullName || selectedBranch?.branchName || "", title: "Is this your business ?", address: mainAddr });
     }
 
     setBranchesList(matchedBranches);
@@ -1003,7 +1253,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
       const selectedBranchesPayload = selectedBranchItems.map(b => ({
         id: b.id,
-        branchName: b.title,
+        branchName: b.name || b.title,
         branchLocation: b.address,
         phoneNumber: formData.businessPhone || ""
       }));
@@ -1023,7 +1273,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         pincode: "560038",
         businessAddress: mainAddr,
         draftData: {
-          companyName: formData.businessName,
+          branchName: formData.businessName,
           phoneNo: formData.businessPhone,
           email: formData.businessEmail,
           userName: formData.userName,
@@ -1040,7 +1290,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
           businessAddress: mainAddr
         },
         draft_data: {
-          companyName: formData.businessName,
+          branchName: formData.businessName,
           phoneNo: formData.businessPhone,
           email: formData.businessEmail,
           userName: formData.userName,
@@ -1299,28 +1549,53 @@ const ClaimBusiness = ({ forcedView = null }) => {
           ? parseInt(savedBackendBranchId, 10)
           : null);
 
-      if (!targetId) {
-        toast.error("Branch ID not found in claim progress response.");
-        return;
-      }
+      if (view === "verify_later" || view === "verify_otp" || currentTicketStep === "VERIFY_LATER") {
+        const vendorUserId = userInfo?.userId || userInfo?.id || 233;
+        const savedScrapedBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null;
+        const finalScrapedId = savedScrapedBranchId ? parseInt(savedScrapedBranchId, 10) : targetId;
 
-      const payload = {
-        type: "branch",
-        id: targetId,
-        otp: otpString
-      };
+        if (!finalScrapedId) {
+          toast.error("Scraped Branch ID not found.");
+          return;
+        }
 
-      const res = await axios.post(`${API_URL}verification/verify-single-otp`, payload);
+        const verifyPayload = {
+          scrapedBranchId: finalScrapedId,
+          vendorUserId: parseInt(vendorUserId, 10),
+          otp: otpString,
+          autoConvert: true
+        };
 
-      if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
-        toast.success("OTP verified successfully!");
-        setIsVerified(true);
-        setView("home");
-        router.replace("/home");
+        const res = await axios.post(`${API_URL}scraped-branches/claim/verify`, verifyPayload);
+
+        if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
+          toast.success("Business verified successfully!");
+          setIsVerified(true);
+          window.location.href = "/home";
+        }
+      } else {
+        if (!targetId) {
+          toast.error("Branch ID not found in claim progress response.");
+          return;
+        }
+
+        const payload = {
+          type: "branch",
+          id: targetId,
+          otp: otpString
+        };
+
+        const res = await axios.post(`${API_URL}verification/verify-single-otp`, payload);
+
+        if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
+          toast.success("OTP verified successfully!");
+          setIsVerified(true);
+          window.location.href = "/home";
+        }
       }
     } catch (err) {
       console.error("Failed to verify OTP code:", err);
-      const errMsg = err?.response?.data?.message || err?.message || "Failed to verify OTP.";
+      const errMsg = err?.response?.data?.message || err?.response?.data?.msg || err?.message || "Failed to verify OTP.";
       toast.error(errMsg);
     }
   };
@@ -1381,6 +1656,54 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
       const list = details.reviews || data.reviews || data.data?.reviews || [];
       setReviewsList(Array.isArray(list) ? list : []);
+
+      setBackendBranchId(bId);
+
+      // Check for duplicate claim status
+      const isDismissed = typeof window !== "undefined" ? sessionStorage.getItem(`dismiss_duplicate_claim_${bId}`) : null;
+      const isDocUnderReview = data.isDocumentVerified === "underReview" || details.isDocumentVerified === "underReview";
+      const isDuplicate = data.claimStatus === "DUPLICATE_CLAIM" || details.claimStatus === "DUPLICATE_CLAIM" || res?.claimStatus === "DUPLICATE_CLAIM" || data.status === "DUPLICATE_CLAIM";
+
+      if (isDuplicate && isDocUnderReview) {
+        // Already submitted documents — go straight to the document verification screen
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("zaanvar_doc_verification_type", "branch");
+        }
+        setDocVerificationType("branch");
+        setView("dispute_docs");
+
+        // Fetch existing certificates using the branch ID!
+        if (bId) {
+          const API_URL = window.location.hostname !== "support.zaanvar.com"
+            ? "https://dev.zaanvar.com/api/"
+            : "https://prod.zaanvar.com/api/";
+          try {
+            const certRes = await axios.get(`${API_URL}branches/${bId}/certificates`, {
+              headers: { Authorization: `Bearer ${jwtToken}` }
+            });
+            if (certRes?.data?.status === "success" && certRes?.data?.data) {
+              const certData = certRes.data.data;
+              const certs = certData.certificates || {};
+              const certUrls = certData.certificateUrls || {};
+              setTicketStatus(certData.status || "Pending");
+              setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+              setDisputeDocs(parseCerts(certs, certUrls));
+            }
+          } catch (certErr) {
+            console.error("Failed to fetch certificates:", certErr);
+          }
+        }
+        // setShowUnderReviewModal(true);
+      } else if (!isDismissed && isDuplicate) {
+        // Use currentStep from response OR from state (set by fetchClaimProgress earlier)
+        const currentStep = data.currentStep || details.currentStep || data.data?.currentStep || currentTicketStep || "";
+        const stepU = typeof currentStep === "string" ? currentStep.toUpperCase() : "";
+        if (stepU === "DOCUMENT_VERIFICATION" || stepU === "REJECTED") {
+          // setShowUnderReviewModal(true);
+        } else {
+          setIsDuplicateClaimModalOpen(true);
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch branch details and reviews:", err);
     } finally {
@@ -1540,6 +1863,120 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }
       >
         <div className={styles.container}>
+          {isDuplicateClaimModalOpen && (
+            <div className={styles.disputeModalOverlay}>
+              <div className={styles.disputeModalContent}>
+                <button
+                  type="button"
+                  className={styles.disputeModalCloseBtn}
+                  onClick={handleDismissDuplicateClaim}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+
+                <div className={styles.disputeModalSvgWrapper}>
+                  <svg width="100" height="100" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="60" cy="60" r="45" stroke="#3b82f6" strokeWidth="3" fill="#eff6ff" />
+                    <path d="M60 38 V68 M60 78 V82" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" />
+                    <circle cx="30" cy="35" r="2" fill="#60a5fa" />
+                    <circle cx="90" cy="40" r="3" fill="#93c5fd" />
+                    <circle cx="25" cy="75" r="2.5" fill="#60a5fa" />
+                    <circle cx="95" cy="80" r="2" fill="#93c5fd" />
+                    <path d="M35 45 L40 50 M40 45 L35 50" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M80 75 L85 80 M85 75 L80 80" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </div>
+
+                <h3 className={styles.disputeModalTitle}>
+                  Someone is trying to claim<br />your business
+                </h3>
+                <p className={styles.disputeModalText}>
+                  We need more information from you to protect your business listing on zaanvar.
+                </p>
+
+                <div className={styles.disputeModalInfoBox}>
+                  <div style={{ flexShrink: 0 }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 11.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
+                    </svg>
+                  </div>
+                  <p className={styles.disputeModalInfoText}>
+                    PLEASE UPLOAD LEGAL DOCUMENTS TO VERIFY THAT THIS BUSINESS BELONGS TO YOU.
+                  </p>
+                </div>
+
+                <div className={styles.disputeModalBtnRow}>
+                  <button
+                    type="button"
+                    onClick={handleDismissDuplicateClaim}
+                    className={styles.disputeModalBtnCancel}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const type = forcedView === "home" ? "branch" : "ticket";
+                      if (typeof window !== "undefined") {
+                        sessionStorage.setItem("zaanvar_doc_verification_type", type);
+                      }
+                      setDocVerificationType(type);
+                      setIsDuplicateClaimModalOpen(false);
+                      setView("dispute_docs");
+
+                      try {
+                        const API_URL = window.location.hostname !== "support.zaanvar.com"
+                          ? "https://dev.zaanvar.com/api/"
+                          : "https://prod.zaanvar.com/api/";
+                        const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+                        const resolvedBranchId = backendBranchId || (savedBackendBranchId ? parseInt(savedBackendBranchId) : null);
+                        
+                        const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
+                        const activeTId = ticketId || (savedTicketId && savedTicketId !== "null" ? savedTicketId : null);
+
+                        const url = type === "branch" && resolvedBranchId
+                          ? `${API_URL}branches/${resolvedBranchId}/certificates`
+                          : `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`;
+
+                        const idToUse = type === "branch" ? resolvedBranchId : activeTId;
+
+                        if (idToUse) {
+                          const certRes = await axios.get(url, {
+                            headers: { Authorization: `Bearer ${jwtToken}` }
+                          });
+                          if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                            const certData = certRes.data.data;
+                            const certs = certData.certificates || {};
+                            const certUrls = certData.certificateUrls || {};
+                            setTicketStatus(certData.status || "Pending");
+                            setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                            setDisputeDocs(parseCerts(certs, certUrls));
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Failed to fetch branch certificates:", err);
+                      }
+                    }}
+                    className={styles.disputeModalBtnUpload}
+                  >
+                    Upload Legal Document
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDismissDuplicateClaim}
+                  className={styles.disputeModalRemindLaterBtn}
+                >
+                  Remind me Later
+                </button>
+              </div>
+            </div>
+          )}
           {loadingProgress ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, minHeight: '300px' }}>
               <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #1a73e8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -1601,10 +2038,11 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       });
                       if (confirmClaim) {
                         localStorage.setItem("zaanvar_force_claim_new", "true");
+                        localStorage.removeItem("zaanvar_claim_ticket_id");
                         setBackendBranchId(null);
                         setSelectedBranch(null);
+                        setTicketId(null);
                         setView("search");
-                        router.push("/onboarding?newClaim=true");
                       }
                     }}
                   >
@@ -2037,16 +2475,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
               {/* Header titles container with 3-dot options menu aligned to top right */}
               <div className={styles.titleContainer}>
                 <div>
-                  <h1 className={styles.title}>
+                  <h1 className={styles.headerTitle} style={{ margin: 0 }}>
                     {view === "search"
-                      ? searchQuery.trim() ? "Search Result" : "Claim Your Business"
+                      ? "Claim Your Business"
                       : view === "details"
                         ? "Company Details"
                         : view === "submitted"
                           ? "Uploaded Previews"
-                          : "Verify"}
+                          : view === "dispute_docs"
+                            ? "Document Verification"
+                            : "Verify"}
                   </h1>
-                  {view !== "submitted" && (
+                  {view !== "submitted" && view !== "dispute_docs" && (
                     <p className={styles.subtitle} style={{ margin: 0 }}>
                       {view === "search"
                         ? searchQuery.trim()
@@ -2107,6 +2547,130 @@ const ClaimBusiness = ({ forcedView = null }) => {
               </div>
 
               <div style={{ marginTop: "24px" }} />
+
+              {/* "Already Registered" Dispute Modal */}
+              {isDisputeModalOpen && (
+                <div className={styles.disputeModalOverlay}>
+                  <div className={styles.disputeModalContent}>
+                    <button
+                      type="button"
+                      className={styles.disputeModalCloseBtn}
+                      onClick={() => setIsDisputeModalOpen(false)}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+
+                    <div className={styles.disputeModalSvgWrapper}>
+                      <svg width="100" height="100" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M60 25 L95 85 H25 Z" stroke="#3b82f6" strokeWidth="3" strokeLinejoin="round" fill="#eff6ff" />
+                        <path d="M60 45 V65 M60 72 V74" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                        <circle cx="35" cy="35" r="2.5" fill="#60a5fa" />
+                        <circle cx="85" cy="40" r="3.5" fill="#93c5fd" />
+                        <circle cx="20" cy="70" r="2" fill="#60a5fa" />
+                        <circle cx="100" cy="80" r="2.5" fill="#93c5fd" />
+                        <path d="M30 40 L35 45 M35 40 L30 45" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M85 70 L90 75 M90 70 L85 75" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
+
+                    <h3 className={styles.disputeModalTitle}>
+                      This business is already<br />Registered
+                    </h3>
+                    <p className={styles.disputeModalText}>
+                      This business is already registered on zaanvar by another user<br />(person S*******)
+                    </p>
+
+                    <div className={styles.disputeModalInfoBox}>
+                      <div style={{ flexShrink: 0 }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                        </svg>
+                      </div>
+                      <p className={styles.disputeModalInfoText}>
+                        MAKE SURE THE DOCUMENT YOU UPLOAD CONTAINS THE CORRECT BUSINESS NAME, ADDRESS, AND REGISTRATION DETAILS
+                      </p>
+                    </div>
+
+                    <div className={styles.disputeModalBtnRow}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDisputeModalOpen(false)}
+                        className={styles.disputeModalBtnCancel}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const API_URL = window.location.hostname !== "support.zaanvar.com"
+                              ? "https://dev.zaanvar.com/api/"
+                              : "https://prod.zaanvar.com/api/";
+                            const vendorUserId = userInfo?.userId || userInfo?.id || 12;
+
+                            const res = await axios.post(`${API_URL}scraped-branches/claim/progress`, {
+                              currentStep: "DOCUMENT_VERIFICATION",
+                              ticket_id: ticketId || null,
+                              scraped_branch_id: selectedBranch?.id,
+                              vendor_user_id: vendorUserId
+                            }, {
+                              headers: { Authorization: `Bearer ${jwtToken}` }
+                            });
+
+                            if (res?.data?.status === "success" && res?.data?.data) {
+                              const ticket = res.data.data.ticket || res.data.data;
+                              const activeTId = ticket.ticket_id || ticket.id || null;
+                              setTicketId(activeTId);
+                              if (ticket.ticket_reference_id) setTicketReferenceId(ticket.ticket_reference_id);
+
+                              if (typeof window !== "undefined") {
+                                sessionStorage.setItem("zaanvar_doc_verification_type", "ticket");
+                              }
+                              setDocVerificationType("ticket");
+
+                              if (activeTId) {
+                                try {
+                                  const certRes = await axios.get(`${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`, {
+                                    headers: { Authorization: `Bearer ${jwtToken}` }
+                                  });
+                                  if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                                    const certData = certRes.data.data;
+                                    const certs = certData.certificates || {};
+                                    const certUrls = certData.certificateUrls || {};
+                                    setTicketStatus(certData.status || "Pending");
+                                    setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                                    setDisputeDocs(parseCerts(certs, certUrls));
+                                  }
+                                } catch (certErr) {
+                                  console.error("Failed to fetch certificates:", certErr);
+                                }
+                              }
+                            }
+                          } catch (err) {
+                            console.error("Failed to save DOCUMENT_VERIFICATION progress:", err);
+                          }
+                          setIsDisputeModalOpen(false);
+                          setView("dispute_docs");
+                        }}
+                        className={styles.disputeModalBtnUpload}
+                      >
+                        Upload Legal Document
+                      </button>
+                    </div>
+
+                    <div className={styles.disputeModalSecurityRow}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                      <span>Your information is secure and will only be used for<br />verification purposes</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* STEP 1: SEARCH VIEW */}
               {view === "search" && (
@@ -2321,7 +2885,295 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 </div>
               )}
 
-              {/* STEP 2: COMPANY DETAILS FORM VIEW */}
+              {/* DISPUTE DOCS UPLOAD VIEW */}
+              {view === "dispute_docs" && (
+                <div className={styles.docsContainer}>
+                  <div className={styles.docsHeader}>
+                    <div className={styles.docsAvatar}>
+                      {(userInfo?.name || "S").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className={styles.docsTitle}>
+                        Upload Document&apos;s
+                      </h2>
+                      <p className={styles.docsSubtitle}>
+                        Please upload a clear, valid business documents matching your registered business details.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className={styles.docsListWrapper}>
+                    {[
+                      { key: 'gst', label: 'GST Registration Certificate' },
+                      { key: 'shop', label: 'Shop & Establishment Certificate' },
+                      { key: 'msme', label: 'Udyam/MSME Registration Certificate' },
+                      { key: 'businessReg', label: 'Business Registration Certificate' },
+                      { key: 'tradeLicense', label: 'Trade License' }
+                    ].map((doc) => (
+                      <div key={doc.key} className={styles.docsRow}>
+                        <div className={styles.docsRowLeft}>
+                          <span className={styles.docsRowIcon}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          </span>
+                          <span className={styles.docsRowLabel}>{doc.label}</span>
+                        </div>
+                        <div className={styles.docsRowRight}>
+                          {typeof disputeDocs[doc.key] === "string" ? (
+                            <a
+                              href={disputeDocs[doc.key]}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.docsStatusSelected}
+                              style={{ textDecoration: 'underline', color: '#1a73e8', cursor: 'pointer' }}
+                            >
+                              View Uploaded File
+                            </a>
+                          ) : disputeDocs[doc.key] ? (
+                            <span className={styles.docsStatusSelected}>File Selected</span>
+                          ) : (
+                            <span className={styles.docsStatusEmpty}>No file</span>
+                          )}
+
+                          {ticketStatus !== "Approved" && !disputeDocs[doc.key] && (
+                            <label className={styles.docsUploadLabel}>
+                              <IconUploadCloud /> Upload
+                              <input
+                                type="file"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    setDisputeDocs(prev => ({ ...prev, [doc.key]: e.target.files[0] }));
+                                  }
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={styles.docsSubmitContainer}>
+                    {(() => {
+                      const hasExistingSubmission = (
+                        Object.values(disputeDocs).some(val => typeof val === "string") ||
+                        currentTicketStep === "DOCUMENT_VERIFICATION" ||
+                        currentTicketStep === "VERIFIED" ||
+                        ticketStatus === "Approved" ||
+                        ticketStatus === "Submitted"
+                      ) && ticketStatus !== "Rejected";
+                      const hasNewFilesSelected = Object.values(disputeDocs).some(val => val !== null && typeof val !== "string");
+                      const isSubmitDisabled = isDisputeSubmitting || (hasExistingSubmission && !hasNewFilesSelected);
+                      return (
+                        <button
+                          type="button"
+                          disabled={isSubmitDisabled}
+                          className={styles.docsSubmitBtn}
+                          onClick={async () => {
+                            // Check if at least one file is uploaded
+                            if (!Object.values(disputeDocs).some(file => file !== null)) {
+                              toast.error("Please upload at least one legal document to dispute this claim.");
+                              return;
+                            }
+                            setIsDisputeSubmitting(true);
+
+                            try {
+                              const API_URL = window.location.hostname !== "support.zaanvar.com"
+                                ? "https://dev.zaanvar.com/api/"
+                                : "https://prod.zaanvar.com/api/";
+
+                              const formData = new FormData();
+                              if (disputeDocs.gst) formData.append("gstRegistrationCertificate", disputeDocs.gst);
+                              if (disputeDocs.shop) formData.append("shopEstablishmentCertificate", disputeDocs.shop);
+                              if (disputeDocs.msme) formData.append("udyamMsmeCertificate", disputeDocs.msme);
+                              if (disputeDocs.businessReg) formData.append("businessRegistrationCertificate", disputeDocs.businessReg);
+                              if (disputeDocs.tradeLicense) formData.append("tradeLicense", disputeDocs.tradeLicense);
+
+                              const type = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_doc_verification_type") : "ticket";
+                              const isBranch = type === "branch";
+                              const finalBranchId = backendBranchId || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null);
+
+                              let activeTId = ticketId || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null);
+                              if (!isBranch) {
+                                try {
+                                  const vendorUserId = userInfo?.userId || userInfo?.id || 12;
+                                  const savedBranchId = selectedBranch?.id || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null);
+                                  const progressRes = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+                                    params: {
+                                      vendor_user_id: vendorUserId,
+                                      scrapedBranchId: savedBranchId
+                                    },
+                                    headers: { Authorization: `Bearer ${jwtToken}` }
+                                  });
+                                  const progressData = progressRes?.data?.data || progressRes?.data;
+                                  const ticketObj = progressData?.ticket || progressData;
+                                  if (ticketObj) {
+                                    const freshId = ticketObj.ticket_id || ticketObj.ticketId || ticketObj.id || null;
+                                    if (freshId) {
+                                      activeTId = freshId;
+                                      setTicketId(freshId);
+                                    }
+                                  }
+                                } catch (e) {
+                                  console.warn("Failed to fetch fresh progress ticket ID during submit:", e);
+                                  const errorData = e.response?.data;
+                                  const ticketObj = errorData?.data?.ticket || errorData?.data;
+                                  if (ticketObj) {
+                                    const freshId = ticketObj.ticket_id || ticketObj.ticketId || ticketObj.id || null;
+                                    if (freshId) {
+                                      activeTId = freshId;
+                                      setTicketId(freshId);
+                                    }
+                                  }
+                                }
+                              }
+                              
+                              const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+                              const resolvedBranchId = backendBranchId || (savedBackendBranchId ? parseInt(savedBackendBranchId) : null);
+                              
+                              const docType = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_doc_verification_type") : "ticket";
+                              const finalBranchIdToUse = docType === "branch" ? (resolvedBranchId || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null)) : null;
+
+                              const url = finalBranchIdToUse
+                                ? `${API_URL}branches/${finalBranchIdToUse}/certificates`
+                                : `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`;
+
+                              await axios.put(url, formData, {
+                                headers: {
+                                  'Content-Type': 'multipart/form-data',
+                                  Authorization: `Bearer ${jwtToken}`
+                                }
+                              });
+
+                              // Fetch certificates immediately after successful PUT so the UI updates
+                              try {
+                                const certRes = await axios.get(url, {
+                                  headers: { Authorization: `Bearer ${jwtToken}` }
+                                });
+                                if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                                  const certData = certRes.data.data;
+                                  const certs = certData.certificates || {};
+                                  const certUrls = certData.certificateUrls || {};
+                                  setTicketStatus(certData.status || "Pending");
+                                  setDisputeDocs(parseCerts(certs, certUrls));
+                                }
+                              } catch (fetchErr) {
+                                console.error("Failed to re-fetch certificates:", fetchErr);
+                              }
+
+                              setIsDisputeSubmitting(false);
+                              toast.success("Documents submitted for verification successfully!");
+                              // setShowUnderReviewModal(true);
+                            } catch (error) {
+                              console.error("Failed to upload certificates", error);
+                              toast.error("Failed to upload documents.");
+                              setIsDisputeSubmitting(false);
+                            }
+                          }}
+                        >
+                          {isDisputeSubmitting ? "Submitting..." : hasNewFilesSelected ? "Submit" : hasExistingSubmission ? "Submitted - Under Review" : "Submit"}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* UNDER REVIEW POPUP MODAL — commented out per request */}
+              {/* {showUnderReviewModal && (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100vw",
+                    height: "100vh",
+                    backgroundColor: "rgba(0,0,0,0.45)",
+                    zIndex: 99999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "16px"
+                  }}
+                  onClick={() => setShowUnderReviewModal(false)}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: "16px",
+                      padding: "36px 32px 32px",
+                      maxWidth: "420px",
+                      width: "100%",
+                      position: "relative",
+                      boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+                      textAlign: "center"
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => setShowUnderReviewModal(false)}
+                      style={{
+                        position: "absolute",
+                        top: "14px",
+                        right: "16px",
+                        background: "none",
+                        border: "none",
+                        fontSize: "20px",
+                        color: "#64748b",
+                        cursor: "pointer",
+                        lineHeight: 1
+                      }}
+                    >
+                      ×
+                    </button>
+                    <div
+                      style={{
+                        width: "72px",
+                        height: "72px",
+                        borderRadius: "50%",
+                        backgroundColor: "#eff6ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 20px"
+                      }}
+                    >
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <circle cx="11" cy="14" r="3" />
+                        <path d="M13.27 16.27L15 18" />
+                      </svg>
+                    </div>
+                    <h3 style={{ margin: "0 0 12px", fontSize: "18px", fontWeight: "700", color: "#0f172a", lineHeight: 1.3 }}>
+                      Your Document&apos;s Verification is<br />Under Review
+                    </h3>
+                    <p style={{ margin: "0 0 24px", fontSize: "14px", color: "#475569", lineHeight: 1.6 }}>
+                      If your documents are perfectly matched to the business profile which you want to claim, the business will be claimed to you and you will get the account activation notification to your mail ID.
+                    </p>
+                    <div
+                      style={{
+                        backgroundColor: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        borderRadius: "8px",
+                        padding: "12px 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        textAlign: "left"
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                      </svg>
+                      <span style={{ fontSize: "11px", fontWeight: "600", color: "#1e40af", letterSpacing: "0.02em", textTransform: "uppercase" }}>
+                        We&apos;ll send you an email notification once the verification is completed.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )} */}
               {view === "details" && (
                 <div className={styles.splitLayout}>
                   {/* Form card left */}

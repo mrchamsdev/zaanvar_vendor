@@ -13,11 +13,11 @@ const LOGO_URL =
   "https://zaanvarprods3.b-cdn.net/media/1773901732776-zaanvarbusinesslogo.svg";
 
 const SLIDES = [
-  { title: "Pet Sales",    img: "https://zaanvarprods3.b-cdn.net/media/1773904975247-petsales.jpeg" },
+  { title: "Pet Sales", img: "https://zaanvarprods3.b-cdn.net/media/1773904975247-petsales.jpeg" },
   { title: "Pet Day Care", img: "https://zaanvarprods3.b-cdn.net/media/1773904967711-daycare.jpeg" },
   { title: "Pet Grooming", img: "https://zaanvarprods3.b-cdn.net/media/1773904959532-grooming.jpeg" },
-  { title: "Pet Clinic",   img: "https://zaanvarprods3.b-cdn.net/media/1773904953568-clinic.jpeg" },
-  { title: "Pet Shops",    img: "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg" },
+  { title: "Pet Clinic", img: "https://zaanvarprods3.b-cdn.net/media/1773904953568-clinic.jpeg" },
+  { title: "Pet Shops", img: "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg" },
   { title: "Pet Training", img: "https://zaanvarprods3.b-cdn.net/media/1773904939833-pettaining.jpeg" },
 ];
 
@@ -210,9 +210,9 @@ const SignIn = ({ onSignUpClick }) => {
     const cb = () => {
       try {
         ["/forgotpassword", "/sign-up", "/dashboard", "/"].forEach((p) =>
-          router.prefetch(p).catch(() => {})
+          router.prefetch(p).catch(() => { })
         );
-      } catch {}
+      } catch { }
     };
     window.requestIdleCallback ? window.requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 1500);
   }, [router]);
