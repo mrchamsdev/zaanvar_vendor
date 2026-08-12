@@ -115,7 +115,7 @@ export default function useDashboardData(options = {}) {
   /* ── fetch vendor settings ── */
   useEffect(() => {
     if (!jwtToken || !branchId) return;
-    
+
     getSettings(jwtToken, branchId)
       .then((res) => {
         const data = res?.data?.settings || res?.settings;
@@ -204,7 +204,7 @@ export default function useDashboardData(options = {}) {
     ratings,
     reviewsLoading,
     reviewsError,
-    
+
     /* ── currency ── */
     currencySymbol: vendorSettings?.general?.businessCurrency || "₹",
   };

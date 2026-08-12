@@ -37,7 +37,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient && jwt) {
-      router.replace("/pet-sales");
+      router.replace("/onboarding");
     }
   }, [isClient, jwt, router]);
 
