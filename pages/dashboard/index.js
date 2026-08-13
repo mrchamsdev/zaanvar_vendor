@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import ClaimBusiness from "../claim-business";
 import useDashboardData from "../../components/dashboard/useDashboardData";
 import useStore from "../../components/state/useStore";
 import { WebApimanager } from "../../components/utilities/WebApiManager";
@@ -63,7 +64,22 @@ const TimeFilterDropdown = ({ value, fromDate, toDate, onChange, onDateChange })
 
 export default function DashboardHomePage() {
   const { vendor, branchId } = useDashboardData({ skipReviews: true });
-  const { jwtToken } = useStore();
+  const { jwtToken, userInfo } = useStore();
+
+  const companies = userInfo?.vendorCompanies || [];
+  const company = companies[0] || null;
+  const hasActiveSubscription =
+    userInfo?.isSubscribed ||
+    userInfo?.subscriptionActive ||
+    userInfo?.subscriptionPlan ||
+    company?.isSubscribed ||
+    company?.subscriptionPlan ||
+    false;
+
+  if (!hasActiveSubscription) {
+    return <ClaimBusiness forcedView="home" />;
+  }
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 

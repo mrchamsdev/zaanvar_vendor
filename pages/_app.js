@@ -35,6 +35,7 @@ const AUTH_REDIRECT_ROUTES = [
 
 /* Routes that require a valid login (redirect → /login) */
 const PROTECTED_PREFIXES = [
+  "/home",
   "/dashboard",
   "/profile",
   "/timing-slots",
@@ -62,6 +63,7 @@ function AuthGuard({ children }) {
       // If user has no business, redirect from dashboard/services to /onboarding
       const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
       const isDashboardOrService = [
+        "/home",
         "/dashboard",
         "/timing-slots",
         "/reviews",
@@ -78,12 +80,45 @@ function AuthGuard({ children }) {
         return;
       }
 
-      // Logged-in user tries to access a public-only route → send to dashboard (or onboarding if no business)
+      // Check if trying to access premium dashboard/management services without subscription
+      const isPremiumPath = [
+        "/dashboard",
+        "/timing-slots",
+        "/clinic",
+        "/pet-shop",
+        "/daycare",
+        "/training",
+        "/grooming",
+        "/pet-sales",
+        "/inventory",
+        "/purchase-bill",
+        "/sale",
+        "/customers",
+        "/staff-management",
+        "/suppliers",
+        "/settings",
+        "/vendor-settings"
+      ].some((prefix) => path.startsWith(prefix));
+
+      const hasActiveSubscription =
+        userInfo?.isSubscribed ||
+        userInfo?.subscriptionActive ||
+        userInfo?.subscriptionPlan ||
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
+        false;
+
+      if (!hasNoBusiness && !hasActiveSubscription && isPremiumPath) {
+        router.replace("/home");
+        return;
+      }
+
+      // Logged-in user tries to access a public-only route → send to /home (or onboarding if no business)
       if (AUTH_REDIRECT_ROUTES.includes(path)) {
         if (hasNoBusiness) {
           router.replace("/onboarding");
         } else {
-          router.replace("/dashboard");
+          router.replace("/home");
         }
       }
     } else {

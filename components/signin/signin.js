@@ -309,7 +309,7 @@ const SignIn = ({ onSignUpClick }) => {
         if (hasNoBusiness) {
           setTimeout(() => router.push("/onboarding"), 500);
         } else {
-          setTimeout(() => router.push("/dashboard"), 500);
+          setTimeout(() => router.push("/home"), 500);
         }
       } else {
         const msg = response?.message || response?.error || "Login failed. Please try again.";
@@ -419,7 +419,7 @@ const SignIn = ({ onSignUpClick }) => {
         if (hasNoBusiness) {
           setTimeout(() => router.push("/onboarding"), 500);
         } else {
-          setTimeout(() => router.push("/dashboard"), 500);
+          setTimeout(() => router.push("/home"), 500);
         }
       } else {
         const msg = response?.message || response?.error || "OTP verification failed.";
