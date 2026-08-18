@@ -61,10 +61,20 @@ export default function useDashboardData(options = {}) {
   // Robust companyId extraction: try compId, id, and companyId from company or vendor
   const companyId = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
 
+  // Determine if the user has dashboard access (verified business + subscription)
+  const hasDashboardAccess = companies.length > 0 && (
+    vendor?.isSubscribed ||
+    vendor?.subscriptionActive ||
+    vendor?.subscriptionPlan ||
+    company?.isSubscribed ||
+    company?.subscriptionPlan ||
+    false
+  );
+
   const [apiBranches, setApiBranches] = useState(null);
 
   useEffect(() => {
-    if (!jwtToken || !companyId) return;
+    if (!jwtToken || !companyId || !hasDashboardAccess) return;
     const webApi = new WebApimanager(jwtToken);
     webApi.get(`branches/getBranchesByCompany/${companyId}`)
       .then((res) => {
@@ -81,7 +91,10 @@ export default function useDashboardData(options = {}) {
       .catch((err) => console.error("Failed to fetch branches by company:", err));
   }, [jwtToken, companyId]);
 
-  const branches = apiBranches || company?.branches || [];
+  // Only use company?.branches fallback when the user has dashboard access.
+  // Without access, the API fetch is skipped and company?.branches may contain
+  // unverified/in-progress branches that don't exist in the database yet.
+  const branches = apiBranches || (hasDashboardAccess ? (company?.branches || []) : []);
 
   // ── Resolve the correct branchId in a single synchronous pass ──────────
   // Priority: URL query param > persisted store value > first branch
@@ -112,9 +125,9 @@ export default function useDashboardData(options = {}) {
 
   const branchId = branch?.id || branch?._id || null;
 
-  /* ── fetch vendor settings ── */
+  /* ── fetch vendor settings (only when dashboard access is available) ── */
   useEffect(() => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken || !branchId || !hasDashboardAccess) return;
 
     getSettings(jwtToken, branchId)
       .then((res) => {
@@ -130,9 +143,9 @@ export default function useDashboardData(options = {}) {
       });
   }, [jwtToken, branchId, setVendorSettings]);
 
-  /* ── fetch roles & poll every 10 mins ── */
+  /* ── fetch roles & poll every 10 mins (only when dashboard access is available) ── */
   useEffect(() => {
-    if (!jwtToken || !branchId) return;
+    if (!jwtToken || !branchId || !hasDashboardAccess) return;
 
     const fetchRoles = () => {
       const webApi = new WebApimanager(jwtToken);

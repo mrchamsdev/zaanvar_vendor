@@ -62,6 +62,14 @@ function AuthGuard({ children }) {
     if (jwtToken) {
       // If user has no business, redirect from dashboard/services to /onboarding
       const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+      const hasActiveSubscription =
+        userInfo?.isSubscribed ||
+        userInfo?.subscriptionActive ||
+        userInfo?.subscriptionPlan ||
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
+        false;
+
       const isDashboardOrService = [
         "/home",
         "/dashboard",
@@ -75,8 +83,16 @@ function AuthGuard({ children }) {
         "/pet-sales"
       ].some((prefix) => path.startsWith(prefix));
 
+      // Users with no business at all → onboarding
       if (hasNoBusiness && isDashboardOrService) {
         router.replace("/onboarding");
+        return;
+      }
+
+      // Users with vendorCompanies but no subscription trying to access /home
+      // → send to /claim-business which handles the claim flow internally
+      if (!hasNoBusiness && !hasActiveSubscription && path.startsWith("/home")) {
+        router.replace("/claim-business");
         return;
       }
 
@@ -100,23 +116,17 @@ function AuthGuard({ children }) {
         "/vendor-settings"
       ].some((prefix) => path.startsWith(prefix));
 
-      const hasActiveSubscription =
-        userInfo?.isSubscribed ||
-        userInfo?.subscriptionActive ||
-        userInfo?.subscriptionPlan ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
-        false;
-
       if (!hasNoBusiness && !hasActiveSubscription && isPremiumPath) {
-        router.replace("/home");
+        router.replace("/claim-business");
         return;
       }
 
-      // Logged-in user tries to access a public-only route → send to /home (or onboarding if no business)
+      // Logged-in user tries to access a public-only route → send to appropriate page
       if (AUTH_REDIRECT_ROUTES.includes(path)) {
         if (hasNoBusiness) {
           router.replace("/onboarding");
+        } else if (!hasActiveSubscription) {
+          router.replace("/claim-business");
         } else {
           router.replace("/home");
         }

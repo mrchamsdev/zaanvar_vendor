@@ -197,13 +197,18 @@ const BRANCH_SERVICE_MAP = {
 };
 
 function buildMenuFromVendor(userInfo) {
-  // If the user has no business claimed yet, show the simplified onboarding sidebar
   const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+  const hasActiveSubscription =
+    userInfo?.isSubscribed ||
+    userInfo?.subscriptionActive ||
+    userInfo?.subscriptionPlan ||
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
+    false;
 
-  if (hasNoBusiness) {
+  if (hasNoBusiness || !hasActiveSubscription) {
     return [
       { label: "Home", path: "/claim-business", icon: <IconHome /> },
-      { label: "Reviews", path: "#", icon: <IconStar /> },
       { label: "Profile", path: "#", icon: <IconUser /> },
       { label: "Change Password", path: "#", icon: <IconSettings /> },
       { label: "My Subscription", path: "#", icon: <IconPackage /> },
@@ -417,8 +422,17 @@ const DashboardLayout = ({
   const rolesLoaded = Array.isArray(roles) && roles.length > 0;
 
   const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+  const hasActiveSubscription =
+    userInfo?.isSubscribed ||
+    userInfo?.subscriptionActive ||
+    userInfo?.subscriptionPlan ||
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
+    false;
 
-  const filteredMenuItems = hasNoBusiness
+  const hasNoBusinessOrNoSub = hasNoBusiness || !hasActiveSubscription;
+
+  const filteredMenuItems = hasNoBusinessOrNoSub
     ? menuItems
     : isSuperAdmin
       ? menuItems
@@ -512,7 +526,7 @@ const DashboardLayout = ({
             const isExpanded = expandedMenus[item.path];
 
             return (
-              <li key={item.path} className={isActive ? (hasNoBusiness ? styles.activeBlue : styles.active) : ""}>
+              <li key={item.path} className={isActive ? (hasNoBusinessOrNoSub ? styles.activeBlue : styles.active) : ""}>
                 {!hasSub ? (
                   <Link href={appendBranchId(item.path)} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
                     <span className={styles.navIcon}>{item.icon}</span>
@@ -629,7 +643,7 @@ const DashboardLayout = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
             {customTopbarLeft}
 
-            {!customTopbarLeft && branches && branches.length > 0 && (
+            {!customTopbarLeft && !hasNoBusinessOrNoSub && branches && branches.length > 0 && (
               <div className={styles.branchSwitcherContainer}>
                 <select
                   className={styles.branchSwitcher}
