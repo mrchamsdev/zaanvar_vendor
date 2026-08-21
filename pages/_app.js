@@ -61,7 +61,8 @@ function AuthGuard({ children }) {
 
     if (jwtToken) {
       // If user has no business, redirect from dashboard/services to /onboarding
-      const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
+      const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+      const hasNoBusiness = (!userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0) && !savedBackendBranchId;
       const hasActiveSubscription =
         userInfo?.isSubscribed ||
         userInfo?.subscriptionActive ||
@@ -89,12 +90,7 @@ function AuthGuard({ children }) {
         return;
       }
 
-      // Users with vendorCompanies but no subscription trying to access /home
-      // → send to /claim-business which handles the claim flow internally
-      if (!hasNoBusiness && !hasActiveSubscription && path.startsWith("/home")) {
-        router.replace("/claim-business");
-        return;
-      }
+      // Premium paths (inventory, sales, etc.) require active subscription, but /home is accessible for vendors with a business
 
       // Check if trying to access premium dashboard/management services without subscription
       const isPremiumPath = [
@@ -125,8 +121,6 @@ function AuthGuard({ children }) {
       if (AUTH_REDIRECT_ROUTES.includes(path)) {
         if (hasNoBusiness) {
           router.replace("/onboarding");
-        } else if (!hasActiveSubscription) {
-          router.replace("/claim-business");
         } else {
           router.replace("/home");
         }
