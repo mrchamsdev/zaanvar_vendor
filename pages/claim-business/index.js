@@ -230,6 +230,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [sdkReady, setSdkReady] = useState(false);
 
   const playerRef = useRef(null);
+  const progressFetchedRef = useRef(false);
+  const headerBranchesFetchedRef = useRef(false);
 
   // Prevent background scrolling when dispute modal is open
   useEffect(() => {
@@ -545,16 +547,33 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
           setTicketId(ticket.ticket_id || ticket.ticketId || ticket.id || res?.data?.data?.ticket?.id || res?.data?.data?.id || null);
           setTicketStatus(ticket.status || "Pending");
-          if (ticket.status === "DUPLICATE_CLAIM") {
+          const isDuplicateClaim = Boolean(
+            ticket.isDuplicateClaim ||
+            ticket.is_duplicate_claim ||
+            ticket.claimStatus === "DUPLICATE_CLAIM" ||
+            ticket.status === "DUPLICATE_CLAIM" ||
+            claimTicket?.isDuplicateClaim ||
+            claimTicket?.is_duplicate_claim ||
+            claimTicket?.claimStatus === "DUPLICATE_CLAIM" ||
+            claimTicket?.status === "DUPLICATE_CLAIM" ||
+            onboardingTicket?.isDuplicateClaim ||
+            onboardingTicket?.is_duplicate_claim
+          );
+
+          if (isDuplicateClaim) {
             const isDismissed = typeof window !== "undefined" ? sessionStorage.getItem("dismiss_duplicate_claim") : null;
             if (!isDismissed) {
-              // If already on DOCUMENT_VERIFICATION step, show Under Review modal instead
-              if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "REJECTED") {
-                // setShowUnderReviewModal(true);
-              } else {
+              const isDocStep = stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "DOCUMENTS_UPLOADED" || stepUpper === "DOCUMENTS_SUBMITTED" || stepUpper === "REJECTED";
+              if (!isDocStep) {
                 setIsDuplicateClaimModalOpen(true);
+              } else {
+                setIsDuplicateClaimModalOpen(false);
               }
+            } else {
+              setIsDuplicateClaimModalOpen(false);
             }
+          } else {
+            setIsDuplicateClaimModalOpen(false);
           }
           if (ticket.ticket_reference_id || ticket.ticketReferenceId) {
             setTicketReferenceId(ticket.ticket_reference_id || ticket.ticketReferenceId);
@@ -585,7 +604,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
             setCurrentTicketStep(stepUpper);
           }
 
-          if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "REJECTED") {
+          if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "DOCUMENTS_UPLOADED" || stepUpper === "DOCUMENTS_SUBMITTED" || stepUpper === "REJECTED") {
             setView("dispute_docs");
             setLoadingProgress(false);
 
@@ -641,17 +660,21 @@ const ClaimBusiness = ({ forcedView = null }) => {
             return;
           }
 
-          if (stepUpper === "VERIFIED" || stepUpper === "COMPLETED" || !step || stepUpper === "NULL") {
-            if (!hasVerifiedBusiness) {
-              setView("search");
-              setLoadingProgress(false);
-              return;
-            }
+          if (stepUpper === "VERIFIED" || stepUpper === "COMPLETED") {
             setShopFrontPhoto(ticket.shopFrontPhoto || ticket.selfiePhoto || ticket.selfie_photo || "");
             setSelfiePhoto(ticket.selfiePhoto || ticket.selfie_photo || "");
             setVideoUpload(ticket.videoUpload || ticket.video_upload || "");
-            // When on claim-business page, simply set view to 'home' without navigation
             setView("home");
+            setLoadingProgress(false);
+            return;
+          }
+
+          if (!step || stepUpper === "" || stepUpper === "NULL") {
+            if (!hasVerifiedBusiness && forcedView !== "home") {
+              setView("search");
+            } else {
+              setView("home");
+            }
             setLoadingProgress(false);
             return;
           }
@@ -861,12 +884,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
     };
     if (typeof window !== "undefined" && !_hasHydrated) return;
 
-    if (userInfo) {
-      fetchClaimProgress();
+    const currentUserId = userInfo?.userId || userInfo?.id;
+    if (currentUserId) {
+      if (!progressFetchedRef.current) {
+        progressFetchedRef.current = true;
+        fetchClaimProgress();
+      }
     } else {
       setLoadingProgress(false);
     }
-  }, [userInfo, _hasHydrated]);
+  }, [userInfo?.userId, userInfo?.id, _hasHydrated]);
 
   // Sync view state to redirect to /home if active inside /claim-business path
   useEffect(() => {
@@ -921,10 +948,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
       }
     };
 
-    if (typeof window !== "undefined" && _hasHydrated && userInfo) {
-      fetchHeaderBranches();
+    const currentUserId = userInfo?.userId || userInfo?.id;
+    if (typeof window !== "undefined" && _hasHydrated && currentUserId && jwtToken) {
+      if (!headerBranchesFetchedRef.current) {
+        headerBranchesFetchedRef.current = true;
+        fetchHeaderBranches();
+      }
     }
-  }, [userInfo, jwtToken, _hasHydrated]);
+  }, [userInfo?.userId, userInfo?.id, jwtToken, _hasHydrated]);
 
   // Debounce API calls for search query
   useEffect(() => {
@@ -1492,8 +1523,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
         : `${API_URL}scraped-branches/claim/progress`;
 
       const payload = {
-        currentStep: "BUSINESS_VERIFICATION_OTP",
-        current_step: "BUSINESS_VERIFICATION_OTP",
         ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
         ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
         scraped_branch_id: activeScrapedBranchId,
@@ -2060,7 +2089,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }
       >
         <div className={styles.container}>
-          {isDuplicateClaimModalOpen && (
+          {isDuplicateClaimModalOpen && view !== "dispute_docs" && !["DOCUMENT_VERIFICATION", "DOCUMENTS_UPLOADED", "DOCUMENTS_SUBMITTED", "REJECTED"].includes(currentTicketStep?.toUpperCase()) && (
             <div className={styles.disputeModalOverlay}>
               <div className={styles.disputeModalContent}>
                 <button
@@ -2088,10 +2117,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 </div>
 
                 <h3 className={styles.disputeModalTitle}>
-                  Someone is trying to claim<br />your business
+                  {currentTicketStep?.toUpperCase() === "APPROVED" ? (
+                    <>Already verified user for this scraped branch</>
+                  ) : (
+                    <>Someone is trying to claim<br />your business</>
+                  )}
                 </h3>
                 <p className={styles.disputeModalText}>
-                  We need more information from you to protect your business listing on zaanvar.
+                  {currentTicketStep?.toUpperCase() === "APPROVED" ? (
+                    <>Already verified user for this scraped branch, please upload documents to recover your branch.</>
+                  ) : (
+                    <>We need more information from you to protect your business listing on zaanvar.</>
+                  )}
                 </p>
 
                 <div className={styles.disputeModalInfoBox}>
@@ -2795,10 +2832,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     </div>
 
                     <h3 className={styles.disputeModalTitle}>
-                      This business is already<br />Registered
+                      {currentTicketStep?.toUpperCase() === "APPROVED" || ticketStatus?.toUpperCase() === "APPROVED" ? (
+                        <>Already verified user for this scraped branch</>
+                      ) : (
+                        <>This business is already<br />Registered</>
+                      )}
                     </h3>
                     <p className={styles.disputeModalText}>
-                      This business is already registered on zaanvar by another user<br />(person S*******)
+                      {currentTicketStep?.toUpperCase() === "APPROVED" || ticketStatus?.toUpperCase() === "APPROVED" ? (
+                        <>Already verified user for this scraped branch, please upload documents to recover your branch.</>
+                      ) : (
+                        <>This business is already registered on zaanvar by another user<br />(person S*******)</>
+                      )}
                     </p>
 
                     <div className={styles.disputeModalInfoBox}>
@@ -3136,36 +3181,46 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           <span className={styles.docsRowLabel}>{doc.label}</span>
                         </div>
                         <div className={styles.docsRowRight}>
-                          {typeof disputeDocs[doc.key] === "string" ? (
-                            <a
-                              href={disputeDocs[doc.key]}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={styles.docsStatusSelected}
-                              style={{ textDecoration: 'underline', color: '#1a73e8', cursor: 'pointer' }}
-                            >
-                              View Uploaded File
-                            </a>
-                          ) : disputeDocs[doc.key] ? (
-                            <span className={styles.docsStatusSelected}>File Selected</span>
-                          ) : (
-                            <span className={styles.docsStatusEmpty}>No file</span>
-                          )}
+                          {(() => {
+                            const rawVal = disputeDocs[doc.key];
+                            const fileUrl = typeof rawVal === "string" ? rawVal : (rawVal && typeof rawVal === "object" && rawVal.url ? rawVal.url : null);
+                            const isFileObject = rawVal && typeof rawVal !== "string" && (rawVal instanceof File || rawVal.name);
 
-                          {ticketStatus !== "Approved" && !disputeDocs[doc.key] && (
-                            <label className={styles.docsUploadLabel}>
-                              <IconUploadCloud /> Upload
-                              <input
-                                type="file"
-                                style={{ display: 'none' }}
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    setDisputeDocs(prev => ({ ...prev, [doc.key]: e.target.files[0] }));
-                                  }
-                                }}
-                              />
-                            </label>
-                          )}
+                            return (
+                              <>
+                                {fileUrl ? (
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={styles.docsStatusSelected}
+                                    style={{ textDecoration: 'underline', color: '#1a73e8', cursor: 'pointer', marginRight: '8px' }}
+                                  >
+                                    View Uploaded File
+                                  </a>
+                                ) : isFileObject ? (
+                                  <span className={styles.docsStatusSelected} style={{ marginRight: '8px' }}>File Selected</span>
+                                ) : (
+                                  <span className={styles.docsStatusEmpty} style={{ marginRight: '8px' }}>No file</span>
+                                )}
+
+                                {!isFileObject && (
+                                  <label className={styles.docsUploadLabel}>
+                                    <IconUploadCloud /> {fileUrl ? "Change" : "Upload"}
+                                    <input
+                                      type="file"
+                                      style={{ display: 'none' }}
+                                      onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                          setDisputeDocs(prev => ({ ...prev, [doc.key]: e.target.files[0] }));
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -3173,23 +3228,24 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                   <div className={styles.docsSubmitContainer}>
                     {(() => {
-                      const hasExistingSubmission = (
-                        Object.values(disputeDocs).some(val => typeof val === "string") ||
-                        currentTicketStep === "DOCUMENT_VERIFICATION" ||
-                        currentTicketStep === "VERIFIED" ||
-                        ticketStatus === "Approved" ||
-                        ticketStatus === "Submitted"
-                      ) && ticketStatus !== "Rejected";
-                      const hasNewFilesSelected = Object.values(disputeDocs).some(val => val !== null && typeof val !== "string");
-                      const isSubmitDisabled = isDisputeSubmitting || (hasExistingSubmission && !hasNewFilesSelected);
+                      const hasPendingCerts = Object.values(disputeDocs).some(val => {
+                        if (!val) return true;
+                        if (typeof val === "object" && !(val instanceof File) && (!val.url || val.status === "pending")) return true;
+                        return false;
+                      });
+                      const hasNewFilesSelected = Object.values(disputeDocs).some(val => val !== null && typeof val !== "string" && (val instanceof File || val.name));
+                      const isFullySubmittedUnderReview = !hasPendingCerts && !hasNewFilesSelected && ticketStatus !== "Rejected";
+                      const isSubmitDisabled = isDisputeSubmitting || (isFullySubmittedUnderReview && !hasNewFilesSelected);
+
                       return (
                         <button
                           type="button"
                           disabled={isSubmitDisabled}
                           className={styles.docsSubmitBtn}
                           onClick={async () => {
-                            // Check if at least one file is uploaded
-                            if (!Object.values(disputeDocs).some(file => file !== null)) {
+                            // Check if at least one file is selected or uploaded
+                            const hasAnyDoc = Object.values(disputeDocs).some(file => file !== null && file !== undefined);
+                            if (!hasAnyDoc) {
                               toast.error("Please upload at least one legal document to dispute this claim.");
                               return;
                             }
@@ -3206,6 +3262,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               if (disputeDocs.msme) formData.append("udyamMsmeCertificate", disputeDocs.msme);
                               if (disputeDocs.businessReg) formData.append("businessRegistrationCertificate", disputeDocs.businessReg);
                               if (disputeDocs.tradeLicense) formData.append("tradeLicense", disputeDocs.tradeLicense);
+                              formData.append("currentStep", "DOCUMENTS_UPLOADED");
+                              formData.append("current_step", "DOCUMENTS_UPLOADED");
 
                               const type = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_doc_verification_type") : "ticket";
                               const isBranch = type === "branch";
@@ -3256,12 +3314,50 @@ const ClaimBusiness = ({ forcedView = null }) => {
                                 ? `${API_URL}branches/${finalBranchIdToUse}/certificates`
                                 : `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`;
 
-                              await axios.put(url, formData, {
+                              formData.append("step", "DOCUMENTS_UPLOADED");
+
+                              const putUrl = `${url}?currentStep=DOCUMENTS_UPLOADED&current_step=DOCUMENTS_UPLOADED`;
+
+                              await axios.put(putUrl, formData, {
                                 headers: {
                                   'Content-Type': 'multipart/form-data',
                                   Authorization: `Bearer ${jwtToken}`
                                 }
                               });
+
+                              try {
+                                const vendorUserId = userInfo?.userId || userInfo?.id || 256;
+                                const targetBranchId = backendBranchId || selectedBranch?.id || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null);
+
+                                const postParams = {
+                                  vendor_user_id: vendorUserId,
+                                  vendorUserId: vendorUserId
+                                };
+                                if (targetBranchId) {
+                                  postParams.scrapedBranchId = targetBranchId;
+                                }
+                                if (activeTId) {
+                                  postParams.ticketId = activeTId;
+                                  postParams.ticket_id = activeTId;
+                                }
+
+                                const reqHeaders = jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {};
+
+                                await axios.post(`${API_URL}scraped-branches/claim/progress`, {
+                                  currentStep: "DOCUMENTS_UPLOADED",
+                                  current_step: "DOCUMENTS_UPLOADED",
+                                  step: "DOCUMENTS_UPLOADED",
+                                  vendorUserId: vendorUserId,
+                                  vendor_user_id: vendorUserId,
+                                  scrapedBranchId: targetBranchId,
+                                  ticketId: activeTId
+                                }, {
+                                  params: postParams,
+                                  headers: reqHeaders
+                                });
+                              } catch (tErr) {
+                                console.warn("Claim progress POST call error:", tErr);
+                              }
 
                               // Fetch certificates immediately after successful PUT so the UI updates
                               try {
@@ -3279,6 +3375,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                                 console.error("Failed to re-fetch certificates:", fetchErr);
                               }
 
+                              setCurrentTicketStep("DOCUMENTS_UPLOADED");
                               setIsDisputeSubmitting(false);
                               toast.success("Documents submitted for verification successfully!");
                               // setShowUnderReviewModal(true);
@@ -3289,7 +3386,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                             }
                           }}
                         >
-                          {isDisputeSubmitting ? "Submitting..." : hasNewFilesSelected ? "Submit" : hasExistingSubmission ? "Submitted - Under Review" : "Submit"}
+                          {isDisputeSubmitting ? "Submitting..." : isFullySubmittedUnderReview ? "Submitted - Under Review" : "Submit"}
                         </button>
                       );
                     })()}

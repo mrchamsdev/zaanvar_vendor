@@ -82,17 +82,37 @@ const Onboarding = () => {
 
         const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
 
-        const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
-          params: {
-            scrapedBranchId: savedBranchId || undefined
-          }
-        });
+        let resData = null;
+        try {
+          const currentVendorUserId = userInfo?.userId || userInfo?.id;
+          const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+            params: {
+              vendor_user_id: currentVendorUserId,
+              vendorUserId: currentVendorUserId,
+              scrapedBranchId: savedBranchId || undefined
+            }
+          });
+          resData = res?.data;
+        } catch (err) {
+          resData = err.response?.data;
+        }
 
-        if (res?.data?.status === "success" && res?.data?.data) {
-          const ticket = res.data.data.ticket || res.data.data;
-          const step = ticket?.currentStep || ticket?.current_step;
-          if (step) {
-            const branchId = ticket.scrapedBranchId || ticket.scraped_branch_id;
+        if (resData) {
+          const ticket = resData.data?.ticket || resData.ticket || resData.data || resData;
+          const step = ticket?.currentStep || ticket?.current_step || resData.currentStep || resData.current_step;
+          const isDup = Boolean(
+            resData.status === "DUPLICATE_CLAIM" ||
+            resData.claimStatus === "DUPLICATE_CLAIM" ||
+            resData.isDuplicateClaim ||
+            resData.is_duplicate_claim ||
+            ticket?.status === "DUPLICATE_CLAIM" ||
+            ticket?.claimStatus === "DUPLICATE_CLAIM" ||
+            ticket?.isDuplicateClaim ||
+            ticket?.is_duplicate_claim
+          );
+
+          if (step || isDup) {
+            const branchId = ticket?.scrapedBranchId || ticket?.scraped_branch_id || resData.scrapedBranchId;
             if (branchId) {
               localStorage.setItem("zaanvar_claim_scraped_branch_id", branchId);
             }
@@ -106,7 +126,7 @@ const Onboarding = () => {
       setCheckingProgress(false);
     };
     checkExistingProgress();
-  }, [userInfo, router]);
+  }, [userInfo]);
 
   if (checkingProgress) {
     return (
