@@ -160,7 +160,7 @@ const parseCerts = (certs, certUrls) => {
 // ─── Main ClaimBusiness Page ─────────────────────────────────────────────────
 const ClaimBusiness = ({ forcedView = null }) => {
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, setUserInfo } = useStore();
   const dropdownRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -635,11 +635,28 @@ const ClaimBusiness = ({ forcedView = null }) => {
             if (idToUse) {
               axios.get(url, {
                 headers: { Authorization: `Bearer ${jwtToken}` }
-              }).then(certRes => {
+              }).then(async certRes => {
                 if (certRes?.data?.status === "success" && certRes?.data?.data) {
                   const certData = certRes.data.data;
-                  const certs = certData.certificates || {};
-                  const certUrls = certData.certificateUrls || {};
+                  let certs = certData.certificates || {};
+                  let certUrls = certData.certificateUrls || {};
+                  const hasCerts = Object.values(certs).some(Boolean) || Object.values(certUrls).some(Boolean);
+
+                  if (!hasCerts && activeTId) {
+                    try {
+                      const ticketCertRes = await axios.get(`${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`, {
+                        headers: { Authorization: `Bearer ${jwtToken}` }
+                      });
+                      if (ticketCertRes?.data?.status === "success" && ticketCertRes?.data?.data) {
+                        const tCertData = ticketCertRes.data.data;
+                        certs = tCertData.certificates || certs;
+                        certUrls = tCertData.certificateUrls || certUrls;
+                      }
+                    } catch (tErr) {
+                      console.warn("Fallback ticket certificates fetch error:", tErr);
+                    }
+                  }
+
                   setTicketStatus(certData.status || "Pending");
                   setCurrentTicketStep(certData.currentStep || certData.current_step || "");
                   setDisputeDocs(parseCerts(certs, certUrls));
@@ -915,6 +932,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const webApi = new WebApimanager(jwtToken);
         const userRes = await webApi.get(`vendor-users/${currentUserId}`);
         const userData = userRes?.data?.data || userRes?.data || userRes || {};
+        if (userData?.falseClaimStatus === true) {
+          setUserInfo((prev) => (prev ? { ...prev, falseClaimStatus: true } : prev));
+        }
         const branchIds = userData.branchId || userData.branchAssigned || [];
 
         if (Array.isArray(branchIds) && branchIds.length > 0) {

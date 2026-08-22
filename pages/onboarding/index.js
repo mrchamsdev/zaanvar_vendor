@@ -66,7 +66,7 @@ const Onboarding = () => {
 
   useEffect(() => {
     const checkExistingProgress = async () => {
-      const isNewClaimQuery = typeof window !== "undefined" && window.location.search.includes("newClaim=true");
+      const isNewClaimQuery = typeof window !== "undefined" && (window.location.search.includes("newClaim=true") || localStorage.getItem("zaanvar_force_claim_new") === "true");
       if (isNewClaimQuery) {
         setCheckingProgress(false);
         return;

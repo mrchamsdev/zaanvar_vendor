@@ -21,6 +21,7 @@ import useStore from "../components/state/useStore";
 import { Toaster } from "sonner";
 import { userTimeZone } from "../utilities/date-time-utils";
 import Chatbot from "../components/shared/Chatbot";
+import FalseClaimModal from "../components/shared/FalseClaimModal";
 
 /* Routes that authenticated users should NOT access (redirect → /dashboard) */
 const AUTH_REDIRECT_ROUTES = [
@@ -256,6 +257,7 @@ export default function App({ Component, pageProps }) {
       </AuthGuard>
 
       <Toaster richColors position="top-right" closeButton />
+      <FalseClaimModal />
       {/* <Chatbot /> */}
 
       {showMobileRedirectModal && (
