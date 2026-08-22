@@ -532,24 +532,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
           const isCompleted = !step || stepUpper === "" || stepUpper === "NULL" || stepUpper === "VERIFIED" || stepUpper === "COMPLETED";
           const hasVerifiedBusiness = Boolean(
-            (headerBranches && headerBranches.length > 0) ||
-            (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
-            (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
-            userInfo?.companyId ||
             userInfo?.isSubscribed ||
             userInfo?.subscriptionActive ||
             userInfo?.subscriptionPlan ||
-            (userInfo?.vendorCompanies && userInfo.vendorCompanies.length > 0)
+            (userInfo?.vendorCompanies && userInfo.vendorCompanies.some(c => c.isSubscribed || c.subscriptionActive || c.subscriptionPlan || c.isVerified || c.status === "VERIFIED" || c.status === "APPROVED"))
           );
 
-          if (!isCompleted) {
+          if (!isCompleted && hasVerifiedBusiness) {
             setInProgressTicket(ticket);
-          }
-
-          const urlParamsObj = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-          const explicitView = urlParamsObj?.get("view");
-
-          if (!isCompleted && hasVerifiedBusiness && !explicitView) {
             setView("home");
             setLoadingProgress(false);
             return;
@@ -615,11 +605,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
           }
 
           if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "DOCUMENTS_UPLOADED" || stepUpper === "DOCUMENTS_SUBMITTED" || stepUpper === "REJECTED") {
-            if (hasVerifiedBusiness && !explicitView) {
-              setView("home");
-              setLoadingProgress(false);
-              return;
-            }
             setView("dispute_docs");
             setLoadingProgress(false);
 
@@ -3183,101 +3168,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 </div>
               )}
 
-              {inProgressTicket && (view === "search" || view === "home") && (
-                <div style={{
-                  backgroundColor: "#EFF6FF",
-                  border: "1px solid #BFDBFE",
-                  borderRadius: "12px",
-                  padding: "16px 20px",
-                  marginBottom: "24px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      backgroundColor: "#DBEAFE",
-                      color: "#1D4ED8",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "20px"
-                    }}>
-                      ⏳
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: "700", color: "#1E3A8A", fontSize: "15px" }}>
-                        New Branch Claim Under Review
-                      </div>
-                      <div style={{ fontSize: "13px", color: "#3B82F6", marginTop: "2px" }}>
-                        Your claim for <strong>{inProgressTicket.companyName || inProgressTicket.draftData?.companyName || "new branch"}</strong> is currently under review by support.
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setView("dispute_docs")}
-                    style={{
-                      padding: "9px 18px",
-                      backgroundColor: "#2563EB",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-                    }}
-                  >
-                    View Status & Documents →
-                  </button>
-                </div>
-              )}
-
               {/* DISPUTE DOCS UPLOAD VIEW */}
               {view === "dispute_docs" && (
                 <div className={styles.docsContainer}>
-                  {(headerBranches?.length > 0 || (userInfo?.vendorCompanies && userInfo.vendorCompanies.length > 0) || (userInfo?.branchId && userInfo.branchId.length > 0)) && (
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#F3F4F6",
-                      border: "1px solid #E5E7EB",
-                      borderRadius: "10px",
-                      padding: "12px 18px",
-                      marginBottom: "20px"
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "16px" }}>ℹ️</span>
-                        <span style={{ fontSize: "14px", color: "#374151", fontWeight: "500" }}>
-                          You have verified active branches. Support is reviewing your new branch claim documents.
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setView("home")}
-                        style={{
-                          padding: "8px 16px",
-                          backgroundColor: "#1F2937",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "6px",
-                          fontSize: "13px",
-                          fontWeight: "600",
-                          cursor: "pointer"
-                        }}
-                      >
-                        ← Back to My Business
-                      </button>
-                    </div>
-                  )}
                   <div className={styles.docsHeader}>
                     <div className={styles.docsAvatar}>
                       {(userInfo?.name || "S").charAt(0).toUpperCase()}
