@@ -70,6 +70,21 @@ const IconUploadCloud = () => (
   </svg>
 );
 
+const getRawPhoneDigits = (val) => {
+  if (!val) return "";
+  let str = String(val).trim();
+  if (str.startsWith("+91")) {
+    return str.slice(3).replace(/\D/g, "");
+  }
+  return str.replace(/\D/g, "");
+};
+
+const ensurePlus91 = (val) => {
+  if (!val) return "";
+  const raw = getRawPhoneDigits(val);
+  return raw ? `+91${raw}` : "";
+};
+
 const IconClose = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <line x1="18" y1="6" x2="6" y2="18" />
@@ -196,11 +211,52 @@ const ClaimBusiness = ({ forcedView = null }) => {
     return "ticket";
   });
 
-  const handleDismissDuplicateClaim = () => {
-    if (typeof window !== "undefined" && backendBranchId) {
-      sessionStorage.setItem(`dismiss_duplicate_claim_${backendBranchId}`, "true");
+  const handleDismissDuplicateClaim = async () => {
+    try {
+      const API_URL = window.location.hostname !== "support.zaanvar.com"
+        ? "https://dev.zaanvar.com/api/"
+        : "https://prod.zaanvar.com/api/";
+
+      const vendorUserId = parseInt(userInfo?.userId || userInfo?.id, 10);
+      const savedScrapedBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null;
+      const scrapedBranchId = parseInt(
+        selectedBranch?.id ||
+        inProgressTicket?.scrapedBranchId ||
+        inProgressTicket?.scraped_branch_id ||
+        savedScrapedBranchId ||
+        backendBranchId,
+        10
+      );
+
+      if (vendorUserId && scrapedBranchId) {
+        await axios.delete(`${API_URL}scraped-branches/claim/remove-vendor-tickets`, {
+          data: {
+            vendorUserId: vendorUserId,
+            scrapedBranchId: scrapedBranchId
+          },
+          headers: {
+            Authorization: `Bearer ${jwtToken}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to remove vendor tickets on claim cancel:", err);
+    } finally {
+      if (typeof window !== "undefined") {
+        if (backendBranchId) {
+          sessionStorage.setItem(`dismiss_duplicate_claim_${backendBranchId}`, "true");
+        }
+        localStorage.removeItem("zaanvar_claim_ticket_id");
+        localStorage.removeItem("zaanvar_claim_scraped_branch_id");
+        localStorage.removeItem("zaanvar_claim_backend_branch_id");
+      }
+      setIsDuplicateClaimModalOpen(false);
+      setIsDisputeModalOpen(false);
+      setInProgressTicket(null);
+      setTicketId(null);
+      setView("search");
     }
-    setIsDuplicateClaimModalOpen(false);
   };
 
   // ── Verification Option state ──
@@ -230,8 +286,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [sdkReady, setSdkReady] = useState(false);
 
   const playerRef = useRef(null);
-  const progressFetchedRef = useRef(false);
-  const headerBranchesFetchedRef = useRef(false);
+  const progressFetchedRef = useRef(null);
+  const headerBranchesFetchedRef = useRef(null);
 
   // Prevent background scrolling when dispute modal is open
   useEffect(() => {
@@ -390,6 +446,17 @@ const ClaimBusiness = ({ forcedView = null }) => {
   // ── Fetch existing claim progress on mount ──
   useEffect(() => {
     const fetchClaimProgress = async () => {
+      const hasVerifiedBusiness = Boolean(
+        (headerBranches && headerBranches.length > 0) ||
+        (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
+        (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
+        (userInfo?.companyId && Number(userInfo.companyId) > 0) ||
+        userInfo?.isSubscribed ||
+        userInfo?.subscriptionActive ||
+        userInfo?.subscriptionPlan ||
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies.some(c => c.isSubscribed || c.subscriptionActive || c.subscriptionPlan || c.isVerified || c.status === "VERIFIED" || c.status === "APPROVED"))
+      );
+
       try {
         const API_URL = window.location.hostname !== "support.zaanvar.com"
           ? "https://dev.zaanvar.com/api/"
@@ -531,16 +598,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
           });
 
           const isCompleted = !step || stepUpper === "" || stepUpper === "NULL" || stepUpper === "VERIFIED" || stepUpper === "COMPLETED";
-          const hasVerifiedBusiness = Boolean(
-            (headerBranches && headerBranches.length > 0) ||
-            (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
-            (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
-            userInfo?.companyId ||
-            userInfo?.isSubscribed ||
-            userInfo?.subscriptionActive ||
-            userInfo?.subscriptionPlan ||
-            (userInfo?.vendorCompanies && userInfo.vendorCompanies.length > 0)
-          );
 
           if (!isCompleted) {
             setInProgressTicket(ticket);
@@ -873,42 +930,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
             setShowOtpView(true);
           }
         } else {
-          const savedFlowType = typeof window !== "undefined" ? localStorage.getItem("zaanvar_flow_type") : null;
-          const hasVerifiedBusiness = Boolean(
-            userInfo?.isSubscribed ||
-            userInfo?.subscriptionActive ||
-            userInfo?.subscriptionPlan ||
-            (userInfo?.vendorCompanies && userInfo.vendorCompanies.some(c => c.isSubscribed || c.subscriptionActive || c.subscriptionPlan || c.isVerified || c.status === "VERIFIED" || c.status === "APPROVED"))
-          );
-          if (!hasVerifiedBusiness && savedFlowType !== "CLAIM" && savedFlowType !== "REGISTER") {
-            router.replace("/onboarding");
-            return;
-          } else {
-            if (hasVerifiedBusiness) {
-              setView("home");
-            } else {
-              setView("search");
-            }
-          }
-        }
-      } catch (err) {
-        console.log("No existing claim progress ticket found.");
-        const savedFlowType = typeof window !== "undefined" ? localStorage.getItem("zaanvar_flow_type") : null;
-        const hasVerifiedBusiness = Boolean(
-          userInfo?.isSubscribed ||
-          userInfo?.subscriptionActive ||
-          userInfo?.subscriptionPlan ||
-          (userInfo?.vendorCompanies && userInfo.vendorCompanies.some(c => c.isSubscribed || c.subscriptionActive || c.subscriptionPlan || c.isVerified || c.status === "VERIFIED" || c.status === "APPROVED"))
-        );
-        if (!hasVerifiedBusiness && savedFlowType !== "CLAIM" && savedFlowType !== "REGISTER") {
-          router.replace("/onboarding");
-          return;
-        } else {
           if (hasVerifiedBusiness) {
             setView("home");
           } else {
             setView("search");
           }
+        }
+      } catch (err) {
+        console.log("No existing claim progress ticket found.");
+        if (hasVerifiedBusiness) {
+          setView("home");
+        } else {
+          setView("search");
         }
       } finally {
         setLoadingProgress(false);
@@ -918,8 +951,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
     const currentUserId = userInfo?.userId || userInfo?.id;
     if (currentUserId) {
-      if (!progressFetchedRef.current) {
-        progressFetchedRef.current = true;
+      if (progressFetchedRef.current !== currentUserId) {
+        progressFetchedRef.current = currentUserId;
         fetchClaimProgress();
       }
     } else {
@@ -947,9 +980,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const webApi = new WebApimanager(jwtToken);
         const userRes = await webApi.get(`vendor-users/${currentUserId}`);
         const userData = userRes?.data?.data || userRes?.data || userRes || {};
-        if (userData?.falseClaimStatus === true) {
-          setUserInfo((prev) => (prev ? { ...prev, falseClaimStatus: true } : prev));
-        }
         const branchIds = userData.branchId || userData.branchAssigned || [];
 
         if (Array.isArray(branchIds) && branchIds.length > 0) {
@@ -985,8 +1015,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
     const currentUserId = userInfo?.userId || userInfo?.id;
     if (typeof window !== "undefined" && _hasHydrated && currentUserId && jwtToken) {
-      if (!headerBranchesFetchedRef.current) {
-        headerBranchesFetchedRef.current = true;
+      if (headerBranchesFetchedRef.current !== currentUserId) {
+        headerBranchesFetchedRef.current = currentUserId;
         fetchHeaderBranches();
       }
     }
@@ -1299,14 +1329,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
         scraped_branch_id: selectedBranch?.id || 45,
         vendor_user_id: vendorUserId,
         companyName: formData.businessName,
-        phoneNo: formData.businessPhone,
+        phoneNo: ensurePlus91(formData.businessPhone),
         email: formData.businessEmail,
         userName: formData.userName,
         role: formData.role || "Owner",
         companyAddress: formData.companyAddress,
         draftData: {
           companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -1314,7 +1344,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         },
         draft_data: {
           companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -1379,7 +1409,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         id: b.id,
         branchName: b.name || b.title,
         branchLocation: b.address,
-        phoneNumber: formData.businessPhone || ""
+        phoneNumber: ensurePlus91(formData.businessPhone)
       }));
 
       const payload = {
@@ -1398,7 +1428,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         businessAddress: mainAddr,
         draftData: {
           branchName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -1415,7 +1445,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         },
         draft_data: {
           branchName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -1566,14 +1596,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
         userId: vendorUserId,
         groomerID: vendorUserId,
         companyName: formData.businessName,
-        phoneNo: formData.businessPhone,
+        phoneNo: ensurePlus91(formData.businessPhone),
         email: formData.businessEmail,
         userName: formData.userName,
         role: formData.role || "Owner",
         companyAddress: formData.companyAddress,
         draftData: {
           companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -1624,14 +1654,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
         scraped_branch_id: savedBranchId ? parseInt(savedBranchId) : null,
         vendor_user_id: userInfo?.userId || userInfo?.id,
         companyName: formData.businessName,
-        phoneNo: formData.businessPhone,
+        phoneNo: ensurePlus91(formData.businessPhone),
         email: formData.businessEmail,
         userName: formData.userName,
         role: formData.role || "Owner",
         companyAddress: formData.companyAddress,
         draftData: {
           companyName: formData.businessName,
-          phoneNo: formData.businessPhone,
+          phoneNo: ensurePlus91(formData.businessPhone),
           email: formData.businessEmail,
           userName: formData.userName,
           role: formData.role || "Owner",
@@ -2895,7 +2925,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     <div className={styles.disputeModalBtnRow}>
                       <button
                         type="button"
-                        onClick={() => setIsDisputeModalOpen(false)}
+                        onClick={handleDismissDuplicateClaim}
                         className={styles.disputeModalBtnCancel}
                       >
                         Cancel
@@ -3633,12 +3663,22 @@ const ClaimBusiness = ({ forcedView = null }) => {
                         </div>
                         <div className={styles.formField}>
                           <label>Company Phone Number</label>
-                          <input
-                            type="text"
-                            placeholder="Company Phone Number"
-                            value={formData.businessPhone}
-                            onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
-                          />
+                          <div className={styles.phoneInputContainer}>
+                            <span className={styles.phonePrefix}>+91</span>
+                            <input
+                              type="tel"
+                              placeholder="Company Phone Number"
+                              maxLength={10}
+                              value={getRawPhoneDigits(formData.businessPhone)}
+                              onChange={(e) => {
+                                const rawDigits = getRawPhoneDigits(e.target.value).slice(0, 10);
+                                setFormData({
+                                  ...formData,
+                                  businessPhone: rawDigits ? `+91${rawDigits}` : ""
+                                });
+                              }}
+                            />
+                          </div>
                         </div>
                         <div className={styles.formField}>
                           <label>Company Email</label>
