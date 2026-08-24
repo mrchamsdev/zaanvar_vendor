@@ -126,7 +126,7 @@ const Onboarding = () => {
       setCheckingProgress(false);
     };
     checkExistingProgress();
-  }, [userInfo]);
+  }, [userInfo?.userId, userInfo?.id]);
 
   if (checkingProgress) {
     return (

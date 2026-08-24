@@ -12,6 +12,8 @@ export default function FalseClaimModal() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
 
+  const checkedUserIdRef = React.useRef(null);
+
   useEffect(() => {
     if (!_hasHydrated || !jwtToken || !userInfo) return;
 
@@ -25,6 +27,9 @@ export default function FalseClaimModal() {
       return;
     }
 
+    if (checkedUserIdRef.current === currentUserId) return;
+    checkedUserIdRef.current = currentUserId;
+
     // Fetch vendor-users details to verify falseClaimStatus
     const checkFalseClaimStatus = async () => {
       try {
@@ -32,7 +37,7 @@ export default function FalseClaimModal() {
         const res = await webApi.get(`vendor-users/${currentUserId}`);
         const userData = res?.data?.data || res?.data || res || {};
 
-        if (userData?.falseClaimStatus === true) {
+        if (userData?.falseClaimStatus === true && !userInfo.falseClaimStatus) {
           setIsOpen(true);
           setUserInfo((prev) => (prev ? { ...prev, falseClaimStatus: true } : prev));
         }
@@ -42,7 +47,7 @@ export default function FalseClaimModal() {
     };
 
     checkFalseClaimStatus();
-  }, [_hasHydrated, jwtToken, userInfo?.userId, userInfo?.id, userInfo?.groomerID, userInfo?.falseClaimStatus]);
+  }, [_hasHydrated, jwtToken, userInfo?.userId, userInfo?.id, userInfo?.groomerID]);
 
   const handleOk = async () => {
     const clearClaimLocalStorage = () => {

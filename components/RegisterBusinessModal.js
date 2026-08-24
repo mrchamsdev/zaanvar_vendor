@@ -19,6 +19,15 @@ function wallDatePayload(field, value) {
   return dateOnlyWithTimeZone(field, d);
 }
 
+const getRawPhoneDigits = (val) => {
+  if (!val) return "";
+  let str = String(val).trim();
+  if (str.startsWith("+91")) {
+    return str.slice(3).replace(/\D/g, "");
+  }
+  return str.replace(/\D/g, "");
+};
+
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = ["00", ...Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"))];
 const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
@@ -951,9 +960,15 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Company Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="tel" style={inputStyle} placeholder="Enter 10-digit phone number" maxLength={12}
-                    value={companyForm.companyPhone}
-                    onChange={e => handleCompanyChange("companyPhone", e.target.value.replace(/\D/g, ""))} />
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
+                    <span style={{ padding: "10px 12px", background: "#f3f4f6", borderRight: "1px solid #d1d5db", fontSize: 13, fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
+                    <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter 10-digit phone number" maxLength={10}
+                      value={getRawPhoneDigits(companyForm.companyPhone)}
+                      onChange={e => {
+                        const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
+                        handleCompanyChange("companyPhone", digits ? `+91${digits}` : "");
+                      }} />
+                  </div>
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Company Website <span style={{ color: "#e74c3c" }}>*</span></label>

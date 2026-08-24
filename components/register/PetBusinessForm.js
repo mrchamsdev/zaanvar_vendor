@@ -18,6 +18,15 @@ const getCities = (countryCode, stateCode) =>
     ? City.getCitiesOfState(countryCode, stateCode).map((c) => ({ id: c.name, name: c.name }))
     : [];
 
+const getRawPhoneDigits = (val) => {
+  if (!val) return "";
+  let str = String(val).trim();
+  if (str.startsWith("+91")) {
+    return str.slice(3).replace(/\D/g, "");
+  }
+  return str.replace(/\D/g, "");
+};
+
 // ── Reusable field components ─────────────────────────────────────────────
 const Field = React.memo(({ label, required, children, error }) => (
   <div className={styles["row-title"]}>
@@ -911,14 +920,21 @@ const PetBusinessForm = () => {
                 </div>
                 <div className={styles.row}>
                   <Field label="Company Phone" required error={errors.companyPhone}>
-                    <input
-                      type="tel"
-                      name="companyPhone"
-                      placeholder="Enter Company Phone number"
-                      value={formData.companyPhone}
-                      onChange={handleInputChange}
-                      maxLength={10}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", border: "1px solid #ccc", borderRadius: 6, overflow: "hidden", background: "#fff", width: "100%" }}>
+                      <span style={{ padding: "0.6rem 0.8rem", background: "#f3f4f6", borderRight: "1px solid #ccc", fontSize: "14px", fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
+                      <input
+                        type="tel"
+                        name="companyPhone"
+                        placeholder="Enter Company Phone number"
+                        value={getRawPhoneDigits(formData.companyPhone)}
+                        onChange={(e) => {
+                          const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
+                          setFormData(prev => ({ ...prev, companyPhone: digits ? `+91${digits}` : "" }));
+                        }}
+                        maxLength={10}
+                        style={{ border: "none", borderRadius: 0, flex: 1, padding: "0.6rem 0.8rem", fontSize: "14px", outline: "none", width: "100%" }}
+                      />
+                    </div>
                   </Field>
                   <Field label="Company Website" error={errors.companyWebsite}>
                     <input
