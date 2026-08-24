@@ -255,7 +255,11 @@ const ClaimBusiness = ({ forcedView = null }) => {
       setIsDisputeModalOpen(false);
       setInProgressTicket(null);
       setTicketId(null);
-      setView("search");
+      if (hasVerifiedBusiness) {
+        setView("home");
+      } else {
+        setView("search");
+      }
     }
   };
 
@@ -318,6 +322,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [scrapedBranchEmail, setScrapedBranchEmail] = useState("");
   const [branchImagesList, setBranchImagesList] = useState([]);
   const [headerBranches, setHeaderBranches] = useState([]);
+
+  const hasVerifiedBusiness = Boolean(
+    (headerBranches && headerBranches.length > 0) ||
+    (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
+    (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
+    (userInfo?.companyId && Number(userInfo.companyId) > 0) ||
+    userInfo?.isSubscribed ||
+    userInfo?.subscriptionActive ||
+    userInfo?.subscriptionPlan ||
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies.length > 0) ||
+    (typeof window !== "undefined" && localStorage.getItem("zaanvar_claim_backend_branch_id"))
+  );
   console.log("DEBUG_CLAIM_BUTTON_STATE:", {
     inProgressTicket,
     backendBranchId,
@@ -446,17 +462,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
   // ── Fetch existing claim progress on mount ──
   useEffect(() => {
     const fetchClaimProgress = async () => {
-      const hasVerifiedBusiness = Boolean(
-        (headerBranches && headerBranches.length > 0) ||
-        (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
-        (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
-        (userInfo?.companyId && Number(userInfo.companyId) > 0) ||
-        userInfo?.isSubscribed ||
-        userInfo?.subscriptionActive ||
-        userInfo?.subscriptionPlan ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies.some(c => c.isSubscribed || c.subscriptionActive || c.subscriptionPlan || c.isVerified || c.status === "VERIFIED" || c.status === "APPROVED"))
-      );
-
       try {
         const API_URL = window.location.hostname !== "support.zaanvar.com"
           ? "https://dev.zaanvar.com/api/"
@@ -467,10 +472,12 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const forceClaimNew = localStorage.getItem("zaanvar_force_claim_new") === "true";
 
         // If the vendor explicitly clicked "Claim another business", or they are starting a new claim
-        // flow and haven't selected a branch to claim yet, skip the progress lookup.
-        if (forceClaimNew || (isNewClaimQuery && !savedBranchId)) {
+        // flow, clear old saved branch IDs and show the search page.
+        if (forceClaimNew || isNewClaimQuery) {
           localStorage.removeItem("zaanvar_force_claim_new");
           localStorage.removeItem("zaanvar_claim_ticket_id");
+          localStorage.removeItem("zaanvar_claim_scraped_branch_id");
+          localStorage.removeItem("zaanvar_claim_backend_branch_id");
           setView("search");
           setLoadingProgress(false);
           return;
@@ -603,22 +610,28 @@ const ClaimBusiness = ({ forcedView = null }) => {
             setInProgressTicket(ticket);
           }
 
-          const urlParamsObj = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-          const explicitView = urlParamsObj?.get("view");
-
-          if (!isCompleted && hasVerifiedBusiness && !explicitView) {
-            setView("home");
-            setLoadingProgress(false);
-            return;
-          }
-
           setTicketId(ticket.ticket_id || ticket.ticketId || ticket.id || res?.data?.data?.ticket?.id || res?.data?.data?.id || null);
           setTicketStatus(ticket.status || "Pending");
+          const apiResData = res?.data || {};
+          const progressDetails = apiResData?.data || {};
           const isDuplicateClaim = Boolean(
+            apiResData.isDuplicateClaim ||
+            apiResData.is_duplicate_claim ||
+            apiResData.claimStatus === "DUPLICATE_CLAIM" ||
+            apiResData.status === "DUPLICATE_CLAIM" ||
+            apiResData.DUPLICATE_CLAIM ||
+            progressDetails.isDuplicateClaim ||
+            progressDetails.is_duplicate_claim ||
+            progressDetails.claimStatus === "DUPLICATE_CLAIM" ||
+            progressDetails.status === "DUPLICATE_CLAIM" ||
+            progressDetails.isPhoneVerified ||
+            progressDetails.isEmailVerified ||
             ticket.isDuplicateClaim ||
             ticket.is_duplicate_claim ||
             ticket.claimStatus === "DUPLICATE_CLAIM" ||
             ticket.status === "DUPLICATE_CLAIM" ||
+            ticket.isPhoneVerified ||
+            ticket.isEmailVerified ||
             claimTicket?.isDuplicateClaim ||
             claimTicket?.is_duplicate_claim ||
             claimTicket?.claimStatus === "DUPLICATE_CLAIM" ||
@@ -628,19 +641,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
           );
 
           if (isDuplicateClaim) {
-            const isDismissed = typeof window !== "undefined" ? sessionStorage.getItem("dismiss_duplicate_claim") : null;
-            if (!isDismissed) {
-              const isDocStep = stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "DOCUMENTS_UPLOADED" || stepUpper === "DOCUMENTS_SUBMITTED" || stepUpper === "REJECTED";
-              if (!isDocStep) {
-                setIsDuplicateClaimModalOpen(true);
-              } else {
-                setIsDuplicateClaimModalOpen(false);
-              }
-            } else {
-              setIsDuplicateClaimModalOpen(false);
-            }
+            setIsDuplicateClaimModalOpen(true);
           } else {
             setIsDuplicateClaimModalOpen(false);
+          }
+
+          const urlParamsObj = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const explicitView = urlParamsObj?.get("view");
+
+          if (!isCompleted && hasVerifiedBusiness && !explicitView) {
+            setView("home");
+            setLoadingProgress(false);
+            return;
           }
           if (ticket.ticket_reference_id || ticket.ticketReferenceId) {
             setTicketReferenceId(ticket.ticket_reference_id || ticket.ticketReferenceId);
@@ -1062,15 +1074,6 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const handleClaimInitiate = async () => {
     if (!selectedBranch) return;
 
-    if (selectedBranch.isClaimed || selectedBranch.is_claimed) {
-      setBackendBranchId(selectedBranch.id);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("zaanvar_claim_backend_branch_id", String(selectedBranch.id));
-      }
-      setIsDisputeModalOpen(true);
-      return;
-    }
-
     setLoadingProgress(true);
 
     try {
@@ -1315,6 +1318,15 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // POST progress for Step 0: COMPANY_DETAILS
   const handleDetailsNext = async () => {
+    if (selectedBranch?.isClaimed || selectedBranch?.is_claimed) {
+      setBackendBranchId(selectedBranch.id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("zaanvar_claim_backend_branch_id", String(selectedBranch.id));
+      }
+      setIsDisputeModalOpen(true);
+      return;
+    }
+
     try {
       const API_URL = window.location.hostname !== "support.zaanvar.com"
         ? "https://dev.zaanvar.com/api/"
@@ -1950,47 +1962,51 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
       setBackendBranchId(bId);
 
-      // Check for duplicate claim status
-      const isDismissed = typeof window !== "undefined" ? sessionStorage.getItem(`dismiss_duplicate_claim_${bId}`) : null;
-      const isDocUnderReview = data.isDocumentVerified === "underReview" || details.isDocumentVerified === "underReview";
-      const isDuplicate = data.claimStatus === "DUPLICATE_CLAIM" || details.claimStatus === "DUPLICATE_CLAIM" || res?.claimStatus === "DUPLICATE_CLAIM" || data.status === "DUPLICATE_CLAIM";
+      const isDuplicate = Boolean(
+        data?.isDuplicateClaim ||
+        data?.is_duplicate_claim ||
+        data?.claimStatus === "DUPLICATE_CLAIM" ||
+        data?.status === "DUPLICATE_CLAIM" ||
+        data?.DUPLICATE_CLAIM ||
+        details?.isDuplicateClaim ||
+        details?.is_duplicate_claim ||
+        details?.claimStatus === "DUPLICATE_CLAIM" ||
+        details?.status === "DUPLICATE_CLAIM" ||
+        details?.DUPLICATE_CLAIM
+      );
 
-      if (isDuplicate && isDocUnderReview) {
-        // Already submitted documents — go straight to the document verification screen
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("zaanvar_doc_verification_type", "branch");
-        }
-        setDocVerificationType("branch");
-        setView("dispute_docs");
+      const isDocUnderReview = data?.isDocumentVerified === "underReview" || details?.isDocumentVerified === "underReview";
 
-        // Fetch existing certificates using the branch ID!
-        if (bId) {
-          const API_URL = window.location.hostname !== "support.zaanvar.com"
-            ? "https://dev.zaanvar.com/api/"
-            : "https://prod.zaanvar.com/api/";
-          try {
-            const certRes = await axios.get(`${API_URL}branches/${bId}/certificates`, {
-              headers: { Authorization: `Bearer ${jwtToken}` }
-            });
-            if (certRes?.data?.status === "success" && certRes?.data?.data) {
-              const certData = certRes.data.data;
-              const certs = certData.certificates || {};
-              const certUrls = certData.certificateUrls || {};
-              setTicketStatus(certData.status || "Pending");
-              setCurrentTicketStep(certData.currentStep || certData.current_step || "");
-              setDisputeDocs(parseCerts(certs, certUrls));
-            }
-          } catch (certErr) {
-            console.error("Failed to fetch certificates:", certErr);
+      if (isDuplicate) {
+        if (isDocUnderReview) {
+          // Already submitted documents — go straight to the document verification screen
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("zaanvar_doc_verification_type", "branch");
           }
-        }
-        // setShowUnderReviewModal(true);
-      } else if (!isDismissed && isDuplicate) {
-        // Use currentStep from response OR from state (set by fetchClaimProgress earlier)
-        const currentStep = data.currentStep || details.currentStep || data.data?.currentStep || currentTicketStep || "";
-        const stepU = typeof currentStep === "string" ? currentStep.toUpperCase() : "";
-        if (stepU === "DOCUMENT_VERIFICATION" || stepU === "REJECTED") {
-          // setShowUnderReviewModal(true);
+          setDocVerificationType("branch");
+          setView("dispute_docs");
+
+          // Fetch existing certificates using the branch ID!
+          if (bId) {
+            const API_URL = window.location.hostname !== "support.zaanvar.com"
+              ? "https://dev.zaanvar.com/api/"
+              : "https://prod.zaanvar.com/api/";
+            try {
+              const certRes = await axios.get(`${API_URL}branches/${bId}/certificates`, {
+                headers: { Authorization: `Bearer ${jwtToken}` }
+              });
+              if (certRes?.data?.status === "success" && certRes?.data?.data) {
+                const certData = certRes.data.data;
+                const certs = certData.certificates || {};
+                const certUrls = certData.certificateUrls || {};
+                setTicketStatus(certData.status || "Pending");
+                setCurrentTicketStep(certData.currentStep || certData.current_step || "");
+                setDisputeDocs(parseCerts(certs, certUrls));
+              }
+            } catch (certErr) {
+              console.error("Failed to fetch certificates:", certErr);
+            }
+          }
         } else {
           setIsDuplicateClaimModalOpen(true);
         }
@@ -2154,7 +2170,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }
       >
         <div className={styles.container}>
-          {isDuplicateClaimModalOpen && view !== "dispute_docs" && !["DOCUMENT_VERIFICATION", "DOCUMENTS_UPLOADED", "DOCUMENTS_SUBMITTED", "REJECTED"].includes(currentTicketStep?.toUpperCase()) && (
+          {isDuplicateClaimModalOpen && view !== "dispute_docs" && (
             <div className={styles.disputeModalOverlay}>
               <div className={styles.disputeModalContent}>
                 <button
@@ -2182,18 +2198,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
                 </div>
 
                 <h3 className={styles.disputeModalTitle}>
-                  {currentTicketStep?.toUpperCase() === "APPROVED" ? (
-                    <>Already verified user for this scraped branch</>
-                  ) : (
-                    <>Someone is trying to claim<br />your business</>
-                  )}
+                  Someone is trying to claim<br />your business
                 </h3>
                 <p className={styles.disputeModalText}>
-                  {currentTicketStep?.toUpperCase() === "APPROVED" ? (
-                    <>Already verified user for this scraped branch, please upload documents to recover your branch.</>
-                  ) : (
-                    <>We need more information from you to protect your business listing on zaanvar.</>
-                  )}
+                  We need more information from you to protect your business listing on zaanvar.
                 </p>
 
                 <div className={styles.disputeModalInfoBox}>
@@ -2875,7 +2883,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     <button
                       type="button"
                       className={styles.disputeModalCloseBtn}
-                      onClick={() => setIsDisputeModalOpen(false)}
+                      onClick={handleDismissDuplicateClaim}
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -3462,14 +3470,29 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               }
 
                               const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
-                              const resolvedBranchId = backendBranchId || (savedBackendBranchId ? parseInt(savedBackendBranchId) : null);
+                              const savedScrapedBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null;
+
+                              const resolvedBranchId = backendBranchId ||
+                                (savedBackendBranchId ? parseInt(savedBackendBranchId, 10) : null) ||
+                                selectedBranch?.id ||
+                                (savedScrapedBranchId ? parseInt(savedScrapedBranchId, 10) : null);
 
                               const docType = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_doc_verification_type") : "ticket";
-                              const finalBranchIdToUse = docType === "branch" ? (resolvedBranchId || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null)) : null;
 
-                              const url = finalBranchIdToUse
-                                ? `${API_URL}branches/${finalBranchIdToUse}/certificates`
-                                : `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates`;
+                              const isBranchVerification = Boolean(
+                                docType === "branch" ||
+                                (resolvedBranchId && (
+                                  selectedBranch?.isDuplicateClaim ||
+                                  selectedBranch?.is_duplicate_claim ||
+                                  selectedBranch?.isPhoneVerified ||
+                                  selectedBranch?.isEmailVerified ||
+                                  hasVerifiedBusiness
+                                ))
+                              );
+
+                              const url = (isBranchVerification && resolvedBranchId)
+                                ? `${API_URL}branches/${resolvedBranchId}/certificates`
+                                : (activeTId ? `${API_URL}scraped-branches/claim/tickets/${activeTId}/certificates` : `${API_URL}branches/${resolvedBranchId}/certificates`);
 
                               formData.append("step", "DOCUMENTS_UPLOADED");
 
