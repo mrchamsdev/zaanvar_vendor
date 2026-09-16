@@ -62,13 +62,12 @@ export default function useDashboardData(options = {}) {
   const companyId = company?.compId || company?.id || company?._id || vendor?.compId || vendor?.companyId || null;
 
   // Determine if the user has dashboard access (verified business + subscription)
-  const hasDashboardAccess = companies.length > 0 && (
+  const hasDashboardAccess = Boolean(
     vendor?.isSubscribed ||
     vendor?.subscriptionActive ||
     vendor?.subscriptionPlan ||
     company?.isSubscribed ||
-    company?.subscriptionPlan ||
-    false
+    company?.subscriptionPlan
   );
 
   const [apiBranches, setApiBranches] = useState(null);

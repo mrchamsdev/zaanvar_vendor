@@ -68,13 +68,13 @@ export default function DashboardHomePage() {
 
   const companies = userInfo?.vendorCompanies || [];
   const company = companies[0] || null;
-  const hasActiveSubscription =
+  const hasActiveSubscription = Boolean(
     userInfo?.isSubscribed ||
     userInfo?.subscriptionActive ||
     userInfo?.subscriptionPlan ||
     company?.isSubscribed ||
-    company?.subscriptionPlan ||
-    false;
+    company?.subscriptionPlan
+  );
 
   if (!hasActiveSubscription) {
     return <ClaimBusiness forcedView="home" />;
