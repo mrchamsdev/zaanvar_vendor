@@ -321,6 +321,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [backendBranchId, setBackendBranchId] = useState(null);
   const [scrapedBranchEmail, setScrapedBranchEmail] = useState("");
   const [branchImagesList, setBranchImagesList] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
   const [headerBranches, setHeaderBranches] = useState([]);
 
   const hasVerifiedBusiness = Boolean(
@@ -539,24 +540,42 @@ const ClaimBusiness = ({ forcedView = null }) => {
             const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
               params: queryParams
             });
-            if (res?.data?.data) {
-              claimTicket = res.data.data.ticket || res.data.data;
-              const resData = res?.data;
-              const dynamicBranchId =
-                resData?.data?.branchId ||
-                resData?.data?.branch_id ||
-                resData?.branchId ||
-                resData?.branch_id ||
-                resData?.data?.ticket?.branchId ||
-                resData?.data?.ticket?.branch_id ||
-                resData?.data?.ticket?.draftData?.branchId ||
-                resData?.data?.ticket?.draftData?.branch_id;
-
-              if (dynamicBranchId) {
-                const numId = parseInt(dynamicBranchId, 10);
-                setBackendBranchId(numId);
+            if (res?.data) {
+              const subs = res.data.subscriptions || (res.data.subscription ? [res.data.subscription] : null);
+              if (subs && subs.length > 0) {
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("zaanvar_claim_backend_branch_id", String(numId));
+                  localStorage.setItem("zaanvar_subscription", JSON.stringify(subs));
+                }
+                const activeSubs = subs.filter(s => s.status === "active" || s.type === "paid");
+                const planNames = activeSubs.map(s => s.plan?.name || (s.planId === 1 ? "Grooming Management - Monthly" : s.planId === 11 ? "Daycare Management - Monthly" : `Plan #${s.planId}`)).filter(Boolean);
+                setUserInfo((prev) => ({
+                  ...(prev || {}),
+                  isSubscribed: activeSubs.length > 0,
+                  subscriptionActive: activeSubs.length > 0,
+                  subscriptions: subs,
+                  subscription: subs[0],
+                  subscriptionPlan: planNames.length > 0 ? planNames.join(" + ") : prev?.subscriptionPlan
+                }));
+              }
+              if (res.data.data) {
+                claimTicket = res.data.data.ticket || res.data.data;
+                const resData = res?.data;
+                const dynamicBranchId =
+                  resData?.data?.branchId ||
+                  resData?.data?.branch_id ||
+                  resData?.branchId ||
+                  resData?.branch_id ||
+                  resData?.data?.ticket?.branchId ||
+                  resData?.data?.ticket?.branch_id ||
+                  resData?.data?.ticket?.draftData?.branchId ||
+                  resData?.data?.ticket?.draftData?.branch_id;
+
+                if (dynamicBranchId) {
+                  const numId = parseInt(dynamicBranchId, 10);
+                  setBackendBranchId(numId);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("zaanvar_claim_backend_branch_id", String(numId));
+                  }
                 }
               }
             }
@@ -1903,13 +1922,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
     setView("search");
   };
 
-  const handleImageError = (index) => (e) => {
-    const fallbacks = [
-      "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=600&auto=format&fit=crop"
-    ];
-    e.target.src = fallbacks[index] || fallbacks[0];
+  const handleImageError = (index) => () => {
+    setImageErrors((prev) => ({ ...prev, [index]: true }));
   };
 
   const fetchBranchDetailsAndReviews = async (forcedBranchId = null) => {
@@ -1941,19 +1955,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
       const selfie = details.selfiePhoto || details.selfie_photo;
       if (selfie) setSelfiePhoto(selfie);
 
-      const defaultPlaceholders = [
-        "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929626969-d10fb7ad-1623-4651-b8fb-30bcf3eebb614425956424229639542.jpg",
-        "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg",
-        "https://zaanvar.s3.ap-south-1.amazonaws.com/uploads/221/scraped-branch-claims/1785929627134-66075c4f-46dc-4b0f-822a-ffaf79a9d23a4181905482332662380.jpg"
-      ];
-
-      const rawImages = details.images || details.branchImages || data.images || data.data?.images || [];
-      const imagesArr = Array.isArray(rawImages) ? rawImages.filter(Boolean) : [];
+      setImageErrors({});
+      const rawImages = details.images || details.branchImages || details.branch_images || data.images || data.data?.images || selectedBranch?.branchImages || selectedBranch?.images || [];
+      const imagesArr = (Array.isArray(rawImages) ? rawImages : [])
+        .map(img => (typeof img === "string" ? img : img?.url || img?.photoUrl || img?.image || ""))
+        .filter(Boolean);
 
       const finalImages = [
-        imagesArr[0] || details.shopFrontPhoto || details.shop_front_photo || defaultPlaceholders[0],
-        imagesArr[1] || details.selfiePhoto || details.selfie_photo || defaultPlaceholders[1],
-        imagesArr[2] || details.selfiePhoto || details.selfie_photo || defaultPlaceholders[2]
+        imagesArr[0] || details.shopFrontPhoto || details.shop_front_photo || "",
+        imagesArr[1] || "",
+        imagesArr[2] || ""
       ];
       setBranchImagesList(finalImages);
 
@@ -2387,13 +2398,35 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   <h3 className={styles.previewSectionTitle} style={{ fontSize: '15px', margin: '0 0 12px 0', fontWeight: '700', color: '#1f2937' }}>Photos</h3>
                   <div style={{ display: 'flex', gap: '12px', width: '100%', position: 'relative' }}>
                     {/* Left main image (large) */}
-                    <div style={{ position: 'relative', flex: '1.2', height: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}>
-                      <img
-                        src={branchImagesList[0] || shopFrontPhoto || "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=800&auto=format&fit=crop"}
-                        alt="Branch Photo 1"
-                        onError={handleImageError(0)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+                    <div style={{ position: 'relative', flex: '1.2', height: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', backgroundColor: '#f1f5f9' }}>
+                      {branchImagesList[0] && !imageErrors[0] ? (
+                        <img
+                          src={branchImagesList[0]}
+                          alt="Branch Photo 1"
+                          onError={handleImageError(0)}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#f1f5f9',
+                          color: '#94a3b8'
+                        }}>
+                          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                          <span style={{ fontSize: '12px', fontWeight: '500', marginTop: '6px', color: '#94a3b8' }}>
+                            No photo available
+                          </span>
+                        </div>
+                      )}
 
                       {/* Floating Add Photos Button on bottom-left */}
                       <button
@@ -2427,21 +2460,57 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                     {/* Right column (two stacked smaller images) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: '1', height: '220px' }}>
-                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden' }}>
-                        <img
-                          src={branchImagesList[1] || selfiePhoto || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop"}
-                          alt="Branch Photo 2"
-                          onError={handleImageError(1)}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative' }}>
+                        {branchImagesList[1] && !imageErrors[1] ? (
+                          <img
+                            src={branchImagesList[1]}
+                            alt="Branch Photo 2"
+                            onError={handleImageError(1)}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f1f5f9',
+                            color: '#94a3b8'
+                          }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden' }}>
-                        <img
-                          src={branchImagesList[2] || selfiePhoto || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=600&auto=format&fit=crop"}
-                          alt="Branch Photo 3"
-                          onError={handleImageError(2)}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative' }}>
+                        {branchImagesList[2] && !imageErrors[2] ? (
+                          <img
+                            src={branchImagesList[2]}
+                            alt="Branch Photo 3"
+                            onError={handleImageError(2)}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f1f5f9',
+                            color: '#94a3b8'
+                          }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3259,7 +3328,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setView("dispute_docs")}
+                    onClick={() => {
+                      const stepU = (inProgressTicket?.currentStep || inProgressTicket?.current_step || currentTicketStep || "").toUpperCase();
+                      if (stepU === "DOCUMENT_VERIFICATION" || stepU === "DOCUMENTS_UPLOADED" || stepU === "REJECTED") {
+                        setView("dispute_docs");
+                      } else {
+                        setView("submitted");
+                      }
+                    }}
                     style={{
                       padding: "9px 18px",
                       backgroundColor: "#2563EB",
@@ -3273,7 +3349,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
                     }}
                   >
-                    View Status & Documents →
+                    {["DOCUMENT_VERIFICATION", "DOCUMENTS_UPLOADED", "REJECTED"].includes((inProgressTicket?.currentStep || inProgressTicket?.current_step || currentTicketStep || "").toUpperCase())
+                      ? "View Status & Documents →"
+                      : "View Claim Status →"}
                   </button>
                 </div>
               )}
@@ -4120,188 +4198,327 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
               {/* STEP 6: UPLOADED PREVIEWS (SUBMITTED) VIEW SCREEN */}
               {view === "submitted" && (
-                <div className={styles.splitLayout}>
-                  {/* Left Column - Previews */}
-                  <div className={styles.leftCol}>
-                    <div className={styles.formCard} style={{ padding: '16px' }}>
-                      {currentTicketStep === "APPROVED" && (
-                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-                          <span style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: "4px 12px",
-                            borderRadius: "16px",
-                            backgroundColor: "#e6f4ea",
-                            color: "#137333",
-                            fontSize: "12px",
-                            fontWeight: "700"
-                          }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            APPROVED
-                          </span>
-                        </div>
-                      )}
-                      {/* Shop Front video */}
-                      <h3 className={styles.previewSectionTitle}>Preview of shop front view video</h3>
-                      <p className={styles.previewSectionSub}>
-                        Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
-                      </p>
-
-                      <div className={styles.videoWrapper}>
-                        {videoUpload ? (
-                          <>
-                            <video
-                              key={hevcSupported && !videoError ? videoUpload : "fallback-h264"}
-                              src={hevcSupported && !videoError ? videoUpload : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-                              controls
-                              className={styles.videoPlayer}
-                              playsInline
-                              onError={() => setVideoError(true)}
-                            >
-                              Your browser does not support the video tag.
-                            </video>
-                            {(!hevcSupported || videoError) && (
-                              <div className={styles.hevcWarningOverlay}>
-                                <h4 className={styles.hevcWarningTitle}>⚠️ H.265/HEVC Fallback</h4>
-                                <p className={styles.hevcWarningText}>
-                                  Your browser doesn&apos;t natively support H.265 playback. Playing a sample video in the UI (or download your original video file below).
-                                </p>
-                                <a
-                                  href={videoUpload}
-                                  download
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles.hevcDownloadBtn}
-                                >
-                                  Download Original Video
-                                </a>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className={styles.noVideoPlaceholder}>No video uploaded</div>
-                        )}
+                <div>
+                  {/* Step-by-Step Progress Wizard */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '16px 24px',
+                    marginBottom: '24px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    {/* Step 1 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#16a34a',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '14px'
+                      }}>✓</div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>1. Select Business</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Branch Selected</div>
                       </div>
+                    </div>
 
-                      <div style={{ marginTop: '16px' }} />
+                    <div style={{ flex: 1, minWidth: '30px', height: '2px', backgroundColor: '#16a34a', margin: '0 12px' }} />
 
-                      {/* Selfie and Shop Front Photos */}
-                      <h3 className={styles.previewSectionTitle}>Add a selfie Photo</h3>
-                      <p className={styles.previewSectionSub}>
-                        Sharing a recent photo of your business exterior helps customers identify you in the real world <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Guide loaded."); }} className={styles.learnMoreLinkInline}>Learn More.</a>
-                      </p>
+                    {/* Step 2 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#16a34a',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '14px'
+                      }}>✓</div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>2. Business Details</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Information Provided</div>
+                      </div>
+                    </div>
 
-                      <div className={styles.photosRow}>
-                        <div className={styles.photoContainer}>
-                          {shopFrontPhoto ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={shopFrontPhoto} alt="Shop front" className={styles.photoImg} />
-                          ) : (
-                            <div className={styles.noPhotoPlaceholder}>No shop front photo</div>
-                          )}
-                        </div>
-                        <div className={styles.photoContainer}>
-                          {selfiePhoto ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={selfiePhoto} alt="Selfie" className={styles.photoImg} />
-                          ) : (
-                            <div className={styles.noPhotoPlaceholder}>No selfie photo</div>
-                          )}
-                        </div>
+                    <div style={{ flex: 1, minWidth: '30px', height: '2px', backgroundColor: '#16a34a', margin: '0 12px' }} />
+
+                    {/* Step 3 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#16a34a',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '14px'
+                      }}>✓</div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>3. Verification Method</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Video & Photos Uploaded</div>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: '30px', height: '2px', backgroundColor: '#2563eb', margin: '0 12px' }} />
+
+                    {/* Step 4 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#2563eb',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '14px'
+                      }}>4</div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#2563eb' }}>4. Verification Submitted</div>
+                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '600' }}>Under Review</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Column - Status or OTP */}
-                  <div className={styles.rightCol} style={{ width: '480px' }}>
-                    <div className={styles.submittedRightCard}>
-                      {!showOtpView ? (
-                        <div className={styles.statusContent}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src="https://zaanvarprods3.b-cdn.net/media/1786077281636-blocking-internet-icon%201.png"
-                            alt="Verification in progress lock illustration"
-                            className={styles.statusIllustration}
-                          />
-                          <h2 className={styles.statusHeading}>Verification in Progress</h2>
-                          <p className={styles.statusText}>
-                            Your registration has been received and is currently being reviewed. We&apos;ll notify you once verification is complete.
-                          </p>
-
-                          <button
-                            type="button"
-                            className={styles.claimCodeLink}
-                            onClick={handleInitiateOtpClaim}
-                          >
-                            Claim your business with code
-                          </button>
-                        </div>
-                      ) : (
-                        <div className={styles.otpContent}>
-                          <button
-                            type="button"
-                            className={styles.otpBackBtn}
-                            onClick={handleCancelOtpClaim}
-                            aria-label="Back to status"
-                          >
-                            ←
-                          </button>
-
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
-                            alt="OTP Security shield illustration"
-                            className={styles.otpIllustration}
-                          />
-
-                          <h3 className={styles.otpHeading}>Enter OTP here</h3>
-                          <p className={styles.otpSub}>
-                            ENTER THE 6-DIGIT OTP SENT TO YOUR REGISTERED MOBILE NUMBER
-                          </p>
-
-                          {/* 6 OTP Inputs */}
-                          <div className={styles.otpInputsRow}>
-                            {otpValues.map((val, idx) => (
-                              <input
-                                key={idx}
-                                id={`otp-input-${idx}`}
-                                type="text"
-                                maxLength="1"
-                                value={val}
-                                className={styles.otpBox}
-                                onChange={(e) => {
-                                  const newVals = [...otpValues];
-                                  newVals[idx] = e.target.value;
-                                  setOtpValues(newVals);
-                                  if (e.target.value && idx < 5) {
-                                    document.getElementById(`otp-input-${idx + 1}`)?.focus();
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Backspace" && !otpValues[idx] && idx > 0) {
-                                    document.getElementById(`otp-input-${idx - 1}`)?.focus();
-                                  }
-                                }}
-                              />
-                            ))}
+                  <div className={styles.splitLayout}>
+                    {/* Left Column - Previews */}
+                    <div className={styles.leftCol}>
+                      <div className={styles.formCard} style={{ padding: '16px' }}>
+                        {currentTicketStep === "APPROVED" && (
+                          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                            <span style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "4px 12px",
+                              borderRadius: "16px",
+                              backgroundColor: "#e6f4ea",
+                              color: "#137333",
+                              fontSize: "12px",
+                              fontWeight: "700"
+                            }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              APPROVED
+                            </span>
                           </div>
+                        )}
+                        {/* Shop Front video */}
+                        <h3 className={styles.previewSectionTitle}>Preview of shop front view video</h3>
+                        <p className={styles.previewSectionSub}>
+                          Sharing a recent video of your business exterior helps customers identify you in the real world.
+                        </p>
 
-                          <p className={styles.resendOtpText}>
-                            Didn&apos;t Receive code? <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Resending OTP code..."); }} className={styles.resendLink}>Please contact the support</a>
-                          </p>
-                          <button
-                            type="button"
-                            className={styles.btnPrimary}
-                            style={{ width: '100%', marginTop: '24px' }}
-                            onClick={handleVerifyOtp}
-                          >
-                            Submit
-                          </button>
+                        <div className={styles.videoWrapper}>
+                          {videoUpload ? (
+                            <>
+                              <video
+                                key={hevcSupported && !videoError ? videoUpload : "fallback-h264"}
+                                src={hevcSupported && !videoError ? videoUpload : "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                                controls
+                                className={styles.videoPlayer}
+                                playsInline
+                                onError={() => setVideoError(true)}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                              {(!hevcSupported || videoError) && (
+                                <div className={styles.hevcWarningOverlay}>
+                                  <h4 className={styles.hevcWarningTitle}>⚠️ H.265/HEVC Fallback</h4>
+                                  <p className={styles.hevcWarningText}>
+                                    Your browser doesn&apos;t natively support H.265 playback. Playing a sample video in the UI.
+                                  </p>
+                                  <a
+                                    href={videoUpload}
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.hevcDownloadBtn}
+                                  >
+                                    Download Original Video
+                                  </a>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className={styles.noVideoPlaceholder}>No video uploaded</div>
+                          )}
                         </div>
-                      )}
+
+                        <div style={{ marginTop: '20px' }} />
+
+                        {/* Branch Photos */}
+                        <h3 className={styles.previewSectionTitle}>Branch Photos & Uploaded Previews</h3>
+                        <p className={styles.previewSectionSub}>
+                          Uploaded photos of your business location to confirm identity and listing ownership.
+                        </p>
+
+                        <div className={styles.photosRow}>
+                          <div className={styles.photoContainer}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {shopFrontPhoto ||
+                            branchImagesList[0] ||
+                            selectedBranch?.branchImages?.[0] ||
+                            selectedBranch?.images?.[0] ? (
+                              <img
+                                src={
+                                  shopFrontPhoto ||
+                                  branchImagesList[0] ||
+                                  selectedBranch?.branchImages?.[0] ||
+                                  selectedBranch?.images?.[0]
+                                }
+                                alt="Shop Front Photo"
+                                className={styles.photoImg}
+                              />
+                            ) : (
+                              <div className={styles.noPhotoPlaceholder}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.photoContainer}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {selfiePhoto ||
+                            branchImagesList[1] ||
+                            selectedBranch?.branchImages?.[1] ||
+                            selectedBranch?.images?.[1] ? (
+                              <img
+                                src={
+                                  selfiePhoto ||
+                                  branchImagesList[1] ||
+                                  selectedBranch?.branchImages?.[1] ||
+                                  selectedBranch?.images?.[1]
+                                }
+                                alt="Verification / Selfie Photo"
+                                className={styles.photoImg}
+                              />
+                            ) : (
+                              <div className={styles.noPhotoPlaceholder}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Status or OTP */}
+                    <div className={styles.rightCol} style={{ width: '480px' }}>
+                      <div className={styles.submittedRightCard}>
+                        {!showOtpView ? (
+                          <div className={styles.statusContent}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src="https://zaanvarprods3.b-cdn.net/media/1786077281636-blocking-internet-icon%201.png"
+                              alt="Verification in progress lock illustration"
+                              className={styles.statusIllustration}
+                            />
+                            <h2 className={styles.statusHeading}>Verification in Progress</h2>
+                            <p className={styles.statusText}>
+                              Your registration has been received and is currently being reviewed. We&apos;ll notify you once verification is complete.
+                            </p>
+
+                            <button
+                              type="button"
+                              className={styles.claimCodeLink}
+                              onClick={handleInitiateOtpClaim}
+                            >
+                              Claim your business with code
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={styles.otpContent}>
+                            <button
+                              type="button"
+                              className={styles.otpBackBtn}
+                              onClick={handleCancelOtpClaim}
+                              aria-label="Back to status"
+                            >
+                              ←
+                            </button>
+
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src="https://zaanvarprods3.b-cdn.net/media/1786077374486-cyber-data-security-online-concept-illustration-internet-security-information-privacy-protection%201.png"
+                              alt="OTP Security shield illustration"
+                              className={styles.otpIllustration}
+                            />
+
+                            <h3 className={styles.otpHeading}>Enter OTP here</h3>
+                            <p className={styles.otpSub}>
+                              ENTER THE 6-DIGIT OTP SENT TO YOUR REGISTERED MOBILE NUMBER
+                            </p>
+
+                            {/* 6 OTP Inputs */}
+                            <div className={styles.otpInputsRow}>
+                              {otpValues.map((val, idx) => (
+                                <input
+                                  key={idx}
+                                  id={`otp-input-${idx}`}
+                                  type="text"
+                                  maxLength="1"
+                                  value={val}
+                                  className={styles.otpBox}
+                                  onChange={(e) => {
+                                    const newVals = [...otpValues];
+                                    newVals[idx] = e.target.value;
+                                    setOtpValues(newVals);
+                                    if (e.target.value && idx < 5) {
+                                      document.getElementById(`otp-input-${idx + 1}`)?.focus();
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Backspace" && !otpValues[idx] && idx > 0) {
+                                      document.getElementById(`otp-input-${idx - 1}`)?.focus();
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </div>
+
+                            <p className={styles.resendOtpText}>
+                              Didn&apos;t Receive code? <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Resending OTP code..."); }} className={styles.resendLink}>Please contact the support</a>
+                            </p>
+                            <button
+                              type="button"
+                              className={styles.btnPrimary}
+                              style={{ width: '100%', marginTop: '24px' }}
+                              onClick={handleVerifyOtp}
+                            >
+                              Submit
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

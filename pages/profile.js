@@ -3,6 +3,7 @@ import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
 import { IMAGE_URL } from "../components/utilities/Constants";
+import { parseApiToLocal } from "../utilities/date-time-utils";
 
 /* ── icons ── */
 const HeartIcon = ({ filled }) => (
@@ -23,8 +24,6 @@ const ChevronDown = () => (
 );
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-import { parseApiToLocal } from "../utilities/date-time-utils";
 
 /* ─── address string builder ─────────────────────────────── */
 function buildAddress(addr) {

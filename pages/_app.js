@@ -49,6 +49,8 @@ const PROTECTED_PREFIXES = [
   "/pet-sales",
   "/onboarding",
   "/claim-business",
+  "/my-subscription",
+  "/subscriptions",
 ];
 
 function AuthGuard({ children }) {
@@ -61,16 +63,15 @@ function AuthGuard({ children }) {
     const path = router.pathname;
 
     if (jwtToken) {
-      // If user has no business, redirect from dashboard/services to /onboarding
       const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
       const hasNoBusiness = (!userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0) && !savedBackendBranchId;
-      const hasActiveSubscription =
+      const hasActiveSubscription = Boolean(
         userInfo?.isSubscribed ||
         userInfo?.subscriptionActive ||
         userInfo?.subscriptionPlan ||
         (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
-        false;
+        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
+      );
 
       const isDashboardOrService = [
         "/home",

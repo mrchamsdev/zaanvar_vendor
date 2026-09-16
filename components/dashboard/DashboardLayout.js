@@ -197,109 +197,228 @@ const BRANCH_SERVICE_MAP = {
 };
 
 function buildMenuFromVendor(userInfo) {
-  const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
-  const hasActiveSubscription =
+  // Collect all subscription objects from userInfo, vendorCompanies, or localStorage
+  let rawSubs = [];
+  if (Array.isArray(userInfo?.subscriptions)) {
+    rawSubs.push(...userInfo.subscriptions);
+  } else if (userInfo?.subscription) {
+    if (Array.isArray(userInfo.subscription)) rawSubs.push(...userInfo.subscription);
+    else rawSubs.push(userInfo.subscription);
+  }
+
+  (userInfo?.vendorCompanies || []).forEach((co) => {
+    if (Array.isArray(co.subscriptions)) rawSubs.push(...co.subscriptions);
+    else if (co.subscription) {
+      if (Array.isArray(co.subscription)) rawSubs.push(...co.subscription);
+      else rawSubs.push(co.subscription);
+    }
+  });
+
+  if (rawSubs.length === 0 && typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("zaanvar_subscription") || "null");
+      if (Array.isArray(stored)) rawSubs.push(...stored);
+      else if (stored) rawSubs.push(stored);
+    } catch {}
+  }
+
+  // Deduplicate and filter active subscriptions
+  const validActiveSubs = [];
+  const seenIds = new Set();
+  rawSubs.forEach((s) => {
+    if (s?.status === "active" || s?.type === "paid" || s?.status === "ACTIVE") {
+      const pid = Number(s?.planId || s?.plan?.planId || s?.id);
+      const name = (s?.plan?.name || "").toLowerCase().trim();
+      const key = pid || name;
+      if (key && !seenIds.has(key)) {
+        seenIds.add(key);
+        validActiveSubs.push(s);
+      }
+    }
+  });
+
+  const hasActiveSubscription = Boolean(
+    validActiveSubs.length > 0 ||
     userInfo?.isSubscribed ||
     userInfo?.subscriptionActive ||
     userInfo?.subscriptionPlan ||
     (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
-    false;
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
+  );
 
-  if (hasNoBusiness || !hasActiveSubscription) {
+  if (!hasActiveSubscription) {
     return [
       { label: "Home", path: "/claim-business", icon: <IconHome /> },
-      { label: "Profile", path: "#", icon: <IconUser /> },
-      { label: "Change Password", path: "#", icon: <IconSettings /> },
-      { label: "My Subscription", path: "#", icon: <IconPackage /> },
-      { label: "Privacy & Policy", path: "#", icon: <IconReviews /> },
-      { label: "Terms of use", path: "#", icon: <IconReviews /> },
-      { label: "Terms & Conditions", path: "#", icon: <IconReviews /> },
+      { label: "Profile", path: "/profile", icon: <IconUser /> },
+      { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
       { label: "Support", path: "#", icon: <IconShop /> },
     ];
   }
 
-  const base = [
+  // Determine exactly which modules are subscribed
+  let hasFullPackage = false;
+  let hasGrooming = false;
+  let hasDaycare = false;
+  let hasClinic = false;
+  let hasPOS = false;
+
+  validActiveSubs.forEach((s) => {
+    const pId = Number(s?.planId || s?.plan?.planId || s?.id);
+    const planName = (s.plan?.name || "").toLowerCase();
+    const mod = (s.plan?.features?.module || "").toLowerCase();
+    const cat = (s.plan?.features?.category || "").toLowerCase();
+    const includes = (s.plan?.features?.includes || []).map((i) => String(i).toLowerCase());
+
+    if (
+      cat.includes("complete") ||
+      planName.includes("complete") ||
+      planName.includes("all-in-one") ||
+      planName.includes("all in one") ||
+      planName.includes("all-inclusive")
+    ) {
+      hasFullPackage = true;
+    }
+
+    if (
+      pId === 1 ||
+      pId === 2 ||
+      mod === "grooming" ||
+      planName.includes("grooming") ||
+      includes.some((inc) => inc === "grooming" || inc.includes("grooming history") || inc.includes("groomer assignment"))
+    ) {
+      hasGrooming = true;
+    }
+
+    if (
+      pId === 11 ||
+      pId === 12 ||
+      mod === "daycare" ||
+      mod === "day care" ||
+      planName.includes("daycare") ||
+      planName.includes("day care") ||
+      includes.some((inc) => inc.includes("pet attendance") || inc.includes("daily activities") || inc.includes("check-in / check-out"))
+    ) {
+      hasDaycare = true;
+    }
+
+    if (
+      pId === 3 ||
+      pId === 4 ||
+      mod === "clinic" ||
+      planName.includes("clinic") ||
+      includes.some((inc) => inc.includes("veterinary") || inc.includes("health records"))
+    ) {
+      hasClinic = true;
+    }
+
+    if (
+      pId === 41 ||
+      pId === 42 ||
+      pId === 21 ||
+      pId === 22 ||
+      pId === 31 ||
+      pId === 32 ||
+      planName.includes("pet shop") ||
+      planName.includes("shop") ||
+      planName.includes("pos") ||
+      planName.includes("inventory") ||
+      mod.includes("pos") ||
+      mod.includes("inventory") ||
+      mod.includes("shop") ||
+      includes.some((inc) => inc.includes("pos") || inc.includes("inventory") || inc.includes("purchase") || inc.includes("sale") || inc.includes("online orders"))
+    ) {
+      hasPOS = true;
+    }
+  });
+
+  if (hasFullPackage) {
+    hasGrooming = true;
+    hasDaycare = true;
+    hasClinic = true;
+    hasPOS = true;
+  }
+
+  const settingsSubItems = [
+    { label: "General Settings", path: "/vendor-settings?tab=General" },
+    { label: "Transactions", path: "/vendor-settings?tab=Transactions" },
+    { label: "Taxes & GST", path: "/vendor-settings?tab=TaxesGST" },
+    { label: "Transaction Message", path: "/vendor-settings?tab=TransactionMessage" },
+    { label: "Supplier & Customer", path: "/vendor-settings?tab=SupplierCustomer" },
+    { label: "Item Settings", path: "/vendor-settings?tab=ItemSettings" },
+    { label: "Services & Packages", path: "/vendor-settings?tab=ServicesPackages" },
+    { label: "Rooms & Capacity", path: "/vendor-settings?tab=RoomsCapacity" },
+    { label: "Roles & Permissions", path: "/vendor-settings?tab=RolesAndPermissions" },
+    { label: "Profile Settings", path: "/vendor-settings?tab=ProfileSettings" },
+  ];
+
+  // Build Bookings Sub-Items dynamically based on subscribed services
+  const bookingSubItems = [];
+  if (hasGrooming) {
+    bookingSubItems.push({ label: "Grooming", path: "/grooming/booking" });
+  }
+  if (hasDaycare) {
+    bookingSubItems.push({ label: "Daycare", path: "/daycare" });
+  }
+  if (hasClinic) {
+    bookingSubItems.push({ label: "Clinic", path: "/clinic" });
+  }
+
+  const menu = [
+    { label: "Home", path: "/claim-business", icon: <IconHome /> },
     { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
     { label: "Reviews", path: "/reviews", icon: <IconStar /> },
     { label: "Profile", path: "/profile", icon: <IconUser /> },
-    {
+  ];
+
+  // ONLY include Bookings in the sidebar if Grooming, Daycare, or Clinic is subscribed
+  if (bookingSubItems.length > 0) {
+    menu.push({
       label: "Bookings",
       path: "/bookings",
       icon: <IconProducts />,
-      subItems: [
-        { label: "Grooming", path: "/grooming/booking" },
-        { label: "Daycare", path: "/daycare" },
-        { label: "Clinic", path: "/clinic" }
-      ]
-    },
-    {
-      label: "Inventory",
-      path: "/inventory",
-      icon: <IconPackage />,
-      subItems: SERVICE_MAP["Inventory"].subItems
-    },
-    {
-      label: "Purchase Bills",
-      path: "/purchase-bill",
-      icon: <IconPackage />,
-      subItems: SERVICE_MAP["Purchase Bills"].subItems
-    },
-    {
-      label: "Sale",
-      path: "/sale",
-      icon: <IconShop />,
-      subItems: SERVICE_MAP["Sale"].subItems
-    },
-    { label: "Customers", path: "/customers", icon: <IconUser /> },
-    { label: "Staff Management", path: "/staff-management", icon: <IconUser /> },
-    { label: "Supplier", path: "/suppliers", icon: <IconGrid /> },
+      subItems: bookingSubItems,
+    });
+  }
+
+  // If Pet Shop / POS / Inventory package subscribed, include commerce modules
+  if (hasPOS) {
+    menu.push(
+      {
+        label: "Inventory",
+        path: "/inventory",
+        icon: <IconPackage />,
+        subItems: SERVICE_MAP["Inventory"]?.subItems,
+      },
+      {
+        label: "Purchase Bills",
+        path: "/purchase-bill",
+        icon: <IconPackage />,
+        subItems: SERVICE_MAP["Purchase Bills"]?.subItems,
+      },
+      {
+        label: "Sale",
+        path: "/sale",
+        icon: <IconShop />,
+        subItems: SERVICE_MAP["Sale"]?.subItems,
+      },
+      { label: "Customers", path: "/customers", icon: <IconUser /> },
+      { label: "Staff Management", path: "/staff-management", icon: <IconUser /> },
+      { label: "Supplier", path: "/suppliers", icon: <IconGrid /> }
+    );
+  }
+
+  menu.push(
     {
       label: "Settings",
       path: "/vendor-settings",
       icon: <IconSettings />,
-      subItems: [
-        { label: "General Settings", path: "/vendor-settings?tab=General" },
-        { label: "Transactions", path: "/vendor-settings?tab=Transactions" },
-        { label: "Taxes & GST", path: "/vendor-settings?tab=TaxesGST" },
-        { label: "Transaction Message", path: "/vendor-settings?tab=TransactionMessage" },
-        { label: "Supplier & Customer", path: "/vendor-settings?tab=SupplierCustomer" },
-        { label: "Item Settings", path: "/vendor-settings?tab=ItemSettings" },
-        { label: "Services & Packages", path: "/vendor-settings?tab=ServicesPackages" },
-        { label: "Rooms & Capacity", path: "/vendor-settings?tab=RoomsCapacity" },
-        { label: "Roles & Permissions", path: "/vendor-settings?tab=RolesAndPermissions" },
-        { label: "Profile Settings", path: "/vendor-settings?tab=ProfileSettings" },
-      ],
+      subItems: settingsSubItems,
     },
-  ];
+    { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
+    { label: "Support", path: "#", icon: <IconShop /> }
+  );
 
-  const serviceSet = new Set();
-
-  (userInfo?.vendorCompanies || []).forEach((co) => {
-    (co.servicesProvided || []).forEach((s) => serviceSet.add(s));
-    (co.branches || []).forEach((br) => {
-      Object.entries(BRANCH_SERVICE_MAP).forEach(([key, svc]) => {
-        const val = br[key];
-        if (val && (Array.isArray(val) ? val.length > 0 : true)) {
-          serviceSet.add(svc);
-        }
-      });
-    });
-  });
-
-  const seen = new Set();
-  base.forEach(b => seen.add(b.path));
-
-  const svcItems = [];
-  serviceSet.forEach((s) => {
-    const cfg = SERVICE_MAP[s];
-    if (cfg && !seen.has(cfg.path)) {
-      seen.add(cfg.path);
-      svcItems.push({ label: cfg.label, path: cfg.path, icon: cfg.icon, subItems: cfg.subItems });
-    }
-  });
-
-  return [...base, ...svcItems];
+  return menu;
 }
 
 /* ─── Loading skeleton ──────────────────────────────────── */
@@ -332,6 +451,25 @@ function Skeleton() {
   );
 }
 
+function getAuthToken(jwtToken) {
+  if (jwtToken) return jwtToken;
+  if (typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("user-store") || "null");
+      if (stored?.state?.jwtToken) return stored.state.jwtToken;
+      if (stored?.jwtToken) return stored.jwtToken;
+    } catch {}
+    return (
+      localStorage.getItem("jwtToken") ||
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("jwtToken") ||
+      sessionStorage.getItem("token") ||
+      null
+    );
+  }
+  return null;
+}
+
 /* ═══════════════════════════════════════════════════════════
  * DashboardLayout
  * ═══════════════════════════════════════════════════════════ */
@@ -343,12 +481,101 @@ const DashboardLayout = ({
   customTopbarRight
 }) => {
   const router = useRouter();
-  const { userInfo, jwtToken, _hasHydrated, clearStore, roles } = useStore();
+  const { userInfo, jwtToken, _hasHydrated, clearStore, roles, setUserInfo } = useStore();
   const { branches, selectedBranchId, setSelectedBranchId } = useDashboardData({ skipReviews: true });
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { expandedMenus, setExpandedMenus } = useStore();
+
+  /* ── sync latest active subscriptions in background ── */
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    const syncSubs = async () => {
+      try {
+        const API_URL = typeof window !== "undefined" && window.location.hostname === "business.zaanvar.com"
+          ? "https://prod.zaanvar.com/api/"
+          : "https://dev.zaanvar.com/api/";
+
+        const token = getAuthToken(jwtToken);
+        if (!token) return;
+
+        const uId = userInfo?.userId || userInfo?.id || userInfo?._id;
+        const bId =
+          (typeof window !== "undefined" && localStorage.getItem("zaanvar_claim_backend_branch_id")) ||
+          (typeof window !== "undefined" && localStorage.getItem("selectedBranchId")) ||
+          (typeof window !== "undefined" && localStorage.getItem("zaanvar_claim_scraped_branch_id")) ||
+          userInfo?.vendorCompanies?.[0]?.branches?.[0]?.id ||
+          userInfo?.branchId ||
+          280;
+        const scrapedId = typeof window !== "undefined" && localStorage.getItem("zaanvar_claim_scraped_branch_id");
+
+        const authHeaders = { Authorization: `Bearer ${token}` };
+        let subs = null;
+
+        // Primary: GET companies/vendor/details?branchId=${bId}
+        try {
+          const detailsRes = await axios.get(`${API_URL}companies/vendor/details`, {
+            params: { branchId: bId },
+            headers: authHeaders
+          });
+          if (detailsRes?.data?.subscriptions && detailsRes.data.subscriptions.length > 0) {
+            subs = detailsRes.data.subscriptions;
+          } else if (detailsRes?.data?.data?.subscriptions && detailsRes.data.data.subscriptions.length > 0) {
+            subs = detailsRes.data.data.subscriptions;
+          }
+        } catch (e) {
+          // fallback
+        }
+
+        // Fallback: GET scraped-branches/claim/progress
+        if (!subs || subs.length === 0) {
+          try {
+            const params = {};
+            if (uId) {
+              params.vendor_user_id = uId;
+              params.vendorUserId = uId;
+            }
+            if (bId) params.branchId = bId;
+            if (scrapedId) params.scrapedBranchId = scrapedId;
+
+            const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
+              params,
+              headers: authHeaders
+            });
+
+            subs =
+              res?.data?.subscriptions ||
+              res?.data?.data?.subscriptions ||
+              (res?.data?.subscription ? [res.data.subscription] : null);
+          } catch (e) {
+            // silent fallback
+          }
+        }
+
+        if (subs && subs.length > 0) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("zaanvar_subscription", JSON.stringify(subs));
+          }
+          const active = subs.filter(s => s.status === "active" || s.type === "paid" || s.status === "ACTIVE");
+          const names = active.map(s => s.plan?.name || (s.planId === 1 ? "Grooming Management - Monthly" : s.planId === 11 ? "Daycare Management - Monthly" : `Plan #${s.planId}`)).filter(Boolean);
+          if (setUserInfo) {
+            setUserInfo((prev) => ({
+              ...(prev || {}),
+              isSubscribed: active.length > 0,
+              subscriptionActive: active.length > 0,
+              subscriptions: subs,
+              subscription: active[0] || subs[0],
+              subscriptionPlan: names.length > 0 ? names.join(" + ") : prev?.subscriptionPlan
+            }));
+          }
+        }
+      } catch (e) {
+        // silent sync error
+      }
+    };
+    syncSubs();
+  }, [_hasHydrated, jwtToken]);
 
   /* ── auto-expand active menu ── */
   useEffect(() => {
@@ -421,16 +648,15 @@ const DashboardLayout = ({
   // Roles have loaded when the array is non-empty (populated by useDashboardData polling)
   const rolesLoaded = Array.isArray(roles) && roles.length > 0;
 
-  const hasNoBusiness = !userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0;
-  const hasActiveSubscription =
+  const hasActiveSubscription = Boolean(
     userInfo?.isSubscribed ||
     userInfo?.subscriptionActive ||
     userInfo?.subscriptionPlan ||
     (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan) ||
-    false;
+    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
+  );
 
-  const hasNoBusinessOrNoSub = hasNoBusiness || !hasActiveSubscription;
+  const hasNoBusinessOrNoSub = !hasActiveSubscription;
 
   const filteredMenuItems = hasNoBusinessOrNoSub
     ? menuItems
