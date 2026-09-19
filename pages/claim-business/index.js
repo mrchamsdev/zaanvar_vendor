@@ -10,6 +10,8 @@ import useStore from "../../components/state/useStore";
 import { WebApimanager } from "../../components/utilities/WebApiManager";
 import swal from "sweetalert";
 import RegisterBusinessModal from "../../components/RegisterBusinessModal";
+import EditBusinessModal from "../../components/EditBusinessModal";
+import { IMAGE_URL } from "../../components/utilities/Constants";
 
 // ─── Inline SVGs & Helpers ───────────────────────────────────────────────────
 const StarIcon = () => (
@@ -172,16 +174,113 @@ const parseCerts = (certs, certUrls) => {
   };
 };
 
+const getValidBranchPhoto = (branch) => {
+  if (!branch) return null;
+  let raw = null;
+  if (Array.isArray(branch.photos) && branch.photos.length > 0) {
+    raw = branch.photos[0];
+  } else if (typeof branch.photos === "string") {
+    try {
+      const parsed = JSON.parse(branch.photos);
+      if (Array.isArray(parsed) && parsed.length > 0) raw = parsed[0];
+      else raw = branch.photos;
+    } catch {
+      raw = branch.photos;
+    }
+  } else if (branch.photo) {
+    raw = branch.photo;
+  } else if (branch.imageUrl || branch.image_url) {
+    raw = branch.imageUrl || branch.image_url;
+  } else if (branch.branchImage || branch.branch_image) {
+    raw = branch.branchImage || branch.branch_image;
+  }
+
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("See website:") || trimmed.toLowerCase().includes("see website")) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) return trimmed;
+  return null;
+};
+
+const WEEK_DAYS = [
+  { key: "monday", label: "Monday" },
+  { key: "tuesday", label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday", label: "Thursday" },
+  { key: "friday", label: "Friday" },
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" }
+];
+
+const getTodayDayKey = () => {
+  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  return dayNames[new Date().getDay()];
+};
+
+const format12HourTime = (timeStr) => {
+  if (!timeStr) return "";
+  const parts = timeStr.trim().split(":");
+  if (parts.length < 2) return timeStr;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  const ampm = hours >= 12 ? "pm" : "am";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
+const getOperatingHoursSummary = (timingsObj, detailsObj) => {
+  const todayKey = getTodayDayKey();
+  let todayTiming = timingsObj?.[todayKey];
+
+  if (!todayTiming && detailsObj?.openingTime && detailsObj?.closingTime) {
+    todayTiming = `${detailsObj.openingTime} - ${detailsObj.closingTime}`;
+  }
+
+  if (!todayTiming) {
+    return { isOpen: true, label: "Open", text: ". Closes 9:00 pm" };
+  }
+
+  if (todayTiming.toLowerCase().includes("closed")) {
+    return { isOpen: false, label: "Closed", text: ". Opens tomorrow" };
+  }
+
+  const parts = todayTiming.split("-").map((s) => s.trim());
+  if (parts.length >= 2) {
+    const endFormatted = format12HourTime(parts[1]);
+    return { isOpen: true, label: "Open", text: `. Closes ${endFormatted}` };
+  }
+
+  return { isOpen: true, label: "Open", text: `. ${todayTiming}` };
+};
+
 // ─── Main ClaimBusiness Page ─────────────────────────────────────────────────
 const ClaimBusiness = ({ forcedView = null }) => {
   const router = useRouter();
   const { userInfo, jwtToken, _hasHydrated, setUserInfo } = useStore();
   const dropdownRef = useRef(null);
+  const timingsDropdownRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [previewImgError, setPreviewImgError] = useState(false);
+  const [isTimingsOpen, setIsTimingsOpen] = useState(false);
+  const [branchTimings, setBranchTimings] = useState(null);
+  const [branchDetailsData, setBranchDetailsData] = useState(null);
+
+  // ── Ask for Reviews modal & profile completeness state ──
+  const [isAskReviewsModalOpen, setIsAskReviewsModalOpen] = useState(false);
+  const [isEditBusinessModalOpen, setIsEditBusinessModalOpen] = useState(false);
+  const [askReviewsLoading, setAskReviewsLoading] = useState(false);
+  const [reviewLink, setReviewLink] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [profileCompleteness, setProfileCompleteness] = useState(100);
+
+  useEffect(() => {
+    setPreviewImgError(false);
+  }, [selectedBranch?.id]);
 
   // ── Wizard View state: "search" | "details" | "branches" | "verify_method" | "verify_later" ──
   const [view, setView] = useState(forcedView || "search");
@@ -432,6 +531,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
     companyAddress: ""
   });
 
+  const [businessType, setBusinessType] = useState("Independent");
+
   // ── Branch selector list state (Verify step) ──
   const [branchesList, setBranchesList] = useState([]);
   const [selectedBranchIndices, setSelectedBranchIndices] = useState([0]);
@@ -441,6 +542,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
     const handleOutsideClick = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (timingsDropdownRef.current && !timingsDropdownRef.current.contains(event.target)) {
+        setIsTimingsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
@@ -471,10 +575,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
         const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
         const isNewClaimQuery = typeof window !== "undefined" && window.location.search.includes("newClaim=true");
         const forceClaimNew = localStorage.getItem("zaanvar_force_claim_new") === "true";
+        const isHomeRoute = router.pathname === "/home" || forcedView === "home";
 
-        // If the vendor explicitly clicked "Claim another business", or they are starting a new claim
-        // flow, clear old saved branch IDs and show the search page.
-        if (forceClaimNew || isNewClaimQuery) {
+        // If on /home route and vendor already has a verified business, set home view initially but continue fetching claim progress
+        if (isHomeRoute && hasVerifiedBusiness) {
+          localStorage.removeItem("zaanvar_force_claim_new");
+          setView("home");
+        }
+
+        // If the vendor explicitly clicked "Claim another business" (and not on /home), clear old saved branch IDs and show the search page.
+        if ((forceClaimNew || isNewClaimQuery) && !isHomeRoute) {
           localStorage.removeItem("zaanvar_force_claim_new");
           localStorage.removeItem("zaanvar_claim_ticket_id");
           localStorage.removeItem("zaanvar_claim_scraped_branch_id");
@@ -991,14 +1101,15 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
   }, [userInfo?.userId, userInfo?.id, _hasHydrated]);
 
-  // Sync view state to redirect to /home if active inside /claim-business path
+  // Ensure view is set to 'home' when on /home route or forcedView='home' and user has a verified business
   useEffect(() => {
-    // When on claim-business page and view state is 'home', stay on the page and ensure view is set
-    if (view === "home" && router.pathname === "/claim-business") {
-      // No navigation needed; the component already renders the home view based on state
-      // Ensure the view state is correctly set (it already is)
+    if ((forcedView === "home" || router.pathname === "/home") && hasVerifiedBusiness) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("zaanvar_force_claim_new");
+      }
+      setView("home");
     }
-  }, [view, router.pathname]);
+  }, [forcedView, router.pathname, hasVerifiedBusiness]);
 
   // Load user's claimed branches list to render in header switcher
   useEffect(() => {
@@ -1072,10 +1183,34 @@ const ClaimBusiness = ({ forcedView = null }) => {
           params: { search: searchQuery }
         });
 
-        const data = res?.data?.data || [];
+        const rawBranches = res?.data?.data || [];
+        const rawCompanies = res?.data?.companies || [];
+
+        const formattedCompanies = rawCompanies.map((comp, idx) => ({
+          ...comp,
+          id: comp.id || `company_${idx}_${Date.now()}`,
+          type: "company",
+          fullName: comp.companyName,
+          branchLocation: comp.locations?.[0]
+            ? `${comp.totalBranches || comp.locations.length} Locations • ${comp.locations[0]}`
+            : `${comp.totalBranches || 0} Branches`
+        }));
+
+        const formattedBranches = rawBranches.map((branch) => ({
+          ...branch,
+          type: branch.type || "branch"
+        }));
+
+        const data = [...formattedCompanies, ...formattedBranches];
         setResults(data);
         if (data.length > 0) {
-          setSelectedBranch(data[0]);
+          const firstItem = data[0];
+          setSelectedBranch(firstItem);
+          if (firstItem.type === "company") {
+            setBusinessType("Enterprise");
+          } else {
+            setBusinessType("Independent");
+          }
         } else {
           setSelectedBranch(null);
         }
@@ -1163,15 +1298,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   })
                   .map(r => ({
                     id: r.id,
-                    title: "Is this your business ?",
+                    name: r.fullName || r.branchName || r.companyName || compName,
+                    title: r.fullName || r.branchName || r.companyName || compName,
                     address: r.branchLocation || "Location not provided"
                   }));
                 if (matchedBranches.length === 0) {
-                  matchedBranches.push({ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr });
+                  matchedBranches.push({ id: selectedBranch.id, name: compName, title: compName, address: mainAddr });
                 }
                 setBranchesList(matchedBranches);
               } catch (err) {
-                setBranchesList([{ id: selectedBranch.id, title: "Is this your business ?", address: mainAddr }]);
+                setBranchesList([{ id: selectedBranch.id, name: compName, title: compName, address: mainAddr }]);
               }
               setView("branches");
             } else if (stepUpper === "VERIFY_BUSINESS") {
@@ -1335,6 +1471,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
   };
 
+
+
   // POST progress for Step 0: COMPANY_DETAILS
   const handleDetailsNext = async () => {
     if (selectedBranch?.isClaimed || selectedBranch?.is_claimed) {
@@ -1395,7 +1533,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
 
     const mainAddr = formData.companyAddress || "Location not provided";
-    const coreSelected = getCoreName(formData.businessName || selectedBranch?.fullName || selectedBranch?.branchName);
+    const compName = formData.businessName || selectedBranch?.fullName || selectedBranch?.branchName || selectedBranch?.companyName || "";
+    const coreSelected = getCoreName(compName);
     const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
 
     const matchedBranches = results
@@ -1405,13 +1544,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
       })
       .map(r => ({
         id: r.id,
-        name: r.fullName || r.branchName || "",
-        title: "Is this your business ?",
-        address: r.branchLocation || "Location not provided"
+        name: r.fullName || r.branchName || r.companyName || compName,
+        title: r.fullName || r.branchName || r.companyName || compName,
+        address: r.branchLocation || (r.locations ? r.locations[0] : "Location not provided")
       }));
 
     if (matchedBranches.length === 0) {
-      matchedBranches.push({ id: selectedBranch?.id || 61, name: selectedBranch?.fullName || selectedBranch?.branchName || "", title: "Is this your business ?", address: mainAddr });
+      matchedBranches.push({ id: selectedBranch?.id || 61, name: compName, title: compName, address: mainAddr });
     }
 
     setBranchesList(matchedBranches);
@@ -1580,6 +1719,14 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
 
     setIsModalOpen(true);
+  };
+
+  const handleHeaderBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/onboarding");
+    }
   };
 
   const handleDetailsBack = () => {
@@ -1926,6 +2073,64 @@ const ClaimBusiness = ({ forcedView = null }) => {
     setImageErrors((prev) => ({ ...prev, [index]: true }));
   };
 
+  const handleOpenAskForReviews = async (bIdOverride = null) => {
+    setIsAskReviewsModalOpen(true);
+    const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+    const targetBranchId = bIdOverride || backendBranchId || (savedBackendBranchId ? parseInt(savedBackendBranchId, 10) : null) || selectedBranch?.id || 280;
+
+    setAskReviewsLoading(true);
+    try {
+      const webApi = new WebApimanager(jwtToken);
+      const res = await webApi.get(`companies/vendor/details?branchId=${targetBranchId}`);
+      const data = res?.data || res;
+      const details = data?.branch || data?.company || data?.data || data || {};
+
+      const pc = details?.profileCompleteness ?? data?.profileCompleteness ?? data?.data?.profileCompleteness ?? 100;
+      setProfileCompleteness(pc);
+
+      const qrCodesArr = details?.qrCodes || data?.qrCodes || data?.data?.qrCodes || [];
+      const reviewQrObj = Array.isArray(qrCodesArr) ? qrCodesArr.find(q => q?.type === "review") : null;
+
+      const fetchedLink =
+        reviewQrObj?.url ||
+        reviewQrObj?.scanRedirectUrl ||
+        details?.link ||
+        details?.reviewLink ||
+        details?.googleReviewLink ||
+        data?.link ||
+        data?.reviewLink ||
+        data?.data?.link ||
+        "";
+
+      let fetchedQr =
+        reviewQrObj?.qrCodeImage ||
+        reviewQrObj?.url ||
+        details?.qrcode ||
+        details?.qrCode ||
+        details?.qr_code ||
+        details?.qrCodeUrl ||
+        data?.qrcode ||
+        data?.qrCode ||
+        data?.qr_code ||
+        data?.data?.qrcode ||
+        "";
+
+      if (fetchedQr && !fetchedQr.startsWith("http") && !fetchedQr.startsWith("data:")) {
+        const baseImgUrl = IMAGE_URL || "https://zaanvaerwebstories.b-cdn.net/";
+        fetchedQr = `${baseImgUrl.replace(/\/$/, "")}/${fetchedQr.replace(/^\//, "")}`;
+      }
+
+      setReviewLink(fetchedLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review");
+      setQrCodeUrl(fetchedQr || "");
+    } catch (err) {
+      console.error("Failed to fetch vendor details for ask for reviews modal:", err);
+      if (branchDetailsData?.link) setReviewLink(branchDetailsData.link);
+      if (branchDetailsData?.qrcode || branchDetailsData?.qrCode) setQrCodeUrl(branchDetailsData.qrcode || branchDetailsData.qrCode);
+    } finally {
+      setAskReviewsLoading(false);
+    }
+  };
+
   const fetchBranchDetailsAndReviews = async (forcedBranchId = null) => {
     if (!jwtToken) return;
     setReviewsLoading(true);
@@ -1940,6 +2145,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
       console.log("companies/vendor/details response data:", data);
 
       const details = data?.branch || data?.company || data?.data || data || {};
+
+      const pc = details?.profileCompleteness ?? data?.profileCompleteness ?? data?.data?.profileCompleteness ?? 100;
+      setProfileCompleteness(pc);
+
+      setBranchDetailsData(details);
+      const rawTimings = details.timings || data?.timings || data?.data?.timings || selectedBranch?.timings || null;
+      if (rawTimings) setBranchTimings(rawTimings);
 
       setFormData((prev) => ({
         ...prev,
@@ -2309,17 +2521,17 @@ const ClaimBusiness = ({ forcedView = null }) => {
             <div style={{ paddingBottom: '40px' }}>
               <div className={styles.homeHeaderRow}>
                 <div className={styles.homeHeaderLeft}>
-                  <div className={styles.strengthCircle}>100%</div>
+                  <div className={styles.strengthCircle}>{profileCompleteness}%</div>
                   <div className={styles.strengthTextWrap}>
                     <h3>Profile strength</h3>
-                    <p>Looks Good</p>
+                    <p>{profileCompleteness >= 80 ? "Looks Good" : profileCompleteness >= 50 ? "Needs Improvement" : "Incomplete"}</p>
                   </div>
                 </div>
                 <div className={styles.homeHeaderActions}>
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => toast.success("Ask for Reviews request sent!")}
+                    onClick={() => handleOpenAskForReviews()}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}>
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -2525,18 +2737,75 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     <span className={styles.detailLabel}>Phone</span>
                     <span className={styles.detailVal}>{formData.businessPhone || "+91 9347992753"}</span>
                   </div>
-                  <div className={styles.detailItem}>
+                  <div
+                    ref={timingsDropdownRef}
+                    className={styles.detailItem}
+                    onClick={() => setIsTimingsOpen((prev) => !prev)}
+                  >
                     <span className={styles.detailLabel}>Hours</span>
-                    <span className={styles.detailVal}>
-                      <div className={styles.detailValHours}>
-                        Open <span style={{ color: '#4b5563', fontWeight: 500 }}>. Closes 6:30 pm ▼</span>
+                    <span className={styles.detailValContainer}>
+                      <div className={styles.detailValHoursClickable}>
+                        <span className={getOperatingHoursSummary(branchTimings, branchDetailsData).isOpen ? styles.hoursOpenLabel : styles.hoursClosedLabel}>
+                          {getOperatingHoursSummary(branchTimings, branchDetailsData).label}
+                        </span>
+                        <span className={styles.hoursClosingText}>
+                          {getOperatingHoursSummary(branchTimings, branchDetailsData).text}{" "}
+                          <span
+                            className={`${styles.hoursChevron} ${isTimingsOpen ? styles.hoursChevronOpen : ""}`}
+                          >
+                            ▼
+                          </span>
+                        </span>
                       </div>
+
+                      {/* Weekly Operating Hours Dropdown Card */}
+                      {isTimingsOpen && (
+                        <div
+                          className={styles.timingsDropdownCard}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className={styles.timingsDropdownHeader}>
+                            <span className={styles.timingsDropdownTitle}>Weekly Operating Hours</span>
+                            <button
+                              type="button"
+                              className={styles.timingsDropdownCloseBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsTimingsOpen(false);
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          <div className={styles.timingsList}>
+                            {WEEK_DAYS.map((d) => {
+                              const isToday = d.key === getTodayDayKey();
+                              const val = branchTimings?.[d.key] || (branchDetailsData?.openingTime && branchDetailsData?.closingTime ? `${branchDetailsData.openingTime} - ${branchDetailsData.closingTime}` : "09:00 - 21:00");
+
+                              return (
+                                <div
+                                  key={d.key}
+                                  className={isToday ? styles.timingsRowToday : styles.timingsRow}
+                                >
+                                  <span>
+                                    {d.label} {isToday && <span className={styles.todayBadge}>(Today)</span>}
+                                  </span>
+                                  <span className={isToday ? styles.timingsRowValueToday : styles.timingsRowValue}>
+                                    {val}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </span>
                   </div>
 
                   <a
                     href="#"
-                    onClick={(e) => { e.preventDefault(); toast.info("Opening Edit Business Information popup..."); }}
+                    onClick={(e) => { e.preventDefault(); setIsEditBusinessModalOpen(true); }}
                     className={styles.editInfoLink}
                   >
                     Edit your business information
@@ -2871,27 +3140,43 @@ const ClaimBusiness = ({ forcedView = null }) => {
             <>
               {/* Header titles container with 3-dot options menu aligned to top right */}
               <div className={styles.titleContainer}>
-                <div>
-                  <h1 className={styles.headerTitle} style={{ margin: 0 }}>
-                    {view === "search"
-                      ? "Claim Your Business"
-                      : view === "details"
-                        ? "Company Details"
-                        : view === "submitted"
-                          ? "Uploaded Previews"
-                          : view === "dispute_docs"
-                            ? "Document Verification"
-                            : "Verify"}
-                  </h1>
-                  {view !== "submitted" && view !== "dispute_docs" && (
-                    <p className={styles.subtitle} style={{ margin: 0 }}>
-                      {view === "search"
-                        ? searchQuery.trim()
-                          ? "We have already listed many businesses. Search for your shop, select the matching result, and claim it to take ownership."
-                          : "Search for your business on zaanvar and claim it to manage your profile"
-                        : "Tell us about your business"}
-                    </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  {view === "search" && (
+                    <button
+                      type="button"
+                      onClick={handleHeaderBack}
+                      className={styles.backBtnHeader}
+                      title="Back"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                      </svg>
+                      <span>Back</span>
+                    </button>
                   )}
+                  <div>
+                    <h1 className={styles.headerTitle} style={{ margin: 0 }}>
+                      {view === "search"
+                        ? "Claim Your Business"
+                        : view === "details"
+                          ? "Company Details"
+                          : view === "submitted"
+                            ? "Uploaded Previews"
+                            : view === "dispute_docs"
+                              ? "Document Verification"
+                              : "Verify"}
+                    </h1>
+                    {view !== "submitted" && view !== "dispute_docs" && (
+                      <p className={styles.subtitle} style={{ margin: 0 }}>
+                        {view === "search"
+                          ? searchQuery.trim()
+                            ? "We have already listed many businesses. Search for your shop, select the matching result, and claim it to take ownership."
+                            : "Search for your business on zaanvar and claim it to manage your profile"
+                          : "Tell us about your business"}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Vertical Three-dot Menu Option Button inside Verify Later, Submitted Screen, or Verify Method Screen (for second claim) */}
@@ -3122,31 +3407,52 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       <>
                         <div className={styles.resultsList}>
                           {results.map((item) => {
-                            const name = item.fullName || item.branchName || "Unnamed Business";
-                            const isSelected = selectedBranch?.id === item.id;
+                            const name = item.companyName || item.fullName || item.branchName || "Unnamed Business";
+                            const isSelected = selectedBranch && (
+                              (selectedBranch.id && item.id && selectedBranch.id === item.id) ||
+                              (selectedBranch.companyName && item.companyName && selectedBranch.companyName === item.companyName)
+                            );
                             const features = item.featureType || [];
-                            const presentType = item.presentDataStoreType || "Independent";
+                            const isCompany = item.type === "company" || (item.presentDataStoreType && item.presentDataStoreType.toLowerCase().includes("enterprise"));
+                            const badgeLabel = isCompany ? "Enterprise" : "Independent";
 
                             return (
                               <div
-                                key={item.id}
+                                key={item.id || item.companyName}
                                 className={`${styles.resultCard} ${isSelected ? styles.resultCardSelected : ""}`}
-                                onClick={() => setSelectedBranch(item)}
+                                onClick={() => {
+                                  setSelectedBranch(item);
+                                  if (item.type === "company") {
+                                    setBusinessType("Enterprise");
+                                  } else {
+                                    setBusinessType("Independent");
+                                  }
+                                }}
                               >
                                 <div className={styles.storeAvatar}>
-                                  {name.charAt(0).toUpperCase()}
+                                  {getValidBranchPhoto(item) ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img
+                                      src={getValidBranchPhoto(item)}
+                                      alt=""
+                                      style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    name.charAt(0).toUpperCase()
+                                  )}
                                 </div>
 
                                 <div className={styles.cardInfo}>
                                   <div className={styles.cardHeaderRow}>
                                     <h3 className={styles.storeName}>{name}</h3>
                                     <span
-                                      className={`${styles.storeBadge} ${presentType.toLowerCase().includes("enterprise") || item.status === "claim_pending"
+                                      className={`${styles.storeBadge} ${isCompany || item.status === "claim_pending"
                                         ? styles.badgeEnterprise
                                         : styles.badgeIndependent
                                         }`}
                                     >
-                                      {presentType.toLowerCase().includes("manual") ? "Independent" : presentType}
+                                      {badgeLabel}
                                     </span>
                                   </div>
 
@@ -3154,12 +3460,12 @@ const ClaimBusiness = ({ forcedView = null }) => {
                                     <StarIcon />
                                     <span>4.8 (251) •</span>
                                     <span className={styles.cardDetails}>
-                                      {features.slice(0, 2).join(", ") || "Pet Business"}
+                                      {features.slice(0, 2).join(", ") || (isCompany ? `${item.totalBranches || item.branches?.length || 0} Branches` : "Pet Business")}
                                     </span>
                                   </div>
 
                                   <div className={styles.cardLocation}>
-                                    {item.branchLocation || "Location not provided"}
+                                    {item.branchLocation || (item.locations ? item.locations[0] : "Location not provided")}
                                   </div>
                                 </div>
 
@@ -3186,21 +3492,31 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   </div>
 
                   {/* Right Column */}
-                  <div className={styles.rightCol} style={{ width: "480px" }}>
+                  <div className={styles.rightCol}>
                     {selectedBranch ? (
-                      <div className={styles.previewPanel} style={{ width: "480px" }}>
+                      <div className={styles.previewPanel}>
                         <h3 className={styles.previewTitle}>Business Preview</h3>
 
                         <div className={styles.previewImgBox}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={
-                              selectedBranch.photos?.[0]?.startsWith("See website:")
-                                ? "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
-                                : selectedBranch.photos?.[0] || "https://zaanvarprods3.b-cdn.net/media/1773904947760-petshops.jpeg"
-                            }
-                            alt="Business Preview"
-                          />
+                          {getValidBranchPhoto(selectedBranch) && !previewImgError ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={getValidBranchPhoto(selectedBranch)}
+                              alt="Business Preview"
+                              onError={() => setPreviewImgError(true)}
+                            />
+                          ) : (
+                            <div className={styles.noPhotoPlaceholder}>
+                              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <polyline points="21 15 16 10 5 21" />
+                              </svg>
+                              <span className={styles.noPhotoText}>
+                                No photo available
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         <div className={styles.previewInfo}>
@@ -3752,23 +4068,24 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   {/* Form card left */}
                   <div className={styles.leftCol}>
                     <div className={styles.formCard}>
+
                       <div className={styles.formGrid}>
                         <div className={styles.formField}>
-                          <label>Company Name</label>
+                          <label>{businessType === "Enterprise" ? "Company Name" : "Business Name"}</label>
                           <input
                             type="text"
-                            placeholder="Company Name"
+                            placeholder={businessType === "Enterprise" ? "Company Name" : "Business Name"}
                             value={formData.businessName}
                             onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>Company Phone Number</label>
+                          <label>{businessType === "Enterprise" ? "Company Phone Number" : "Business Phone Number"}</label>
                           <div className={styles.phoneInputContainer}>
                             <span className={styles.phonePrefix}>+91</span>
                             <input
                               type="tel"
-                              placeholder="Company Phone Number"
+                              placeholder={businessType === "Enterprise" ? "Company Phone Number" : "Business Phone Number"}
                               maxLength={10}
                               value={getRawPhoneDigits(formData.businessPhone)}
                               onChange={(e) => {
@@ -3782,10 +4099,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           </div>
                         </div>
                         <div className={styles.formField}>
-                          <label>Company Email</label>
+                          <label>{businessType === "Enterprise" ? "Company Email" : "Business Email"}</label>
                           <input
                             type="email"
-                            placeholder="Company Email"
+                            placeholder={businessType === "Enterprise" ? "Company Email" : "Business Email"}
                             value={formData.businessEmail}
                             onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
                           />
@@ -3809,7 +4126,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>Company Address</label>
+                          <label>{businessType === "Enterprise" ? "Company Address" : "Business Address"}</label>
                           <input
                             type="text"
                             placeholder="Enter here..."
@@ -3819,7 +4136,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                         </div>
                       </div>
 
-                      <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0 }}>
+                      <div className={styles.previewActions} style={{ maxWidth: "320px", marginLeft: "auto", marginRight: 0, marginTop: "20px" }}>
                         <button
                           type="button"
                           className={styles.btnSecondary}
@@ -3885,12 +4202,18 @@ const ClaimBusiness = ({ forcedView = null }) => {
                     <div className={styles.branchList}>
                       {branchesList.map((branch, idx) => {
                         const isSelected = selectedBranchIndices.includes(idx);
+                        const isEnterprise = businessType === "Enterprise" || selectedBranch?.type === "company";
+
                         const toggleSelection = () => {
-                          setSelectedBranchIndices(prev =>
-                            prev.includes(idx)
-                              ? prev.filter(i => i !== idx)
-                              : [...prev, idx]
-                          );
+                          if (isEnterprise) {
+                            setSelectedBranchIndices(prev =>
+                              prev.includes(idx)
+                                ? prev.filter(i => i !== idx)
+                                : [...prev, idx]
+                            );
+                          } else {
+                            setSelectedBranchIndices([idx]);
+                          }
                         };
                         return (
                           <div
@@ -3898,15 +4221,25 @@ const ClaimBusiness = ({ forcedView = null }) => {
                             className={`${styles.branchRow} ${isSelected ? styles.branchRowSelected : ""}`}
                             onClick={toggleSelection}
                           >
-                            <div className={`${styles.checkboxBtn} ${isSelected ? styles.checkboxBtnChecked : ""}`}>
-                              {isSelected && (
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <polyline points="2,6 5,9 10,3" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              )}
-                            </div>
+                            {isEnterprise ? (
+                              <div className={`${styles.checkboxBtn} ${isSelected ? styles.checkboxBtnChecked : ""}`}>
+                                {isSelected && (
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <polyline points="2,6 5,9 10,3" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                )}
+                              </div>
+                            ) : (
+                              <div className={`${styles.radioBtn} ${isSelected ? styles.radioBtnChecked : ""}`}>
+                                {isSelected && <div className={styles.radioInner} />}
+                              </div>
+                            )}
                             <div className={styles.branchRowContent}>
-                              <h4 className={styles.branchRowTitle}>{branch.title}</h4>
+                              <h4 className={styles.branchRowTitle}>
+                                {branch.title && branch.title !== "Is this your business ?"
+                                  ? branch.title
+                                  : (branch.name || branch.fullName || branch.branchName || formData.businessName || selectedBranch?.fullName || selectedBranch?.companyName || "Business Name")}
+                              </h4>
                               <p className={styles.branchRowDesc}>{branch.address}</p>
                             </div>
                           </div>
@@ -4378,9 +4711,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           <div className={styles.photoContainer}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {shopFrontPhoto ||
-                            branchImagesList[0] ||
-                            selectedBranch?.branchImages?.[0] ||
-                            selectedBranch?.images?.[0] ? (
+                              branchImagesList[0] ||
+                              selectedBranch?.branchImages?.[0] ||
+                              selectedBranch?.images?.[0] ? (
                               <img
                                 src={
                                   shopFrontPhoto ||
@@ -4404,9 +4737,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           <div className={styles.photoContainer}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {selfiePhoto ||
-                            branchImagesList[1] ||
-                            selectedBranch?.branchImages?.[1] ||
-                            selectedBranch?.images?.[1] ? (
+                              branchImagesList[1] ||
+                              selectedBranch?.branchImages?.[1] ||
+                              selectedBranch?.images?.[1] ? (
                               <img
                                 src={
                                   selfiePhoto ||
@@ -4675,6 +5008,292 @@ const ClaimBusiness = ({ forcedView = null }) => {
           </div>
         </div>
       )}
+      {/* ── Ask for Reviews Modal ── */}
+      {isAskReviewsModalOpen && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          backdropFilter: "blur(4px)",
+          zIndex: 99999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            maxWidth: "520px",
+            width: "100%",
+            padding: "32px 28px",
+            position: "relative",
+            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            fontFamily: "Inter, system-ui, -apple-system, sans-serif"
+          }}>
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsAskReviewsModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                background: "none",
+                border: "none",
+                color: "#9ca3af",
+                cursor: "pointer",
+                padding: "4px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "color 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#374151"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#9ca3af"}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Title & Subtitle */}
+            <h2 style={{
+              fontSize: "20px",
+              fontWeight: "700",
+              color: "#111827",
+              margin: "0 0 6px 0",
+              lineHeight: "1.3"
+            }}>
+              Give customers a link to review your business on Zaanvar
+            </h2>
+            <p style={{
+              fontSize: "11px",
+              fontWeight: "600",
+              color: "#6b7280",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
+              margin: "0 0 24px 0",
+              lineHeight: "1.4"
+            }}>
+              REVIEWS BUILD TRUST AND HELP YOUR BUSINESS PROFILE STAND OUT TO CUSTOMERS ON SEARCH AND MAPS.
+            </p>
+
+            {/* Share Social Buttons */}
+            <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+              {/* Email */}
+              <button
+                type="button"
+                onClick={() => {
+                  const subject = encodeURIComponent("Review our business on Zaanvar");
+                  const body = encodeURIComponent(`Please share your feedback and review our business: ${reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review"}`);
+                  window.open(`mailto:?subject=${subject}&body=${body}`);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "9px 18px",
+                  borderRadius: "24px",
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#374151",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea4335" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                Email
+              </button>
+
+              {/* WhatsApp */}
+              <button
+                type="button"
+                onClick={() => {
+                  const text = encodeURIComponent(`Please review our business on Zaanvar: ${reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review"}`);
+                  window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "9px 18px",
+                  borderRadius: "24px",
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#374151",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366">
+                  <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.76.459 3.474 1.33 4.988l-1.413 5.161 5.281-1.385c1.464.798 3.121 1.22 4.79 1.22h.004c5.505 0 9.988-4.478 9.989-9.985 0-2.668-1.037-5.176-2.924-7.062a9.924 9.924 0 0 0-7.067-2.921z" />
+                </svg>
+                WhatsApp
+              </button>
+
+              {/* Facebook */}
+              <button
+                type="button"
+                onClick={() => {
+                  const url = encodeURIComponent(reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review");
+                  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "9px 18px",
+                  borderRadius: "24px",
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#374151",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                Facebook
+              </button>
+            </div>
+
+            {/* Review Link Container with Copy icon */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              borderRadius: "10px",
+              border: "2px solid #0091ff",
+              backgroundColor: "#ffffff",
+              marginBottom: "24px",
+              gap: "12px"
+            }}>
+              <span style={{
+                fontSize: "14px",
+                color: "#374151",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                fontWeight: "500"
+              }}>
+                {reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review"}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const linkToCopy = reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review";
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(linkToCopy);
+                    toast.success("Review link copied to clipboard!");
+                  }
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "4px"
+                }}
+                title="Copy link"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            {/* QR Code Section */}
+            <h3 style={{
+              fontSize: "16px",
+              fontWeight: "700",
+              color: "#111827",
+              margin: "0 0 4px 0"
+            }}>
+              Share your reviews QR code
+            </h3>
+            <p style={{
+              fontSize: "11px",
+              fontWeight: "600",
+              color: "#6b7280",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
+              margin: "0 0 16px 0"
+            }}>
+              RIGHT-CLICK AND SELECT &apos;SAVE IMAGE AS...&apos; SO YOU CAN SHARE YOUR QR CODE WITH CUSTOMERS
+            </p>
+
+            <div style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginBottom: "24px"
+            }}>
+              {askReviewsLoading ? (
+                <div style={{ width: "160px", height: "160px", display: "flex", alignItems: "center", justifyContent: "center", background: "#f9fafb", borderRadius: "8px" }}>
+                  <div className="spinner" style={{ width: "30px", height: "30px", border: "3px solid #e5e7eb", borderTop: "3px solid #0091ff", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                </div>
+              ) : (
+                <img
+                  src={
+                    qrCodeUrl ||
+                    `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(reviewLink || "https://g.page/r/Ce5oZjPQ-UUKEAE/review")}`
+                  }
+                  alt="Reviews QR Code"
+                  style={{
+                    width: "160px",
+                    height: "160px",
+                    objectFit: "contain",
+                    borderRadius: "4px"
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Footer Learn More text */}
+            <p style={{
+              fontSize: "11px",
+              fontWeight: "600",
+              color: "#6b7280",
+              margin: 0,
+              lineHeight: "1.5"
+            }}>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toast.info("Best practices guide coming soon!");
+                }}
+                style={{
+                  color: "#0091ff",
+                  textDecoration: "underline",
+                  fontWeight: "700",
+                  marginRight: "4px"
+                }}
+              >
+                LEARN MORE
+              </a>
+              ABOUT BEST PRACTICES FOR ASKING FOR REVIEWS, AND WHAT TO DO ABOUT NEGATIVE REVIEWS
+            </p>
+          </div>
+        </div>
+      )}
       <RegisterBusinessModal
         open={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
@@ -4707,6 +5326,17 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }}
         userInfo={userInfo}
         initialTab={modalInitialTab}
+        hasAssignedBranches={hasVerifiedBusiness}
+      />
+      <EditBusinessModal
+        open={isEditBusinessModalOpen}
+        onClose={() => setIsEditBusinessModalOpen(false)}
+        branchData={branchDetailsData || selectedBranch}
+        vendorData={userInfo}
+        branchId={branchDetailsData?.id || selectedBranch?.id || 12}
+        onSuccess={() => {
+          if (typeof fetchClaimProgress === "function") fetchClaimProgress();
+        }}
       />
     </>
   );

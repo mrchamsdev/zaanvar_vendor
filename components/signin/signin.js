@@ -154,7 +154,7 @@ const SignIn = ({ onSignUpClick }) => {
 
   // ── Slideshow ──────────────────────────────────────────────────────────────
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showBreederModal, setShowBreederModal] = useState(true);
+  const [showBreederModal, setShowBreederModal] = useState(false);
 
   const pinRegex = /^[0-9]{6}$/;
 

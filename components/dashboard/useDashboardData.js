@@ -73,7 +73,7 @@ export default function useDashboardData(options = {}) {
   const [apiBranches, setApiBranches] = useState(null);
 
   useEffect(() => {
-    if (!jwtToken || !companyId || !hasDashboardAccess) return;
+    if (!jwtToken || !companyId) return;
     const webApi = new WebApimanager(jwtToken);
     webApi.get(`branches/getBranchesByCompany/${companyId}`)
       .then((res) => {
@@ -90,10 +90,7 @@ export default function useDashboardData(options = {}) {
       .catch((err) => console.error("Failed to fetch branches by company:", err));
   }, [jwtToken, companyId]);
 
-  // Only use company?.branches fallback when the user has dashboard access.
-  // Without access, the API fetch is skipped and company?.branches may contain
-  // unverified/in-progress branches that don't exist in the database yet.
-  const branches = apiBranches || (hasDashboardAccess ? (company?.branches || []) : []);
+  const branches = apiBranches || company?.branches || vendor?.branches || [];
 
   // ── Resolve the correct branchId in a single synchronous pass ──────────
   // Priority: URL query param > persisted store value > first branch
@@ -124,9 +121,9 @@ export default function useDashboardData(options = {}) {
 
   const branchId = branch?.id || branch?._id || null;
 
-  /* ── fetch vendor settings (only when dashboard access is available) ── */
+  /* ── fetch vendor settings ── */
   useEffect(() => {
-    if (!jwtToken || !branchId || !hasDashboardAccess) return;
+    if (!jwtToken || !branchId) return;
 
     getSettings(jwtToken, branchId)
       .then((res) => {
@@ -142,9 +139,9 @@ export default function useDashboardData(options = {}) {
       });
   }, [jwtToken, branchId, setVendorSettings]);
 
-  /* ── fetch roles & poll every 10 mins (only when dashboard access is available) ── */
+  /* ── fetch roles & poll every 10 mins ── */
   useEffect(() => {
-    if (!jwtToken || !branchId || !hasDashboardAccess) return;
+    if (!jwtToken || !branchId) return;
 
     const fetchRoles = () => {
       const webApi = new WebApimanager(jwtToken);
