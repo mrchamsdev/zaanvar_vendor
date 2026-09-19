@@ -442,6 +442,34 @@ export class WebApimanager {
   //   }
 
 
+  async delete(url, data) {
+    try {
+      let baseURL = BACKEND_URL;
+      let jwttoken = `${this.jwtToken}`;
+      let headers = {
+        Authorization: "Bearer " + jwttoken,
+        "Content-Type": "application/json",
+      };
+      return await Axios.delete(baseURL + url, { headers, data })
+        .then((res) => {
+          if (res.status >= 200 && res.status < 500) {
+            return res;
+          } else {
+            throw new Error(`Unexpected status code: ${res.status}`);
+          }
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 401) {
+            error.customErrorMessage = "Apologies! An error occurred. Please log in again to continue.";
+          }
+          throw error;
+        });
+    } catch (e) {
+      console.error("delete error:", e);
+      throw e;
+    }
+  }
+
   async getwithouturltoken(url, data) {
     try {
       const headers = {

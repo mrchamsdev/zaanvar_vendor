@@ -1,0 +1,252 @@
+.pageContainer {
+  margin: 10px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px 40px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.backTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: opacity 0.2s ease;
+}
+
+.backTitle:hover {
+  opacity: 0.8;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: #475569;
+  margin: 0 0 18px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.timestampHighlight {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 0 0 32px 0;
+}
+
+.formGroup {
+  margin-bottom: 28px;
+}
+
+.label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+.pinRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pinBox {
+  width: 46px;
+  height: 48px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: 'Inter', monospace;
+}
+
+.pinBox:focus {
+  border-color: #f5790c;
+  box-shadow: 0 0 0 3px rgba(245, 121, 12, 0.15);
+  background: #fffdfb;
+}
+
+.phoneInput {
+  width: 380px;
+  max-width: 100%;
+  height: 48px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease;
+}
+
+.phoneInput:focus {
+  border-color: #f5790c;
+  box-shadow: 0 0 0 3px rgba(245, 121, 12, 0.15);
+}
+
+.phoneInputDisabled {
+  width: 380px;
+  max-width: 100%;
+  height: 48px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  background: #f8fafc;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.sendOtpBtn {
+  border: 1.5px solid #f5790c;
+  color: #f5790c;
+  background: #ffffff;
+  padding: 10px 28px;
+  border-radius: 30px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.sendOtpBtn:hover:not(:disabled) {
+  background: #f5790c;
+  color: #ffffff;
+}
+
+.sendOtpBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.resendLink {
+  color: #f5790c;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.resendLink:hover {
+  text-decoration: underline;
+}
+
+.forgotLink {
+  color: #f5790c;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-block;
+  margin-top: 4px;
+  margin-bottom: 32px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
+.actionRowCenter {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+
+.saveBtn,
+.verifyOtpBtn {
+  border: 1.5px solid #f5790c;
+  color: #f5790c;
+  background: #ffffff;
+  padding: 10px 54px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 4px rgba(245, 121, 12, 0.08);
+}
+
+.saveBtn:hover:not(:disabled),
+.verifyOtpBtn:hover:not(:disabled) {
+  background: #f5790c;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 121, 12, 0.25);
+}
+
+.saveBtn:disabled,
+.verifyOtpBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 24px 20px;
+  }
+
+  .pinBox {
+    width: 40px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .pinRow {
+    gap: 8px;
+  }
+
+  .phoneInput,
+  .phoneInputDisabled {
+    width: 100%;
+  }
+}

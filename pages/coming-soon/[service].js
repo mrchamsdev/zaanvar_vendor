@@ -65,7 +65,7 @@ export default function ComingSoonPage() {
         </p>
 
         <div style={{ display: "flex", gap: "clamp(10px,1.2vw,16px)", flexWrap: "wrap", justifyContent: "center" }}>
-          <button style={btnPrimary} onClick={() => router.push("/contact-us")}>
+          <button style={btnPrimary} onClick={() => router.push("/support")}>
             Register Now
           </button>
           <button style={btnOutline} onClick={() => router.back()}>

@@ -1,0 +1,321 @@
+.pageContainer {
+
+  margin: 10px;
+
+}
+
+/* Header Banner */
+.headerBanner {
+  background: #eef5ff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.04);
+}
+
+.bannerText {
+  max-width: 70%;
+}
+
+.bannerTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bannerTitleSub {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 1.05rem;
+}
+
+.bannerSub {
+  font-size: 0.9rem;
+  color: #3b82f6;
+  margin: 0;
+  font-weight: 500;
+}
+
+.bannerGraphic {
+  width: 130px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tab Navigation */
+.tabsNav {
+  display: flex;
+  border-bottom: 2px solid #e2e8f0;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.tabBtn {
+  flex: 1;
+  padding: 14px 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  color: #1d4ed8;
+}
+
+.activeTab {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.activeTab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #1d4ed8;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Total Points Display */
+.totalPointsCard {
+  text-align: center;
+  padding: 24px 0 16px 0;
+}
+
+.pointsNumber {
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: #2563eb;
+  line-height: 1;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.pointsLabel {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 8px;
+}
+
+/* Section Headings */
+.sectionHeading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 28px 0 14px 0;
+}
+
+/* Achievements Card */
+.achievementCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.achievementCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.badgeWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hexBadge {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.completedCheck {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #22c55e;
+  color: #ffffff;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+.achievementInfo {
+  flex: 1;
+}
+
+.achievementTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.achievementDesc {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 10px 0;
+}
+
+.progressTrack {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progressFill {
+  height: 100%;
+  background: #1d4ed8;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+/* History Card List */
+.historyListWrap {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.historyItem {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.2s ease;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyItem:hover {
+  background: #f8fafc;
+}
+
+.historyLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.petAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #e2e8f0;
+}
+
+.petTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.petName {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.petTag {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.historyDate {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.ptsBadgePos {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 5px 14px;
+  border-radius: 6px;
+}
+
+.ptsBadgeNeg {
+  background: #fef2f2;
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 5px 14px;
+  border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+  .pageContainer {
+    padding: 16px;
+  }
+
+  .headerBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .bannerText {
+    max-width: 100%;
+  }
+
+  .bannerGraphic {
+    margin-top: 12px;
+    align-self: flex-end;
+  }
+
+  .achievementCard {
+    padding: 14px 16px;
+  }
+
+  .pointsNumber {
+    font-size: 2.5rem;
+  }
+}

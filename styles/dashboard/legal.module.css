@@ -1,0 +1,137 @@
+.pageContainer {
+
+
+  margin: 10px;
+
+}
+
+.legalCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px 48px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+}
+
+.headerGroup {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+}
+
+.documentBadge {
+  display: inline-block;
+  background: rgba(245, 121, 12, 0.1);
+  color: #f5790c;
+  border: 1px solid rgba(245, 121, 12, 0.25);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.introBox {
+  background: #f8fafc;
+  border-left: 4px solid #f5790c;
+  padding: 18px 24px;
+  border-radius: 8px;
+  font-size: 0.93rem;
+  color: #334155;
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 36px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.subHeading {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 22px;
+  margin-bottom: 8px;
+}
+
+.paragraph {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 14px;
+}
+
+.bulletList {
+  padding-left: 24px;
+  margin-bottom: 20px;
+}
+
+.bulletItem {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.boldLabel {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.contactBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-top: 40px;
+}
+
+.contactTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+}
+
+.contactLink {
+  color: #f5790c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.contactLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .legalCard {
+    padding: 24px 20px;
+  }
+
+  .title {
+    font-size: 1.4rem;
+  }
+}
