@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import ComingSoonCards from "../../components/dashboard/ComingSoonCards";
+import useStore from "../../components/state/useStore";
 import styles from "../../styles/staff-management.module.css";
 import AddStaff from "../../components/staff-management/add-staff";
 import ViewStaff from "../../components/staff-management/view-staff";
@@ -8,6 +10,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { getBranchStaff, getStaffLeaveRequests, updateStaffStatusOrLeave, updateStaffStatus } from "../../services/staffService";
 
 const StaffManagement = () => {
+  const { userInfo } = useStore();
   const [activeTab, setActiveTab] = useState("MANAGE STAFF");
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [staffModalMode, setStaffModalMode] = useState("add"); // "add", "edit", "view"
@@ -20,6 +23,31 @@ const StaffManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const { branchId, branches } = useDashboardData({ skipReviews: true }) || {};
+
+  // Subscription check
+  let rawSubs = [];
+  if (Array.isArray(userInfo?.subscriptions)) rawSubs.push(...userInfo.subscriptions);
+  else if (userInfo?.subscription) rawSubs.push(userInfo.subscription);
+  (userInfo?.vendorCompanies || []).forEach(co => {
+    if (Array.isArray(co.subscriptions)) rawSubs.push(...co.subscriptions);
+    else if (co.subscription) rawSubs.push(co.subscription);
+  });
+  if (rawSubs.length === 0 && typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("zaanvar_subscription") || "null");
+      if (Array.isArray(stored)) rawSubs.push(...stored);
+      else if (stored) rawSubs.push(stored);
+    } catch { }
+  }
+  const hasSub = rawSubs.some(s => s?.status === "active" || s?.type === "paid" || s?.status === "ACTIVE") || Boolean(userInfo?.isSubscribed || userInfo?.subscriptionActive);
+
+  if (!hasSub) {
+    return (
+      <DashboardLayout>
+        <ComingSoonCards singleCard="staff-management" />
+      </DashboardLayout>
+    );
+  }
 
   useEffect(() => {
     if (branchId) {

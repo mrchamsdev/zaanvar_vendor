@@ -46,6 +46,7 @@ const Onboarding = () => {
   const { userInfo, clearStore } = useStore();
   const [checkingProgress, setCheckingProgress] = useState(true);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [hasAssignedBranches, setHasAssignedBranches] = useState(false);
 
   const handleLogout = () => {
     if (clearStore) clearStore();
@@ -67,6 +68,41 @@ const Onboarding = () => {
   useEffect(() => {
     const checkExistingProgress = async () => {
       const isNewClaimQuery = typeof window !== "undefined" && (window.location.search.includes("newClaim=true") || localStorage.getItem("zaanvar_force_claim_new") === "true");
+
+      const currentVendorUserId = userInfo?.userId || userInfo?.id;
+
+      // Check local store first for assigned branches
+      const localHasBranches = Boolean(
+        (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
+        (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
+        (userInfo?.companyId && Number(userInfo.companyId) > 0) ||
+        userInfo?.isSubscribed ||
+        userInfo?.subscriptionActive ||
+        (userInfo?.vendorCompanies && Array.isArray(userInfo.vendorCompanies) && userInfo.vendorCompanies.length > 0) ||
+        (typeof window !== "undefined" && localStorage.getItem("zaanvar_claim_backend_branch_id"))
+      );
+
+      if (localHasBranches) {
+        setHasAssignedBranches(true);
+      }
+
+      const API_URL = typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com"
+        ? "https://dev.zaanvar.com/api/"
+        : "https://prod.zaanvar.com/api/";
+
+      if (currentVendorUserId) {
+        try {
+          const userRes = await axios.get(`${API_URL}vendor-users/${currentVendorUserId}`);
+          const userData = userRes?.data?.data || userRes?.data || {};
+          const branchIds = userData.branchId || userData.branchAssigned || userData.branch_id || userData.branch_assigned || [];
+          if (Array.isArray(branchIds) && branchIds.length > 0) {
+            setHasAssignedBranches(true);
+          }
+        } catch (e) {
+          console.warn("Could not check vendor-users profile:", e);
+        }
+      }
+
       if (isNewClaimQuery) {
         setCheckingProgress(false);
         return;
@@ -76,15 +112,10 @@ const Onboarding = () => {
         return;
       }
       try {
-        const API_URL = window.location.hostname !== "support.zaanvar.com"
-          ? "https://dev.zaanvar.com/api/"
-          : "https://prod.zaanvar.com/api/";
-
         const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
 
         let resData = null;
         try {
-          const currentVendorUserId = userInfo?.userId || userInfo?.id;
           const res = await axios.get(`${API_URL}scraped-branches/claim/progress`, {
             params: {
               vendor_user_id: currentVendorUserId,
@@ -130,14 +161,8 @@ const Onboarding = () => {
 
   if (checkingProgress) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fdfdfe' }}>
-        <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #1a73e8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner} />
       </div>
     );
   }
@@ -168,46 +193,45 @@ const Onboarding = () => {
           content="Manage your pet business, reach more customers, and grow your business with Zaanvar."
         />
       </Head>
-      <div className={styles.page} style={{ position: "relative" }}>
+      <div className={styles.page}>
+        {/* Top Left Back Button - ONLY show if logged in user already has assigned branches */}
+        {hasAssignedBranches && (
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("zaanvar_force_claim_new");
+              }
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/home");
+              }
+            }}
+            className={styles.backBtn}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            <span>Back</span>
+          </button>
+        )}
+
         {/* Top Right Log Out Button */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={{
-            position: "absolute",
-            top: "24px",
-            right: "32px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 18px",
-            fontSize: "14px",
-            fontWeight: "500",
-            color: "#dc2626",
-            backgroundColor: "#fff",
-            border: "1px solid #fee2e2",
-            borderRadius: "8px",
-            cursor: "pointer",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.04)",
-            transition: "all 0.2s ease",
-            zIndex: 10
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#fef2f2";
-            e.currentTarget.style.borderColor = "#fca5a5";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#fff";
-            e.currentTarget.style.borderColor = "#fee2e2";
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span>Log Out</span>
-        </button>
+        {!hasAssignedBranches && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={styles.logoutBtn}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Log Out</span>
+          </button>)}
 
         {/* Welcome titles */}
         <div className={styles.header}>
@@ -273,6 +297,7 @@ const Onboarding = () => {
           router.push("/claim-business?view=verify_method&instructions=true");
         }}
         userInfo={userInfo}
+        hasAssignedBranches={hasAssignedBranches}
       />
     </>
   );

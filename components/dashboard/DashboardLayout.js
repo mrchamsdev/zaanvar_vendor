@@ -98,6 +98,38 @@ const IconProducts = () => (
     <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
+const IconLock = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+const IconTv = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="13" rx="2" ry="2" />
+    <polyline points="17 2 12 7 7 2" />
+  </svg>
+);
+const IconUsers = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+const IconShield = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+const IconHeadphones = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+  </svg>
+);
 const IconChevronLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <polyline points="15 18 9 12 15 6" />
@@ -196,7 +228,50 @@ const BRANCH_SERVICE_MAP = {
   sale: "Sale",
 };
 
-function buildMenuFromVendor(userInfo) {
+function isUserAssignedAndVerified(userInfo, branches = [], selectedBranchId = null) {
+  if (typeof window !== "undefined") {
+    const pathname = window.location.pathname;
+    if (pathname.includes("/claim-business") || pathname.includes("/onboarding") || pathname.includes("/register")) {
+      return false;
+    }
+  }
+
+  const hasVerifiedFlag = Boolean(userInfo?.hasVerifiedBusiness || userInfo?.isVerified);
+  if (hasVerifiedFlag) return true;
+
+  if (selectedBranchId && String(selectedBranchId) !== "0" && String(selectedBranchId) !== "null" && String(selectedBranchId) !== "undefined") {
+    return true;
+  }
+
+  if (typeof window !== "undefined") {
+    const localSelected = localStorage.getItem("selectedBranchId");
+    const localBackend = localStorage.getItem("zaanvar_claim_backend_branch_id");
+    const localScraped = localStorage.getItem("zaanvar_claim_scraped_branch_id");
+    if (
+      (localSelected && localSelected !== "null" && localSelected !== "undefined" && localSelected !== "0") ||
+      (localBackend && localBackend !== "null" && localBackend !== "undefined" && localBackend !== "0") ||
+      (localScraped && localScraped !== "null" && localScraped !== "undefined" && localScraped !== "0")
+    ) {
+      return true;
+    }
+  }
+
+  if (Array.isArray(branches) && branches.length > 0) return true;
+
+  const hasVerifiedBranchInCompany = Array.isArray(userInfo?.vendorCompanies) && userInfo.vendorCompanies.some(c =>
+    (Array.isArray(c.branches) && c.branches.length > 0) || Boolean(c.id || c.compId || c.companyId)
+  );
+  if (hasVerifiedBranchInCompany) return true;
+
+  const hasVerifiedBranchDirect = Array.isArray(userInfo?.branches) && userInfo.branches.length > 0;
+  if (hasVerifiedBranchDirect) return true;
+
+  if (userInfo?.branchId || userInfo?.companyId || userInfo?.compId) return true;
+
+  return false;
+}
+
+function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
   // Collect all subscription objects from userInfo, vendorCompanies, or localStorage
   let rawSubs = [];
   if (Array.isArray(userInfo?.subscriptions)) {
@@ -219,7 +294,7 @@ function buildMenuFromVendor(userInfo) {
       const stored = JSON.parse(localStorage.getItem("zaanvar_subscription") || "null");
       if (Array.isArray(stored)) rawSubs.push(...stored);
       else if (stored) rawSubs.push(stored);
-    } catch {}
+    } catch { }
   }
 
   // Deduplicate and filter active subscriptions
@@ -237,21 +312,38 @@ function buildMenuFromVendor(userInfo) {
     }
   });
 
-  const hasActiveSubscription = Boolean(
-    validActiveSubs.length > 0 ||
-    userInfo?.isSubscribed ||
-    userInfo?.subscriptionActive ||
-    userInfo?.subscriptionPlan ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
-  );
+  const hasAssignedAndVerified = isUserAssignedAndVerified(userInfo, branches, selectedBranchId);
 
-  if (!hasActiveSubscription) {
+  if (!hasAssignedAndVerified) {
     return [
-      { label: "Home", path: "/claim-business", icon: <IconHome /> },
+      { label: "Home", path: "/home", icon: <IconHome /> },
       { label: "Profile", path: "/profile", icon: <IconUser /> },
+      { label: "Reviews", path: "/reviews", icon: <IconStar /> },
+      { label: "Change PIN", path: "/change-pin", icon: <IconLock /> },
       { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
-      { label: "Support", path: "#", icon: <IconShop /> },
+      { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
+      { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
+      { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
+      { label: "Support", path: "/contact-us", icon: <IconHeadphones /> },
+    ];
+  }
+
+  const hasSubscription = validActiveSubs.length > 0 || Boolean(userInfo?.isSubscribed || userInfo?.subscriptionActive);
+
+  if (!hasSubscription) {
+    return [
+      { label: "Home", path: "/home", icon: <IconHome /> },
+      { label: "Profile", path: "/profile", icon: <IconUser /> },
+      { label: "Credit Points", path: "/credit-points", icon: <IconStar /> },
+      { label: "Reviews", path: "/reviews", icon: <IconStar /> },
+      { label: "Change PIN", path: "/change-pin", icon: <IconLock /> },
+      { label: "Advertisements", path: "/advertisements", icon: <IconTv /> },
+      { label: "Staff Management", path: "/staff-management", icon: <IconUsers />, },
+      { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
+      { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
+      { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
+      { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
+      { label: "Support", path: "/contact-us", icon: <IconHeadphones /> },
     ];
   }
 
@@ -331,7 +423,7 @@ function buildMenuFromVendor(userInfo) {
     }
   });
 
-  if (hasFullPackage) {
+  if (hasFullPackage || (!hasGrooming && !hasDaycare && !hasClinic && !hasPOS)) {
     hasGrooming = true;
     hasDaycare = true;
     hasClinic = true;
@@ -364,10 +456,13 @@ function buildMenuFromVendor(userInfo) {
   }
 
   const menu = [
-    { label: "Home", path: "/claim-business", icon: <IconHome /> },
-    { label: "Dashboard", path: "/dashboard", icon: <IconGrid /> },
-    { label: "Reviews", path: "/reviews", icon: <IconStar /> },
+    { label: "Home", path: "/home", icon: <IconHome /> },
     { label: "Profile", path: "/profile", icon: <IconUser /> },
+    { label: "Credit Points", path: "/credit-points", icon: <IconStar /> },
+    { label: "Reviews", path: "/reviews", icon: <IconStar /> },
+    { label: "Change PIN", path: "/change-pin", icon: <IconLock /> },
+    { label: "Advertisements", path: "/advertisements", icon: <IconTv /> },
+    { label: "Staff Management", path: "/staff-management", icon: <IconUsers /> },
   ];
 
   // ONLY include Bookings in the sidebar if Grooming, Daycare, or Clinic is subscribed
@@ -402,7 +497,6 @@ function buildMenuFromVendor(userInfo) {
         subItems: SERVICE_MAP["Sale"]?.subItems,
       },
       { label: "Customers", path: "/customers", icon: <IconUser /> },
-      { label: "Staff Management", path: "/staff-management", icon: <IconUser /> },
       { label: "Supplier", path: "/suppliers", icon: <IconGrid /> }
     );
   }
@@ -415,7 +509,10 @@ function buildMenuFromVendor(userInfo) {
       subItems: settingsSubItems,
     },
     { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
-    { label: "Support", path: "#", icon: <IconShop /> }
+    { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
+    { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
+    { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
+    { label: "Support", path: "/contact-us", icon: <IconHeadphones /> }
   );
 
   return menu;
@@ -458,7 +555,7 @@ function getAuthToken(jwtToken) {
       const stored = JSON.parse(localStorage.getItem("user-store") || "null");
       if (stored?.state?.jwtToken) return stored.state.jwtToken;
       if (stored?.jwtToken) return stored.jwtToken;
-    } catch {}
+    } catch { }
     return (
       localStorage.getItem("jwtToken") ||
       localStorage.getItem("token") ||
@@ -606,7 +703,7 @@ const DashboardLayout = ({
   if (!_hasHydrated) return <Skeleton />;
   if (!jwtToken || !userInfo) return <Skeleton />;
 
-  const menuItems = buildMenuFromVendor(userInfo);
+  const menuItems = buildMenuFromVendor(userInfo, branches, selectedBranchId);
 
   /* ── role-based sidebar filtering ── */
   const currentUserId = userInfo?.userId || userInfo?.id || userInfo?._id;
@@ -632,8 +729,8 @@ const DashboardLayout = ({
       if (normalizedService === "sales return") normalizedService = "sale return";
 
       const perm = perms.find(
-        p => p.module.trim().toLowerCase() === moduleName.trim().toLowerCase() && 
-             (p.serviceName || "").trim().toLowerCase() === normalizedService
+        p => p.module.trim().toLowerCase() === moduleName.trim().toLowerCase() &&
+          (p.serviceName || "").trim().toLowerCase() === normalizedService
       );
       if (!perm) return true; // not listed = not restricted
       return !perm.noAccess;
@@ -648,42 +745,32 @@ const DashboardLayout = ({
   // Roles have loaded when the array is non-empty (populated by useDashboardData polling)
   const rolesLoaded = Array.isArray(roles) && roles.length > 0;
 
-  const hasActiveSubscription = Boolean(
-    userInfo?.isSubscribed ||
-    userInfo?.subscriptionActive ||
-    userInfo?.subscriptionPlan ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-    (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
-  );
+  const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
+  const isValidBackendBranch = savedBackendBranchId && savedBackendBranchId !== "null" && savedBackendBranchId !== "undefined" && savedBackendBranchId !== "0";
 
-  const hasNoBusinessOrNoSub = !hasActiveSubscription;
+  const hasAssignedAndVerified = isUserAssignedAndVerified(userInfo, branches, selectedBranchId);
+  const hasNoBusinessOrNoSub = !hasAssignedAndVerified;
 
-  const filteredMenuItems = hasNoBusinessOrNoSub
+  const filteredMenuItems = (hasNoBusinessOrNoSub || isSuperAdmin || !rolesLoaded || !userRole)
     ? menuItems
-    : isSuperAdmin
-      ? menuItems
-      : !rolesLoaded
-        ? []
-        : !userRole
-          ? menuItems
-          : menuItems.reduce((acc, item) => {
-              if (item.subItems && item.subItems.length > 0) {
-                // Filter sub-items individually
-                const visibleSubs = item.subItems.filter(sub =>
-                  isAccessible(item.label, sub.label)
-                );
-                // Only include the parent if at least one sub-item is visible
-                if (visibleSubs.length > 0) {
-                  acc.push({ ...item, subItems: visibleSubs });
-                }
-              } else {
-                // Top-level item with no children (e.g. Customers, Supplier)
-                if (isAccessible(item.label)) {
-                  acc.push(item);
-                }
-              }
-              return acc;
-            }, []);
+    : menuItems.reduce((acc, item) => {
+      if (item.subItems && item.subItems.length > 0) {
+        // Filter sub-items individually
+        const visibleSubs = item.subItems.filter(sub =>
+          isAccessible(item.label, sub.label)
+        );
+        // Only include the parent if at least one sub-item is visible
+        if (visibleSubs.length > 0) {
+          acc.push({ ...item, subItems: visibleSubs });
+        }
+      } else {
+        // Top-level item with no children (e.g. Customers, Supplier)
+        if (isAccessible(item.label)) {
+          acc.push(item);
+        }
+      }
+      return acc;
+    }, []);
 
   /* ── avatar ── */
   const firstName = userInfo?.firstName || "";
@@ -757,7 +844,14 @@ const DashboardLayout = ({
                   <Link href={appendBranchId(item.path)} data-label={item.label} title={sidebarCollapsed ? item.label : undefined}>
                     <span className={styles.navIcon}>{item.icon}</span>
                     {!sidebarCollapsed && (
-                      <span className={styles.navLabel}>{item.label}</span>
+                      <span className={styles.navLabel} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "6px" }}>
+                        <span>{item.label}</span>
+                        {item.badge && (
+                          <span style={{ fontSize: "10px", color: "#f5790c", background: "#fff0e6", border: "1px solid #ffe0cc", padding: "1px 6px", borderRadius: "10px", fontWeight: "600", whiteSpace: "nowrap" }}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </span>
                     )}
                   </Link>
                 ) : (

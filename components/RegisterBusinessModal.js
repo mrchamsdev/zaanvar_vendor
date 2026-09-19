@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { WebApimanager } from "./utilities/WebApiManager";
 import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "../utilities/date-time-utils";
 
 import ClinicFields from "./BranchFeatures/ClinicFields";
@@ -87,29 +87,34 @@ const blankBranch = () => ({
   selectedServices: [],
   services: {},
   paymentMethods: [],
+  hoursMode: "MAIN_HOURS",
   timings: { Monday: "", Tuesday: "", Wednesday: "", Thursday: "", Friday: "", Saturday: "", Sunday: "" },
+  specialHours: [],
   is24x7: false,
   branchAddress: {},
   morePhotos: [],
 });
 
 // ─── TimingsGrid sub-component ────────────────────────────────────────────────
-function TimingsGrid({ timings, is24x7, onChange, on24x7Change }) {
+function TimingsGrid({ timings = {}, is24x7, onChange, on24x7Change }) {
   const parseDay = (val = "") => {
+    if (!val || val === "Closed") {
+      return { oH: "09", oM: "00", openPeriod: "AM", cH: "10", cM: "00", closePeriod: "PM", isClosed: val === "Closed" };
+    }
     const [openStr = "", closeStr = ""] = val.split(" - ");
     const [openTime = "09:00", openPeriod = "AM"] = openStr.split(" ");
-    const [closeTime = "09:00", closePeriod = "PM"] = closeStr.split(" ");
+    const [closeTime = "10:00", closePeriod = "PM"] = closeStr.split(" ");
     const [oH = "09", oM = "00"] = openTime.split(":");
-    const [cH = "09", cM = "00"] = closeTime.split(":");
-    return { oH, oM, openPeriod, cH, cM, closePeriod };
+    const [cH = "10", cM = "00"] = closeTime.split(":");
+    return { oH, oM, openPeriod, cH, cM, closePeriod, isClosed: false };
   };
 
   const buildStr = (oH, oM, oP, cH, cM, cP) => `${oH}:${oM} ${oP} - ${cH}:${cM} ${cP}`;
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", userSelect: "none" }}>
           <input
             type="checkbox"
             checked={is24x7}
@@ -121,15 +126,15 @@ function TimingsGrid({ timings, is24x7, onChange, on24x7Change }) {
               DAYS.forEach(d => { newT[d] = c ? full : ""; });
               onChange(newT);
             }}
-            style={{ width: 16, height: 16 }}
+            style={{ width: 16, height: 16, accentColor: "#1a73e8" }}
           />
           24/7 Open
         </label>
         <button
           type="button"
           onClick={() => {
-            const base = Object.values(timings).find(Boolean);
-            if (!base) { alert("Set at least one day first."); return; }
+            const base = Object.values(timings).find(v => v && v !== "Closed");
+            if (!base) { alert("Set at least one open day first."); return; }
             const newT = {};
             DAYS.forEach(d => { newT[d] = base; });
             onChange(newT);
@@ -140,31 +145,396 @@ function TimingsGrid({ timings, is24x7, onChange, on24x7Change }) {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 32px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
         {DAYS.map(day => {
-          const { oH, oM, openPeriod, cH, cM, closePeriod } = parseDay(timings[day]);
+          const { oH, oM, openPeriod, cH, cM, closePeriod, isClosed } = parseDay(timings[day]);
+
+          const handleToggleClosed = (checked) => {
+            if (checked) {
+              onChange({ ...timings, [day]: "Closed" });
+            } else {
+              onChange({ ...timings, [day]: buildStr(oH, oM, openPeriod, cH, cM, closePeriod) });
+            }
+          };
+
           const update = (k, v) => {
             const cur = { oH, oM, openPeriod, cH, cM, closePeriod };
             cur[k] = v;
             onChange({ ...timings, [day]: buildStr(cur.oH, cur.oM, cur.openPeriod, cur.cH, cur.cM, cur.closePeriod) });
           };
-          const sel = (style) => ({ ...style, padding: "6px 4px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: 13, background: "#fff" });
+
+          const sel = (style) => ({
+            ...style,
+            padding: "6px 4px",
+            borderRadius: 4,
+            border: "1px solid #d1d5db",
+            fontSize: 13,
+            background: isClosed ? "#f3f4f6" : "#fff",
+            color: isClosed ? "#9ca3af" : "#1f2937",
+            cursor: isClosed ? "not-allowed" : "pointer"
+          });
+
           return (
-            <div key={day} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ width: 88, fontWeight: 600, fontSize: 13, color: "#374151" }}>{day}</span>
-              <select style={sel({ width: 52 })} value={oH} onChange={e => update("oH", e.target.value)}>{HOURS.map(h => <option key={h}>{h}</option>)}</select>
+            <div key={day} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", opacity: isClosed ? 0.75 : 1 }}>
+              <div style={{ width: 96, display: "flex", flexDirection: "column" }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: isClosed ? "#9ca3af" : "#374151" }}>{day}</span>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: isClosed ? "#ef4444" : "#6b7280", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={isClosed}
+                    onChange={e => handleToggleClosed(e.target.checked)}
+                    style={{ accentColor: "#ef4444", width: 12, height: 12 }}
+                  />
+                  Closed
+                </label>
+              </div>
+
+              <select disabled={isClosed} style={sel({ width: 52 })} value={oH} onChange={e => update("oH", e.target.value)}>{HOURS.map(h => <option key={h}>{h}</option>)}</select>
               <span style={{ fontSize: 13, color: "#6b7280" }}>:</span>
-              <select style={sel({ width: 52 })} value={oM} onChange={e => update("oM", e.target.value)}>{MINUTES.map(m => <option key={m}>{m}</option>)}</select>
-              <select style={sel({})} value={openPeriod} onChange={e => update("openPeriod", e.target.value)}><option>AM</option><option>PM</option></select>
+              <select disabled={isClosed} style={sel({ width: 52 })} value={oM} onChange={e => update("oM", e.target.value)}>{MINUTES.map(m => <option key={m}>{m}</option>)}</select>
+              <select disabled={isClosed} style={sel({})} value={openPeriod} onChange={e => update("openPeriod", e.target.value)}><option>AM</option><option>PM</option></select>
               <span style={{ fontSize: 12, color: "#9ca3af", margin: "0 2px" }}>TO</span>
-              <select style={sel({ width: 52 })} value={cH} onChange={e => update("cH", e.target.value)}>{HOURS.map(h => <option key={h}>{h}</option>)}</select>
+              <select disabled={isClosed} style={sel({ width: 52 })} value={cH} onChange={e => update("cH", e.target.value)}>{HOURS.map(h => <option key={h}>{h}</option>)}</select>
               <span style={{ fontSize: 13, color: "#6b7280" }}>:</span>
-              <select style={sel({ width: 52 })} value={cM} onChange={e => update("cM", e.target.value)}>{MINUTES.map(m => <option key={m}>{m}</option>)}</select>
-              <select style={sel({})} value={closePeriod} onChange={e => update("closePeriod", e.target.value)}><option>AM</option><option>PM</option></select>
+              <select disabled={isClosed} style={sel({ width: 52 })} value={cM} onChange={e => update("cM", e.target.value)}>{MINUTES.map(m => <option key={m}>{m}</option>)}</select>
+              <select disabled={isClosed} style={sel({})} value={closePeriod} onChange={e => update("closePeriod", e.target.value)}><option>AM</option><option>PM</option></select>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── SpecialHoursSection sub-component (Google My Business style) ─────────────
+function SpecialHoursSection({ specialHours = [], onChange, country = "India" }) {
+  const defaultHolidays = [
+    { id: "bonalu", name: "Bonalu", date: "2026-08-10", dateFormatted: "10 AUG 2026" },
+    { id: "independence", name: "Indian independence day", date: "2026-08-15", dateFormatted: "15 AUG 2026" },
+    { id: "diwali", name: "Diwali", date: "2026-11-08", dateFormatted: "08 NOV 2026" },
+  ];
+
+  const [publicHolidays, setPublicHolidays] = useState([]);
+  const [loadingHolidays, setLoadingHolidays] = useState(false);
+  const [showAllHolidays, setShowAllHolidays] = useState(false);
+
+  const countryCode = country === "India" || !country ? "IN" : (country.slice(0, 2).toUpperCase());
+  const currentYear = new Date().getFullYear();
+  const todayStr = toApiDateOnly(new Date());
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchHolidays = async () => {
+      setLoadingHolidays(true);
+      try {
+        const token = typeof window !== "undefined" ? (localStorage.getItem("jwtToken") || localStorage.getItem("token") || "") : "";
+        const webApi = new WebApimanager(token);
+
+        let holidaysList = [];
+        try {
+          const res = await webApi.getwithouttoken(`public-holidays`, {
+            params: { countryCode, year: currentYear }
+          });
+          const raw = res?.data || res;
+          holidaysList = Array.isArray(raw) ? raw : (raw?.data || raw?.holidays || []);
+        } catch (err) {
+          try {
+            const fallbackRes = await webApi.getwithouturltoken(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/${countryCode}`);
+            const rawFb = fallbackRes?.data || fallbackRes;
+            holidaysList = Array.isArray(rawFb) ? rawFb : [];
+          } catch (fbErr) {
+            console.warn("Public holiday fallback fetch failed:", fbErr);
+          }
+        }
+
+        if (isMounted && holidaysList.length > 0) {
+          const mapped = holidaysList.map((item, idx) => {
+            const rawDate = item.date || item.holidayDate || "";
+            let dateFormatted = rawDate;
+            if (rawDate) {
+              const d = new Date(rawDate);
+              if (!isNaN(d.getTime())) {
+                const day = String(d.getDate()).padStart(2, "0");
+                const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+                const year = d.getFullYear();
+                dateFormatted = `${day} ${month} ${year}`;
+              }
+            }
+            return {
+              id: item.id || `holiday-${idx}-${rawDate}`,
+              name: item.name || item.localName || item.holidayName || "Public Holiday",
+              date: rawDate,
+              dateFormatted,
+            };
+          });
+
+          // Filter holidays starting on or after today's date and sort ascending
+          const upcoming = mapped.filter(h => h.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+          setPublicHolidays(upcoming);
+        }
+      } catch (e) {
+        console.warn("Error fetching public holidays:", e);
+      } finally {
+        if (isMounted) setLoadingHolidays(false);
+      }
+    };
+
+    fetchHolidays();
+    return () => { isMounted = false; };
+  }, [countryCode, currentYear, todayStr]);
+
+  const [customDates, setCustomDates] = useState(
+    Array.isArray(specialHours) && specialHours.length > 0
+      ? specialHours
+      : [
+          { id: Date.now(), date: "", opensAt: "09:30", closesAt: "18:30", isClosed: false },
+        ]
+  );
+
+  const [holidayHours, setHolidayHours] = useState({});
+
+  const handleAddDate = () => {
+    const next = [...customDates, { id: Date.now(), date: "", opensAt: "09:30", closesAt: "18:30", isClosed: false }];
+    setCustomDates(next);
+    if (onChange) onChange(next);
+  };
+
+  const handleRemoveDate = (id) => {
+    const next = customDates.filter(item => item.id !== id);
+    setCustomDates(next);
+    if (onChange) onChange(next);
+  };
+
+  const handleCustomChange = (id, field, value) => {
+    const next = customDates.map(item => item.id === id ? { ...item, [field]: value } : item);
+    setCustomDates(next);
+    if (onChange) onChange(next);
+  };
+
+  const handleHolidayReviewToggle = (id) => {
+    setHolidayHours(prev => ({
+      ...prev,
+      [id]: prev[id] ? null : { opensAt: "09:30", closesAt: "18:30", isClosed: false }
+    }));
+  };
+
+  const handleHolidayChange = (id, field, value) => {
+    setHolidayHours(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || { opensAt: "09:30", closesAt: "18:30", isClosed: false }), [field]: value }
+    }));
+  };
+
+  const holidaySource = publicHolidays.length > 0 ? publicHolidays : defaultHolidays;
+  const visibleHolidays = showAllHolidays ? holidaySource : holidaySource.slice(0, 5);
+  const hasMoreHolidays = holidaySource.length > 5;
+
+  return (
+    <div style={{ marginTop: 24, padding: 20, borderRadius: 10, border: "1px solid #e5e7eb", background: "#fff" }}>
+      <h3 style={{ margin: "0 0 2px", fontSize: 14, fontWeight: 700, color: "#111" }}>Special hours</h3>
+      <p style={{ margin: "0 0 16px", fontSize: 11, color: "#6b7280", textTransform: "uppercase" }}>
+        CONFIRM PUBLIC HOLIDAYS OR ADD HOURS SO CUSTOMERS KNOW WHEN YOU&apos;RE OPEN
+      </p>
+
+      {/* Preset Public Holidays */}
+      {loadingHolidays ? (
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Loading public holidays...</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          {visibleHolidays.map((h) => {
+            const activeConfig = holidayHours[h.id];
+            return (
+              <div key={h.id} style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1f2937" }}>{h.name}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.dateFormatted}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleHolidayReviewToggle(h.id)}
+                    style={{ background: "none", border: "none", color: "#1a73e8", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+                  >
+                    {activeConfig ? "Done" : "Review"}
+                  </button>
+                </div>
+
+                {activeConfig && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={activeConfig.isClosed}
+                        onChange={e => handleHolidayChange(h.id, "isClosed", e.target.checked)}
+                        style={{ accentColor: "#ef4444" }}
+                      />
+                      Closed
+                    </label>
+
+                    {!activeConfig.isClosed && (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 12, color: "#6b7280" }}>Opens at</span>
+                          <input
+                            type="time"
+                            value={activeConfig.opensAt}
+                            onChange={e => handleHolidayChange(h.id, "opensAt", e.target.value)}
+                            style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: 12 }}
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 12, color: "#6b7280" }}>Close at</span>
+                          <input
+                            type="time"
+                            value={activeConfig.closesAt}
+                            onChange={e => handleHolidayChange(h.id, "closesAt", e.target.value)}
+                            style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: 12 }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {hasMoreHolidays && (
+            <div style={{ marginTop: 4, marginBottom: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowAllHolidays(!showAllHolidays)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#1a73e8",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  padding: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4
+                }}
+              >
+                {showAllHolidays ? "View less" : `View more (${holidaySource.length - 5} more holidays)`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Custom Special Dates List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {customDates.map((item) => (
+          <div key={item.id} style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap", paddingBottom: 12, borderBottom: "1px solid #f8fafc" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Date</label>
+              <input
+                type="date"
+                value={item.date}
+                onChange={e => handleCustomChange(item.id, "date", e.target.value)}
+                style={{
+                  width: 175,
+                  padding: "7px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 13,
+                  background: "#fff",
+                  color: "#1f2937",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {!item.isClosed && (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Opens at</label>
+                  <input
+                    type="time"
+                    value={item.opensAt}
+                    onChange={e => handleCustomChange(item.id, "opensAt", e.target.value)}
+                    style={{
+                      width: 140,
+                      padding: "7px 12px",
+                      borderRadius: 6,
+                      border: "1px solid #d1d5db",
+                      fontSize: 13,
+                      background: "#fff",
+                      color: "#1f2937",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Close at</label>
+                  <input
+                    type="time"
+                    value={item.closesAt}
+                    onChange={e => handleCustomChange(item.id, "closesAt", e.target.value)}
+                    style={{
+                      width: 140,
+                      padding: "7px 12px",
+                      borderRadius: 6,
+                      border: "1px solid #d1d5db",
+                      fontSize: 13,
+                      background: "#fff",
+                      color: "#1f2937",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </>
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 6 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", cursor: "pointer", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={item.isClosed}
+                  onChange={e => handleCustomChange(item.id, "isClosed", e.target.checked)}
+                  style={{ accentColor: "#ef4444", width: 15, height: 15 }}
+                />
+                Closed
+              </label>
+
+              {customDates.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveDate(item.id)}
+                  style={{ background: "none", border: "none", color: "#ef4444", fontSize: 16, cursor: "pointer", padding: "4px" }}
+                  title="Remove date"
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAddDate}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: "none",
+          border: "none",
+          color: "#1a73e8",
+          fontWeight: 600,
+          fontSize: 13,
+          cursor: "pointer",
+          marginTop: 12,
+          padding: 0
+        }}
+      >
+        + Add a date
+      </button>
     </div>
   );
 }
@@ -492,33 +862,56 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
 
       {/* Hours / Timings */}
       <div style={{ marginBottom: 0 }}>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 12 }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", margin: "0 0 2px 0", textTransform: "uppercase" }}>Hours</p>
           <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 6px 0", textTransform: "uppercase" }}>CHOOSE YOUR SHOP OPENING AND CLOSING TIMES.</p>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1a73e8", display: "inline-block" }} />
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+            <input
+              type="radio"
+              name={`branch_hoursMode_${index}`}
+              value="MAIN_HOURS"
+              checked={(branch.hoursMode || "MAIN_HOURS") === "MAIN_HOURS"}
+              onChange={() => onChange(index, "hoursMode", "MAIN_HOURS")}
+              style={{ accentColor: "#1a73e8" }}
+            />
             OPEN WITH MAIN HOURS SHOW WHEN YOUR BUSINESS IS OPEN
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", marginTop: 2 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#9ca3af", display: "inline-block" }} />
-            OPEN WITH NO MAIN HOURS DON'T SHOW ANY BUSINESS HOURS
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", marginTop: 4, cursor: "pointer" }}>
+            <input
+              type="radio"
+              name={`branch_hoursMode_${index}`}
+              value="NO_MAIN_HOURS"
+              checked={branch.hoursMode === "NO_MAIN_HOURS"}
+              onChange={() => onChange(index, "hoursMode", "NO_MAIN_HOURS")}
+              style={{ accentColor: "#1a73e8" }}
+            />
+            OPEN WITH NO MAIN HOURS DON&apos;T SHOW ANY BUSINESS HOURS
           </label>
         </div>
 
-        <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "16px 0 8px" }}>Branch Timings <span style={{ color: "#e74c3c" }}>*</span></p>
-        <TimingsGrid
-          timings={branch.timings}
-          is24x7={branch.is24x7}
-          onChange={t => onChange(index, "timings", t)}
-          on24x7Change={v => onChange(index, "is24x7", v)}
-        />
+        {(branch.hoursMode || "MAIN_HOURS") === "MAIN_HOURS" && (
+          <>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "16px 0 8px" }}>Branch Timings <span style={{ color: "#e74c3c" }}>*</span></p>
+            <TimingsGrid
+              timings={branch.timings}
+              is24x7={branch.is24x7}
+              onChange={t => onChange(index, "timings", t)}
+              on24x7Change={v => onChange(index, "is24x7", v)}
+            />
+            <SpecialHoursSection
+              specialHours={branch.specialHours || []}
+              onChange={sh => onChange(index, "specialHours", sh)}
+              country={branch.branchAddress?.country || "India"}
+            />
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Main Modal Component ─────────────────────────────────────────────────────
-export default function RegisterBusinessModal({ open, onClose, onSuccess, userInfo, initialTab = 0 }) {
+export default function RegisterBusinessModal({ open, onClose, onSuccess, userInfo, initialTab = 0, hasAssignedBranches: hasAssignedBranchesProp }) {
   const [activeTab, setActiveTab] = useState(initialTab || 0); // 0=User, 1=Business, 2=Services, 3=Additional
   const [submitting, setSubmitting] = useState(false);
 
@@ -568,16 +961,48 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleUserChange = (key, val) => setUserForm(p => ({ ...p, [key]: val }));
-  const handleCompanyChange = (key, val) => setCompanyForm(p => ({ ...p, [key]: val }));
+
+  const handleCompanyChange = (key, val) => {
+    if (key === "services") {
+      const oldServices = companyForm.services || [];
+      const newServices = val || [];
+      const added = newServices.filter(s => !oldServices.includes(s));
+
+      setCompanyForm(p => ({ ...p, services: newServices }));
+      setBranches(prev =>
+        prev.map(b => {
+          const currentB = b.selectedServices || [];
+          const updatedB = Array.from(new Set([...currentB, ...added]));
+          return { ...b, selectedServices: updatedB };
+        })
+      );
+    } else {
+      setCompanyForm(p => ({ ...p, [key]: val }));
+    }
+  };
 
   const handleBranchChange = (idx, key, val) => {
     setBranches(prev => {
       const next = [...prev];
       next[idx] = { ...next[idx], [key]: val };
+
+      if (key === "selectedServices") {
+        const branchSvcs = val || [];
+        setCompanyForm(c => ({
+          ...c,
+          services: Array.from(new Set([...(c.services || []), ...branchSvcs]))
+        }));
+      }
+
       return next;
     });
   };
-  const addBranch = () => setBranches(prev => [...prev, blankBranch()]);
+
+  const addBranch = () =>
+    setBranches(prev => [
+      ...prev,
+      { ...blankBranch(), selectedServices: [...(companyForm.services || [])] }
+    ]);
   const removeBranch = (idx) => setBranches(prev => prev.filter((_, i) => i !== idx));
 
   const getVendorUserId = () => {
@@ -604,7 +1029,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   };
 
   const buildPayload = (stepName) => {
-    const isEnt = businessType?.toLowerCase() === "enterprise";
+    const isEnt = !hasAssignedBranches && businessType?.toLowerCase() === "enterprise";
     const vUserId = getVendorUserId();
 
     const formatTimings = (tObj = {}) => {
@@ -648,11 +1073,6 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
         vendorEmail: userForm.email,
         gender: userForm.gender,
         role: companyForm.roleOfPerson || "Owner",
-        petType: companyForm.services,
-        branchStartDate: b0.branchOpeningDate || companyForm.openingDate || toApiDateOnly(new Date()),
-        startDate: companyForm.openingDate || b0.branchOpeningDate || toApiDateOnly(new Date()),
-        companyName: companyForm.companyName,
-        companyAddress: companyAddressStr,
         currentStep: stepName,
         shopFrontPhoto: companyForm.logo ? (typeof companyForm.logo === "string" ? companyForm.logo : "") : "",
         selfiePhoto: "",
@@ -747,13 +1167,12 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     else if (activeTab === 2) nextStepName = "ADDITIONAL_INFO";
 
     try {
-      const API_BASE = typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com"
-        ? "https://dev.zaanvar.com/api/"
-        : "https://prod.zaanvar.com/api/";
+      const token = typeof window !== "undefined" ? (localStorage.getItem("jwtToken") || localStorage.getItem("token") || "") : "";
+      const webApi = new WebApimanager(token);
       const payload = buildPayload(nextStepName);
-      const res = await axios.post(`${API_BASE}vendor/onboarding-ticket/progress`, payload);
-      if (res?.data?.ticketId) {
-        setCompanyForm(prev => ({ ...prev, ticketId: res.data.ticketId }));
+      const res = await webApi.postwithouttoken("vendor/onboarding-ticket/progress", payload);
+      if (res?.ticketId || res?.data?.ticketId) {
+        setCompanyForm(prev => ({ ...prev, ticketId: res?.ticketId || res?.data?.ticketId }));
       }
     } catch (e) {
       console.warn("Progress update on Next:", e);
@@ -764,16 +1183,14 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const API_BASE = typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com"
-        ? "https://dev.zaanvar.com/api/"
-        : "https://prod.zaanvar.com/api/";
-
+      const token = typeof window !== "undefined" ? (localStorage.getItem("jwtToken") || localStorage.getItem("token") || "") : "";
+      const webApi = new WebApimanager(token);
       const payload = buildPayload("VERIFICATION_METHOD");
 
       let resData = null;
       try {
-        const res = await axios.post(`${API_BASE}vendor/onboarding-ticket/progress`, payload);
-        resData = res?.data;
+        const res = await webApi.postwithouttoken("vendor/onboarding-ticket/progress", payload);
+        resData = res?.data || res;
       } catch (e) {
         console.warn("POST vendor/onboarding-ticket/progress error:", e);
         resData = { ticketId: 12, status: "success" };
@@ -807,13 +1224,27 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   const fieldWrap = { marginBottom: 16 };
 
   const TABS = ["User Information", "Business Information", "Services Information", "Additional Information"];
-  const isEnterprise = businessType?.toLowerCase() === "enterprise";
+
+  const hasAssignedBranches = Boolean(
+    hasAssignedBranchesProp ||
+    (userInfo?.branchId && Array.isArray(userInfo.branchId) && userInfo.branchId.length > 0) ||
+    (userInfo?.branchAssigned && Array.isArray(userInfo.branchAssigned) && userInfo.branchAssigned.length > 0) ||
+    (userInfo?.companyId && Number(userInfo.companyId) > 0) ||
+    userInfo?.isSubscribed ||
+    userInfo?.subscriptionActive ||
+    (userInfo?.vendorCompanies && Array.isArray(userInfo.vendorCompanies) && userInfo.vendorCompanies.length > 0)
+  );
+
+  const activeBusinessType = hasAssignedBranches ? "Independent" : businessType;
+  const isEnterprise = !hasAssignedBranches && activeBusinessType?.toLowerCase() === "enterprise";
+  const showCompanyInfo = !hasAssignedBranches && isEnterprise;
+  const showAddBranch = !hasAssignedBranches && isEnterprise;
 
   const renderBranchDetails = () => (
-    <div style={{ marginTop: 28, borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
+    <div style={{ marginTop: showCompanyInfo ? 28 : 0, borderTop: showCompanyInfo ? "1px solid #e5e7eb" : "none", paddingTop: showCompanyInfo ? 20 : 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#111" }}>Enter Branch Details</h3>
-        {isEnterprise && (
+        {showAddBranch && (
           <button
             type="button"
             onClick={addBranch}
@@ -836,7 +1267,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           index={idx}
           onChange={handleBranchChange}
           onRemove={removeBranch}
-          showRemove={isEnterprise && branches.length > 1}
+          showRemove={showAddBranch && branches.length > 1}
         />
       ))}
     </div>
@@ -858,12 +1289,41 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
       }}>
         {/* ── Header ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid #e5e7eb" }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111" }}>Register your Business</h2>
-          <div style={{ display: "flex", gap: 12, color: "#6b7280" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#374151",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderRadius: 6,
+                cursor: "pointer",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+                transition: "all 0.2s ease",
+              }}
+              title="Back"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back</span>
+            </button>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111" }}>Register your Business</h2>
+          </div>
+          {/* Min, max, close buttons commented out */}
+          {/* <div style={{ display: "flex", gap: 12, color: "#6b7280" }}>
             <button type="button" onClick={onClose} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "inherit" }}>−</button>
             <button type="button" onClick={onClose} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "inherit" }}>▢</button>
             <button type="button" onClick={onClose} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "inherit" }}>✕</button>
-          </div>
+          </div> */}
         </div>
 
         {/* ── Tabs ── */}
@@ -929,114 +1389,143 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           {/* ══════ TAB 1: BUSINESS INFORMATION ══════ */}
           {activeTab === 1 && (
             <div>
-              {/* Business Type */}
-              <div style={{ marginBottom: 20 }}>
-                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#374151" }}>Business Type</p>
-                <div style={{ display: "flex", gap: 20 }}>
-                  {BUSINESS_TYPES.map(bt => (
-                    <label key={bt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-                      <input type="radio" name="businessType" value={bt}
-                        checked={businessType === bt}
-                        onChange={() => handleBusinessTypeChange(bt)}
-                        style={{ accentColor: "#1a73e8" }} />
-                      {bt}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Company Information */}
-              <p style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: "#111" }}>Company Information</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Company name <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={inputStyle} placeholder="Enter Company Name"
-                    value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Company Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="email" style={inputStyle} placeholder="Enter Company email"
-                    value={companyForm.companyEmail} onChange={e => handleCompanyChange("companyEmail", e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Company Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
-                    <span style={{ padding: "10px 12px", background: "#f3f4f6", borderRight: "1px solid #d1d5db", fontSize: 13, fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
-                    <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter 10-digit phone number" maxLength={10}
-                      value={getRawPhoneDigits(companyForm.companyPhone)}
-                      onChange={e => {
-                        const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
-                        handleCompanyChange("companyPhone", digits ? `+91${digits}` : "");
-                      }} />
+              {/* Business Type selector (ONLY shown when user has NO assigned/claimed branches) */}
+              {!hasAssignedBranches && (
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#374151" }}>Business Type</p>
+                  <div style={{ display: "flex", gap: 20 }}>
+                    {BUSINESS_TYPES.map(bt => (
+                      <label key={bt} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                        <input type="radio" name="businessType" value={bt}
+                          checked={businessType === bt}
+                          onChange={() => handleBusinessTypeChange(bt)}
+                          style={{ accentColor: "#1a73e8" }} />
+                        {bt}
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Company Website <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={inputStyle} placeholder="Enter here"
-                    value={companyForm.companyWebsite} onChange={e => handleCompanyChange("companyWebsite", e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Role of the Registering Person <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={inputStyle} placeholder="Enter here"
-                    value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value)} />
-                </div>
-                <div style={fieldWrap}>
-                  <label style={labelStyle}>Gender <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <select style={{ ...inputStyle, appearance: "auto" }}
-                    value={companyForm.gender} onChange={e => handleCompanyChange("gender", e.target.value)}>
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Trans">Trans</option>
-                  </select>
-                </div>
-              </div>
+              )}
 
-              {/* Services */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <label style={{ ...labelStyle, marginBottom: 0 }}>Services</label>
-                  <span style={{ fontSize: 16, color: "#6b7280" }}>^</span>
-                </div>
-                <ServicesCheckboxes selected={companyForm.services}
-                  onChange={val => handleCompanyChange("services", val)} />
-              </div>
+              {/* Company Information (ONLY shown when user has NO assigned branches AND Enterprise is selected) */}
+              {showCompanyInfo && (
+                <>
+                  <p style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: "#111" }}>Company Information</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Company name <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <input style={inputStyle} placeholder="Enter Company Name"
+                        value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value)} />
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Company Email <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <input type="email" style={inputStyle} placeholder="Enter Company email"
+                        value={companyForm.companyEmail} onChange={e => handleCompanyChange("companyEmail", e.target.value)} />
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Company Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <div style={{ display: "flex", alignItems: "center", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
+                        <span style={{ padding: "10px 12px", background: "#f3f4f6", borderRight: "1px solid #d1d5db", fontSize: 13, fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
+                        <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter 10-digit phone number" maxLength={10}
+                          value={getRawPhoneDigits(companyForm.companyPhone)}
+                          onChange={e => {
+                            const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
+                            handleCompanyChange("companyPhone", digits ? `+91${digits}` : "");
+                          }} />
+                      </div>
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Company Website <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <input style={inputStyle} placeholder="Enter here"
+                        value={companyForm.companyWebsite} onChange={e => handleCompanyChange("companyWebsite", e.target.value)} />
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Role of the Registering Person <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <input style={inputStyle} placeholder="Enter here"
+                        value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value)} />
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Gender <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <select style={{ ...inputStyle, appearance: "auto" }}
+                        value={companyForm.gender} onChange={e => handleCompanyChange("gender", e.target.value)}>
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Trans">Trans</option>
+                      </select>
+                    </div>
+                  </div>
 
-              {/* About Company */}
-              <div style={fieldWrap}>
-                <label style={labelStyle}>About Company</label>
-                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 80 }}
-                  placeholder="Tell us something about your branch...(Max 500 Characters)"
-                  maxLength={500}
-                  value={companyForm.aboutCompany}
-                  onChange={e => handleCompanyChange("aboutCompany", e.target.value)} />
-              </div>
+                  {/* Services */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>Services</label>
+                      <span style={{ fontSize: 16, color: "#6b7280" }}>^</span>
+                    </div>
+                    <ServicesCheckboxes selected={companyForm.services}
+                      onChange={val => handleCompanyChange("services", val)} />
+                  </div>
 
-              {/* Hours info */}
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", margin: "0 0 4px", textTransform: "uppercase" }}>Hours</p>
-                <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase" }}>CHOOSE YOUR SHOP OPENING AND CLOSING TIMES.</p>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1a73e8", display: "inline-block" }} />
-                  OPEN WITH MAIN HOURS SHOW WHEN YOUR BUSINESS IS OPEN
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", marginTop: 2 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#9ca3af", display: "inline-block" }} />
-                  OPEN WITH NO MAIN HOURS DON'T SHOW ANY BUSINESS HOURS
-                </label>
-              </div>
+                  {/* About Company */}
+                  <div style={fieldWrap}>
+                    <label style={labelStyle}>About Company</label>
+                    <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 80 }}
+                      placeholder="Tell us something about your branch...(Max 500 Characters)"
+                      maxLength={500}
+                      value={companyForm.aboutCompany}
+                      onChange={e => handleCompanyChange("aboutCompany", e.target.value)} />
+                  </div>
 
-              {/* Company Timings */}
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "16px 0 12px" }}>Company Timings <span style={{ color: "#e74c3c" }}>*</span></p>
-              <TimingsGrid
-                timings={companyForm.timings}
-                is24x7={companyForm.is24x7}
-                onChange={t => handleCompanyChange("timings", t)}
-                on24x7Change={v => handleCompanyChange("is24x7", v)}
-              />
+                  {/* Hours info */}
+                  <div style={{ marginBottom: 12 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", margin: "0 0 4px", textTransform: "uppercase" }}>Hours</p>
+                    <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase" }}>CHOOSE YOUR SHOP OPENING AND CLOSING TIMES.</p>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        name="company_hoursMode"
+                        value="MAIN_HOURS"
+                        checked={(companyForm.hoursMode || "MAIN_HOURS") === "MAIN_HOURS"}
+                        onChange={() => handleCompanyChange("hoursMode", "MAIN_HOURS")}
+                        style={{ accentColor: "#1a73e8" }}
+                      />
+                      OPEN WITH MAIN HOURS SHOW WHEN YOUR BUSINESS IS OPEN
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", marginTop: 4, cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        name="company_hoursMode"
+                        value="NO_MAIN_HOURS"
+                        checked={companyForm.hoursMode === "NO_MAIN_HOURS"}
+                        onChange={() => handleCompanyChange("hoursMode", "NO_MAIN_HOURS")}
+                        style={{ accentColor: "#1a73e8" }}
+                      />
+                      OPEN WITH NO MAIN HOURS DON&apos;T SHOW ANY BUSINESS HOURS
+                    </label>
+                  </div>
 
-              {/* Render Branch Details section only when Enterprise is selected */}
-              {isEnterprise && renderBranchDetails()}
+                  {(companyForm.hoursMode || "MAIN_HOURS") === "MAIN_HOURS" && (
+                    <>
+                      {/* Company Timings */}
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "16px 0 12px" }}>Company Timings <span style={{ color: "#e74c3c" }}>*</span></p>
+                      <TimingsGrid
+                        timings={companyForm.timings}
+                        is24x7={companyForm.is24x7}
+                        onChange={t => handleCompanyChange("timings", t)}
+                        on24x7Change={v => handleCompanyChange("is24x7", v)}
+                      />
+                      <SpecialHoursSection
+                        specialHours={companyForm.specialHours || []}
+                        onChange={sh => handleCompanyChange("specialHours", sh)}
+                        country={companyForm.address?.country || "India"}
+                      />
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Render Branch Details section */}
+              {renderBranchDetails()}
             </div>
           )}
 
@@ -1044,11 +1533,14 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           {activeTab === 2 && (
             <div>
               {!isEnterprise ? (
-                // Independent mode: Company Service Details
+                // Independent mode: Service Details for Branch 1
                 <BranchServiceDetailsSection
-                  title="Company Service Details"
-                  selectedServices={companyForm.services}
-                  onServicesChange={val => handleCompanyChange("services", val)}
+                  title="Service Details"
+                  selectedServices={branches[0]?.selectedServices?.length > 0 ? branches[0].selectedServices : companyForm.services}
+                  onServicesChange={val => {
+                    handleBranchChange(0, "selectedServices", val);
+                    handleCompanyChange("services", val);
+                  }}
                   branch={branches[0]}
                   branchIndex={0}
                   setBranches={setBranches}

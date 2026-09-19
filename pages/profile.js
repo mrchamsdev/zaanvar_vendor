@@ -4,6 +4,7 @@ import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
 import { IMAGE_URL } from "../components/utilities/Constants";
 import { parseApiToLocal } from "../utilities/date-time-utils";
+import EditBusinessModal from "../components/EditBusinessModal";
 
 /* ── icons ── */
 const HeartIcon = ({ filled }) => (
@@ -119,6 +120,7 @@ export default function ProfilePage() {
   const [slideIdx, setSlideIdx] = useState(0);
   const [heartFilled, setHeartFilled] = useState(false);
   const [branchOpen, setBranchOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const branch = useMemo(() => {
     return branches.find(b => b.id === selectedBranchId) || branches[0] || null;
@@ -293,9 +295,9 @@ export default function ProfilePage() {
               alt="Company"
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
-            <button className={styles.sliderHeart} onClick={() => setHeartFilled(f => !f)}>
+            {/* <button className={styles.sliderHeart} onClick={() => setHeartFilled(f => !f)}>
               <HeartIcon filled={heartFilled} />
-            </button>
+            </button> */}
             {images.length > 1 && (
               <div className={styles.sliderDots}>
                 {images.map((_, i) => (
@@ -311,13 +313,36 @@ export default function ProfilePage() {
           </div>
 
           {/* Company name + date */}
-          <div className={styles.profileInfo}>
-            <h3 className={styles.profileCompanyName}>
-              {company?.name || vendor?.businessName || "Company name"}
-            </h3>
-            <span className={styles.profileStartDate}>
-              Company Starting date : {dateLabel}
-            </span>
+          <div className={styles.profileInfo} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div>
+              <h3 className={styles.profileCompanyName}>
+                {company?.name || vendor?.businessName || "Company name"}
+              </h3>
+              <span className={styles.profileStartDate}>
+                Company Starting date : {dateLabel}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "1.5px solid #f5790c",
+                background: "#ffffff",
+                color: "#f5790c",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                whiteSpace: "nowrap",
+                transition: "all 0.15s ease"
+              }}
+            >
+              ✏️ Edit Business
+            </button>
           </div>
 
           {/* About */}
@@ -465,6 +490,13 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      <EditBusinessModal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        branchData={branch}
+        vendorData={vendor}
+        branchId={branch?.id || selectedBranchId || 12}
+      />
     </DashboardLayout>
   );
 }

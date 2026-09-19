@@ -1436,6 +1436,28 @@
   object-fit: contain;
 }
 
+.backBtnHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.backBtnHeader:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
 /* ── 3-Dot Options Dropdown & Verify Later ── */
 .titleContainer {
   display: flex;
@@ -2369,4 +2391,146 @@
 
 .disputeModalRemindLaterBtn:hover {
   text-decoration: underline;
+}
+
+/* ── Hours Weekly Operating Dropdown ── */
+.detailValContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.detailValHoursClickable {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hoursOpenLabel {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.hoursClosedLabel {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.hoursClosingText {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.hoursChevron {
+  font-size: 10px;
+  display: inline-block;
+  transition: transform 0.2s ease;
+  margin-left: 2px;
+}
+
+.hoursChevronOpen {
+  transform: rotate(180deg);
+}
+
+.timingsDropdownCard {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 14px 18px;
+  width: 270px;
+  z-index: 100;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.timingsDropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+.timingsDropdownTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.timingsDropdownCloseBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+}
+
+.timingsDropdownCloseBtn:hover {
+  color: #475569;
+}
+
+.timingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timingsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  padding: 2px 0;
+}
+
+.timingsRowToday {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d4ed8;
+  background-color: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.timingsRowValue {
+  color: #64748b;
+}
+
+.timingsRowValueToday {
+  color: #1d4ed8;
+}
+
+.todayBadge {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.noPhotoPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  gap: 6px;
+}
+
+.noPhotoText {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
 }
