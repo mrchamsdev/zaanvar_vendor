@@ -8,9 +8,25 @@ const ClockIcon = () => (
   </svg>
 );
 
-const AdIllustration = ({ width, height }) => (
-  <img src="/images/advertisement.png" alt="Advertisement" width={width} height={height} />
-
+const AdIllustration = ({ width = 211, height = 211 }) => (
+  <svg width={width} height={height} viewBox="0 0 211 211" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="211" height="211" rx="16" fill="#EFF6FF" />
+    {/* Display Screen */}
+    <rect x="35" y="45" width="141" height="95" rx="10" fill="#3B82F6" />
+    <rect x="42" y="52" width="127" height="81" rx="6" fill="#FFFFFF" />
+    {/* Sound Waves & Bullhorn Graphic */}
+    <path d="M72 82L98 70V110L72 98H58V82H72Z" fill="#F5790C" />
+    <path d="M98 70L128 56V124L98 110V70Z" fill="#FF9800" stroke="#EA580C" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M98 110C98 122 89 130 78 130C73 130 69 126 69 120V98H84L98 110Z" fill="#1E293B" />
+    {/* Broadcast Waves */}
+    <path d="M138 72C145 80 145 100 138 108" stroke="#F5790C" strokeWidth="3.5" strokeLinecap="round" />
+    <path d="M148 64C158 76 158 104 148 116" stroke="#3B82F6" strokeWidth="3.5" strokeLinecap="round" />
+    <circle cx="150" cy="50" r="4" fill="#F59E0B" />
+    <circle cx="52" cy="42" r="5" fill="#3B82F6" />
+    {/* Stand & Shadow */}
+    <ellipse cx="105.5" cy="165" rx="42" ry="7" fill="#CBD5E1" />
+    <rect x="99" y="140" width="13" height="25" fill="#64748B" />
+  </svg>
 );
 
 const StaffIllustration = () => (
@@ -503,7 +519,7 @@ export default function ComingSoonCards({ singleCard = null }) {
   const showStaff = !singleCard || singleCard === "staff-management";
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
+    <div style={{ margin: "10px", }}>
       <div style={{
         display: "grid",
         gridTemplateColumns: showAds && showStaff ? "repeat(auto-fit, minmax(320px, 1fr))" : "minmax(320px, 480px)",

@@ -10,7 +10,10 @@ import useStore from "../../components/state/useStore";
 import { WebApimanager } from "../../components/utilities/WebApiManager";
 import swal from "sweetalert";
 import RegisterBusinessModal from "../../components/RegisterBusinessModal";
-import EditBusinessModal from "../../components/EditBusinessModal";
+import EditBusinessModal from "../../components/editBusinessModal";
+import EditTimingsModal from "../../components/editTimingsModal";
+import EditPhotosModal from "../../components/editPhotosModal";
+import MediaViewerModal from "../../components/mediaViewerModal";
 import { IMAGE_URL } from "../../components/utilities/Constants";
 
 // ─── Inline SVGs & Helpers ───────────────────────────────────────────────────
@@ -26,6 +29,22 @@ const LocationIcon = () => (
     <circle cx="12" cy="10" r="3" />
   </svg>
 );
+
+const PLACEHOLDERS = [
+  "https://zaanvarprods3.b-cdn.net/media/1773901815100-petsales.png",
+  "https://zaanvarprods3.b-cdn.net/media/1773901839732-petdaycare.png",
+  "https://zaanvarprods3.b-cdn.net/media/1773901858062-Petgrooming.png",
+];
+
+const formatPhotoUrl = (img) => {
+  if (!img) return "";
+  const str = typeof img === "string" ? img : img.url || img.photoUrl || img.image || "";
+  if (!str) return "";
+  if (str.startsWith("http") || str.startsWith("data:") || str.startsWith("blob:")) return str;
+  const baseUrl = IMAGE_URL?.endsWith("/") ? IMAGE_URL : `${IMAGE_URL}/`;
+  const cleanPath = str.startsWith("/") ? str.slice(1) : str;
+  return `${baseUrl}${cleanPath}`;
+};
 
 const PhoneIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -273,6 +292,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   // ── Ask for Reviews modal & profile completeness state ──
   const [isAskReviewsModalOpen, setIsAskReviewsModalOpen] = useState(false);
   const [isEditBusinessModalOpen, setIsEditBusinessModalOpen] = useState(false);
+  const [isEditTimingsModalOpen, setIsEditTimingsModalOpen] = useState(false);
   const [askReviewsLoading, setAskReviewsLoading] = useState(false);
   const [reviewLink, setReviewLink] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -367,6 +387,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [isEditPhotosModalOpen, setIsEditPhotosModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(true);
@@ -419,7 +440,11 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [backendBranchId, setBackendBranchId] = useState(null);
   const [scrapedBranchEmail, setScrapedBranchEmail] = useState("");
-  const [branchImagesList, setBranchImagesList] = useState([]);
+  const [branchImagesList, setBranchImagesList] = useState(PLACEHOLDERS);
+  const [allBranchImages, setAllBranchImages] = useState([]);
+  const [rawBranchImagesList, setRawBranchImagesList] = useState([]);
+  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+  const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
   const [headerBranches, setHeaderBranches] = useState([]);
 
@@ -2168,15 +2193,31 @@ const ClaimBusiness = ({ forcedView = null }) => {
       if (selfie) setSelfiePhoto(selfie);
 
       setImageErrors({});
-      const rawImages = details.images || details.branchImages || details.branch_images || data.images || data.data?.images || selectedBranch?.branchImages || selectedBranch?.images || [];
-      const imagesArr = (Array.isArray(rawImages) ? rawImages : [])
-        .map(img => (typeof img === "string" ? img : img?.url || img?.photoUrl || img?.image || ""))
+      let rawImagesList = [];
+      if (details?.images?.length) rawImagesList = details.images;
+      else if (details?.branchImages?.length) rawImagesList = details.branchImages;
+      else if (details?.branch_images?.length) rawImagesList = details.branch_images;
+      else if (details?.clinicProfileImage) rawImagesList = [details.clinicProfileImage];
+      else if (details?.companyLogo) rawImagesList = [details.companyLogo];
+      else if (details?.companylogo) rawImagesList = [details.companylogo];
+      else if (data?.company?.images?.length) rawImagesList = data.company.images;
+      else if (data?.images?.length) rawImagesList = data.images;
+      else if (data?.data?.images?.length) rawImagesList = data.data.images;
+      else if (selectedBranch?.branchImages?.length) rawImagesList = selectedBranch.branchImages;
+      else if (selectedBranch?.images?.length) rawImagesList = selectedBranch.images;
+      else if (details?.shopFrontPhoto || details?.shop_front_photo) rawImagesList = [details.shopFrontPhoto || details.shop_front_photo];
+
+      const formattedArr = (Array.isArray(rawImagesList) ? rawImagesList : [rawImagesList])
+        .map(img => formatPhotoUrl(img))
         .filter(Boolean);
 
+      setAllBranchImages(formattedArr);
+      setRawBranchImagesList(Array.isArray(rawImagesList) ? rawImagesList : [rawImagesList]);
+
       const finalImages = [
-        imagesArr[0] || details.shopFrontPhoto || details.shop_front_photo || "",
-        imagesArr[1] || "",
-        imagesArr[2] || ""
+        formattedArr[0] || PLACEHOLDERS[0],
+        formattedArr[1] || PLACEHOLDERS[1],
+        formattedArr[2] || PLACEHOLDERS[2]
       ];
       setBranchImagesList(finalImages);
 
@@ -2541,7 +2582,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => toast.info("Opening Timings Editor...")}
+                    onClick={() => setIsEditTimingsModalOpen(true)}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}>
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -2610,10 +2651,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   <h3 className={styles.previewSectionTitle} style={{ fontSize: '15px', margin: '0 0 12px 0', fontWeight: '700', color: '#1f2937' }}>Photos</h3>
                   <div style={{ display: 'flex', gap: '12px', width: '100%', position: 'relative' }}>
                     {/* Left main image (large) */}
-                    <div style={{ position: 'relative', flex: '1.2', height: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', backgroundColor: '#f1f5f9' }}>
+                    <div
+                      style={{ position: 'relative', flex: '1.2', height: '220px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', backgroundColor: '#f1f5f9' }}
+                      onClick={() => {
+                        setMediaViewerIndex(0);
+                        setMediaViewerOpen(true);
+                      }}
+                    >
                       {branchImagesList[0] && !imageErrors[0] ? (
                         <img
-                          src={branchImagesList[0]}
+                          src={formatPhotoUrl(branchImagesList[0])}
                           alt="Branch Photo 1"
                           onError={handleImageError(0)}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -2658,9 +2705,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           alignItems: 'center',
                           gap: '6px',
                           cursor: 'pointer',
-                          fontFamily: 'Inter, sans-serif'
+                          fontFamily: 'Inter, sans-serif',
+                          zIndex: 3
                         }}
-                        onClick={() => toast.info("Opening Photo upload selector...")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsEditPhotosModalOpen(true);
+                        }}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -2672,10 +2723,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                     {/* Right column (two stacked smaller images) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: '1', height: '220px' }}>
-                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative' }}>
+                      <div
+                        style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative', cursor: 'pointer' }}
+                        onClick={() => {
+                          setMediaViewerIndex(1);
+                          setMediaViewerOpen(true);
+                        }}
+                      >
                         {branchImagesList[1] && !imageErrors[1] ? (
                           <img
-                            src={branchImagesList[1]}
+                            src={formatPhotoUrl(branchImagesList[1])}
                             alt="Branch Photo 2"
                             onError={handleImageError(1)}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -2698,10 +2755,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           </div>
                         )}
                       </div>
-                      <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative' }}>
+                      <div
+                        style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9', position: 'relative', cursor: 'pointer' }}
+                        onClick={() => {
+                          setMediaViewerIndex(2);
+                          setMediaViewerOpen(true);
+                        }}
+                      >
                         {branchImagesList[2] && !imageErrors[2] ? (
                           <img
-                            src={branchImagesList[2]}
+                            src={formatPhotoUrl(branchImagesList[2])}
                             alt="Branch Photo 3"
                             onError={handleImageError(2)}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -2721,6 +2784,30 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               <circle cx="8.5" cy="8.5" r="1.5" />
                               <polyline points="21 15 16 10 5 21" />
                             </svg>
+                          </div>
+                        )}
+                        {allBranchImages.length > 3 && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: 'rgba(15, 23, 42, 0.65)',
+                              backdropFilter: 'blur(2px)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#ffffff',
+                              fontSize: '22px',
+                              fontWeight: '700',
+                              borderRadius: '12px',
+                              zIndex: 2,
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            +{allBranchImages.length - 3}
                           </div>
                         )}
                       </div>
@@ -3595,7 +3682,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           <button
                             type="button"
                             className={styles.supportBtn}
-                            onClick={() => router.push("/contact-us")}
+                            onClick={() => router.push("/support")}
                           >
                             Contact Support
                           </button>
@@ -4715,12 +4802,12 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               selectedBranch?.branchImages?.[0] ||
                               selectedBranch?.images?.[0] ? (
                               <img
-                                src={
+                                src={formatPhotoUrl(
                                   shopFrontPhoto ||
                                   branchImagesList[0] ||
                                   selectedBranch?.branchImages?.[0] ||
                                   selectedBranch?.images?.[0]
-                                }
+                                )}
                                 alt="Shop Front Photo"
                                 className={styles.photoImg}
                               />
@@ -5337,6 +5424,49 @@ const ClaimBusiness = ({ forcedView = null }) => {
         onSuccess={() => {
           if (typeof fetchClaimProgress === "function") fetchClaimProgress();
         }}
+      />
+      <EditTimingsModal
+        open={isEditTimingsModalOpen}
+        onClose={() => setIsEditTimingsModalOpen(false)}
+        branchId={branchDetailsData?.id || selectedBranch?.id || 1}
+        companyId={branchDetailsData?.companyId || selectedBranch?.companyId || 1}
+        branchName={branchDetailsData?.businessName || branchDetailsData?.name || selectedBranch?.name || "Selected Branch"}
+        initialTimings={branchTimings || branchDetailsData?.timings || {}}
+        initialSpecialHours={branchDetailsData?.specialHours || []}
+        onSuccess={() => {
+          if (typeof fetchBranchDetailsAndReviews === "function" && (branchDetailsData?.id || selectedBranch?.id)) {
+            fetchBranchDetailsAndReviews(branchDetailsData?.id || selectedBranch?.id);
+          }
+        }}
+      />
+      <EditPhotosModal
+        open={isEditPhotosModalOpen}
+        onClose={() => setIsEditPhotosModalOpen(false)}
+        branchId={branchDetailsData?.id || selectedBranch?.id || backendBranchId || 1}
+        companyId={branchDetailsData?.companyId || selectedBranch?.companyId || 1}
+        branchName={branchDetailsData?.businessName || branchDetailsData?.name || selectedBranch?.name || "Selected Branch"}
+        initialPhotos={branchImagesList}
+        onSuccess={async () => {
+          const targetBId = branchDetailsData?.id || selectedBranch?.id || backendBranchId;
+          if (typeof fetchBranchDetailsAndReviews === "function" && targetBId) {
+            await fetchBranchDetailsAndReviews(targetBId);
+          }
+        }}
+      />
+      <MediaViewerModal
+        open={mediaViewerOpen}
+        onClose={() => setMediaViewerOpen(false)}
+        images={allBranchImages.length > 0 ? allBranchImages : branchImagesList}
+        rawImages={rawBranchImagesList.length > 0 ? rawBranchImagesList : branchImagesList}
+        initialIndex={mediaViewerIndex}
+        branchId={branchDetailsData?.id || selectedBranch?.id || backendBranchId || 1}
+        onSuccess={async () => {
+          const targetBId = branchDetailsData?.id || selectedBranch?.id || backendBranchId;
+          if (typeof fetchBranchDetailsAndReviews === "function" && targetBId) {
+            await fetchBranchDetailsAndReviews(targetBId);
+          }
+        }}
+        onOpenUpload={() => setIsEditPhotosModalOpen(true)}
       />
     </>
   );

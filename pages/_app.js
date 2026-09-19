@@ -51,6 +51,12 @@ const PROTECTED_PREFIXES = [
   "/claim-business",
   "/my-subscription",
   "/subscriptions",
+  "/change-pin",
+  "/credit-points",
+  "/privacy-policy",
+  "/terms-of-use",
+  "/terms-and-conditions",
+  "/support",
 ];
 
 function AuthGuard({ children }) {
@@ -65,13 +71,30 @@ function AuthGuard({ children }) {
     if (jwtToken) {
       const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
       const hasNoBusiness = (!userInfo?.vendorCompanies || userInfo.vendorCompanies.length === 0) && !savedBackendBranchId;
-      const hasActiveSubscription = Boolean(
-        userInfo?.isSubscribed ||
-        userInfo?.subscriptionActive ||
-        userInfo?.subscriptionPlan ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
-        (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
-      );
+      let rawSubs = [];
+      if (Array.isArray(userInfo?.subscriptions)) rawSubs.push(...userInfo.subscriptions);
+      else if (userInfo?.subscription) rawSubs.push(userInfo.subscription);
+      (userInfo?.vendorCompanies || []).forEach(co => {
+        if (Array.isArray(co.subscriptions)) rawSubs.push(...co.subscriptions);
+        else if (co.subscription) rawSubs.push(co.subscription);
+      });
+      if (rawSubs.length === 0 && typeof window !== "undefined") {
+        try {
+          const stored = JSON.parse(localStorage.getItem("zaanvar_subscription") || "null");
+          if (Array.isArray(stored)) rawSubs.push(...stored);
+          else if (stored) rawSubs.push(stored);
+        } catch { }
+      }
+
+      const hasActiveSubscription =
+        rawSubs.some(s => s?.status === "active" || s?.type === "paid" || s?.status === "ACTIVE") ||
+        Boolean(
+          userInfo?.isSubscribed ||
+          userInfo?.subscriptionActive ||
+          userInfo?.subscriptionPlan ||
+          (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.isSubscribed) ||
+          (userInfo?.vendorCompanies && userInfo.vendorCompanies[0]?.subscriptionPlan)
+        );
 
       const isDashboardOrService = [
         "/home",
@@ -93,8 +116,6 @@ function AuthGuard({ children }) {
       }
 
       // Premium paths (inventory, sales, etc.) require active subscription, but /home is accessible for vendors with a business
-
-      // Check if trying to access premium dashboard/management services without subscription
       const isPremiumPath = [
         "/dashboard",
         "/timing-slots",
@@ -108,7 +129,6 @@ function AuthGuard({ children }) {
         "/purchase-bill",
         "/sale",
         "/customers",
-        "/staff-management",
         "/suppliers",
         "/settings",
         "/vendor-settings"
@@ -121,6 +141,10 @@ function AuthGuard({ children }) {
 
       // Logged-in user tries to access a public-only route → send to appropriate page
       if (AUTH_REDIRECT_ROUTES.includes(path)) {
+        if (path === "/contact-us") {
+          router.replace("/support");
+          return;
+        }
         if (hasNoBusiness) {
           router.replace("/onboarding");
         } else {

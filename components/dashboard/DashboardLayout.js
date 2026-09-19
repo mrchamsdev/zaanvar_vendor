@@ -324,7 +324,7 @@ function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
       { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
       { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
       { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
-      { label: "Support", path: "/contact-us", icon: <IconHeadphones /> },
+      { label: "Support", path: "/support", icon: <IconHeadphones /> },
     ];
   }
 
@@ -343,7 +343,7 @@ function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
       { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
       { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
       { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
-      { label: "Support", path: "/contact-us", icon: <IconHeadphones /> },
+      { label: "Support", path: "/support", icon: <IconHeadphones /> },
     ];
   }
 
@@ -512,7 +512,7 @@ function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
     { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
     { label: "Terms of Use", path: "/terms-of-use", icon: <IconReviews /> },
     { label: "Terms & Conditions", path: "/terms-and-conditions", icon: <IconShield /> },
-    { label: "Support", path: "/contact-us", icon: <IconHeadphones /> }
+    { label: "Support", path: "/support", icon: <IconHeadphones /> }
   );
 
   return menu;

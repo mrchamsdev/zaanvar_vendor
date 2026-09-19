@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
 import { IMAGE_URL } from "../components/utilities/Constants";
 import { parseApiToLocal } from "../utilities/date-time-utils";
-import EditBusinessModal from "../components/EditBusinessModal";
+import EditBusinessModal from "../components/editBusinessModal";
+import EditPhotosModal from "../components/editPhotosModal";
+import MediaViewerModal from "../components/mediaViewerModal";
+import useStore from "../components/state/useStore";
+import { WebApimanager } from "../components/utilities/WebApiManager";
 
 /* ── icons ── */
 const HeartIcon = ({ filled }) => (
@@ -116,11 +120,32 @@ const formatService = (s) => {
  * ═══════════════════════════════════════════════════════════ */
 export default function ProfilePage() {
   const { vendor, company, branches, selectedBranchId, setSelectedBranchId } = useDashboardData();
+  const { jwtToken, userInfo } = useStore();
 
   const [slideIdx, setSlideIdx] = useState(0);
   const [heartFilled, setHeartFilled] = useState(false);
   const [branchOpen, setBranchOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditPhotosModalOpen, setIsEditPhotosModalOpen] = useState(false);
+  const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
+  const [vendorUserData, setVendorUserData] = useState(null);
+
+  useEffect(() => {
+    const fetchVendorUserData = async () => {
+      const uId = userInfo?.userId || userInfo?.id || userInfo?.vendor_user_id || (typeof window !== "undefined" ? localStorage.getItem("vendor_user_id") || localStorage.getItem("userId") : null);
+      if (!uId) return;
+      try {
+        const token = jwtToken || (typeof window !== "undefined" ? localStorage.getItem("jwtToken") || "" : "");
+        const webApi = new WebApimanager(token);
+        const res = await webApi.get(`vendor-users/${uId}`);
+        const data = res?.data?.data || res?.data || res?.user || res || null;
+        if (data) setVendorUserData(data);
+      } catch (err) {
+        console.warn("Could not fetch vendor user profile data:", err);
+      }
+    };
+    fetchVendorUserData();
+  }, [jwtToken, userInfo]);
 
   const branch = useMemo(() => {
     return branches.find(b => b.id === selectedBranchId) || branches[0] || null;
@@ -293,11 +318,10 @@ export default function ProfilePage() {
             <img
               src={images[slideIdx] || PLACEHOLDERS[0]}
               alt="Company"
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }}
+
             />
-            {/* <button className={styles.sliderHeart} onClick={() => setHeartFilled(f => !f)}>
-              <HeartIcon filled={heartFilled} />
-            </button> */}
+
             {images.length > 1 && (
               <div className={styles.sliderDots}>
                 {images.map((_, i) => (
@@ -494,8 +518,35 @@ export default function ProfilePage() {
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         branchData={branch}
-        vendorData={vendor}
+        vendorData={vendorUserData || vendor}
         branchId={branch?.id || selectedBranchId || 12}
+      />
+      <EditPhotosModal
+        open={isEditPhotosModalOpen}
+        onClose={() => setIsEditPhotosModalOpen(false)}
+        branchId={branch?.id || selectedBranchId}
+        companyId={branch?.companyId || company?.id}
+        branchName={branch?.name || company?.name || ""}
+        initialPhotos={rawImages}
+        onSuccess={async () => {
+          if (typeof window !== "undefined") {
+            window.location.reload();
+          }
+        }}
+      />
+      <MediaViewerModal
+        open={mediaViewerOpen}
+        onClose={() => setMediaViewerOpen(false)}
+        images={images}
+        rawImages={rawImages}
+        initialIndex={slideIdx}
+        branchId={branch?.id || selectedBranchId}
+        onSuccess={async () => {
+          if (typeof window !== "undefined") {
+            window.location.reload();
+          }
+        }}
+        onOpenUpload={() => setIsEditPhotosModalOpen(true)}
       />
     </DashboardLayout>
   );
