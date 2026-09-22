@@ -5,6 +5,8 @@ import useStore from "./state/useStore";
 import { toast } from "sonner";
 import { Country, State, City } from "country-state-city";
 import MultiSelectDropdown from "./MultiSelectDropdown";
+import SearchableCountryCode from "./utilities/searchablecountrycode";
+import { getPhoneLength } from "./utilities/countryUtils";
 
 import ClinicFields from "./BranchFeatures/ClinicFields";
 import DaycareFields from "./BranchFeatures/DaycareFields";
@@ -16,39 +18,36 @@ import TrainingFields from "./BranchFeatures/TrainingFields";
 import SitterFields from "./BranchFeatures/SitterFields";
 
 // ─── Helpers & Mappings ──────────────────────────────────────────────────────
-const COUNTRY_DIAL_CODES = Country.getAllCountries()
+const ALL_COUNTRIES_DIAL = Country.getAllCountries()
   .filter((c) => c.phonecode)
-  .map((c) => {
-    const dialCode = c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`;
-    return {
-      isoCode: c.isoCode,
-      name: c.name,
-      dialCode: dialCode,
-    };
-  })
+  .map((c) => ({
+    code: c.isoCode,
+    dialCode: c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`,
+    name: c.name,
+  }))
   .sort((a, b) => {
-    if (a.isoCode === "IN") return -1;
-    if (b.isoCode === "IN") return 1;
+    if (a.code === "IN") return -1;
+    if (b.code === "IN") return 1;
     return a.name.localeCompare(b.name);
   });
 
 const parsePhoneAndCode = (phoneStr) => {
-  if (!phoneStr) return { code: "+91", number: "" };
+  if (!phoneStr) return { code: "+91", countryCode: "IN", number: "" };
   const str = String(phoneStr).trim();
   if (str.startsWith("+")) {
-    const found = COUNTRY_DIAL_CODES.find((c) => str.startsWith(c.dialCode));
+    const found = ALL_COUNTRIES_DIAL.find((c) => str.startsWith(c.dialCode));
     if (found) {
-      return { code: found.dialCode, number: str.slice(found.dialCode.length).replace(/\D/g, "") };
+      return { code: found.dialCode, countryCode: found.code, number: str.slice(found.dialCode.length).replace(/\D/g, "") };
     }
   }
-  return { code: "+91", number: str.replace(/\D/g, "") };
+  return { code: "+91", countryCode: "IN", number: str.replace(/\D/g, "") };
 };
 
 const getRawPhoneDigits = (val) => {
   if (!val) return "";
   let str = String(val).trim();
   if (str.startsWith("+")) {
-    const found = COUNTRY_DIAL_CODES.find((c) => str.startsWith(c.dialCode));
+    const found = ALL_COUNTRIES_DIAL.find((c) => str.startsWith(c.dialCode));
     if (found) {
       return str.slice(found.dialCode.length).replace(/\D/g, "");
     }
@@ -692,6 +691,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
     companyEmail: "",
     companyPhone: "",
     companyPhoneCode: "+91",
+    companyCountryCode: "IN",
     roleOfPerson: "Owner",
     gender: "",
     services: [],
@@ -811,6 +811,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
         companyEmail: bSource.email || prev.companyEmail,
         companyPhone: parsedCompPhone.number || prev.companyPhone,
         companyPhoneCode: parsedCompPhone.code || prev.companyPhoneCode || "+91",
+        companyCountryCode: parsedCompPhone.countryCode || prev.companyCountryCode || "IN",
         aboutCompany: bSource.about || prev.aboutCompany,
         services: bSource.petTypes || bSource.servicesList || prev.services,
         timings: bSource.timings || prev.timings,
@@ -885,10 +886,12 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
         newErrors.email = "Please enter a valid email address.";
       }
       const rawMobile = getRawPhoneDigits(userForm.mobileNumber);
+      const userIso = parsePhoneAndCode(userForm.mobileNumber).countryCode || "IN";
+      const expectedMobileLen = getPhoneLength(userIso);
       if (!rawMobile) {
         newErrors.mobileNumber = "Please enter your mobile number.";
-      } else if (!phoneRegex.test(rawMobile)) {
-        newErrors.mobileNumber = "Please enter a valid 10-digit mobile number.";
+      } else if (expectedMobileLen !== 15 ? rawMobile.length !== expectedMobileLen : (rawMobile.length < 7 || rawMobile.length > 15)) {
+        newErrors.mobileNumber = expectedMobileLen !== 15 ? `Please enter a valid ${expectedMobileLen}-digit mobile number.` : "Please enter a valid mobile number.";
       }
 
       setFormErrors(newErrors);
@@ -914,10 +917,12 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
         newErrors.companyEmail = "Please enter a valid company email address.";
       }
       const rawCompPhone = getRawPhoneDigits(companyForm.companyPhone);
+      const compIso = companyForm.companyCountryCode || parsePhoneAndCode(companyForm.companyPhone).countryCode || "IN";
+      const expectedCompLen = getPhoneLength(compIso);
       if (!rawCompPhone) {
         newErrors.companyPhone = "Please enter company phone number.";
-      } else if (!phoneRegex.test(rawCompPhone)) {
-        newErrors.companyPhone = "Please enter a valid 10-digit company phone number.";
+      } else if (expectedCompLen !== 15 ? rawCompPhone.length !== expectedCompLen : (rawCompPhone.length < 7 || rawCompPhone.length > 15)) {
+        newErrors.companyPhone = expectedCompLen !== 15 ? `Please enter a valid ${expectedCompLen}-digit company phone number.` : "Please enter a valid company phone number.";
       }
       if (!companyForm.openingDate) {
         newErrors.companyOpeningDate = "Please select company opening date.";
@@ -1373,33 +1378,22 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Company Phone <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <div style={{ display: "flex", alignItems: "center", border: formErrors.companyPhone ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
-                    <select
-                      value={companyForm.companyPhoneCode || "+91"}
-                      onChange={e => handleCompanyChange("companyPhoneCode", e.target.value)}
-                      style={{
-                        padding: "10px 8px",
-                        background: "#f3f4f6",
-                        border: "none",
-                        borderRight: "1px solid #d1d5db",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "#374151",
-                        flexShrink: 0,
-                        outline: "none",
-                        cursor: "pointer",
-                        maxWidth: "140px"
-                      }}
-                    >
-                      {COUNTRY_DIAL_CODES.map((c) => (
-                        <option key={`${c.isoCode}-${c.dialCode}`} value={c.dialCode}>
-                          {c.dialCode} ({c.name})
-                        </option>
-                      ))}
-                    </select>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{ border: formErrors.companyPhone ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, background: "#fff", padding: "2px 6px", height: "40px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <SearchableCountryCode
+                        countries={ALL_COUNTRIES_DIAL}
+                        selectedCode={companyForm.companyCountryCode || "IN"}
+                        onSelect={(code) => {
+                          const cObj = ALL_COUNTRIES_DIAL.find((c) => c.code === code);
+                          const dial = cObj?.dialCode || "+91";
+                          handleCompanyChange("companyCountryCode", code);
+                          handleCompanyChange("companyPhoneCode", dial);
+                        }}
+                      />
+                    </div>
                     <input
                       type="tel"
-                      style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }}
+                      style={{ ...inputStyle, flex: 1, border: formErrors.companyPhone ? "1px solid #ef4444" : inputStyle.border }}
                       placeholder="Company Phone"
                       maxLength={15}
                       value={getRawPhoneDigits(companyForm.companyPhone)}
