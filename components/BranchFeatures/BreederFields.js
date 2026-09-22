@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/BreederFields.module.css";
 
-const BreederFields = ({ branch, branchIndex, setBranches, petList}) => {
+const BreederFields = ({ branch, branchIndex, setBranches, petList, errors = {} }) => {
 
      const API_URL =
     typeof window !== "undefined" &&
@@ -60,20 +60,12 @@ const BreederFields = ({ branch, branchIndex, setBranches, petList}) => {
     fetchAllBreeds(selectedTypes);
   }, [branch.services["Pet Breeder"]?.petTypes]);
 
+  const errPetTypes = errors.breeder_petTypes || errors[`breeder_petTypes_${branchIndex}`];
+  const errPetBreeds = errors.breeder_petBreeds || errors[`breeder_petBreeds_${branchIndex}`];
+
   return (
     <div className={styles.breederContainer}>
       <h5 className={styles.featureTitle}>Pet Breeder Details</h5>
-
-      {/* <div className={styles.formField}>
-        <label className={styles.label}>Breeder Name</label>
-        <input
-          type="text"
-          className={styles.textInput}
-          placeholder="Enter registered breeder name"
-          value={branch.services["Pet Breeder"]?.breederName || ""}
-          onChange={(e) => handleServiceChange("breederName", e.target.value)}
-        />
-      </div> */}
 
       <div className={styles.topGrid}>
         {/* Pet Type Selection */}
@@ -84,7 +76,13 @@ const BreederFields = ({ branch, branchIndex, setBranches, petList}) => {
             setSelectedIds={(ids) => handleServiceChange("petTypes", ids)}
             heading="Pet Types"
             mandatory={true}
+            hasError={Boolean(errPetTypes)}
           />
+          {errPetTypes && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errPetTypes}
+            </span>
+          )}
         </div>
 
         {/* Dynamic Breed Selection */}
@@ -96,7 +94,13 @@ const BreederFields = ({ branch, branchIndex, setBranches, petList}) => {
             heading="Pet Breeds"
             mandatory={true}
             disabled={breedOptions.length === 0}
+            hasError={Boolean(errPetBreeds)}
           />
+          {errPetBreeds && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errPetBreeds}
+            </span>
+          )}
           {branch.services["Pet Breeder"]?.petTypes?.length > 0 && breedOptions.length === 0 && (
             <small style={{ color: "#ff6b35" }}>Loading breeds...</small>
           )}

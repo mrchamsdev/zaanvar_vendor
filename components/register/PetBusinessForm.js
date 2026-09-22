@@ -18,11 +18,30 @@ const getCities = (countryCode, stateCode) =>
     ? City.getCitiesOfState(countryCode, stateCode).map((c) => ({ id: c.name, name: c.name }))
     : [];
 
+const COUNTRY_DIAL_CODES = Country.getAllCountries()
+  .filter((c) => c.phonecode)
+  .map((c) => {
+    const dialCode = c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`;
+    return {
+      isoCode: c.isoCode,
+      name: c.name,
+      dialCode: dialCode,
+    };
+  })
+  .sort((a, b) => {
+    if (a.isoCode === "IN") return -1;
+    if (b.isoCode === "IN") return 1;
+    return a.name.localeCompare(b.name);
+  });
+
 const getRawPhoneDigits = (val) => {
   if (!val) return "";
   let str = String(val).trim();
-  if (str.startsWith("+91")) {
-    return str.slice(3).replace(/\D/g, "");
+  if (str.startsWith("+")) {
+    const found = COUNTRY_DIAL_CODES.find((c) => str.startsWith(c.dialCode));
+    if (found) {
+      return str.slice(found.dialCode.length).replace(/\D/g, "");
+    }
   }
   return str.replace(/\D/g, "");
 };
@@ -182,6 +201,7 @@ const PetBusinessForm = () => {
     companyName: "",
     companyEmail: "",
     companyPhone: "",
+    companyPhoneCode: "+91",
     companyWebsite: "",
     companyStartedDate: "",
     aboutCompany: "",
@@ -921,17 +941,49 @@ const PetBusinessForm = () => {
                 <div className={styles.row}>
                   <Field label="Company Phone" required error={errors.companyPhone}>
                     <div style={{ display: "flex", alignItems: "center", border: "1px solid #ccc", borderRadius: 6, overflow: "hidden", background: "#fff", width: "100%" }}>
-                      <span style={{ padding: "0.6rem 0.8rem", background: "#f3f4f6", borderRight: "1px solid #ccc", fontSize: "14px", fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
+                      <select
+                        name="companyPhoneCode"
+                        value={formData.companyPhoneCode || "+91"}
+                        onChange={e => {
+                          const code = e.target.value;
+                          const digits = getRawPhoneDigits(formData.companyPhone);
+                          setFormData(prev => ({
+                            ...prev,
+                            companyPhoneCode: code,
+                            companyPhone: digits ? `${code}${digits}` : "",
+                          }));
+                        }}
+                        style={{
+                          padding: "0.6rem 0.5rem",
+                          background: "#f3f4f6",
+                          border: "none",
+                          borderRight: "1px solid #ccc",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: "#374151",
+                          flexShrink: 0,
+                          outline: "none",
+                          cursor: "pointer",
+                          maxWidth: "140px"
+                        }}
+                      >
+                        {COUNTRY_DIAL_CODES.map((c) => (
+                          <option key={`${c.isoCode}-${c.dialCode}`} value={c.dialCode}>
+                            {c.dialCode} ({c.name})
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="tel"
                         name="companyPhone"
                         placeholder="Enter Company Phone number"
                         value={getRawPhoneDigits(formData.companyPhone)}
                         onChange={(e) => {
-                          const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
-                          setFormData(prev => ({ ...prev, companyPhone: digits ? `+91${digits}` : "" }));
+                          const code = formData.companyPhoneCode || "+91";
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 15);
+                          setFormData(prev => ({ ...prev, companyPhone: digits ? `${code}${digits}` : "" }));
                         }}
-                        maxLength={10}
+                        maxLength={15}
                         style={{ border: "none", borderRadius: 0, flex: 1, padding: "0.6rem 0.8rem", fontSize: "14px", outline: "none", width: "100%" }}
                       />
                     </div>

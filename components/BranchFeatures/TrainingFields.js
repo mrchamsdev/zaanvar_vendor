@@ -2,7 +2,7 @@ import React from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/TrainingFields.module.css";
 
-const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
+const TrainingFields = ({ branch, branchIndex, setBranches, petList, errors = {} }) => {
   const trainingTypeOptions = [
     { id: "Doorstep Training", name: "Doorstep Training" },
     { id: "Center-based Training", name: "Center-based Training" },
@@ -45,11 +45,13 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
     ...enteredServices
       .filter((item) => item.serviceName?.trim())
       .map((item) => ({ id: item.serviceName, name: item.serviceName })),
-    // { id: "General Training", name: "General Training" },
   ];
 
   const ageUnitOptions = ["Days", "Months", "Years"];
   const durationUnitOptions = ["Minutes", "Hours"];
+
+  const errTrainingType = errors.training_type || errors[`training_type_${branchIndex}`];
+  const errTrainingPetTypes = errors.training_petTypes || errors[`training_petTypes_${branchIndex}`];
 
   return (
     <div className={styles.trainingContainer}>
@@ -63,7 +65,13 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
             setSelectedIds={(ids) => handleServiceChange("trainingTypes", ids)}
             heading="Training Type"
             mandatory={true}
+            hasError={Boolean(errTrainingType)}
           />
+          {errTrainingType && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errTrainingType}
+            </span>
+          )}
         </div>
         <div className={styles.formField}>
           <MultiSelectDropdown
@@ -72,7 +80,13 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
             setSelectedIds={(ids) => handleServiceChange("petTypes", ids)}
             heading="Pet Type"
             mandatory={true}
+            hasError={Boolean(errTrainingPetTypes)}
           />
+          {errTrainingPetTypes && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errTrainingPetTypes}
+            </span>
+          )}
         </div>
       </div>
 
@@ -195,34 +209,39 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
 
       {(trainingData.items || [
         { serviceName: "", noOfDays: "", noOfSessions: "", duration: "", durationUnit: "Hours" },
-      ]).map((item, idx) => (
-        <div key={idx} className={styles.trainingSideBySideRow}>
-          <input
-            className={styles.flexService}
-            placeholder="Service Name"
-            value={item.serviceName}
-            onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
-          />
-          <input
-            className={styles.flexSmall}
-            type="number"
-            placeholder="Days"
-            value={item.noOfDays}
-            onChange={(e) => updateList("items", idx, "noOfDays", e.target.value)}
-          />
-          <input
-            className={styles.flexSmall}
-            type="number"
-            placeholder="Sessions"
-            value={item.noOfSessions}
-            onChange={(e) => updateList("items", idx, "noOfSessions", e.target.value)}
-          />
-          <div className={styles.numberWithUnit} style={{ flex: "1 0 160px" }}>
-            <input
-              type="number"
-              min="1"
-              placeholder="Duration"
-              className={styles.numberInput}
+      ]).map((item, idx) => {
+        const errItemName = errors[`training_item_${idx}_name`] || errors[`training_item_${branchIndex}_${idx}_name`];
+
+        return (
+          <div key={idx} style={{ marginBottom: 8 }}>
+            <div className={styles.trainingSideBySideRow}>
+              <input
+                className={styles.flexService}
+                style={{ border: errItemName ? "1px solid #ef4444" : undefined }}
+                placeholder="Service Name"
+                value={item.serviceName}
+                onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
+              />
+              <input
+                className={styles.flexSmall}
+                type="number"
+                placeholder="Days"
+                value={item.noOfDays}
+                onChange={(e) => updateList("items", idx, "noOfDays", e.target.value)}
+              />
+              <input
+                className={styles.flexSmall}
+                type="number"
+                placeholder="Sessions"
+                value={item.noOfSessions}
+                onChange={(e) => updateList("items", idx, "noOfSessions", e.target.value)}
+              />
+              <div className={styles.numberWithUnit} style={{ flex: "1 0 160px" }}>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Duration"
+                  className={styles.numberInput}
               value={item.duration || ""}
               onChange={(e) => updateList("items", idx, "duration", e.target.value)}
             />
@@ -240,7 +259,14 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList }) => {
             </button>
           )}
         </div>
-      ))}
+        {errItemName && (
+          <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+            {errItemName}
+          </span>
+        )}
+      </div>
+    );
+  })}
 
       {/* ===== PACKAGES ===== */}
       <div className={styles.sectionHeader} style={{ marginTop: "20px" }}>

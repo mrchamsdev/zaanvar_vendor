@@ -2,7 +2,7 @@ import React from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/Sitter.module.css";
 
-const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
+const SitterFields = ({ branch, branchIndex, setBranches, petList, errors = {} }) => {
   const petSizeOptions = [
     { id: "Small", name: "Small (0-10kg)" },
     { id: "Medium", name: "Medium (11-20kg)" },
@@ -38,9 +38,12 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
     handleServiceChange(field, currentList.filter((_, i) => i !== index));
   };
 
+  const errPetSizes = errors.sitter_petSizes || errors[`sitter_petSizes_${branchIndex}`];
+  const errPetTypes = errors.sitter_petTypes || errors[`sitter_petTypes_${branchIndex}`];
+  const errLastMinute = errors.sitter_lastMinute || errors[`sitter_lastMinute_${branchIndex}`];
+
   return (
     <div className={styles.sitterContainer}>
-      {/* ✅ Title changed from "Pet Sitting Details" to "Pet Sitter / Walker Details" */}
       <h5 className={styles.featureTitle}>Pet Sitter / Walker Details</h5>
 
       <div className={styles.topGrid}>
@@ -51,7 +54,13 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
             setSelectedIds={(ids) => handleServiceChange("petSizes", ids)}
             heading="Accepted Pet Sizes"
             mandatory={true}
+            hasError={Boolean(errPetSizes)}
           />
+          {errPetSizes && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errPetSizes}
+            </span>
+          )}
         </div>
 
         <div className={styles.formField}>
@@ -61,7 +70,13 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
             setSelectedIds={(ids) => handleServiceChange("petTypes", ids)}
             heading="Pet Types"
             mandatory={true}
+            hasError={Boolean(errPetTypes)}
           />
+          {errPetTypes && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errPetTypes}
+            </span>
+          )}
         </div>
       </div>
 
@@ -93,7 +108,7 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
         </div>
       </div>
 
-      {/* Sitting Services — single header with + button, no duplicate */}
+      {/* Sitting Services */}
       <div className={styles.sectionHeader}>
         <label className={styles.label}>Sitting Services &amp; Duration</label>
         <button
@@ -106,31 +121,42 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
       </div>
 
       {(branch.services["Pet Sitter/Walker"]?.items || [{ serviceName: "", timePeriod: "" }]).map(
-        (item, idx) => (
-          <div key={idx} className={styles.sideBySideRow}>
-            <input
-              className={styles.flexInputTwo}
-              placeholder="e.g. Dog Walking / Day Sitting"
-              value={item.serviceName}
-              onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
-            />
-            <input
-              className={styles.flexInputOne}
-              placeholder="Duration/Period"
-              value={item.timePeriod}
-              onChange={(e) => updateList("items", idx, "timePeriod", e.target.value)}
-            />
-            {idx > 0 && (
-              <button
-                type="button"
-                className={styles.removeBtn}
-                onClick={() => removeListItem("items", idx)}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        )
+        (item, idx) => {
+          const errPeriod = errors[`sitter_item_${idx}_period`] || errors[`sitter_item_${branchIndex}_${idx}_period`];
+          return (
+            <div key={idx} style={{ marginBottom: 8 }}>
+              <div className={styles.sideBySideRow}>
+                <input
+                  className={styles.flexInputTwo}
+                  placeholder="e.g. Dog Walking / Day Sitting"
+                  value={item.serviceName}
+                  onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
+                />
+                <input
+                  className={styles.flexInputOne}
+                  style={{ border: errPeriod ? "1px solid #ef4444" : undefined }}
+                  placeholder="Duration/Period"
+                  value={item.timePeriod}
+                  onChange={(e) => updateList("items", idx, "timePeriod", e.target.value)}
+                />
+                {idx > 0 && (
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => removeListItem("items", idx)}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {errPeriod && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 2, display: "block" }}>
+                  {errPeriod}
+                </span>
+              )}
+            </div>
+          );
+        }
       )}
 
       <div className={styles.bottomRow}>
@@ -186,6 +212,11 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList }) => {
               No
             </label>
           </div>
+          {errLastMinute && (
+            <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+              {errLastMinute}
+            </span>
+          )}
         </div>
       </div>
     </div>

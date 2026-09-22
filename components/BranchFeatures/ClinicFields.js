@@ -33,6 +33,7 @@ const ClinicFields = ({
   petList,
   availablePetTypes,
   serviceOptionsByFeatureType = {},
+  errors = {},
 }) => {
   const currencySymbol = useCurrencySymbol();
 
@@ -83,6 +84,9 @@ const ClinicFields = ({
     });
   };
 
+  const errClinicType = errors.clinic_type || errors[`clinic_type_${branchIndex}`];
+  const errClinicItems = errors.clinic_items || errors[`clinic_items_${branchIndex}`];
+
   /* ================= UI ================= */
   return (
     <div className={styles.container}>
@@ -94,6 +98,12 @@ const ClinicFields = ({
         </button>
       </div>
 
+      {errClinicItems && (
+        <span style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, display: "block" }}>
+          {errClinicItems}
+        </span>
+      )}
+
       {/* CLINIC TYPE - ONCE AT TOP LEVEL */}
       <div className={styles.serviceBox}>
         <MultiSelectDropdown
@@ -104,89 +114,120 @@ const ClinicFields = ({
           }}
           heading="Clinic Type"
           mandatory
+          hasError={Boolean(errClinicType)}
         />
+        {errClinicType && (
+          <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+            {errClinicType}
+          </span>
+        )}
       </div>
 
       {/* MULTIPLE CLINIC BLOCKS */}
-      {clinic.items.map((item, index) => (
-        <div key={index} className={styles.serviceBox}>
-          {/* Floating close button in top-right corner */}
-          {clinic.items.length > 1 && (
-            <button
-              className={styles.closeBtn}
-              type="button" 
-              onClick={() => removeItem(index)}
-              title="Remove this configuration"
-            >
-              ×
-            </button>
-          )}
+      {clinic.items.map((item, index) => {
+        const errService = errors[`clinic_${index}_services`] || errors[`clinic_${branchIndex}_${index}_services`];
+        const errPetTypes = errors[`clinic_${index}_petTypes`] || errors[`clinic_${branchIndex}_${index}_petTypes`];
 
-          {/* SERVICES - SINGLE SELECT */}
-          <div className={styles.fullWidth}>
-            <label className={styles.label}>Select Service *</label>
-            <select
-              className={styles.input}
-              value={item.services && item.services.length > 0 ? item.services[0] : ""}
-              onChange={(e) => {
-                const service = e.target.value;
-                const items = [...clinic.items];
-                items[index] = {
-                  ...items[index],
-                  services: service ? [service] : [],
-                  // Keep existing serviceFees structure (clinicType -> fee)
-                  serviceFees: item.serviceFees || {},
-                };
-                updateClinic({ ...clinic, items });
-              }}
-            >
-              <option value="">-- Select a Service --</option>
-              {(serviceOptionsByFeatureType?.["Pet Clinic"] || DEFAULT_CLINIC_SERVICES).map((service) => (
-                <option key={service} value={service}>
-                  {service}
-                </option>
-              ))}
-            </select>
-          </div>
+        return (
+          <div key={index} className={styles.serviceBox}>
+            {/* Floating close button in top-right corner */}
+            {clinic.items.length > 1 && (
+              <button
+                className={styles.closeBtn}
+                type="button" 
+                onClick={() => removeItem(index)}
+                title="Remove this configuration"
+              >
+                ×
+              </button>
+            )}
 
-          {/* PET TYPES */}
-          <MultiSelectDropdown
-           listItems={availablePetTypes}
-            selectedIds={item.petTypes}
-            setSelectedIds={(ids) => updateItem(index, "petTypes", ids)}
-            heading="Supported Pets"
-            mandatory
-          />
-
-          {/* CLINIC TYPE FEES - Only show if service is selected and clinic types are selected */}
-          {item.services && item.services.length > 0 && clinic.clinicTypes && clinic.clinicTypes.length > 0 && (
+            {/* SERVICES - SINGLE SELECT */}
             <div className={styles.fullWidth}>
-              <label className={styles.label}>Consultation Fees (₹) *</label>
-              <div className={styles.feeGrid}>
-                {clinic.clinicTypes.map((clinicType) => (
-                  <div key={clinicType} className={styles.feeItem}>
-                    <span className={styles.serviceName}>{clinicType} Fee</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      className={styles.input}
-                      placeholder="Enter fee"
-                      value={item.serviceFees?.[clinicType] ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        updateItem(index, "serviceFees", {
-                          ...(item.serviceFees || {}),
-                          [clinicType]: value,
-                        });
-                      }}
-                    />
-                  </div>
+              <label className={styles.label}>Select Service *</label>
+              <select
+                className={styles.input}
+                style={{ border: errService ? "1px solid #ef4444" : undefined }}
+                value={item.services && item.services.length > 0 ? item.services[0] : ""}
+                onChange={(e) => {
+                  const service = e.target.value;
+                  const items = [...clinic.items];
+                  items[index] = {
+                    ...items[index],
+                    services: service ? [service] : [],
+                    serviceFees: item.serviceFees || {},
+                  };
+                  updateClinic({ ...clinic, items });
+                }}
+              >
+                <option value="">-- Select a Service --</option>
+                {(serviceOptionsByFeatureType?.["Pet Clinic"] || DEFAULT_CLINIC_SERVICES).map((service) => (
+                  <option key={service} value={service}>
+                    {service}
+                  </option>
                 ))}
-              </div>
+              </select>
+              {errService && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errService}
+                </span>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+
+            {/* PET TYPES */}
+            <MultiSelectDropdown
+              listItems={availablePetTypes}
+              selectedIds={item.petTypes}
+              setSelectedIds={(ids) => updateItem(index, "petTypes", ids)}
+              heading="Supported Pets"
+              mandatory
+              hasError={Boolean(errPetTypes)}
+            />
+            {errPetTypes && (
+              <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                {errPetTypes}
+              </span>
+            )}
+
+            {/* CLINIC TYPE FEES - Only show if service is selected and clinic types are selected */}
+            {item.services && item.services.length > 0 && clinic.clinicTypes && clinic.clinicTypes.length > 0 && (
+              <div className={styles.fullWidth}>
+                <label className={styles.label}>Consultation Fees (₹) *</label>
+                <div className={styles.feeGrid}>
+                  {clinic.clinicTypes.map((clinicType) => {
+                    const errFee = errors[`clinic_${index}_fee_${clinicType}`] || errors[`clinic_${branchIndex}_${index}_fee_${clinicType}`];
+                    return (
+                      <div key={clinicType} className={styles.feeItem}>
+                        <span className={styles.serviceName}>{clinicType} Fee</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className={styles.input}
+                          style={{ border: errFee ? "1px solid #ef4444" : undefined }}
+                          placeholder="Enter fee"
+                          value={item.serviceFees?.[clinicType] ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            updateItem(index, "serviceFees", {
+                              ...(item.serviceFees || {}),
+                              [clinicType]: value,
+                            });
+                          }}
+                        />
+                        {errFee && (
+                          <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                            {errFee}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
