@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import MultiSelectDropdown from "../MultiSelectDropdown";
 import styles from "../../styles/branchFeatures/petStore.module.css";
 
-const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes }) => {
+const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes, errors = {} }) => {
   const API_BASE_URL =
     typeof window !== "undefined" && window.location.hostname !== "support.zaanvar.com"
       ? "https://dev.zaanvar.com/api/"
@@ -12,7 +12,7 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
   const [items, setItems] = useState([
     { petTypes: [], categories: [], customCategory: "" },
   ]);
-  const [customCategoryErrors, setCustomCategoryErrors] = useState({}); // new: per-item error
+  const [customCategoryErrors, setCustomCategoryErrors] = useState({});
 
   /* ================= INIT FROM BRANCH ================= */
   useEffect(() => {
@@ -72,7 +72,6 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
       )
     );
 
-    // Validate custom category when relevant fields change
     if (field === "categories" || field === "customCategory") {
       const currentItem = items[index];
       const newCategories = field === "categories" ? value : currentItem.categories;
@@ -87,13 +86,11 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
       ...prev,
       { petTypes: [], categories: [], customCategory: "" },
     ]);
-    // No error for new empty item
   };
 
   const removeItem = (index) => {
     if (items.length === 1) return;
     setItems((prev) => prev.filter((_, i) => i !== index));
-    // Clean up error
     setCustomCategoryErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[index];
@@ -129,18 +126,25 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
     fetchCategories();
   }, []);
 
+  const errPetStoreItems = errors.petStore_items || errors[`petStore_items_${branchIndex}`];
+
   return (
     <div className={styles.container}>
       <div className={styles.headerRow}>
         <h4>Pet Store</h4>
-        {/* <button type="button" className={styles.addBtn} onClick={addItem}>
-          + Add
-        </button> */}
       </div>
+
+      {errPetStoreItems && (
+        <span style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, display: "block" }}>
+          {errPetStoreItems}
+        </span>
+      )}
 
       {items.map((item, index) => {
         const hasOther = item.categories.includes("Other");
-        const errorMsg = customCategoryErrors[index];
+        const errPetTypes = errors[`petStore_${index}_petTypes`] || errors[`petStore_${branchIndex}_${index}_petTypes`];
+        const errCategories = errors[`petStore_${index}_categories`] || errors[`petStore_${branchIndex}_${index}_categories`];
+        const errCustom = errors[`petStore_${index}_customCategory`] || errors[`petStore_${branchIndex}_${index}_customCat`] || customCategoryErrors[index];
 
         return (
           <div key={index} className={styles.serviceBox}>
@@ -154,25 +158,41 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
               </button>
             )}
 
-            <MultiSelectDropdown
-              listItems={availablePetTypes}
-              selectedIds={item.petTypes}
-              setSelectedIds={(ids) => updateItemField(index, "petTypes", ids)}
-              heading="Available Pets"
-              mandatory
-            />
+            <div>
+              <MultiSelectDropdown
+                listItems={availablePetTypes}
+                selectedIds={item.petTypes}
+                setSelectedIds={(ids) => updateItemField(index, "petTypes", ids)}
+                heading="Available Pets"
+                mandatory
+                hasError={Boolean(errPetTypes)}
+              />
+              {errPetTypes && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errPetTypes}
+                </span>
+              )}
+            </div>
 
-            <MultiSelectDropdown
-              listItems={categoryOptions}
-              selectedIds={item.categories}
-              setSelectedIds={(ids) => updateItemField(index, "categories", ids)}
-              heading="Product Categories"
-              mandatory
-              disabled={loadingCategories}
-            />
+            <div style={{ marginTop: 12 }}>
+              <MultiSelectDropdown
+                listItems={categoryOptions}
+                selectedIds={item.categories}
+                setSelectedIds={(ids) => updateItemField(index, "categories", ids)}
+                heading="Product Categories"
+                mandatory
+                disabled={loadingCategories}
+                hasError={Boolean(errCategories)}
+              />
+              {errCategories && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errCategories}
+                </span>
+              )}
+            </div>
 
             {hasOther && (
-              <div className={styles.formField}>
+              <div className={styles.formField} style={{ marginTop: 12 }}>
                 <label>
                   Custom Category <span className={styles.required}>*</span>
                 </label>
@@ -181,11 +201,14 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
                   onChange={(e) =>
                     updateItemField(index, "customCategory", e.target.value)
                   }
-                  className={`${styles.input} ${errorMsg ? styles.inputError : ""}`}
+                  style={{ border: errCustom ? "1px solid #ef4444" : undefined }}
+                  className={`${styles.input} ${errCustom ? styles.inputError : ""}`}
                   placeholder="Enter custom category name"
                 />
-                {errorMsg && (
-                  <small className={styles.errorText}>{errorMsg}</small>
+                {errCustom && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errCustom}
+                  </span>
                 )}
               </div>
             )}

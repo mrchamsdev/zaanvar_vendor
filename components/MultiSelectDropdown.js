@@ -70,7 +70,7 @@ const MultiSelectDropdown = ({
     <div className={styles["multi-select-container"]} style={customStyles.container || {}} ref={dropdownRef}>
       {heading && (
         <label className={styles["label"]}>
-          {heading} {mandatory}
+          {heading} {mandatory === true ? <span style={{ color: "#e74c3c" }}>*</span> : mandatory}
         </label>
       )}
 
@@ -83,18 +83,18 @@ const MultiSelectDropdown = ({
               const displayName = item ? (typeof item.name === 'object' ? String(item.name.name || item.name) : String(item.name)) : String(id);
               const keyStr = String(id);
               return (
-                <div key={keyStr} className={isSingleSelect ? "" : styles["chip"]} style={isSingleSelect ? { color: "#121212", fontSize: "14px" } : {}}>
-                  {displayName}
-                  {!isSingleSelect && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemove(id);
-                      }}
-                    >
-                      <FaTimes />
-                    </span>
-                  )}
+                <div key={keyStr} className={isSingleSelect ? "" : styles["chip"]} style={isSingleSelect ? { color: "#121212", fontSize: "13px", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 } : {}}>
+                  <span>{displayName}</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemove(id);
+                    }}
+                    style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", color: "#888" }}
+                    title="Remove selection"
+                  >
+                    <FaTimes size={11} />
+                  </span>
                 </div>
               );
             })

@@ -66,7 +66,7 @@ const GroomingSelect = ({ s, i, updateService }) => {
   );
 };
 
-const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes }) => {
+const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes, errors = {} }) => {
   const currencySymbol = useCurrencySymbol();
 
   const grooming = branch.services?.[type] || {};
@@ -124,11 +124,6 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
   const removeService = (i) => {
     if (services.length === 1) return;
     updateGrooming("services", services.filter((_, idx) => idx !== i));
-    // setPriceErrors((prev) => {
-    //   const newErrors = { ...prev };
-    //   delete newErrors[`service_${i}`];
-    //   return newErrors;
-    // });
   };
 
   const packages = grooming.packages || [];
@@ -146,11 +141,6 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
 
   const removePackage = (i) => {
     updateGrooming("packages", packages.filter((_, idx) => idx !== i));
-    // setPriceErrors((prev) => {
-    //   const newErrors = { ...prev };
-    //   delete newErrors[`package_${i}`];
-    //   return newErrors;
-    // });
   };
 
   const pickupLocations = Array.isArray(grooming.pickupLocations) ? grooming.pickupLocations : [];
@@ -160,7 +150,6 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
       value.split(",").map((v) => v.trim()).filter(Boolean)
     );
 
-  // Build service options for packages from entered services
   const serviceOptionsForPackages = services.flatMap((s, serviceIdx) => {
     const serviceName = s.serviceName?.[0] || "";
     const otherServiceName = s.otherServiceName || "";
@@ -174,10 +163,12 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
     }));
   });
 
+  const errGroomingMode = errors.grooming_mode || errors[`grooming_mode_${branchIndex}`];
+  const errGroomingSvcs = errors.grooming_services || errors[`grooming_services_${branchIndex}`];
+
   return (
     <div className={styles.wrapper}>
       {/* ===== SERVICE MODE ===== */}
-      {/* Single header for Grooming - no duplicate + button */}
       <div className={styles.termsHeader}>
         <h5 className={styles.sectionTitle}>Grooming</h5>
       </div>
@@ -188,7 +179,13 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
         selectedIds={grooming.serviceMode || []}
         setSelectedIds={(ids) => updateGrooming("serviceMode", ids)}
         mandatory
+        hasError={Boolean(errGroomingMode)}
       />
+      {errGroomingMode && (
+        <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+          {errGroomingMode}
+        </span>
+      )}
 
       <div className={styles.divider} />
 
@@ -215,57 +212,87 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
         </button>
       </div>
 
-      {services.map((s, i) => (
-        <div key={i} className={styles.card}>
-          {services.length > 1 && (
-            <button
-              className={styles.closeBtn}
-              type="button"
-              onClick={() => removeService(i)}
-            >
-              ×
-            </button>
-          )}
+      {errGroomingSvcs && (
+        <span style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, display: "block" }}>
+          {errGroomingSvcs}
+        </span>
+      )}
 
-          <div className={styles.grid}>
-            <div className={styles.formField}>
-              <GroomingSelect s={s} i={i} updateService={updateService} />
+      {services.map((s, i) => {
+        const errSvcName = errors[`grooming_svc_${i}_name`] || errors[`grooming_svc_${branchIndex}_${i}_name`];
+        const errSvcPetType = errors[`grooming_svc_${i}_petType`] || errors[`grooming_svc_${branchIndex}_${i}_petType`];
+        const errSvcPrice = errors[`grooming_svc_${i}_price`] || errors[`grooming_svc_${branchIndex}_${i}_price`];
 
-              {s.serviceName.includes("Other") && (
-                <div className={styles.formField}>
-                  <label>Other Grooming Service *</label>
-                  <input
-                    type="text"
-                    placeholder="Enter custom service name"
-                    value={s.otherServiceName}
-                    onChange={(e) => updateService(i, "otherServiceName", e.target.value)}
-                    autoFocus
-                  />
-                </div>
-              )}
-            </div>
+        return (
+          <div key={i} className={styles.card}>
+            {services.length > 1 && (
+              <button
+                className={styles.closeBtn}
+                type="button"
+                onClick={() => removeService(i)}
+              >
+                ×
+              </button>
+            )}
 
-            <MultiSelectDropdown
-              heading="Pet Type"
-              listItems={availablePetTypes}
-              selectedIds={s.petType}
-              setSelectedIds={(ids) => updateService(i, "petType", ids)}
-              mandatory
-            />
+            <div className={styles.grid}>
+              <div className={styles.formField}>
+                <GroomingSelect s={s} i={i} updateService={updateService} />
+                {errSvcName && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errSvcName}
+                  </span>
+                )}
 
-            <div className={styles.formField}>
-              <label>Price (₹) </label>
-              <input
-                type="number"
-                placeholder="Enter price"
-                value={s.price || ""}
-                onChange={(e) => updateService(i, "price", e.target.value)}
-                min="0"
-              />
+                {s.serviceName.includes("Other") && (
+                  <div className={styles.formField}>
+                    <label>Other Grooming Service *</label>
+                    <input
+                      type="text"
+                      placeholder="Enter custom service name"
+                      value={s.otherServiceName}
+                      onChange={(e) => updateService(i, "otherServiceName", e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <MultiSelectDropdown
+                  heading="Pet Type"
+                  listItems={availablePetTypes}
+                  selectedIds={s.petType}
+                  setSelectedIds={(ids) => updateService(i, "petType", ids)}
+                  mandatory
+                  hasError={Boolean(errSvcPetType)}
+                />
+                {errSvcPetType && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errSvcPetType}
+                  </span>
+                )}
+              </div>
+
+              <div className={styles.formField}>
+                <label>Price (₹) <span style={{ color: "#e74c3c" }}>*</span></label>
+                <input
+                  type="number"
+                  placeholder="Enter price"
+                  style={{ border: errSvcPrice ? "1px solid #ef4444" : undefined }}
+                  value={s.price}
+                  onChange={(e) => updateService(i, "price", e.target.value)}
+                />
+                {errSvcPrice && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errSvcPrice}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* ===== PACKAGES ===== */}
       <div className={styles.termsHeader}>

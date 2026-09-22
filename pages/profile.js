@@ -4,7 +4,7 @@ import useDashboardData from "../components/dashboard/useDashboardData";
 import styles from "../styles/dashboard/dashboard.module.css";
 import { IMAGE_URL } from "../components/utilities/Constants";
 import { parseApiToLocal } from "../utilities/date-time-utils";
-import EditBusinessModal from "../components/editBusinessModal";
+import EditBusinessModal from "../components/EditBusinessModal";
 import EditPhotosModal from "../components/editPhotosModal";
 import MediaViewerModal from "../components/mediaViewerModal";
 import useStore from "../components/state/useStore";

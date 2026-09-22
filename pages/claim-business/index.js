@@ -10,7 +10,7 @@ import useStore from "../../components/state/useStore";
 import { WebApimanager } from "../../components/utilities/WebApiManager";
 import swal from "sweetalert";
 import RegisterBusinessModal from "../../components/RegisterBusinessModal";
-import EditBusinessModal from "../../components/editBusinessModal";
+import EditBusinessModal from "../../components/EditBusinessModal";
 import EditTimingsModal from "../../components/editTimingsModal";
 import EditPhotosModal from "../../components/editPhotosModal";
 import MediaViewerModal from "../../components/mediaViewerModal";

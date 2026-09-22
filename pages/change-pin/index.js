@@ -356,12 +356,21 @@ export default function ChangePinPage() {
      POST /api/vendor/registration/reset-pin
      Payload: { "identifier": "9876543210", "otp": "123456", "newPin": "1234" }
   */
-  const handleSaveResetPin = async () => {
-    const newStr = resetNewPin.join("").trim();
+  const handleSaveResetPin = async (customOtp = null, customNewPin = null) => {
+    const otpCode = customOtp !== null ? customOtp : (verifiedOtp || otp.join(""));
+    const newStr = customNewPin !== null ? customNewPin : resetNewPin.join("").trim();
     const reenterStr = resetReenterPin.join("").trim();
 
-    if (!newStr) {
-      toast.error("Please enter your new PIN.");
+    if (otpCode.length < 6) {
+      toast.error("Please enter the complete 6-digit OTP code.");
+      return;
+    }
+    if (newStr.length < 6) {
+      toast.error("Please enter a complete 6-digit new PIN.");
+      return;
+    }
+    if (reenterStr.length < 6) {
+      toast.error("Please re-enter your complete 6-digit new PIN.");
       return;
     }
     if (newStr !== reenterStr) {
@@ -376,26 +385,15 @@ export default function ChangePinPage() {
 
       const payload = {
         identifier: phone.trim(),
-        otp: verifiedOtp,
+        otp: otpCode,
         newPin: newStr
       };
 
-      let res;
-      try {
-        res = await webApi.postwithouttoken("vendor/registration/reset-pin", payload);
-      } catch {
-        try {
-          res = await webApi.post("vendor/registration/reset-pin", payload);
-        } catch {
-          res = await webApi.put("vendor-users/changePassword", {
-            previousPassword: "",
-            newPassword: newStr
-          });
-        }
-      }
+      const res = await webApi.postwithouttoken("vendor/registration/reset-pin", payload);
+      const resData = res?.data || res;
 
-      if (res && (res.status === undefined || res.status === "success" || (res.status >= 200 && res.status < 300))) {
-        toast.success(res?.message || "PIN reset successfully! Please log in or use your new PIN.");
+      if (resData?.status === "success" || (resData && typeof resData === "object" && resData.status >= 200 && resData.status < 300) || resData?.ticketId) {
+        toast.success(resData?.message || "PIN reset successfully!");
 
         const now = new Date();
         const formatted = now.toLocaleDateString("en-US", {
@@ -413,12 +411,15 @@ export default function ChangePinPage() {
         }
         setLastChangedDate(formatted);
         setMode("change");
+        setOtp(["", "", "", "", "", ""]);
+        setResetNewPin(["", "", "", "", "", ""]);
+        setResetReenterPin(["", "", "", "", "", ""]);
       } else {
-        toast.error(res?.message || "Failed to reset PIN. Please try again.");
+        toast.error(resData?.message || "Failed to reset PIN. Please check your OTP and try again.");
       }
     } catch (err) {
       console.error("Save reset PIN error:", err);
-      const errMsg = err?.response?.data?.message || err?.message || "Failed to reset PIN. Please try again.";
+      const errMsg = err?.response?.data?.message || err?.message || "Failed to reset PIN. Please check your OTP and try again.";
       toast.error(errMsg);
     } finally {
       setLoading(false);
@@ -433,7 +434,7 @@ export default function ChangePinPage() {
           <input
             key={idx}
             ref={Array.isArray(refs) ? refs[idx] : undefined}
-            type="numbers"
+            type="number"
             maxLength={1}
             value={val}
             onChange={(e) => handleBoxChange(idx, e.target.value, state, setState, refs)}
@@ -527,7 +528,7 @@ export default function ChangePinPage() {
             </>
           )}
 
-          {/* ─── MODE 3: FORGOT PIN - STEP 2 (Verify OTP) ─── */}
+          {/* ─── MODE 3: FORGOT PIN - STEP 2 (Verify OTP & Enter New PIN) ─── */}
           {mode === "forgot_otp" && (
             <>
               <div
@@ -568,7 +569,7 @@ export default function ChangePinPage() {
                     <input
                       key={idx}
                       ref={(el) => (otpRefs.current[idx] = el)}
-                      type="password"
+                      type="number"
                       maxLength={1}
                       value={val}
                       onChange={(e) => handleBoxChange(idx, e.target.value, otp, setOtp, otpRefs)}
@@ -582,20 +583,28 @@ export default function ChangePinPage() {
                 </div>
               </div>
 
+              {renderPinRow("New Pin", resetNewPin, setResetNewPin, resetNewRefs)}
+              {renderPinRow("Re-enter New Pin", resetReenterPin, setResetReenterPin, resetReenterRefs)}
+
               <div className={styles.actionRowCenter}>
                 <button
                   type="button"
-                  className={styles.verifyOtpBtn}
-                  onClick={handleVerifyOtp}
+                  className={styles.saveBtn}
+                  onClick={() => {
+                    const code = otp.join("");
+                    const newStr = resetNewPin.join("").trim();
+                    setVerifiedOtp(code);
+                    handleSaveResetPin(code, newStr);
+                  }}
                   disabled={loading}
                 >
-                  {loading ? "Verifying..." : "Verify OTP"}
+                  {loading ? "SAVING..." : "SAVE"}
                 </button>
               </div>
             </>
           )}
 
-          {/* ─── MODE 4: FORGOT PIN - STEP 3 (Enter New PIN) ─── */}
+          {/* ─── MODE 4: FORGOT PIN - STEP 3 (Enter New PIN Direct Reset) ─── */}
           {mode === "forgot_reset" && (
             <>
               <div

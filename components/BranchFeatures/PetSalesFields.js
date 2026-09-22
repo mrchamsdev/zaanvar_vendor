@@ -50,6 +50,7 @@ const PetSalesFields = ({
   type,
   setBranches,
   availablePetTypes,
+  errors = {},
 }) => {
   const API_URL =
     typeof window !== "undefined" &&
@@ -88,7 +89,6 @@ const PetSalesFields = ({
       return;
     }
 
-    // Build list of query values to try for this pet type
     const apiValue = PET_TYPE_API_MAP[petType] || petType;
     const queriesToTry = Array.from(new Set([apiValue, petType]));
 
@@ -106,21 +106,20 @@ const PetSalesFields = ({
             name: `${breed.breedName} (${breed.petType || petType})`,
             size: breed.size,
           }));
-          break; // Found results — stop trying variants
+          break;
         }
       } catch (err) {
         // Try next variant
       }
     }
 
-    // If still empty, try fetching all breeds and filter client-side
     if (combinedBreeds.length === 0) {
       try {
         const res = await fetch(`${API_URL}breeds`);
         if (res.ok) {
           const result = await res.json();
           const allBreeds = Array.isArray(result?.data) ? result.data : [];
-          const lower = petType.toLowerCase().replace(/s$/, ""); // "Birds" → "bird", "Small Pets" → "small pet"
+          const lower = petType.toLowerCase().replace(/s$/, "");
           const filtered = allBreeds.filter(
             (b) =>
               b.petType?.toLowerCase().includes(lower) ||
@@ -199,6 +198,8 @@ const PetSalesFields = ({
     updateSales({ ...sales, items: sales.items.filter((_, i) => i !== index) });
   };
 
+  const errPetSalesAll = errors.petSales || errors[`petSales_${branchIndex}`];
+
   return (
     <div className={styles.container}>
       <div className={styles.headerRow}>
@@ -208,82 +209,117 @@ const PetSalesFields = ({
         </button>
       </div>
 
-      {sales.items.map((item, index) => (
-        <div key={index} className={styles.serviceBox}>
-          {sales.items.length > 1 && (
-            <button className={styles.closeBtn} onClick={() => removeItem(index)}>
-              ×
-            </button>
-          )}
+      {errPetSalesAll && (
+        <span style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, display: "block" }}>
+          {errPetSalesAll}
+        </span>
+      )}
 
-          <div className={styles.left}>
-            <label className={styles.label}>KCI Registered *</label>
-            <select
-              className={styles.input}
-              value={item.kciRegistered}
-              onChange={(e) =>
-                updateItem(index, "kciRegistered", e.target.value === "true")
-              }
-            >
-              <option value="">Select</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
- <MultiSelectDropdown
-              heading="Pet Type"
-              listItems={petTypeOptions}
-              selectedIds={item.petTypes}
-              setSelectedIds={(ids) => {
-                // Only keep the most recently selected type (single select behaviour)
-                const singleId = ids.length > 0 ? [ids[ids.length - 1]] : [];
-                updateItem(index, "petTypes", singleId);
-              }}
-              mandatory
-              isSingleSelect = "true"
-            />
-           
-          </div>
+      {sales.items.map((item, index) => {
+        const errPetType = errors[`petSales_${index}_petType`] || errors[`petSales_${branchIndex}_${index}_petType`];
+        const errKci = errors[`petSales_${index}_kci`] || errors[`petSales_${branchIndex}_${index}_kci`];
+        const errVaccinated = errors[`petSales_${index}_vaccinated`] || errors[`petSales_${branchIndex}_${index}_vaccinated`];
+        const errPetBreeds = errors[`petSales_${index}_petBreeds`] || errors[`petSales_${branchIndex}_${index}_petBreeds`];
 
-          <div className={styles.right}>
-             <label className={styles.label}>Vaccinated *</label>
-            <select
-              className={styles.input}
-              value={item.vaccinated}
-              onChange={(e) =>
-                updateItem(index, "vaccinated", e.target.value === "true")
-              }
-            >
-              <option value="">Select</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-           
-
-            {/* Show loading hint if pet type selected but breeds still fetching */}
-            {item.petTypes.length > 0 && !breedOptions[index] && (
-              <small style={{ color: "#ff6b35", fontSize: "0.82rem" }}>
-                Loading breeds...
-              </small>
+        return (
+          <div key={index} className={styles.serviceBox}>
+            {sales.items.length > 1 && (
+              <button className={styles.closeBtn} onClick={() => removeItem(index)}>
+                ×
+              </button>
             )}
 
-            {item.petTypes.length > 0 &&
-              breedOptions[index] &&
-              breedOptions[index].length === 0 && (
-                <small style={{ color: "#888", fontSize: "0.82rem" }}>
-                  No breeds found for selected pet type
+            <div className={styles.left}>
+              <label className={styles.label}>KCI Registered *</label>
+              <select
+                className={styles.input}
+                style={{ border: errKci ? "1px solid #ef4444" : undefined }}
+                value={item.kciRegistered}
+                onChange={(e) =>
+                  updateItem(index, "kciRegistered", e.target.value === "true")
+                }
+              >
+                <option value="">Select</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              {errKci && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errKci}
+                </span>
+              )}
+
+              <MultiSelectDropdown
+                heading="Pet Type"
+                listItems={petTypeOptions}
+                selectedIds={item.petTypes}
+                setSelectedIds={(ids) => {
+                  const singleId = ids.length > 0 ? [ids[ids.length - 1]] : [];
+                  updateItem(index, "petTypes", singleId);
+                }}
+                mandatory
+                isSingleSelect="true"
+                hasError={Boolean(errPetType)}
+              />
+              {errPetType && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errPetType}
+                </span>
+              )}
+            </div>
+
+            <div className={styles.right}>
+              <label className={styles.label}>Vaccinated *</label>
+              <select
+                className={styles.input}
+                style={{ border: errVaccinated ? "1px solid #ef4444" : undefined }}
+                value={item.vaccinated}
+                onChange={(e) =>
+                  updateItem(index, "vaccinated", e.target.value === "true")
+                }
+              >
+                <option value="">Select</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              {errVaccinated && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errVaccinated}
+                </span>
+              )}
+
+              {/* Show loading hint if pet type selected but breeds still fetching */}
+              {item.petTypes.length > 0 && !breedOptions[index] && (
+                <small style={{ color: "#ff6b35", fontSize: "0.82rem" }}>
+                  Loading breeds...
                 </small>
               )}
 
-            <MultiSelectDropdown
-              heading="Pet Breed"
-              listItems={breedOptions[index] || []}
-              selectedIds={item.petBreeds}
-              setSelectedIds={(ids) => updateItem(index, "petBreeds", ids)}
-              mandatory
-            />
+              {item.petTypes.length > 0 &&
+                breedOptions[index] &&
+                breedOptions[index].length === 0 && (
+                  <small style={{ color: "#888", fontSize: "0.82rem" }}>
+                    No breeds found for selected pet type
+                  </small>
+                )}
+
+              <MultiSelectDropdown
+                heading="Pet Breed"
+                listItems={breedOptions[index] || []}
+                selectedIds={item.petBreeds}
+                setSelectedIds={(ids) => updateItem(index, "petBreeds", ids)}
+                mandatory
+                hasError={Boolean(errPetBreeds)}
+              />
+              {errPetBreeds && (
+                <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                  {errPetBreeds}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { WebApimanager } from "./utilities/WebApiManager";
 import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "../utilities/date-time-utils";
+import { toast } from "sonner";
+import { Country, State, City } from "country-state-city";
+import MultiSelectDropdown from "./MultiSelectDropdown";
 
 import ClinicFields from "./BranchFeatures/ClinicFields";
 import DaycareFields from "./BranchFeatures/DaycareFields";
@@ -19,13 +22,78 @@ function wallDatePayload(field, value) {
   return dateOnlyWithTimeZone(field, d);
 }
 
+const COUNTRY_DIAL_CODES = Country.getAllCountries()
+  .filter((c) => c.phonecode)
+  .map((c) => {
+    const dialCode = c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`;
+    return {
+      isoCode: c.isoCode,
+      name: c.name,
+      dialCode: dialCode,
+    };
+  })
+  .sort((a, b) => {
+    if (a.isoCode === "IN") return -1;
+    if (b.isoCode === "IN") return 1;
+    return a.name.localeCompare(b.name);
+  });
+
 const getRawPhoneDigits = (val) => {
   if (!val) return "";
   let str = String(val).trim();
-  if (str.startsWith("+91")) {
-    return str.slice(3).replace(/\D/g, "");
+  if (str.startsWith("+")) {
+    const found = COUNTRY_DIAL_CODES.find((c) => str.startsWith(c.dialCode));
+    if (found) {
+      return str.slice(found.dialCode.length).replace(/\D/g, "");
+    }
   }
   return str.replace(/\D/g, "");
+};
+
+const convertDurationToDate = (value) => {
+  if (!value) return "";
+  const now = new Date();
+  const str = String(value).trim();
+  if (str.includes(".")) {
+    const [years, months] = str.split(".").map(Number);
+    const d = new Date();
+    d.setFullYear(now.getFullYear() - (years || 0));
+    d.setMonth(now.getMonth() - (months || 0));
+    return toApiDateOnly(d);
+  }
+  const num = parseInt(str, 10);
+  if (isNaN(num)) return "";
+  if (num <= 12) {
+    const d = new Date();
+    d.setMonth(now.getMonth() - num);
+    return toApiDateOnly(d);
+  }
+  const d = new Date();
+  d.setFullYear(now.getFullYear() - num);
+  return toApiDateOnly(d);
+};
+
+const formatDurationText = (value) => {
+  if (!value) return "";
+  const cleanVal = String(value).trim();
+  if (cleanVal.includes(".")) {
+    const parts = cleanVal.split(".");
+    const y = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    let text = [];
+    if (y > 0) text.push(`${y} year${y > 1 ? "s" : ""}`);
+    if (m > 0) text.push(`${m} month${m > 1 ? "s" : ""}`);
+    return text.length > 0 ? `(${text.join(" ")})` : "";
+  }
+  const num = parseInt(cleanVal, 10);
+  if (!isNaN(num) && num > 0) {
+    if (num <= 12) {
+      return `(${num} month${num > 1 ? "s" : ""})`;
+    } else {
+      return `(${num} year${num > 1 ? "s" : ""})`;
+    }
+  }
+  return "";
 };
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -35,7 +103,7 @@ const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0
 const SERVICES_LIST = [
   "Breeders", "Location", "Blood Bank", "E-Commerce", "Training",
   "Grooming", "Sitter/walker", "Day Care", "Rides", "NGO's",
-  "Photographers", "Pet Shop", "Event", "Pet Sales", "Clinic",
+  "Photographers", "Pet Shop", "Event", "Cremation", "Clinic",
 ];
 
 const MAP_SERVICE_TO_FEATURE = {
@@ -48,7 +116,8 @@ const MAP_SERVICE_TO_FEATURE = {
   "Pet Daycare": "Pet Daycare",
   "Clinic": "Pet Clinic",
   "Pet Clinic": "Pet Clinic",
-  "Pet Sales": "Pet Sales",
+  "Cremation": "Pet Cremation",
+  "Pet Cremation": "Pet Cremation",
   "Breeders": "Pet Breeder",
   "Pet Breeder": "Pet Breeder",
   "Sitter/walker": "Pet Sitter/Walker",
@@ -287,8 +356,8 @@ function SpecialHoursSection({ specialHours = [], onChange, country = "India" })
     Array.isArray(specialHours) && specialHours.length > 0
       ? specialHours
       : [
-          { id: Date.now(), date: "", opensAt: "09:30", closesAt: "18:30", isClosed: false },
-        ]
+        { id: Date.now(), date: "", opensAt: "09:30", closesAt: "18:30", isClosed: false },
+      ]
   );
 
   const [holidayHours, setHolidayHours] = useState({});
@@ -558,28 +627,28 @@ function ServicesCheckboxes({ selected, onChange }) {
 }
 
 // ─── FeatureComponentWrapper ──────────────────────────────────────────────────
-function FeatureComponentWrapper({ featureType, branch, branchIndex, setBranches }) {
+function FeatureComponentWrapper({ featureType, branch, branchIndex, setBranches, errors = {} }) {
   if (!branch.services || typeof branch.services !== "object" || Array.isArray(branch.services)) {
     branch.services = {};
   }
 
   switch (featureType) {
     case "Pet Grooming":
-      return <GroomingFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} />;
+      return <GroomingFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} errors={errors} />;
     case "Pet Training":
-      return <TrainingFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} />;
+      return <TrainingFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} errors={errors} />;
     case "Pet Daycare":
-      return <DaycareFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} />;
+      return <DaycareFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} errors={errors} />;
     case "Pet Clinic":
-      return <ClinicFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} serviceOptionsByFeatureType={{ "Pet Clinic": ["General Checkup", "Vaccination", "Deworming", "Dental Care", "Surgery", "Emergency Care", "Consultation"] }} />;
+      return <ClinicFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} serviceOptionsByFeatureType={{ "Pet Clinic": ["General Checkup", "Vaccination", "Deworming", "Dental Care", "Surgery", "Emergency Care", "Consultation"] }} errors={errors} />;
     case "Pet Breeder":
-      return <BreederFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} />;
+      return <BreederFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} errors={errors} />;
     case "Pet Sitter/Walker":
-      return <SitterFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} />;
+      return <SitterFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} petList={PET_LIST} errors={errors} />;
     case "Pet Sales":
-      return <PetSalesFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} availablePetTypes={PET_LIST} />;
+      return <PetSalesFields branch={branch} branchIndex={branchIndex} setBranches={setBranches} availablePetTypes={PET_LIST} errors={errors} />;
     case "Pet Store":
-      return <PetStoreFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} />;
+      return <PetStoreFields branch={branch} branchIndex={branchIndex} type={featureType} setBranches={setBranches} petList={PET_LIST} availablePetTypes={PET_LIST} errors={errors} />;
     default:
       return null;
   }
@@ -593,6 +662,7 @@ function BranchServiceDetailsSection({
   branch,
   branchIndex,
   setBranches,
+  errors = {},
 }) {
   const activeFeatureTypes = Array.from(
     new Set(selectedServices.map(s => MAP_SERVICE_TO_FEATURE[s] || s).filter(Boolean))
@@ -636,6 +706,7 @@ function BranchServiceDetailsSection({
             branch={branch}
             branchIndex={branchIndex}
             setBranches={setBranches}
+            errors={errors}
           />
         </div>
       ))}
@@ -644,7 +715,7 @@ function BranchServiceDetailsSection({
 }
 
 // ─── AddressSection Sub-component (Additional Information) ────────────────────
-function AddressSection({ title, address = {}, onChange }) {
+function AddressSection({ title, address = {}, onChange, errors = {} }) {
   const handleGeoLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -663,6 +734,26 @@ function AddressSection({ title, address = {}, onChange }) {
   };
   const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 };
 
+  const countries = Country.getAllCountries();
+  const selectedCountryObj = countries.find(
+    c => c.isoCode === address.countryCode || c.name === address.country
+  );
+  const selectedCountryCode = selectedCountryObj?.isoCode || "";
+
+  const states = selectedCountryCode ? State.getStatesOfCountry(selectedCountryCode) : [];
+  const selectedStateObj = states.find(
+    s => s.isoCode === address.stateCode || s.name === address.state
+  );
+  const selectedStateCode = selectedStateObj?.isoCode || "";
+
+  const cities = (selectedCountryCode && selectedStateCode)
+    ? City.getCitiesOfState(selectedCountryCode, selectedStateCode)
+    : [];
+
+  const countryList = countries.map(c => ({ id: c.isoCode, name: c.name }));
+  const stateList = states.map(s => ({ id: s.isoCode, name: s.name }));
+  const cityList = cities.map(c => ({ id: c.name, name: c.name }));
+
   return (
     <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 24, background: "#fff" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -679,34 +770,70 @@ function AddressSection({ title, address = {}, onChange }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div>
           <label style={labelStyle}>Country <span style={{ color: "#e74c3c" }}>*</span></label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={address.country || ""} onChange={e => onChange("country", e.target.value)}>
-            <option value="">Select Country</option>
-            <option value="India">India</option>
-          </select>
+          <MultiSelectDropdown
+            listItems={countryList}
+            selectedIds={selectedCountryCode ? [selectedCountryCode] : []}
+            setSelectedIds={(ids) => {
+              const code = ids.length ? ids[ids.length - 1] : "";
+              const cObj = countries.find(c => c.isoCode === code);
+              onChange("countryCode", code);
+              onChange("country", cObj ? cObj.name : "");
+              onChange("stateCode", "");
+              onChange("state", "");
+              onChange("city", "");
+            }}
+            isSingleSelect={true}
+            placeholder="Select Country"
+            hasError={Boolean(errors.country)}
+          />
+          {errors.country && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 2, display: "block" }}>{errors.country}</span>}
         </div>
+
         <div>
-          <label style={labelStyle}>State</label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={address.state || ""} onChange={e => onChange("state", e.target.value)}>
-            <option value="">Select here</option>
-            <option value="Telangana">Telangana</option>
-            <option value="Andhra Pradesh">Andhra Pradesh</option>
-            <option value="Karnataka">Karnataka</option>
-            <option value="Maharashtra">Maharashtra</option>
-          </select>
+          <label style={labelStyle}>State <span style={{ color: "#e74c3c" }}>*</span></label>
+          <MultiSelectDropdown
+            listItems={stateList}
+            selectedIds={selectedStateCode ? [selectedStateCode] : []}
+            setSelectedIds={(ids) => {
+              const sCode = ids.length ? ids[ids.length - 1] : "";
+              const sObj = states.find(s => s.isoCode === sCode);
+              onChange("stateCode", sCode);
+              onChange("state", sObj ? sObj.name : "");
+              onChange("city", "");
+            }}
+            isSingleSelect={true}
+            placeholder={!selectedCountryCode ? "Select Country first" : "Select State"}
+            hasError={Boolean(errors.state)}
+          />
+          {errors.state && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 2, display: "block" }}>{errors.state}</span>}
         </div>
+
         <div>
-          <label style={labelStyle}>City</label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={address.city || ""} onChange={e => onChange("city", e.target.value)}>
-            <option value="">Select City</option>
-            <option value="Hyderabad">Hyderabad</option>
-            <option value="Bangalore">Bangalore</option>
-            <option value="Mumbai">Mumbai</option>
-            <option value="Pune">Pune</option>
-          </select>
+          <label style={labelStyle}>City <span style={{ color: "#e74c3c" }}>*</span></label>
+          <MultiSelectDropdown
+            listItems={cityList}
+            selectedIds={address.city ? [address.city] : []}
+            setSelectedIds={(ids) => {
+              const cityName = ids.length ? ids[ids.length - 1] : "";
+              onChange("city", cityName);
+            }}
+            isSingleSelect={true}
+            placeholder={!selectedStateCode ? "Select State first" : "Select City"}
+            hasError={Boolean(errors.city)}
+          />
+          {errors.city && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 2, display: "block" }}>{errors.city}</span>}
         </div>
+
         <div>
-          <label style={labelStyle}>Pin Code</label>
-          <input style={inputStyle} placeholder="Enter Pin Code" maxLength={6} value={address.pincode || ""} onChange={e => onChange("pincode", e.target.value.replace(/\D/g, ""))} />
+          <label style={labelStyle}>Pin Code <span style={{ color: "#e74c3c" }}>*</span></label>
+          <input
+            style={{ ...inputStyle, border: errors.pincode ? "1px solid #ef4444" : inputStyle.border }}
+            placeholder="Enter Pin Code"
+            maxLength={6}
+            value={address.pincode || ""}
+            onChange={e => onChange("pincode", e.target.value.replace(/\D/g, ""))}
+          />
+          {errors.pincode && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 2, display: "block" }}>{errors.pincode}</span>}
         </div>
         <div>
           <label style={labelStyle}>Area/Street</label>
@@ -779,7 +906,7 @@ function PhotoUploadSection({ title, photos = [], onUpload, onRemove, single = f
 }
 
 // ─── BranchSection sub-component ─────────────────────────────────────────────
-function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
+function BranchSection({ branch, index, onChange, onRemove, showRemove, errors = {} }) {
   const field = (key) => ({
     value: branch[key] || "",
     onChange: (e) => onChange(index, key, e.target.value),
@@ -792,6 +919,8 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
   };
   const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 };
   const fieldWrap = { marginBottom: 16 };
+
+  const getErr = (fieldKey) => errors[`${fieldKey}_${index}`];
 
   return (
     <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 20, background: "#fafafa" }}>
@@ -811,25 +940,61 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch name <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input style={inputStyle} placeholder="Enter Branch Name" {...field("branchName")} />
+          <input style={{ ...inputStyle, border: getErr("branchName") ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Branch Name" {...field("branchName")} />
+          {getErr("branchName") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchName")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Location <span style={{ color: "#e74c3c" }}>*</span></label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={branch.branchLocation || ""} onChange={e => onChange(index, "branchLocation", e.target.value)}>
+          <select style={{ ...inputStyle, appearance: "auto", border: getErr("branchLocation") ? "1px solid #ef4444" : inputStyle.border }} value={branch.branchLocation || ""} onChange={e => onChange(index, "branchLocation", e.target.value)}>
             <option value="">Select Branch location</option>
             {LOCATION_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
+          {getErr("branchLocation") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchLocation")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Opening Date <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input type="date" style={inputStyle} max={toApiDateOnly(new Date())} {...field("branchOpeningDate")} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Eg: 6 (months) or 2 (years) or 2.5"
+                style={{ ...inputStyle, flex: 1, border: getErr("branchOpeningDate") ? "1px solid #ef4444" : inputStyle.border }}
+                value={branch.durationInput || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const converted = convertDurationToDate(val);
+                  onChange(index, "durationInput", val);
+                  if (converted) {
+                    onChange(index, "branchOpeningDate", converted);
+                  }
+                }}
+              />
+              {String(branch.durationInput || "").trim() && (
+                <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}>
+                  {formatDurationText(branch.durationInput)}
+                </span>
+              )}
+            </div>
+            <input
+              type="date"
+              style={{ ...inputStyle, border: getErr("branchOpeningDate") ? "1px solid #ef4444" : inputStyle.border }}
+              max={toApiDateOnly(new Date())}
+              value={branch.branchOpeningDate || ""}
+              onChange={(e) => {
+                onChange(index, "branchOpeningDate", e.target.value);
+                onChange(index, "durationInput", "");
+              }}
+            />
+          </div>
+          {getErr("branchOpeningDate") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchOpeningDate")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Present Data store model <span style={{ color: "#e74c3c" }}>*</span></label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={branch.dataStoreType || ""} onChange={e => onChange(index, "dataStoreType", e.target.value)}>
+          <select style={{ ...inputStyle, appearance: "auto", border: getErr("dataStoreType") ? "1px solid #ef4444" : inputStyle.border }} value={branch.dataStoreType || ""} onChange={e => onChange(index, "dataStoreType", e.target.value)}>
             <option value="">Select Data store type</option>
             {DATA_STORE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
+          {getErr("dataStoreType") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("dataStoreType")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Business Name (optional)</label>
@@ -837,20 +1002,24 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Email <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input type="email" style={inputStyle} placeholder="Enter branch email" {...field("branchEmail")} />
+          <input type="email" style={{ ...inputStyle, border: getErr("branchEmail") ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter branch email" {...field("branchEmail")} />
+          {getErr("branchEmail") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchEmail")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input type="tel" style={inputStyle} placeholder="Enter 10-digit phone number" maxLength={10}
+          <input type="tel" style={{ ...inputStyle, border: getErr("branchPhone") ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter 10-digit phone number" maxLength={10}
             value={branch.branchPhone || ""}
             onChange={e => onChange(index, "branchPhone", e.target.value.replace(/\D/g, ""))} />
+          {getErr("branchPhone") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchPhone")}</span>}
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Accepted Payment Methods</label>
-          <select style={{ ...inputStyle, appearance: "auto" }} value={(branch.paymentMethods || [])[0] || ""} onChange={e => onChange(index, "paymentMethods", e.target.value ? [e.target.value] : [])}>
-            <option value="">Select options...</option>
-            {PAYMENT_OPTIONS.map(pm => <option key={pm} value={pm}>{pm}</option>)}
-          </select>
+          <MultiSelectDropdown
+            listItems={PAYMENT_OPTIONS.map(pm => ({ id: pm, name: pm }))}
+            selectedIds={branch.paymentMethods || []}
+            setSelectedIds={(selected) => onChange(index, "paymentMethods", selected)}
+            placeholder="Select payment methods"
+          />
         </div>
       </div>
 
@@ -898,6 +1067,7 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
               onChange={t => onChange(index, "timings", t)}
               on24x7Change={v => onChange(index, "is24x7", v)}
             />
+            {getErr("branchTimings") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchTimings")}</span>}
             <SpecialHoursSection
               specialHours={branch.specialHours || []}
               onChange={sh => onChange(index, "specialHours", sh)}
@@ -914,11 +1084,13 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove }) {
 export default function RegisterBusinessModal({ open, onClose, onSuccess, userInfo, initialTab = 0, hasAssignedBranches: hasAssignedBranchesProp }) {
   const [activeTab, setActiveTab] = useState(initialTab || 0); // 0=User, 1=Business, 2=Services, 3=Additional
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   React.useEffect(() => {
     if (open && initialTab !== undefined) {
       setActiveTab(initialTab);
     }
+    setFormErrors({});
   }, [open, initialTab]);
 
   // ── Tab 0: User Information ──────────────────────────────────────────────────
@@ -929,6 +1101,17 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     gender: userInfo?.gender || "",
   });
 
+  React.useEffect(() => {
+    if (open && userInfo) {
+      setUserForm(prev => ({
+        fullName: userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || prev.fullName,
+        email: userInfo?.email || prev.email,
+        mobileNumber: userInfo?.phoneNumber || userInfo?.mobileNumber || prev.mobileNumber,
+        gender: userInfo?.gender || prev.gender,
+      }));
+    }
+  }, [open, userInfo]);
+
   // ── Tab 1: Business Information ──────────────────────────────────────────────
   const [businessType, setBusinessType] = useState("Independent");
 
@@ -936,6 +1119,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     companyName: "",
     companyEmail: "",
     companyPhone: "",
+    companyPhoneCode: "+91",
     companyWebsite: "",
     roleOfPerson: "",
     gender: userInfo?.gender || "",
@@ -947,6 +1131,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     address: {},
     logo: null,
     relatedPhotos: [],
+    paymentMethods: [],
   });
 
   // ── Branch Details ───────────────────────────────────────────────────────────
@@ -960,9 +1145,13 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   };
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  const handleUserChange = (key, val) => setUserForm(p => ({ ...p, [key]: val }));
+  const handleUserChange = (key, val) => {
+    setUserForm(p => ({ ...p, [key]: val }));
+    setFormErrors(prev => ({ ...prev, [key]: "" }));
+  };
 
   const handleCompanyChange = (key, val) => {
+    setFormErrors(prev => ({ ...prev, [key]: "" }));
     if (key === "services") {
       const oldServices = companyForm.services || [];
       const newServices = val || [];
@@ -982,6 +1171,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   };
 
   const handleBranchChange = (idx, key, val) => {
+    setFormErrors(prev => ({ ...prev, [`${key}_${idx}`]: "" }));
     setBranches(prev => {
       const next = [...prev];
       next[idx] = { ...next[idx], [key]: val };
@@ -1160,7 +1350,354 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     }
   };
 
+  const validateTab = (tabIndex) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\d{10}$/;
+    const newErrors = {};
+
+    // ── TAB 0: USER INFORMATION ──
+    if (tabIndex === 0) {
+      if (!userForm.fullName || !userForm.fullName.trim()) {
+        newErrors.fullName = "Please enter your full name.";
+      }
+      if (!userForm.gender) {
+        newErrors.gender = "Please select your gender.";
+      }
+      if (!userForm.email || !userForm.email.trim()) {
+        newErrors.email = "Please enter your email address.";
+      } else if (!emailRegex.test(userForm.email.trim())) {
+        newErrors.email = "Please enter a valid email address.";
+      }
+      const rawMobile = userForm.mobileNumber ? String(userForm.mobileNumber).replace(/\D/g, "") : "";
+      if (!rawMobile) {
+        newErrors.mobileNumber = "Please enter your mobile number.";
+      } else if (!phoneRegex.test(rawMobile)) {
+        newErrors.mobileNumber = "Please enter a valid 10-digit mobile number.";
+      }
+
+      setFormErrors(newErrors);
+      const errList = Object.values(newErrors);
+      if (errList.length > 0) {
+        toast.error(errList[0]);
+        return false;
+      }
+      return true;
+    }
+
+    // ── TAB 1: BUSINESS INFORMATION ──
+    if (tabIndex === 1) {
+      if (showCompanyInfo) {
+        if (!companyForm.companyName || !companyForm.companyName.trim()) {
+          newErrors.companyName = "Please enter company name.";
+        }
+        if (!companyForm.companyEmail || !companyForm.companyEmail.trim()) {
+          newErrors.companyEmail = "Please enter company email.";
+        } else if (!emailRegex.test(companyForm.companyEmail.trim())) {
+          newErrors.companyEmail = "Please enter a valid company email.";
+        }
+        const rawCompPhone = getRawPhoneDigits(companyForm.companyPhone);
+        if (!rawCompPhone || !phoneRegex.test(rawCompPhone)) {
+          newErrors.companyPhone = "Please enter a valid 10-digit company phone number.";
+        }
+        if (!companyForm.companyWebsite || !companyForm.companyWebsite.trim()) {
+          newErrors.companyWebsite = "Please enter company website.";
+        }
+        if (!companyForm.roleOfPerson || !companyForm.roleOfPerson.trim()) {
+          newErrors.roleOfPerson = "Please enter role of the registering person.";
+        }
+        if (!companyForm.gender) {
+          newErrors.companyGender = "Please select company contact gender.";
+        }
+        if (!companyForm.openingDate) {
+          newErrors.companyOpeningDate = "Please select company opening date.";
+        }
+      }
+
+      for (let i = 0; i < branches.length; i++) {
+        const b = branches[i];
+        const bLabel = branches.length > 1 ? ` (Branch ${i + 1})` : "";
+
+        if (!b.branchName || !b.branchName.trim()) {
+          newErrors[`branchName_${i}`] = `Please enter branch name${bLabel}.`;
+        }
+        if (!b.branchLocation) {
+          newErrors[`branchLocation_${i}`] = `Please select branch location${bLabel}.`;
+        }
+        if (!b.branchOpeningDate) {
+          newErrors[`branchOpeningDate_${i}`] = `Please select branch opening date${bLabel}.`;
+        }
+        if (!b.dataStoreType) {
+          newErrors[`dataStoreType_${i}`] = `Please select present data store model${bLabel}.`;
+        }
+        if (!b.branchEmail || !b.branchEmail.trim()) {
+          newErrors[`branchEmail_${i}`] = `Please enter branch email${bLabel}.`;
+        } else if (!emailRegex.test(b.branchEmail.trim())) {
+          newErrors[`branchEmail_${i}`] = `Please enter a valid branch email${bLabel}.`;
+        }
+        const rawBranchPhone = b.branchPhone ? String(b.branchPhone).replace(/\D/g, "") : "";
+        if (!rawBranchPhone || !phoneRegex.test(rawBranchPhone)) {
+          newErrors[`branchPhone_${i}`] = `Please enter a valid 10-digit branch phone number${bLabel}.`;
+        }
+
+        if ((b.hoursMode || "MAIN_HOURS") === "MAIN_HOURS") {
+          const hasOpenDay = Object.values(b.timings || {}).some(v => v && v !== "Closed");
+          if (!b.is24x7 && !hasOpenDay) {
+            newErrors[`branchTimings_${i}`] = `Please set branch timings or select 24/7 Open${bLabel}.`;
+          }
+        }
+      }
+
+      setFormErrors(newErrors);
+      const errList = Object.values(newErrors);
+      if (errList.length > 0) {
+        toast.error(errList[0]);
+        return false;
+      }
+      return true;
+    }
+
+    // ── TAB 2: SERVICES INFORMATION ──
+    if (tabIndex === 2) {
+      for (let i = 0; i < branches.length; i++) {
+        const b = branches[i];
+        const activeSvcs = b.selectedServices?.length > 0 ? b.selectedServices : companyForm.services;
+        const bLabel = branches.length > 1 ? ` for Branch ${i + 1}` : "";
+
+        if (!activeSvcs || activeSvcs.length === 0) {
+          newErrors[`services_${i}`] = `Please select at least one service${bLabel}.`;
+        } else {
+          // Check feature sub-fields
+          const activeFeatureTypes = Array.from(
+            new Set(activeSvcs.map(s => MAP_SERVICE_TO_FEATURE[s] || s).filter(Boolean))
+          );
+
+          activeFeatureTypes.forEach(ft => {
+            const rawDetails = b.services?.[ft];
+
+            if (ft === "Pet Grooming") {
+              if (!rawDetails?.serviceMode || rawDetails.serviceMode.length === 0) {
+                newErrors[`grooming_mode_${i}`] = `Please select Service Mode for Pet Grooming${bLabel}.`;
+              }
+              const servicesList = Array.isArray(rawDetails?.services) ? rawDetails.services : [];
+              if (servicesList.length === 0) {
+                newErrors[`grooming_services_${i}`] = `Please add at least one Grooming Service${bLabel}.`;
+              } else {
+                servicesList.forEach((s, sIdx) => {
+                  const hasName = (Array.isArray(s.serviceName) && s.serviceName.length > 0) || Boolean(s.otherServiceName?.trim());
+                  if (!hasName) {
+                    newErrors[`grooming_svc_${i}_${sIdx}_name`] = `Please select Grooming Service name in item #${sIdx + 1}${bLabel}.`;
+                  }
+                  if (!s.petType || s.petType.length === 0) {
+                    newErrors[`grooming_svc_${i}_${sIdx}_petType`] = `Please select Pet Type in Grooming item #${sIdx + 1}${bLabel}.`;
+                  }
+                  if (!s.price || !String(s.price).trim() || parseFloat(s.price) <= 0) {
+                    newErrors[`grooming_svc_${i}_${sIdx}_price`] = `Please enter a valid price in Grooming item #${sIdx + 1}${bLabel}.`;
+                  }
+                });
+              }
+            }
+
+            if (ft === "Pet Training") {
+              if (!rawDetails?.trainingTypes || rawDetails.trainingTypes.length === 0) {
+                newErrors[`training_type_${i}`] = `Please select Training Type for Pet Training${bLabel}.`;
+              }
+              if (!rawDetails?.petTypes || rawDetails.petTypes.length === 0) {
+                newErrors[`training_petTypes_${i}`] = `Please select Pet Type for Pet Training${bLabel}.`;
+              }
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              items.forEach((item, itemIdx) => {
+                if (item.serviceName && !item.serviceName.trim()) {
+                  newErrors[`training_item_${i}_${itemIdx}_name`] = `Please enter Service Name in Training item #${itemIdx + 1}${bLabel}.`;
+                }
+              });
+            }
+
+            if (ft === "Pet Daycare") {
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              if (items.length === 0) {
+                newErrors[`daycare_items_${i}`] = `Please add Daycare details${bLabel}.`;
+              } else {
+                items.forEach((item, itemIdx) => {
+                  const pTypes = item.supportedPets || item.petTypes || [];
+                  if (!pTypes || pTypes.length === 0) {
+                    newErrors[`daycare_${i}_${itemIdx}_petType`] = `Please select Pet Type in Daycare #${itemIdx + 1}${bLabel}.`;
+                  }
+                  if (!item.petSizes || item.petSizes.length === 0) {
+                    newErrors[`daycare_${i}_${itemIdx}_petSizes`] = `Please select Pet Sizes in Daycare #${itemIdx + 1}${bLabel}.`;
+                  }
+                });
+              }
+              const packages = Array.isArray(rawDetails?.packages) ? rawDetails.packages : [];
+              packages.forEach((pkg, pkgIdx) => {
+                if (!pkg.packageName || !pkg.packageName.trim()) {
+                  newErrors[`daycare_pkg_${i}_${pkgIdx}_name`] = `Please enter Package Name in Daycare package #${pkgIdx + 1}${bLabel}.`;
+                }
+                if (!pkg.selectedCombinations || pkg.selectedCombinations.length === 0) {
+                  newErrors[`daycare_pkg_${i}_${pkgIdx}_comb`] = `Please select Pet Type & Size in Daycare package #${pkgIdx + 1}${bLabel}.`;
+                }
+                if (!pkg.price || !String(pkg.price).trim() || parseFloat(pkg.price) <= 0) {
+                  newErrors[`daycare_pkg_${i}_${pkgIdx}_price`] = `Please enter a valid Price in Daycare package #${pkgIdx + 1}${bLabel}.`;
+                }
+              });
+            }
+
+            if (ft === "Pet Clinic") {
+              if (!rawDetails?.clinicTypes || rawDetails.clinicTypes.length === 0) {
+                newErrors[`clinic_type_${i}`] = `Please select Visit Type for Pet Clinic${bLabel}.`;
+              }
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              if (items.length === 0) {
+                newErrors[`clinic_items_${i}`] = `Please add Clinic details${bLabel}.`;
+              } else {
+                items.forEach((item, itemIdx) => {
+                  if (!item.services || item.services.length === 0) {
+                    newErrors[`clinic_${i}_${itemIdx}_services`] = `Please select Services in Clinic #${itemIdx + 1}${bLabel}.`;
+                  }
+                  if (!item.petTypes || item.petTypes.length === 0) {
+                    newErrors[`clinic_${i}_${itemIdx}_petTypes`] = `Please select Pet Types in Clinic #${itemIdx + 1}${bLabel}.`;
+                  }
+                  if (rawDetails?.clinicTypes && rawDetails.clinicTypes.length > 0) {
+                    rawDetails.clinicTypes.forEach((cType) => {
+                      const fee = item.serviceFees?.[cType];
+                      if (!fee || !String(fee).trim() || parseFloat(fee) <= 0) {
+                        newErrors[`clinic_${i}_${itemIdx}_fee_${cType}`] = `Please enter a valid ${cType} Fee in Clinic item #${itemIdx + 1}${bLabel}.`;
+                      }
+                    });
+                  }
+                });
+              }
+            }
+
+            if (ft === "Pet Breeder") {
+              if (!rawDetails?.petTypes || rawDetails.petTypes.length === 0) {
+                newErrors[`breeder_petTypes_${i}`] = `Please select Pet Type for Pet Breeder${bLabel}.`;
+              }
+              if (!rawDetails?.petBreeds || rawDetails.petBreeds.length === 0) {
+                newErrors[`breeder_petBreeds_${i}`] = `Please select Pet Breeds for Pet Breeder${bLabel}.`;
+              }
+            }
+
+            if (ft === "Pet Sitter/Walker") {
+              if (!rawDetails?.petSizes || rawDetails.petSizes.length === 0) {
+                newErrors[`sitter_petSizes_${i}`] = `Please select Accepted Pet Sizes for Pet Sitter/Walker${bLabel}.`;
+              }
+              if (!rawDetails?.petTypes || rawDetails.petTypes.length === 0) {
+                newErrors[`sitter_petTypes_${i}`] = `Please select Pet Types for Pet Sitter/Walker${bLabel}.`;
+              }
+              if (rawDetails?.lastMinuteBooking === undefined || rawDetails?.lastMinuteBooking === null || rawDetails?.lastMinuteBooking === "") {
+                newErrors[`sitter_lastMinute_${i}`] = `Please select whether Last Minute Booking is provided${bLabel}.`;
+              }
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              items.forEach((item, itemIdx) => {
+                if (item.serviceName && item.serviceName.trim() && (!item.timePeriod || !item.timePeriod.trim())) {
+                  newErrors[`sitter_item_${i}_${itemIdx}_period`] = `Please enter duration/period in Sitting item #${itemIdx + 1}${bLabel}.`;
+                }
+              });
+            }
+
+            if (ft === "Pet Sales") {
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              if (items.length === 0) {
+                newErrors[`petSales_${i}`] = `Please fill Pet Sales details${bLabel}.`;
+              } else {
+                items.forEach((item, itemIdx) => {
+                  if (!item.petTypes || item.petTypes.length === 0) {
+                    newErrors[`petSales_${i}_${itemIdx}_petType`] = `Please select Pet Type in Pet Sales${bLabel}.`;
+                  }
+                  if (item.kciRegistered === "" || item.kciRegistered === undefined || item.kciRegistered === null) {
+                    newErrors[`petSales_${i}_${itemIdx}_kci`] = `Please select KCI Registered status${bLabel}.`;
+                  }
+                  if (item.vaccinated === "" || item.vaccinated === undefined || item.vaccinated === null) {
+                    newErrors[`petSales_${i}_${itemIdx}_vaccinated`] = `Please select Vaccinated status${bLabel}.`;
+                  }
+                  if (!item.petBreeds || item.petBreeds.length === 0) {
+                    newErrors[`petSales_${i}_${itemIdx}_petBreeds`] = `Please select Pet Breed(s) in Pet Sales${bLabel}.`;
+                  }
+                });
+              }
+            }
+
+            if (ft === "Pet Store") {
+              const items = Array.isArray(rawDetails?.items) ? rawDetails.items : [];
+              if (items.length === 0) {
+                newErrors[`petStore_items_${i}`] = `Please add Pet Store details${bLabel}.`;
+              } else {
+                items.forEach((item, itemIdx) => {
+                  if (!item.petTypes || item.petTypes.length === 0) {
+                    newErrors[`petStore_${i}_${itemIdx}_petTypes`] = `Please select Pet Types in Pet Store #${itemIdx + 1}${bLabel}.`;
+                  }
+                  if (!item.categories || item.categories.length === 0) {
+                    newErrors[`petStore_${i}_${itemIdx}_categories`] = `Please select Product Categories in Pet Store #${itemIdx + 1}${bLabel}.`;
+                  } else if (item.categories.includes("Other") && (!item.customCategory || !item.customCategory.trim())) {
+                    newErrors[`petStore_${i}_${itemIdx}_customCat`] = `Please specify custom category for 'Other' in Pet Store #${itemIdx + 1}${bLabel}.`;
+                  }
+                });
+              }
+            }
+          });
+        }
+      }
+
+      setFormErrors(newErrors);
+      const errList = Object.values(newErrors);
+      if (errList.length > 0) {
+        toast.error(errList[0]);
+        return false;
+      }
+      return true;
+    }
+
+    // ── TAB 3: ADDITIONAL INFORMATION ──
+    if (tabIndex === 3) {
+      if (!isEnterprise) {
+        const addr = companyForm.address || {};
+        if (!addr.country) {
+          newErrors.company_country = "Please select country in company address.";
+        }
+        if (!addr.state) {
+          newErrors.company_state = "Please select state in company address.";
+        }
+        if (!addr.city) {
+          newErrors.company_city = "Please select city in company address.";
+        }
+        if (!addr.pincode || !addr.pincode.trim()) {
+          newErrors.company_pincode = "Please enter pin code in company address.";
+        }
+      } else {
+        for (let i = 0; i < branches.length; i++) {
+          const b = branches[i];
+          const bAddr = b.branchAddress || {};
+          const bLabel = branches.length > 1 ? ` for Branch ${i + 1}` : "";
+          if (!bAddr.country) {
+            newErrors[`branch_${i}_country`] = `Please select country in address${bLabel}.`;
+          }
+          if (!bAddr.state) {
+            newErrors[`branch_${i}_state`] = `Please select state in address${bLabel}.`;
+          }
+          if (!bAddr.city) {
+            newErrors[`branch_${i}_city`] = `Please select city in address${bLabel}.`;
+          }
+          if (!bAddr.pincode || !bAddr.pincode.trim()) {
+            newErrors[`branch_${i}_pincode`] = `Please enter pin code in address${bLabel}.`;
+          }
+        }
+      }
+
+      setFormErrors(newErrors);
+      const errList = Object.values(newErrors);
+      if (errList.length > 0) {
+        toast.error(errList[0]);
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
   const handleNext = async () => {
+    if (!validateTab(activeTab)) return;
+
     let nextStepName = "BUSINESS_INFO";
     if (activeTab === 0) nextStepName = "BUSINESS_INFO";
     else if (activeTab === 1) nextStepName = "SERVICES_INFO";
@@ -1181,6 +1718,13 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   };
 
   const handleSubmit = async () => {
+    for (let t = 0; t <= 3; t++) {
+      if (!validateTab(t)) {
+        setActiveTab(t);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const token = typeof window !== "undefined" ? (localStorage.getItem("jwtToken") || localStorage.getItem("token") || "") : "";
@@ -1268,6 +1812,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           onChange={handleBranchChange}
           onRemove={removeBranch}
           showRemove={showAddBranch && branches.length > 1}
+          errors={formErrors}
         />
       ))}
     </div>
@@ -1334,7 +1879,17 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
               <button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(i)}
+                onClick={() => {
+                  if (i > activeTab) {
+                    for (let t = 0; t < i; t++) {
+                      if (!validateTab(t)) {
+                        setActiveTab(t);
+                        return;
+                      }
+                    }
+                  }
+                  setActiveTab(i);
+                }}
                 style={{
                   padding: "14px 20px", fontSize: 13, fontWeight: isActive ? 600 : 400,
                   color: isActive ? "#1a73e8" : "#4b5563", background: "none", border: "none",
@@ -1358,29 +1913,33 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Full Name <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={inputStyle} placeholder="Enter Full Name"
+                  <input style={{ ...inputStyle, background: "#f3f4f6", border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
                     value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value)} />
+                  {formErrors.fullName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.fullName}</span>}
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Gender <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <select style={{ ...inputStyle, appearance: "auto" }}
+                  <select style={{ ...inputStyle, appearance: "auto", border: formErrors.gender ? "1px solid #ef4444" : inputStyle.border }}
                     value={userForm.gender} onChange={e => handleUserChange("gender", e.target.value)}>
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Trans">Trans</option>
                   </select>
+                  {formErrors.gender && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.gender}</span>}
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="email" style={inputStyle} placeholder="Enter Email ID"
-                    value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
+                  <input type="email" style={{ ...inputStyle, background: "#f3f4f6", cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
+                    readOnly disabled value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
+                  {formErrors.email && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.email}</span>}
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Enter Mobile Number <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="tel" style={inputStyle} placeholder="Enter 10-digit mobile Number" maxLength={10}
-                    value={userForm.mobileNumber}
+                  <input type="tel" style={{ ...inputStyle, background: "#f3f4f6", cursor: "not-allowed", border: formErrors.mobileNumber ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter 10-digit mobile Number" maxLength={10}
+                    readOnly disabled value={userForm.mobileNumber}
                     onChange={e => handleUserChange("mobileNumber", e.target.value.replace(/\D/g, ""))} />
+                  {formErrors.mobileNumber && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.mobileNumber}</span>}
                 </div>
               </div>
             </div>
@@ -1414,45 +1973,125 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company name <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <input style={inputStyle} placeholder="Enter Company Name"
+                      <input style={{ ...inputStyle, border: formErrors.companyName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Company Name"
                         value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value)} />
+                      {formErrors.companyName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyName}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <input type="email" style={inputStyle} placeholder="Enter Company email"
+                      <input type="email" style={{ ...inputStyle, border: formErrors.companyEmail ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Company email"
                         value={companyForm.companyEmail} onChange={e => handleCompanyChange("companyEmail", e.target.value)} />
+                      {formErrors.companyEmail && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyEmail}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <div style={{ display: "flex", alignItems: "center", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
-                        <span style={{ padding: "10px 12px", background: "#f3f4f6", borderRight: "1px solid #d1d5db", fontSize: 13, fontWeight: 600, color: "#374151", flexShrink: 0 }}>+91</span>
-                        <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter 10-digit phone number" maxLength={10}
+                      <div style={{ display: "flex", alignItems: "center", border: formErrors.companyPhone ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
+                        <select
+                          value={companyForm.companyPhoneCode || "+91"}
+                          onChange={e => {
+                            const code = e.target.value;
+                            const digits = getRawPhoneDigits(companyForm.companyPhone);
+                            handleCompanyChange("companyPhoneCode", code);
+                            handleCompanyChange("companyPhone", digits ? `${code}${digits}` : "");
+                          }}
+                          style={{
+                            padding: "10px 8px",
+                            background: "#f3f4f6",
+                            border: "none",
+                            borderRight: "1px solid #d1d5db",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#374151",
+                            flexShrink: 0,
+                            outline: "none",
+                            cursor: "pointer",
+                            maxWidth: "140px"
+                          }}
+                        >
+                          {COUNTRY_DIAL_CODES.map((c) => (
+                            <option key={`${c.isoCode}-${c.dialCode}`} value={c.dialCode}>
+                              {c.dialCode} ({c.name})
+                            </option>
+                          ))}
+                        </select>
+                        <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter phone number" maxLength={15}
                           value={getRawPhoneDigits(companyForm.companyPhone)}
                           onChange={e => {
-                            const digits = getRawPhoneDigits(e.target.value).slice(0, 10);
-                            handleCompanyChange("companyPhone", digits ? `+91${digits}` : "");
+                            const code = companyForm.companyPhoneCode || "+91";
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 15);
+                            handleCompanyChange("companyPhone", digits ? `${code}${digits}` : "");
                           }} />
                       </div>
+                      {formErrors.companyPhone && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyPhone}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company Website <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <input style={inputStyle} placeholder="Enter here"
+                      <input style={{ ...inputStyle, border: formErrors.companyWebsite ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter here"
                         value={companyForm.companyWebsite} onChange={e => handleCompanyChange("companyWebsite", e.target.value)} />
+                      {formErrors.companyWebsite && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyWebsite}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Role of the Registering Person <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <input style={inputStyle} placeholder="Enter here"
+                      <input style={{ ...inputStyle, border: formErrors.roleOfPerson ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter here"
                         value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value)} />
+                      {formErrors.roleOfPerson && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.roleOfPerson}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Gender <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <select style={{ ...inputStyle, appearance: "auto" }}
+                      <select style={{ ...inputStyle, appearance: "auto", border: formErrors.companyGender ? "1px solid #ef4444" : inputStyle.border }}
                         value={companyForm.gender} onChange={e => handleCompanyChange("gender", e.target.value)}>
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                         <option value="Trans">Trans</option>
                       </select>
+                      {formErrors.companyGender && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyGender}</span>}
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Company Opening Date <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <input
+                            type="text"
+                            placeholder="Eg: 6 (months) or 2 (years) or 2.5"
+                            style={{ ...inputStyle, flex: 1, border: formErrors.companyOpeningDate ? "1px solid #ef4444" : inputStyle.border }}
+                            value={companyForm.durationInput || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const converted = convertDurationToDate(val);
+                              handleCompanyChange("durationInput", val);
+                              if (converted) {
+                                handleCompanyChange("openingDate", converted);
+                              }
+                            }}
+                          />
+                          {String(companyForm.durationInput || "").trim() && (
+                            <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}>
+                              {formatDurationText(companyForm.durationInput)}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="date"
+                          style={{ ...inputStyle, border: formErrors.companyOpeningDate ? "1px solid #ef4444" : inputStyle.border }}
+                          max={toApiDateOnly(new Date())}
+                          value={companyForm.openingDate || ""}
+                          onChange={(e) => {
+                            handleCompanyChange("openingDate", e.target.value);
+                            handleCompanyChange("durationInput", "");
+                          }}
+                        />
+                      </div>
+                      {formErrors.companyOpeningDate && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyOpeningDate}</span>}
+                    </div>
+                    <div style={fieldWrap}>
+                      <label style={labelStyle}>Accepted Payment Methods</label>
+                      <MultiSelectDropdown
+                        listItems={PAYMENT_OPTIONS.map(pm => ({ id: pm, name: pm }))}
+                        selectedIds={companyForm.paymentMethods || []}
+                        setSelectedIds={(selected) => handleCompanyChange("paymentMethods", selected)}
+                        placeholder="Select payment methods"
+                      />
                     </div>
                   </div>
 
@@ -1514,6 +2153,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                         onChange={t => handleCompanyChange("timings", t)}
                         on24x7Change={v => handleCompanyChange("is24x7", v)}
                       />
+                      {formErrors.companyTimings && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyTimings}</span>}
                       <SpecialHoursSection
                         specialHours={companyForm.specialHours || []}
                         onChange={sh => handleCompanyChange("specialHours", sh)}
@@ -1544,6 +2184,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   branch={branches[0]}
                   branchIndex={0}
                   setBranches={setBranches}
+                  errors={formErrors}
                 />
               ) : (
                 // Enterprise mode: Service Details for each branch
@@ -1556,6 +2197,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                     branch={branch}
                     branchIndex={idx}
                     setBranches={setBranches}
+                    errors={formErrors}
                   />
                 ))
               )}
@@ -1571,12 +2213,19 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   <AddressSection
                     title="Company Address"
                     address={companyForm.address || {}}
-                    onChange={(field, val) =>
+                    onChange={(field, val) => {
+                      setFormErrors(prev => ({ ...prev, [`company_${field}`]: "" }));
                       setCompanyForm(prev => ({
                         ...prev,
                         address: { ...(prev.address || {}), [field]: val }
-                      }))
-                    }
+                      }));
+                    }}
+                    errors={{
+                      country: formErrors.company_country,
+                      state: formErrors.company_state,
+                      city: formErrors.company_city,
+                      pincode: formErrors.company_pincode,
+                    }}
                   />
 
                   <PhotoUploadSection
@@ -1601,12 +2250,19 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                     <AddressSection
                       title={`Branch ${String(idx + 1).padStart(2, "0")} Address`}
                       address={branch.branchAddress || {}}
-                      onChange={(field, val) =>
+                      onChange={(field, val) => {
+                        setFormErrors(prev => ({ ...prev, [`branch_${idx}_${field}`]: "" }));
                         handleBranchChange(idx, "branchAddress", {
                           ...(branch.branchAddress || {}),
                           [field]: val,
-                        })
-                      }
+                        });
+                      }}
+                      errors={{
+                        country: formErrors[`branch_${idx}_country`],
+                        state: formErrors[`branch_${idx}_state`],
+                        city: formErrors[`branch_${idx}_city`],
+                        pincode: formErrors[`branch_${idx}_pincode`],
+                      }}
                     />
 
                     <PhotoUploadSection

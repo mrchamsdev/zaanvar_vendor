@@ -40,7 +40,7 @@ const FOOD_OPTIONS = [
 const EMPTY_ITEM = { petTypes: [], petSizes: [] };
 const EMPTY_PACKAGE = { packageName: "", selectedCombinations: [], foodOption: "", price: "" };
 
-const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes }) => {
+const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availablePetTypes, errors = {} }) => {
   const currencySymbol = useCurrencySymbol();
 
   const rawDaycare = branch.services?.[type] || {};
@@ -114,6 +114,8 @@ const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availa
       pickupLocations: value.split(",").map((v) => v.trim()).filter(Boolean),
     });
 
+  const errDaycareItems = errors.daycare_items || errors[`daycare_items_${branchIndex}`];
+
   return (
     <div className={styles.daycareWrapper}>
       {/* Header */}
@@ -121,30 +123,58 @@ const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availa
         <h4 className={styles.sectionTitle}>Pet Daycare</h4>
       </div>
 
+      {errDaycareItems && (
+        <span style={{ color: "#ef4444", fontSize: 12, marginBottom: 8, display: "block" }}>
+          {errDaycareItems}
+        </span>
+      )}
+
       {/* Pet Type & Size — 2 col grid */}
-      {daycare.items.map((item, index) => (
-        <div key={index} className={styles.petTypeBox}>
-          {daycare.items.length > 1 && (
-            <button className={styles.removeBtn} type="button" onClick={() => removeItem(index)}>×</button>
-          )}
-          <div className={styles.twoCol}>
-            <MultiSelectDropdown
-              listItems={availablePetTypes}
-              selectedIds={item.petTypes}
-              setSelectedIds={(ids) => updateItem(index, "petTypes", ids)}
-              heading="Pet Type"
-              mandatory
-            />
-            <MultiSelectDropdown
-              listItems={PET_SIZES}
-              selectedIds={item.petSizes}
-              setSelectedIds={(ids) => updateItem(index, "petSizes", ids)}
-              heading="Pet Size"
-              mandatory
-            />
+      {daycare.items.map((item, index) => {
+        const errPetType = errors[`daycare_${index}_petType`] || errors[`daycare_${branchIndex}_${index}_petType`];
+        const errPetSizes = errors[`daycare_${index}_petSizes`] || errors[`daycare_${branchIndex}_${index}_petSizes`];
+
+        return (
+          <div key={index} className={styles.petTypeBox}>
+            {daycare.items.length > 1 && (
+              <button className={styles.removeBtn} type="button" onClick={() => removeItem(index)}>×</button>
+            )}
+            <div className={styles.twoCol}>
+              <div>
+                <MultiSelectDropdown
+                  listItems={availablePetTypes}
+                  selectedIds={item.petTypes}
+                  setSelectedIds={(ids) => updateItem(index, "petTypes", ids)}
+                  heading="Pet Type"
+                  mandatory
+                  hasError={Boolean(errPetType)}
+                />
+                {errPetType && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errPetType}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <MultiSelectDropdown
+                  listItems={PET_SIZES}
+                  selectedIds={item.petSizes}
+                  setSelectedIds={(ids) => updateItem(index, "petSizes", ids)}
+                  heading="Pet Size"
+                  mandatory
+                  hasError={Boolean(errPetSizes)}
+                />
+                {errPetSizes && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errPetSizes}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Pickup locations */}
       <div className={styles.fieldRow}>
@@ -177,61 +207,85 @@ const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availa
         </small>
       )}
 
-      {daycare.packages.map((pkg, i) => (
-        <div key={i} className={styles.packageBox}>
-          <button type="button" className={styles.removeBtn} onClick={() => removePackage(i)}>×</button>
+      {daycare.packages.map((pkg, i) => {
+        const errPkgName = errors[`daycare_pkg_${i}_name`] || errors[`daycare_pkg_${branchIndex}_${i}_name`];
+        const errPkgComb = errors[`daycare_pkg_${i}_comb`] || errors[`daycare_pkg_${branchIndex}_${i}_comb`];
+        const errPkgPrice = errors[`daycare_pkg_${i}_price`] || errors[`daycare_pkg_${branchIndex}_${i}_price`];
 
-          <div className={styles.twoCol}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Package Name <span className={styles.req}>*</span></label>
-              <input
-                type="text"
-                className={styles.input}
-                placeholder="Enter package name"
-                value={pkg.packageName || ""}
-                onChange={(e) => updatePackage(i, "packageName", e.target.value)}
-              />
+        return (
+          <div key={i} className={styles.packageBox}>
+            <button type="button" className={styles.removeBtn} onClick={() => removePackage(i)}>×</button>
+
+            <div className={styles.twoCol}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Package Name <span className={styles.req}>*</span></label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  style={{ border: errPkgName ? "1px solid #ef4444" : undefined }}
+                  placeholder="Enter package name"
+                  value={pkg.packageName || ""}
+                  onChange={(e) => updatePackage(i, "packageName", e.target.value)}
+                />
+                {errPkgName && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errPkgName}
+                  </span>
+                )}
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Select Pet Type & Size <span className={styles.req}>*</span></label>
+                <MultiSelectDropdown
+                  heading=""
+                  listItems={getPetTypeSizeCombinations()}
+                  selectedIds={pkg.selectedCombinations || []}
+                  setSelectedIds={(ids) => updatePackage(i, "selectedCombinations", ids)}
+                  mandatory
+                  hasError={Boolean(errPkgComb)}
+                />
+                {errPkgComb && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errPkgComb}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Select Pet Type & Size <span className={styles.req}>*</span></label>
-              <MultiSelectDropdown
-                heading=""
-                listItems={getPetTypeSizeCombinations()}
-                selectedIds={pkg.selectedCombinations || []}
-                setSelectedIds={(ids) => updatePackage(i, "selectedCombinations", ids)}
-                mandatory
-              />
+
+            <div className={styles.twoCol} style={{ marginTop: "12px" }}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Food Option</label>
+                <select
+                  className={styles.input}
+                  value={pkg.foodOption || ""}
+                  onChange={(e) => updatePackage(i, "foodOption", e.target.value)}
+                >
+                  <option value="">Select Food Option</option>
+                  {FOOD_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Price (₹) <span className={styles.req}>*</span></label>
+                <input
+                  type="number"
+                  className={styles.input}
+                  style={{ border: errPkgPrice ? "1px solid #ef4444" : undefined }}
+                  placeholder="Enter price"
+                  value={pkg.price || ""}
+                  onChange={(e) => updatePackage(i, "price", e.target.value)}
+                  min="0"
+                />
+                {errPkgPrice && (
+                  <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>
+                    {errPkgPrice}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-
-          <div className={styles.twoCol} style={{ marginTop: "12px" }}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Food Option</label>
-              <select
-                className={styles.input}
-                value={pkg.foodOption || ""}
-                onChange={(e) => updatePackage(i, "foodOption", e.target.value)}
-              >
-                <option value="">Select Food Option</option>
-                {FOOD_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>{opt.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.label}>Price (₹) <span className={styles.req}>*</span></label>
-              <input
-                type="number"
-                className={styles.input}
-                placeholder="Enter price"
-                value={pkg.price || ""}
-                onChange={(e) => updatePackage(i, "price", e.target.value)}
-                min="0"
-              />
-            </div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Daycare Services */}
       <div className={styles.fieldRow}>
