@@ -4,6 +4,8 @@ import { toApiDateOnly, dateOnlyWithTimeZone, parseWallClockDate } from "../util
 import { toast } from "sonner";
 import { Country, State, City } from "country-state-city";
 import MultiSelectDropdown from "./MultiSelectDropdown";
+import SearchableCountryCode from "./utilities/searchablecountrycode";
+import { getPhoneLength } from "./utilities/countryUtils";
 
 import ClinicFields from "./BranchFeatures/ClinicFields";
 import DaycareFields from "./BranchFeatures/DaycareFields";
@@ -22,27 +24,36 @@ function wallDatePayload(field, value) {
   return dateOnlyWithTimeZone(field, d);
 }
 
-const COUNTRY_DIAL_CODES = Country.getAllCountries()
+const ALL_COUNTRIES_DIAL = Country.getAllCountries()
   .filter((c) => c.phonecode)
-  .map((c) => {
-    const dialCode = c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`;
-    return {
-      isoCode: c.isoCode,
-      name: c.name,
-      dialCode: dialCode,
-    };
-  })
+  .map((c) => ({
+    code: c.isoCode,
+    dialCode: c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`,
+    name: c.name,
+  }))
   .sort((a, b) => {
-    if (a.isoCode === "IN") return -1;
-    if (b.isoCode === "IN") return 1;
+    if (a.code === "IN") return -1;
+    if (b.code === "IN") return 1;
     return a.name.localeCompare(b.name);
   });
+
+const parsePhoneAndCode = (phoneStr) => {
+  if (!phoneStr) return { code: "+91", countryCode: "IN", number: "" };
+  const str = String(phoneStr).trim();
+  if (str.startsWith("+")) {
+    const found = ALL_COUNTRIES_DIAL.find((c) => str.startsWith(c.dialCode));
+    if (found) {
+      return { code: found.dialCode, countryCode: found.code, number: str.slice(found.dialCode.length).replace(/\D/g, "") };
+    }
+  }
+  return { code: "+91", countryCode: "IN", number: str.replace(/\D/g, "") };
+};
 
 const getRawPhoneDigits = (val) => {
   if (!val) return "";
   let str = String(val).trim();
   if (str.startsWith("+")) {
-    const found = COUNTRY_DIAL_CODES.find((c) => str.startsWith(c.dialCode));
+    const found = ALL_COUNTRIES_DIAL.find((c) => str.startsWith(c.dialCode));
     if (found) {
       return str.slice(found.dialCode.length).replace(/\D/g, "");
     }
@@ -1120,6 +1131,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     companyEmail: "",
     companyPhone: "",
     companyPhoneCode: "+91",
+    companyCountryCode: "IN",
     companyWebsite: "",
     roleOfPerson: "",
     gender: userInfo?.gender || "",
@@ -1368,11 +1380,13 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
       } else if (!emailRegex.test(userForm.email.trim())) {
         newErrors.email = "Please enter a valid email address.";
       }
-      const rawMobile = userForm.mobileNumber ? String(userForm.mobileNumber).replace(/\D/g, "") : "";
+      const rawMobile = getRawPhoneDigits(userForm.mobileNumber);
+      const userIso = parsePhoneAndCode(userForm.mobileNumber).countryCode || "IN";
+      const expectedMobileLen = getPhoneLength(userIso);
       if (!rawMobile) {
         newErrors.mobileNumber = "Please enter your mobile number.";
-      } else if (!phoneRegex.test(rawMobile)) {
-        newErrors.mobileNumber = "Please enter a valid 10-digit mobile number.";
+      } else if (expectedMobileLen !== 15 ? rawMobile.length !== expectedMobileLen : (rawMobile.length < 7 || rawMobile.length > 15)) {
+        newErrors.mobileNumber = expectedMobileLen !== 15 ? `Please enter a valid ${expectedMobileLen}-digit mobile number.` : "Please enter a valid mobile number.";
       }
 
       setFormErrors(newErrors);
@@ -1396,8 +1410,12 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           newErrors.companyEmail = "Please enter a valid company email.";
         }
         const rawCompPhone = getRawPhoneDigits(companyForm.companyPhone);
-        if (!rawCompPhone || !phoneRegex.test(rawCompPhone)) {
-          newErrors.companyPhone = "Please enter a valid 10-digit company phone number.";
+        const compIso = companyForm.companyCountryCode || parsePhoneAndCode(companyForm.companyPhone).countryCode || "IN";
+        const expectedCompLen = getPhoneLength(compIso);
+        if (!rawCompPhone) {
+          newErrors.companyPhone = "Please enter company phone number.";
+        } else if (expectedCompLen !== 15 ? rawCompPhone.length !== expectedCompLen : (rawCompPhone.length < 7 || rawCompPhone.length > 15)) {
+          newErrors.companyPhone = expectedCompLen !== 15 ? `Please enter a valid ${expectedCompLen}-digit company phone number.` : "Please enter a valid company phone number.";
         }
         if (!companyForm.companyWebsite || !companyForm.companyWebsite.trim()) {
           newErrors.companyWebsite = "Please enter company website.";
@@ -1434,9 +1452,13 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
         } else if (!emailRegex.test(b.branchEmail.trim())) {
           newErrors[`branchEmail_${i}`] = `Please enter a valid branch email${bLabel}.`;
         }
-        const rawBranchPhone = b.branchPhone ? String(b.branchPhone).replace(/\D/g, "") : "";
-        if (!rawBranchPhone || !phoneRegex.test(rawBranchPhone)) {
-          newErrors[`branchPhone_${i}`] = `Please enter a valid 10-digit branch phone number${bLabel}.`;
+        const rawBranchPhone = getRawPhoneDigits(b.branchPhone);
+        const branchIso = b.branchCountryCode || parsePhoneAndCode(b.branchPhone).countryCode || "IN";
+        const expectedBranchLen = getPhoneLength(branchIso);
+        if (!rawBranchPhone) {
+          newErrors[`branchPhone_${i}`] = `Please enter branch phone number${bLabel}.`;
+        } else if (expectedBranchLen !== 15 ? rawBranchPhone.length !== expectedBranchLen : (rawBranchPhone.length < 7 || rawBranchPhone.length > 15)) {
+          newErrors[`branchPhone_${i}`] = expectedBranchLen !== 15 ? `Please enter a valid ${expectedBranchLen}-digit branch phone number${bLabel}.` : `Please enter a valid branch phone number${bLabel}.`;
         }
 
         if ((b.hoursMode || "MAIN_HOURS") === "MAIN_HOURS") {
@@ -1985,36 +2007,22 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-                      <div style={{ display: "flex", alignItems: "center", border: formErrors.companyPhone ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", background: "#fff" }}>
-                        <select
-                          value={companyForm.companyPhoneCode || "+91"}
-                          onChange={e => {
-                            const code = e.target.value;
-                            const digits = getRawPhoneDigits(companyForm.companyPhone);
-                            handleCompanyChange("companyPhoneCode", code);
-                            handleCompanyChange("companyPhone", digits ? `${code}${digits}` : "");
-                          }}
-                          style={{
-                            padding: "10px 8px",
-                            background: "#f3f4f6",
-                            border: "none",
-                            borderRight: "1px solid #d1d5db",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "#374151",
-                            flexShrink: 0,
-                            outline: "none",
-                            cursor: "pointer",
-                            maxWidth: "140px"
-                          }}
-                        >
-                          {COUNTRY_DIAL_CODES.map((c) => (
-                            <option key={`${c.isoCode}-${c.dialCode}`} value={c.dialCode}>
-                              {c.dialCode} ({c.name})
-                            </option>
-                          ))}
-                        </select>
-                        <input type="tel" style={{ ...inputStyle, border: "none", borderRadius: 0, width: "100%" }} placeholder="Enter phone number" maxLength={15}
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div style={{ border: formErrors.companyPhone ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, background: "#fff", padding: "2px 6px", height: "40px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                          <SearchableCountryCode
+                            countries={ALL_COUNTRIES_DIAL}
+                            selectedCode={companyForm.companyCountryCode || "IN"}
+                            onSelect={(code) => {
+                              const cObj = ALL_COUNTRIES_DIAL.find((c) => c.code === code);
+                              const dial = cObj?.dialCode || "+91";
+                              handleCompanyChange("companyCountryCode", code);
+                              handleCompanyChange("companyPhoneCode", dial);
+                              const digits = getRawPhoneDigits(companyForm.companyPhone);
+                              handleCompanyChange("companyPhone", digits ? `${dial}${digits}` : "");
+                            }}
+                          />
+                        </div>
+                        <input type="tel" style={{ ...inputStyle, flex: 1, border: formErrors.companyPhone ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter phone number" maxLength={15}
                           value={getRawPhoneDigits(companyForm.companyPhone)}
                           onChange={e => {
                             const code = companyForm.companyPhoneCode || "+91";
