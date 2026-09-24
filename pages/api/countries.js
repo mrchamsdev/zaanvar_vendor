@@ -12,8 +12,8 @@ export default function handler(req, res) {
   }
 
   try {
-    // libphonenumber-js ships a list of all supported ISO country codes
-    const isoCodes = getCountries(); // e.g. ["AC","AD","AE","AF", ...]
+    const ALLOWED_ISO = ["IN", "GB", "US"];
+    const isoCodes = getCountries().filter((c) => ALLOWED_ISO.includes(c)); // e.g. ["GB", "IN", "US"]
 
     // Intl.DisplayNames is available in Node 12+ / modern browsers
     const displayNames = new Intl.DisplayNames(["en"], { type: "region" });

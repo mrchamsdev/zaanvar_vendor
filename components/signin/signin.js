@@ -326,6 +326,19 @@ const SignIn = ({ onSignUpClick }) => {
   // ── Register handlers ──────────────────────────────────────────────────────
   const handleRegChange = (e) => {
     const { name, value } = e.target;
+    if (name === "name") {
+      const lettersOnly = value.replace(/[^a-zA-Z\s]/g, "");
+      setRegDetails((p) => ({ ...p, name: lettersOnly }));
+      setRegErrors((p) => ({ ...p, name: lettersOnly.trim() ? "" : "Name is required" }));
+      return;
+    }
+    if (name === "email") {
+      const cleanEmail = value.replace(/[^a-zA-Z0-9@._-]/g, "");
+      setRegDetails((p) => ({ ...p, email: cleanEmail }));
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
+      setRegErrors((p) => ({ ...p, email: cleanEmail.length === 0 ? "" : !emailOk ? "Enter a valid email address" : "" }));
+      return;
+    }
     if (name === "mobile") {
       const digits = value.replace(/\D/g, "").slice(0, 10);
       setRegDetails((p) => ({ ...p, mobile: digits }));
@@ -339,11 +352,6 @@ const SignIn = ({ onSignUpClick }) => {
       return;
     }
     setRegDetails((p) => ({ ...p, [name]: value }));
-    if (name === "name") setRegErrors((p) => ({ ...p, name: value.trim() ? "" : "Name is required" }));
-    if (name === "email") {
-      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-      setRegErrors((p) => ({ ...p, email: value.length === 0 ? "" : !emailOk ? "Enter a valid email address" : "" }));
-    }
   };
 
   // Send OTP = call register API first, then show OTP screen

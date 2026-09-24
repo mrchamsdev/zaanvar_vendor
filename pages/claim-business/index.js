@@ -60,6 +60,37 @@ const CategoryIcon = () => (
   </svg>
 );
 
+const getBranchCategories = (b) => {
+  if (!b) return ["Pet Store"];
+  if (Array.isArray(b.featureType) && b.featureType.length > 0) {
+    return b.featureType.map(s => String(s).trim()).filter(Boolean);
+  }
+  if (typeof b.featureType === "string" && b.featureType.trim()) {
+    return b.featureType.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  const rawList = b.servicesProvided || b.services || b.availableServices || b.categories || b.category || b.serviceTypes;
+  if (Array.isArray(rawList) && rawList.length > 0) {
+    return rawList.map(s => String(s).trim()).filter(Boolean);
+  }
+  if (typeof rawList === "string" && rawList.trim()) {
+    return rawList.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  const title = String(b.fullName || b.branchName || b.companyName || b.name || "").toLowerCase();
+  const found = [];
+  if (title.includes("grooming") || title.includes("spa")) found.push("Pet Grooming");
+  if (title.includes("daycare") || title.includes("boarding") || title.includes("kennel")) found.push("Pet Daycare");
+  if (title.includes("clinic") || title.includes("vet") || title.includes("veterinary")) found.push("Pet Clinic");
+  if (title.includes("shop") || title.includes("store") || title.includes("food") || title.includes("accessories")) found.push("Pet Store");
+  if (title.includes("sales") || title.includes("buy") || title.includes("puppy") || title.includes("kitten")) found.push("Pet Sales");
+  if (title.includes("train") || title.includes("school")) found.push("Pet Training");
+  if (title.includes("breeder") || title.includes("breeding")) found.push("Pet Breeder");
+  if (found.length > 0) return found;
+  if (b.presentDataStoreType && b.presentDataStoreType !== "PET BUSINESS") {
+    return [b.presentDataStoreType];
+  }
+  return ["Pet Store"];
+};
+
 const IconVideo = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M23 7l-7 5 7 5V7z" />
@@ -303,7 +334,19 @@ const ClaimBusiness = ({ forcedView = null }) => {
   }, [selectedBranch?.id]);
 
   // ── Wizard View state: "search" | "details" | "branches" | "verify_method" | "verify_later" ──
-  const [view, setView] = useState(forcedView || "search");
+  const [view, setView] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("zaanvar_claim_saved_view");
+      if (saved && saved !== "search" && saved !== "home") return saved;
+    }
+    return forcedView || "search";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && view && view !== "search" && view !== "home") {
+      sessionStorage.setItem("zaanvar_claim_saved_view", view);
+    }
+  }, [view]);
 
   // ── Ticket and progress state ──
   const [ticketId, _setTicketId] = useState(null);
@@ -385,6 +428,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   // ── Verification Option state ──
   const [methodOption, setMethodOption] = useState("video"); // "video" | "later"
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVerificationGuideModalOpen, setIsVerificationGuideModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [isEditPhotosModalOpen, setIsEditPhotosModalOpen] = useState(false);
@@ -395,6 +439,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [selfiePhoto, setSelfiePhoto] = useState("");
   const [videoUpload, setVideoUpload] = useState("");
   const [showOtpView, setShowOtpView] = useState(false);
+  const [isSubmittingOtp, setIsSubmittingOtp] = useState(false);
   const [disputeDocs, setDisputeDocs] = useState({
     gst: null,
     shop: null,
@@ -413,9 +458,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const progressFetchedRef = useRef(null);
   const headerBranchesFetchedRef = useRef(null);
 
-  // Prevent background scrolling when dispute modal is open
+  // Prevent background scrolling when any modal is open
   useEffect(() => {
-    if (isDisputeModalOpen) {
+    if (isDisputeModalOpen || isModalOpen || isVerificationGuideModalOpen || isDuplicateClaimModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -423,7 +468,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isDisputeModalOpen]);
+  }, [isDisputeModalOpen, isModalOpen, isVerificationGuideModalOpen, isDuplicateClaimModalOpen]);
 
   // Auto-show "Under Review" modal when landing on dispute_docs view with existing submitted docs
   // useEffect(() => {
@@ -555,6 +600,21 @@ const ClaimBusiness = ({ forcedView = null }) => {
     role: "Owner",
     companyAddress: ""
   });
+
+  // Auto-fill company phone, company email, and username from logged-in user if empty
+  useEffect(() => {
+    if (userInfo) {
+      const userPhone = userInfo?.phoneNumber || userInfo?.phone || "";
+      const userEmail = userInfo?.email || "";
+      const resolvedName = userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
+      setFormData((prev) => ({
+        ...prev,
+        businessPhone: prev.businessPhone || userPhone,
+        businessEmail: prev.businessEmail || userEmail,
+        userName: resolvedName || prev.userName || ""
+      }));
+    }
+  }, [userInfo]);
 
   const [businessType, setBusinessType] = useState("Independent");
 
@@ -925,7 +985,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
           }
 
           if (!step || stepUpper === "" || stepUpper === "NULL") {
-            if (!hasVerifiedBusiness && forcedView !== "home") {
+            const savedView = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_claim_saved_view") : null;
+            if (savedView && savedView !== "search" && savedView !== "home") {
+              setView(savedView);
+            } else if (!hasVerifiedBusiness && forcedView !== "home") {
               setView("search");
             } else {
               setView("home");
@@ -1096,7 +1159,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
             setShowOtpView(true);
           }
         } else {
-          if (hasVerifiedBusiness) {
+          const savedView = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_claim_saved_view") : null;
+          if (savedView && savedView !== "search" && savedView !== "home") {
+            setView(savedView);
+          } else if (hasVerifiedBusiness) {
             setView("home");
           } else {
             setView("search");
@@ -1104,7 +1170,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
         }
       } catch (err) {
         console.log("No existing claim progress ticket found.");
-        if (hasVerifiedBusiness) {
+        const savedView = typeof window !== "undefined" ? sessionStorage.getItem("zaanvar_claim_saved_view") : null;
+        if (savedView && savedView !== "search" && savedView !== "home") {
+          setView(savedView);
+        } else if (hasVerifiedBusiness) {
           setView("home");
         } else {
           setView("search");
@@ -1294,9 +1363,9 @@ const ClaimBusiness = ({ forcedView = null }) => {
             const draft = ticket.draftData || ticket.draft_data || {};
             setFormData({
               businessName: draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "",
-              businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "",
-              businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || "",
-              userName: draft.userName || userInfo?.name || "",
+              businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || userInfo?.phoneNumber || userInfo?.phone || "",
+              businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || userInfo?.email || "",
+              userName: userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || draft.userName || "",
               role: draft.role || ticket.role || "Owner",
               companyAddress: draft.companyAddress || selectedBranch.branchLocation || ""
             });
@@ -1367,10 +1436,12 @@ const ClaimBusiness = ({ forcedView = null }) => {
       setTicketId(null);
       setTicketReferenceId("ZB21234567890");
       const resolvedName = userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
+      const userPhone = userInfo?.phoneNumber || userInfo?.phone || "";
+      const userEmail = userInfo?.email || "";
 
       const companyName = selectedBranch.fullName || selectedBranch.branchName || "";
-      const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || "";
-      const email = selectedBranch.branchEmail || selectedBranch.email || "";
+      const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || userPhone;
+      const email = selectedBranch.branchEmail || selectedBranch.email || userEmail;
       const companyAddress = selectedBranch.branchLocation || "";
 
       localStorage.setItem("zaanvar_claim_scraped_branch_id", selectedBranch.id);
@@ -1500,6 +1571,45 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // POST progress for Step 0: COMPANY_DETAILS
   const handleDetailsNext = async () => {
+    // ── Validation for required fields ──
+    const compNameTitle = businessType === "Enterprise" ? "Company name" : "Business name";
+    if (!formData.businessName || !formData.businessName.trim()) {
+      toast.error(`Please enter ${compNameTitle}.`);
+      return;
+    }
+    const rawPhone = getRawPhoneDigits(formData.businessPhone);
+    if (!rawPhone) {
+      toast.error("Please enter phone number.");
+      return;
+    }
+    if (rawPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit phone number.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.businessEmail || !formData.businessEmail.trim()) {
+      toast.error("Please enter email address.");
+      return;
+    }
+    if (!emailRegex.test(formData.businessEmail.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    const resolvedName = formData.userName || userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "";
+    if (!resolvedName || !resolvedName.trim()) {
+      toast.error("Please enter user name.");
+      return;
+    }
+    if (!formData.role || !formData.role.trim()) {
+      toast.error("Please enter role.");
+      return;
+    }
+    const compAddrTitle = businessType === "Enterprise" ? "Company address" : "Business address";
+    if (!formData.companyAddress || !formData.companyAddress.trim()) {
+      toast.error(`Please enter ${compAddrTitle}.`);
+      return;
+    }
+
     if (selectedBranch?.isClaimed || selectedBranch?.is_claimed) {
       setBackendBranchId(selectedBranch.id);
       if (typeof window !== "undefined") {
@@ -1774,15 +1884,35 @@ const ClaimBusiness = ({ forcedView = null }) => {
     toast.success("Onboarding claim submitted successfully!");
   };
 
+  const resolveScrapedBranchId = () => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zaanvar_claim_scraped_branch_id");
+      if (saved && !isNaN(parseInt(saved, 10))) return parseInt(saved, 10);
+    }
+    if (selectedBranch?.id && !isNaN(parseInt(selectedBranch.id, 10))) return parseInt(selectedBranch.id, 10);
+    if (inProgressTicket?.scrapedBranchId && !isNaN(parseInt(inProgressTicket.scrapedBranchId, 10))) return parseInt(inProgressTicket.scrapedBranchId, 10);
+    if (inProgressTicket?.scraped_branch_id && !isNaN(parseInt(inProgressTicket.scraped_branch_id, 10))) return parseInt(inProgressTicket.scraped_branch_id, 10);
+    if (inProgressTicket?.scrapedBranch?.id && !isNaN(parseInt(inProgressTicket.scrapedBranch.id, 10))) return parseInt(inProgressTicket.scrapedBranch.id, 10);
+    if (inProgressTicket?.branchId && !isNaN(parseInt(inProgressTicket.branchId, 10))) return parseInt(inProgressTicket.branchId, 10);
+    if (inProgressTicket?.branch_id && !isNaN(parseInt(inProgressTicket.branch_id, 10))) return parseInt(inProgressTicket.branch_id, 10);
+    if (inProgressTicket?.draftData?.scrapedBranchId && !isNaN(parseInt(inProgressTicket.draftData.scrapedBranchId, 10))) return parseInt(inProgressTicket.draftData.scrapedBranchId, 10);
+    if (inProgressTicket?.draftData?.branchId && !isNaN(parseInt(inProgressTicket.draftData.branchId, 10))) return parseInt(inProgressTicket.draftData.branchId, 10);
+    if (backendBranchId && !isNaN(parseInt(backendBranchId, 10))) return parseInt(backendBranchId, 10);
+    if (typeof window !== "undefined") {
+      const savedBackend = localStorage.getItem("zaanvar_claim_backend_branch_id");
+      if (savedBackend && !isNaN(parseInt(savedBackend, 10))) return parseInt(savedBackend, 10);
+    }
+    return null;
+  };
+
   const handleInitiateOtpClaim = async () => {
     try {
       const API_URL = window.location.hostname !== "support.zaanvar.com"
         ? "https://dev.zaanvar.com/api/"
         : "https://prod.zaanvar.com/api/";
 
-      const vendorUserId = userInfo?.userId || userInfo?.id || 233;
-      const savedBranchId = localStorage.getItem("zaanvar_claim_scraped_branch_id");
-      const activeScrapedBranchId = selectedBranch?.id || (savedBranchId ? parseInt(savedBranchId) : 45);
+      const vendorUserId = parseInt(userInfo?.userId || userInfo?.id || 233, 10);
+      const activeScrapedBranchId = resolveScrapedBranchId() || 45;
       const savedTicketId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null;
       const isRegistration = typeof window !== "undefined" && localStorage.getItem("zaanvar_flow_type") === "REGISTER";
 
@@ -1791,13 +1921,16 @@ const ClaimBusiness = ({ forcedView = null }) => {
         : `${API_URL}scraped-branches/claim/progress`;
 
       const payload = {
-        ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
-        ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId) : null),
+        ticket_id: ticketId || (savedTicketId ? parseInt(savedTicketId, 10) : null),
+        ticketId: ticketId || (savedTicketId ? parseInt(savedTicketId, 10) : null),
         scraped_branch_id: activeScrapedBranchId,
+        scrapedBranchId: activeScrapedBranchId,
         vendor_user_id: vendorUserId,
         vendorUserId: vendorUserId,
         userId: vendorUserId,
         groomerID: vendorUserId,
+        currentStep: "BUSINESS_VERIFICATION_OTP",
+        current_step: "BUSINESS_VERIFICATION_OTP",
         companyName: formData.businessName,
         phoneNo: ensurePlus91(formData.businessPhone),
         email: formData.businessEmail,
@@ -1854,7 +1987,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         currentStep: "SUBMITTED",
         current_step: "SUBMITTED",
         ticket_id: ticketId,
-        scraped_branch_id: savedBranchId ? parseInt(savedBranchId) : null,
+        scraped_branch_id: savedBranchId ? parseInt(savedBranchId, 10) : null,
         vendor_user_id: userInfo?.userId || userInfo?.id,
         companyName: formData.businessName,
         phoneNo: ensurePlus91(formData.businessPhone),
@@ -1887,73 +2020,71 @@ const ClaimBusiness = ({ forcedView = null }) => {
     setShowOtpView(false);
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (filter) => {
+    if (isSubmittingOtp) return;
+
     const otpString = otpValues.join("").trim();
     if (otpString.length < 6) {
       toast.error("Please enter a valid 6-digit OTP code.");
       return;
     }
 
+    setIsSubmittingOtp(true);
     try {
       const API_URL = window.location.hostname !== "support.zaanvar.com"
         ? "https://dev.zaanvar.com/api/"
         : "https://prod.zaanvar.com/api/";
 
-      const savedBackendBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") : null;
-      const targetId = backendBranchId
-        ? parseInt(backendBranchId, 10)
-        : (savedBackendBranchId
-          ? parseInt(savedBackendBranchId, 10)
-          : null);
+      const vendorUserId = parseInt(userInfo?.userId || userInfo?.id || 233, 10);
+      const resolvedScrapedId = resolveScrapedBranchId();
+      const activeTicketId = ticketId || (inProgressTicket?.ticket_id || inProgressTicket?.id || (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_ticket_id") : null));
 
-      if (view === "verify_later" || view === "verify_otp" || currentTicketStep === "VERIFY_LATER") {
-        const vendorUserId = userInfo?.userId || userInfo?.id || 233;
-        const savedScrapedBranchId = typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_scraped_branch_id") : null;
-        const finalScrapedId = savedScrapedBranchId ? parseInt(savedScrapedBranchId, 10) : targetId;
+      const verifyPayload = {
+        scrapedBranchId: resolvedScrapedId || undefined,
+        scraped_branch_id: resolvedScrapedId || undefined,
+        vendorUserId: vendorUserId,
+        vendor_user_id: vendorUserId,
+        ticketId: activeTicketId ? parseInt(activeTicketId, 10) : undefined,
+        ticket_id: activeTicketId ? parseInt(activeTicketId, 10) : undefined,
+        otp: otpString,
+        autoConvert: true
+      };
 
-        if (!finalScrapedId) {
-          toast.error("Scraped Branch ID not found.");
-          return;
+      const fallbackPayload = {
+        type: "branch",
+        id: resolvedScrapedId || activeTicketId || vendorUserId,
+        otp: otpString,
+        vendorUserId: vendorUserId
+      };
+
+      let res = null;
+      try {
+        if (filter === "verified") {
+
+          res = await axios.post(`${API_URL}verification/verify-single-otp`, fallbackPayload);
+        } else {
+          res = await axios.post(`${API_URL}scraped-branches/claim/verify`, verifyPayload);
         }
+      } catch (primaryErr) {
+        console.warn("Primary claim verify error, trying fallback endpoint:", primaryErr);
+        // if (filter === "verified") {
+        //   res = await axios.post(`${API_URL}verification/verify-single-otp`, fallbackPayload);
+        // } else {
+        //   res = await axios.post(`${API_URL}scraped-branches/claim/verify`, verifyPayload);
+        // }
+      }
 
-        const verifyPayload = {
-          scrapedBranchId: finalScrapedId,
-          vendorUserId: parseInt(vendorUserId, 10),
-          otp: otpString,
-          autoConvert: true
-        };
-
-        const res = await axios.post(`${API_URL}scraped-branches/claim/verify`, verifyPayload);
-
-        if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
-          toast.success("Business verified successfully!");
-          setIsVerified(true);
-          window.location.href = "/home";
-        }
-      } else {
-        if (!targetId) {
-          toast.error("Branch ID not found in claim progress response.");
-          return;
-        }
-
-        const payload = {
-          type: "branch",
-          id: targetId,
-          otp: otpString
-        };
-
-        const res = await axios.post(`${API_URL}verification/verify-single-otp`, payload);
-
-        if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res) {
-          toast.success("OTP verified successfully!");
-          setIsVerified(true);
-          window.location.href = "/home";
-        }
+      if (res?.data?.status === "success" || res?.data?.message?.toLowerCase().includes("verified") || res?.data?.success || res) {
+        toast.success("Business verified successfully!");
+        setIsVerified(true);
+        window.location.href = "/home";
       }
     } catch (err) {
       console.error("Failed to verify OTP code:", err);
       const errMsg = err?.response?.data?.message || err?.response?.data?.msg || err?.message || "Failed to verify OTP.";
       toast.error(errMsg);
+    } finally {
+      setIsSubmittingOtp(false);
     }
   };
 
@@ -2390,6 +2521,28 @@ const ClaimBusiness = ({ forcedView = null }) => {
     window.open(url, "_blank");
   };
 
+  const activeStepU = (
+    inProgressTicket?.currentStep ||
+    inProgressTicket?.current_step ||
+    inProgressTicket?.step ||
+    inProgressTicket?.draftData?.currentStep ||
+    inProgressTicket?.draftData?.current_step ||
+    currentTicketStep ||
+    ""
+  ).toUpperCase();
+  const activeStatusU = (
+    inProgressTicket?.status ||
+    inProgressTicket?.claimStatus ||
+    inProgressTicket?.ticketStatus ||
+    inProgressTicket?.draftData?.status ||
+    ticketStatus ||
+    ""
+  ).toUpperCase();
+  const isDocOrRejectedStatus =
+    Boolean(inProgressTicket) ||
+    ["DOCUMENT_VERIFICATION", "DOCUMENTS_UPLOADED", "REJECTED", "SUBMITTED", "UNDER_REVIEW", "VERIFICATION_IN_PROGRESS"].includes(activeStepU) ||
+    ["DOCUMENT_VERIFICATION", "DOCUMENTS_UPLOADED", "REJECTED", "SUBMITTED", "UNDER_REVIEW", "VERIFICATION_IN_PROGRESS"].includes(activeStatusU);
+
   return (
     <>
       <Head>
@@ -2429,7 +2582,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
               </div>
             ) : null
           ) : (
-            view === "search" ? <SearchBar query={searchQuery} setQuery={setSearchQuery} /> : null
+            view === "search" && !isDocOrRejectedStatus ? <SearchBar query={searchQuery} setQuery={setSearchQuery} /> : null
           )
         }
       >
@@ -3228,7 +3381,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
               {/* Header titles container with 3-dot options menu aligned to top right */}
               <div className={styles.titleContainer}>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                  {view === "search" && (
+                  {view === "search" && !isDocOrRejectedStatus && (
                     <button
                       type="button"
                       onClick={handleHeaderBack}
@@ -3266,8 +3419,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   </div>
                 </div>
 
-                {/* Vertical Three-dot Menu Option Button inside Verify Later, Submitted Screen, or Verify Method Screen (for second claim) */}
-                {(view === "verify_later" || view === "submitted" || (view === "verify_method" && headerBranches.length > 0)) && (
+                {/* Vertical Three-dot Menu Option Button inside Verify Screens */}
+                {(view === "verify_later" || view === "submitted" || view === "verify_method" || view === "verify_otp") && (
                   <div className={styles.threeDotContainer} ref={dropdownRef}>
                     <button
                       type="button"
@@ -3284,7 +3437,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           className={styles.dropdownItem}
                           onClick={() => {
                             setIsDropdownOpen(false);
-                            toast.info("Help center instructions loaded.");
+                            setIsVerificationGuideModalOpen(true);
                           }}
                         >
                           • Help
@@ -3294,21 +3447,23 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           className={styles.dropdownItem}
                           onClick={() => {
                             setIsDropdownOpen(false);
-                            toast.info("Connecting to live support chat...");
+                            router.push("/support");
                           }}
                         >
                           • Support
                         </button>
-                        <button
-                          type="button"
-                          className={styles.dropdownItem}
-                          onClick={() => {
-                            setIsDropdownOpen(false);
-                            setView("verify_otp");
-                          }}
-                        >
-                          • Verify your business with code
-                        </button>
+                        {view !== "verify_otp" && !showOtpView && (
+                          <button
+                            type="button"
+                            className={styles.dropdownItem}
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              setView("verify_otp");
+                            }}
+                          >
+                            • Verify your business with code
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3611,7 +3766,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                             {selectedBranch.fullName || selectedBranch.branchName || "Unnamed Business"}
                           </h2>
                           <span className={styles.previewSub}>
-                            {selectedBranch.featureType?.[0] || selectedBranch.presentDataStoreType || "Pet Store"}
+                            {getBranchCategories(selectedBranch).slice(0, 2).join(" / ")}
                           </span>
                         </div>
 
@@ -3633,7 +3788,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           <h4 className={styles.previewCategoryHeader}>Business Category</h4>
                           <div className={styles.previewCategoryTag}>
                             <CategoryIcon />
-                            <span>{selectedBranch.featureType?.join(", ") || "Pet Store"}</span>
+                            <span>{getBranchCategories(selectedBranch).join(", ")}</span>
                           </div>
                         </div>
 
@@ -3704,7 +3859,8 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "16px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                  marginTop: "10px",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <div style={{
@@ -4158,7 +4314,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                       <div className={styles.formGrid}>
                         <div className={styles.formField}>
-                          <label>{businessType === "Enterprise" ? "Company Name" : "Business Name"}</label>
+                          <label>{businessType === "Enterprise" ? "Company Name" : "Business Name"} <span style={{ color: "#e74c3c" }}>*</span></label>
                           <input
                             type="text"
                             placeholder={businessType === "Enterprise" ? "Company Name" : "Business Name"}
@@ -4167,7 +4323,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>{businessType === "Enterprise" ? "Company Phone Number" : "Business Phone Number"}</label>
+                          <label>{businessType === "Enterprise" ? "Company Phone Number" : "Business Phone Number"} <span style={{ color: "#e74c3c" }}>*</span></label>
                           <div className={styles.phoneInputContainer}>
                             <span className={styles.phonePrefix}>+91</span>
                             <input
@@ -4186,25 +4342,28 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           </div>
                         </div>
                         <div className={styles.formField}>
-                          <label>{businessType === "Enterprise" ? "Company Email" : "Business Email"}</label>
+                          <label>{businessType === "Enterprise" ? "Company Email" : "Business Email"} <span style={{ color: "#e74c3c" }}>*</span></label>
                           <input
                             type="email"
                             placeholder={businessType === "Enterprise" ? "Company Email" : "Business Email"}
                             value={formData.businessEmail}
-                            onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value.replace(/[^a-zA-Z0-9@._-]/g, "") })}
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>User Name</label>
+                          <label>User Name <span style={{ color: "#e74c3c" }}>*</span></label>
                           <input
                             type="text"
                             placeholder="Enter Here"
-                            value={formData.userName}
-                            onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                            readOnly
+                            disabled
+                            style={{ background: "#f3f4f6", cursor: "not-allowed" }}
+                            value={formData.userName || userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || ""}
+                            onChange={(e) => setFormData({ ...formData, userName: e.target.value.replace(/[^a-zA-Z\s]/g, "") })}
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>Role</label>
+                          <label>Role <span style={{ color: "#e74c3c" }}>*</span></label>
                           <input
                             type="text"
                             placeholder="Enter here"
@@ -4213,7 +4372,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                           />
                         </div>
                         <div className={styles.formField}>
-                          <label>{businessType === "Enterprise" ? "Company Address" : "Business Address"}</label>
+                          <label>{businessType === "Enterprise" ? "Company Address" : "Business Address"} <span style={{ color: "#e74c3c" }}>*</span></label>
                           <input
                             type="text"
                             placeholder="Enter here..."
@@ -4373,7 +4532,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       className={styles.learnMoreLink}
                       onClick={(e) => {
                         e.preventDefault();
-                        toast.info("Opening verification guide...");
+                        setIsVerificationGuideModalOpen(true);
                       }}
                     >
                       Learn more about verification.
@@ -4474,9 +4633,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                     {/* Illustration */}
                     <img
-                      src="https://zaanvarprods3.b-cdn.net/media/1786077325447-mobile-otp%201.png"
+                      src="https://zaanvarprods3.b-cdn.net/media/1786077281636-blocking-internet-icon%201.png"
                       alt="OTP Illustration"
                       style={{ width: '100%', maxWidth: '200px', height: 'auto', marginBottom: '24px', marginTop: '16px' }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://zaanvarprods3.b-cdn.net/media/1786077091689-Group%201000017111.png";
+                      }}
                     />
 
                     <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111111', margin: '0 0 6px 0', fontFamily: 'Inter, sans-serif' }}>
@@ -4550,24 +4713,23 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                     <button
                       type="button"
-                      onClick={handleVerifyOtp}
+                      disabled={isSubmittingOtp}
+                      onClick={() => handleVerifyOtp("verified")}
                       style={{
                         width: '100%',
-                        background: '#1a73e8',
+                        background: isSubmittingOtp ? '#93c5fd' : '#1a73e8',
                         border: 'none',
                         color: '#ffffff',
                         padding: '12px 0',
                         borderRadius: '8px',
                         fontSize: '14px',
                         fontWeight: '600',
-                        cursor: 'pointer',
+                        cursor: isSubmittingOtp ? 'not-allowed' : 'pointer',
                         fontFamily: 'Inter, sans-serif',
                         transition: 'background 0.2s'
                       }}
-                      onMouseOver={(e) => e.target.style.background = '#1557b0'}
-                      onMouseOut={(e) => e.target.style.background = '#1a73e8'}
                     >
-                      Submit
+                      {isSubmittingOtp ? "Submitting..." : "Submit"}
                     </button>
                   </div>
                 </div>
@@ -4932,9 +5094,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               type="button"
                               className={styles.btnPrimary}
                               style={{ width: '100%', marginTop: '24px' }}
-                              onClick={handleVerifyOtp}
+                              disabled={isSubmittingOtp}
+                              onClick={() => handleVerifyOtp("verified")}
                             >
-                              Submit
+                              {isSubmittingOtp ? "Submitting..." : "Submit"}
                             </button>
                           </div>
                         )}
@@ -5034,7 +5197,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
               <button
                 type="button"
                 className={styles.btnOutline}
-                onClick={() => toast.info("Opening customer support ticketing system...")}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setIsVerificationGuideModalOpen(true);
+                }}
               >
                 <IconHelp />
                 <span>Need help ?</span>
@@ -5046,6 +5212,96 @@ const ClaimBusiness = ({ forcedView = null }) => {
               >
                 <IconDownload />
                 <span>Install Zaanvar app</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Verification Guide & Support Modal ── */}
+      {isVerificationGuideModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsVerificationGuideModalOpen(false)}>
+          <div className={styles.modalContainer} style={{ maxWidth: "720px" }} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={() => setIsVerificationGuideModalOpen(false)}
+              aria-label="Close modal"
+            >
+              <IconClose />
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#eff6ff", color: "#1a73e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <IconInfoCircle />
+              </div>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#111827", margin: 0 }}>
+                  Business Verification Guide
+                </h2>
+                <p style={{ fontSize: "13px", color: "#6b7280", margin: "2px 0 0" }}>
+                  Learn how Zaanvar verifies your business to keep your profile secure and trusted.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", margin: "16px 0" }}>
+              {/* Method 1: Video Verification */}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "16px", background: "#f9fafb" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <span style={{ background: "#2563eb", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700" }}>1</span>
+                  <h4 style={{ fontSize: "15px", fontWeight: "700", color: "#1f2937", margin: 0 }}>
+                    Video Verification (Recommended)
+                  </h4>
+                </div>
+                <p style={{ fontSize: "13px", color: "#4b5563", margin: "0 0 8px", lineHeight: "1.5" }}>
+                  Record a continuous video of your business location using the <strong>Zaanvar App</strong>. Show your street sign or building exterior, storefront name, equipment, and proof of management access.
+                </p>
+                <div style={{ fontSize: "12px", color: "#2563eb", fontWeight: "600" }}>
+                  ✓ Fast review within 24-48 hours
+                </div>
+              </div>
+
+              {/* Method 2: Phone OTP Verification */}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "16px", background: "#ffffff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <span style={{ background: "#059669", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700" }}>2</span>
+                  <h4 style={{ fontSize: "15px", fontWeight: "700", color: "#1f2937", margin: 0 }}>
+                    Verify with Code (OTP)
+                  </h4>
+                </div>
+                <p style={{ fontSize: "13px", color: "#4b5563", margin: "0 0 8px", lineHeight: "1.5" }}>
+                  If your registered business phone number can receive SMS or voice calls, select <strong>&quot;Verify your business with code&quot;</strong> in the menu options to receive an instant 6-digit PIN.
+                </p>
+                <div style={{ fontSize: "12px", color: "#059669", fontWeight: "600" }}>
+                  ✓ Instant activation upon OTP match
+                </div>
+              </div>
+
+              {/* Method 3: Document Verification */}
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "16px", background: "#ffffff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <span style={{ background: "#d97706", color: "#fff", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700" }}>3</span>
+                  <h4 style={{ fontSize: "15px", fontWeight: "700", color: "#1f2937", margin: 0 }}>
+                    Legal Document Proof
+                  </h4>
+                </div>
+                <p style={{ fontSize: "13px", color: "#4b5563", margin: 0, lineHeight: "1.5" }}>
+                  In case of ownership disputes or missing video access, submit official documents (GSTIN Certificate, Shop License, or Utility Bill) to prove management rights.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer controls */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "16px", borderTop: "1px solid #f3f4f6" }}>
+
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                style={{ padding: "10px 24px", borderRadius: "6px" }}
+                onClick={() => setIsVerificationGuideModalOpen(false)}
+              >
+                Got it
               </button>
             </div>
           </div>

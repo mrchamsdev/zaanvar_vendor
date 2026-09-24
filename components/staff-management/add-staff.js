@@ -59,11 +59,15 @@ const AddStaff = ({ show, onClose, mode = "add", staffId = null }) => {
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [staffPermissions, setStaffPermissions] = useState([]);
 
-  const allCountries = Country.getAllCountries().map(c => ({
-    name: c.name,
-    code: c.isoCode,
-    dialCode: "+" + c.phonecode
-  }));
+  const ALLOWED_PHONE_COUNTRIES = ["IN", "GB", "US"];
+
+  const allCountries = Country.getAllCountries()
+    .filter((c) => c.phonecode && ALLOWED_PHONE_COUNTRIES.includes(c.isoCode))
+    .map((c) => ({
+      name: c.name,
+      code: c.isoCode,
+      dialCode: "+" + c.phonecode
+    }));
 
   const generateTimeOptions = () => {
     const times = [];

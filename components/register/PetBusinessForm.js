@@ -18,8 +18,10 @@ const getCities = (countryCode, stateCode) =>
     ? City.getCitiesOfState(countryCode, stateCode).map((c) => ({ id: c.name, name: c.name }))
     : [];
 
+const ALLOWED_PHONE_COUNTRIES = ["IN", "GB", "US"];
+
 const COUNTRY_DIAL_CODES = Country.getAllCountries()
-  .filter((c) => c.phonecode)
+  .filter((c) => c.phonecode && ALLOWED_PHONE_COUNTRIES.includes(c.isoCode))
   .map((c) => {
     const dialCode = c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`;
     return {
