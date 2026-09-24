@@ -99,21 +99,33 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background: #fff;
-  padding: clamp(20px, 3vh, 48px) clamp(16px, 2.5vw, 40px);
+  padding: clamp(16px, 2.5vh, 40px) clamp(16px, 2.5vw, 40px);
   overflow-y: auto;
-  gap: clamp(16px, 2.5vh, 28px);
+  gap: clamp(12px, 2vh, 24px);
+  max-height: 100vh;
+  box-sizing: border-box;
+}
+
+.newFormSide > *:first-child {
+  margin-top: auto;
+}
+
+.newFormSide > *:last-child {
+  margin-bottom: auto;
 }
 
 .newLogoArea {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .newLogo {
-  width: clamp(130px, 14vw, 210px);
+  width: clamp(130px, 12vw, 180px);
+  max-height: 48px;
   height: auto;
   object-fit: contain;
   display: block;
@@ -124,9 +136,10 @@
   border-radius: clamp(12px, 1.5vw, 20px);
   border: 1.5px solid #ebebeb;
   box-shadow: 0 6px 32px rgba(0, 0, 0, 0.07);
-  padding: clamp(24px, 3.5vw, 48px) clamp(20px, 3vw, 40px);
+  padding: clamp(20px, 2.5vw, 36px) clamp(16px, 2vw, 32px);
   width: 100%;
-  max-width: clamp(380px, 44vw, 560px);
+  max-width: clamp(380px, 44vw, 520px);
+  box-sizing: border-box;
 }
 
 .newFormTitle {

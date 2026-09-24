@@ -18,8 +18,10 @@ import TrainingFields from "./BranchFeatures/TrainingFields";
 import SitterFields from "./BranchFeatures/SitterFields";
 
 // ─── Helpers & Mappings ──────────────────────────────────────────────────────
+const ALLOWED_PHONE_COUNTRIES = ["IN", "GB", "US"];
+
 const ALL_COUNTRIES_DIAL = Country.getAllCountries()
-  .filter((c) => c.phonecode)
+  .filter((c) => c.phonecode && ALLOWED_PHONE_COUNTRIES.includes(c.isoCode))
   .map((c) => ({
     code: c.isoCode,
     dialCode: c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`,
@@ -1321,8 +1323,8 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Full Name <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={{ ...inputStyle, background: "#f3f4f6", border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
-                    value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value)} />
+                  <input style={{ ...inputStyle, border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
+                    value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value)} readOnly disabled />
                   {formErrors.fullName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.fullName}</span>}
                 </div>
                 <div style={fieldWrap}>
@@ -1338,8 +1340,8 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="email" style={{ ...inputStyle, background: "#f3f4f6", cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
-                    readOnly disabled value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
+                  <input type="email" style={{ ...inputStyle, cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
+                    value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
                   {formErrors.email && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.email}</span>}
                 </div>
                 <div style={fieldWrap}>

@@ -5,6 +5,7 @@ import axios from "axios";
 import styles from "../../styles/onboarding/onboarding.module.css";
 import useStore from "@/components/state/useStore";
 import RegisterBusinessModal from "@/components/RegisterBusinessModal";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 // ─── SVG Icons from Prompt ──────────────────────────────────────────────────
 const ClaimBusinessIcon = () => (
@@ -193,112 +194,114 @@ const Onboarding = () => {
           content="Manage your pet business, reach more customers, and grow your business with Zaanvar."
         />
       </Head>
-      <div className={styles.page}>
-        {/* Top Left Back Button - ONLY show if logged in user already has assigned branches */}
-        {hasAssignedBranches && (
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                localStorage.removeItem("zaanvar_force_claim_new");
-              }
-              if (typeof window !== "undefined" && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push("/home");
-              }
-            }}
-            className={styles.backBtn}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            <span>Back</span>
-          </button>
-        )}
+      <DashboardLayout>
+        <div className={styles.page}>
+          {/* Top Left Back Button - ONLY show if logged in user already has assigned branches */}
+          {hasAssignedBranches && (
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  localStorage.removeItem("zaanvar_force_claim_new");
+                }
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/home");
+                }
+              }}
+              className={styles.backBtn}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back</span>
+            </button>
+          )}
 
-        {/* Top Right Log Out Button */}
-        {!hasAssignedBranches && (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className={styles.logoutBtn}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span>Log Out</span>
-          </button>)}
+          {/* Top Right Log Out Button */}
+          {!hasAssignedBranches && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={styles.logoutBtn}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Log Out</span>
+            </button>)}
 
-        {/* Welcome titles */}
-        <div className={styles.header}>
-          <h1 className={styles.title}>Welcome to Zaanvar Business</h1>
-          <p className={styles.subtitle}>
-            Manage your pet business, reach more customers, and grow your business with zaanvar
-          </p>
+          {/* Welcome titles */}
+          <div className={styles.header}>
+            <h1 className={styles.title}>Welcome to Zaanvar Business</h1>
+            <p className={styles.subtitle}>
+              Manage your pet business, reach more customers, and grow your business with zaanvar
+            </p>
+          </div>
+
+          {/* Selection Cards */}
+          <div className={styles.cardsRow}>
+            {/* Card 1: Claim your Business */}
+            <div className={styles.card}>
+              <div className={styles.iconWrapper}>
+                <ClaimBusinessIcon />
+              </div>
+              <div className={styles.contentWrapper}>
+                <span className={`${styles.badge} ${styles.badgeBlue}`}>Existing Listing</span>
+                <h2 className={styles.cardTitle}>Claim your Business</h2>
+                <p className={styles.cardDesc}>
+                  Already listed on zaanvar? verify ownership and manage your business Profile
+                </p>
+                <button type="button" className={styles.btnBlue} onClick={handleClaim}>
+                  Claim This Business →
+                </button>
+              </div>
+            </div>
+
+            {/* OR Divider */}
+            <div className={styles.orDivider}>
+              <div className={styles.orLine} />
+              <div className={styles.orCircle}>OR</div>
+              <div className={styles.orLine} />
+            </div>
+
+            {/* Card 2: Register your Business */}
+            <div className={styles.card}>
+              <div className={styles.iconWrapper}>
+                <RegisterBusinessIcon />
+              </div>
+              <div className={styles.contentWrapper}>
+                <span className={`${styles.badge} ${styles.badgeOrange}`}>New Business</span>
+                <h2 className={styles.cardTitle}>Register your Business</h2>
+                <p className={styles.cardDesc}>
+                  Register your new business on Zaanvar to list your services, reach pet owners, and manage your business Profile
+                </p>
+                <button type="button" className={styles.btnOrange} onClick={handleRegister}>
+                  Register your Business →
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Selection Cards */}
-        <div className={styles.cardsRow}>
-          {/* Card 1: Claim your Business */}
-          <div className={styles.card}>
-            <div className={styles.iconWrapper}>
-              <ClaimBusinessIcon />
-            </div>
-            <div className={styles.contentWrapper}>
-              <span className={`${styles.badge} ${styles.badgeBlue}`}>Existing Listing</span>
-              <h2 className={styles.cardTitle}>Claim your Business</h2>
-              <p className={styles.cardDesc}>
-                Already listed on zaanvar? verify ownership and manage your business Profile
-              </p>
-              <button type="button" className={styles.btnBlue} onClick={handleClaim}>
-                Claim This Business →
-              </button>
-            </div>
-          </div>
-
-          {/* OR Divider */}
-          <div className={styles.orDivider}>
-            <div className={styles.orLine} />
-            <div className={styles.orCircle}>OR</div>
-            <div className={styles.orLine} />
-          </div>
-
-          {/* Card 2: Register your Business */}
-          <div className={styles.card}>
-            <div className={styles.iconWrapper}>
-              <RegisterBusinessIcon />
-            </div>
-            <div className={styles.contentWrapper}>
-              <span className={`${styles.badge} ${styles.badgeOrange}`}>New Business</span>
-              <h2 className={styles.cardTitle}>Register your Business</h2>
-              <p className={styles.cardDesc}>
-                Already listed on zaanvar? verify ownership and manage your business Profile
-              </p>
-              <button type="button" className={styles.btnOrange} onClick={handleRegister}>
-                Register your Business →
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <RegisterBusinessModal
-        open={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        onSuccess={(data, payload) => {
-          setIsRegisterModalOpen(false);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("zaanvar_flow_type", "REGISTER");
-            if (data?.ticketId) localStorage.setItem("zaanvar_claim_ticket_id", String(data.ticketId));
-          }
-          router.push("/claim-business?view=verify_method&instructions=true");
-        }}
-        userInfo={userInfo}
-        hasAssignedBranches={hasAssignedBranches}
-      />
+        <RegisterBusinessModal
+          open={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          onSuccess={(data, payload) => {
+            setIsRegisterModalOpen(false);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("zaanvar_flow_type", "REGISTER");
+              if (data?.ticketId) localStorage.setItem("zaanvar_claim_ticket_id", String(data.ticketId));
+            }
+            router.push("/claim-business?view=verify_method&instructions=true");
+          }}
+          userInfo={userInfo}
+          hasAssignedBranches={hasAssignedBranches}
+        />
+      </DashboardLayout>
     </>
   );
 };

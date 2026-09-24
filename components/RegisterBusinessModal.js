@@ -24,8 +24,10 @@ function wallDatePayload(field, value) {
   return dateOnlyWithTimeZone(field, d);
 }
 
+const ALLOWED_PHONE_COUNTRIES = ["IN", "GB", "US"];
+
 const ALL_COUNTRIES_DIAL = Country.getAllCountries()
-  .filter((c) => c.phonecode)
+  .filter((c) => c.phonecode && ALLOWED_PHONE_COUNTRIES.includes(c.isoCode))
   .map((c) => ({
     code: c.isoCode,
     dialCode: c.phonecode.startsWith("+") ? c.phonecode : `+${c.phonecode}`,
@@ -1097,6 +1099,18 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined") {
+        setIsDesktop(window.innerWidth >= 768);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   React.useEffect(() => {
     if (open && initialTab !== undefined) {
       setActiveTab(initialTab);
@@ -1842,10 +1856,13 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
 
   return (
     <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+      position: "fixed", top: 0,
+      left: isDesktop ? "clamp(160px, 14vw, 190px)" : 0,
+      right: 0, bottom: 0, zIndex: 95,
       background: "#ffffff",
       display: "flex", flexDirection: "column",
-      width: "100vw", height: "100vh",
+      width: isDesktop ? "calc(100vw - clamp(160px, 14vw, 190px))" : "100vw",
+      height: "100vh",
       overflow: "hidden",
       fontFamily: "Inter, sans-serif",
     }}>
@@ -1936,7 +1953,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Full Name <span style={{ color: "#e74c3c" }}>*</span></label>
                   <input style={{ ...inputStyle, background: "#f3f4f6", border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
-                    value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value)} />
+                    readOnly disabled value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                   {formErrors.fullName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.fullName}</span>}
                 </div>
                 <div style={fieldWrap}>
@@ -1952,8 +1969,8 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="email" style={{ ...inputStyle, background: "#f3f4f6", cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
-                    readOnly disabled value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
+                  <input type="email" style={{ ...inputStyle, cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
+                    value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
                   {formErrors.email && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.email}</span>}
                 </div>
                 <div style={fieldWrap}>

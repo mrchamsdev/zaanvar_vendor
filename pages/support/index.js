@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import styles from "../../styles/dashboard/support.module.css";
 import useStore from "../../components/state/useStore";
@@ -8,6 +9,7 @@ import useDashboardData from "../../components/dashboard/useDashboardData";
 import { toast } from "sonner";
 
 export default function SupportPage() {
+  const router = useRouter();
   const { jwtToken, userInfo } = useStore();
   const { selectedBranchId, branches } = useDashboardData();
 
@@ -22,13 +24,12 @@ export default function SupportPage() {
       return;
     }
 
-    const bId = selectedBranchId ||
+    const rawBId = selectedBranchId ||
       (branches && branches[0]?.id) ||
       (userInfo?.branchId && Array.isArray(userInfo.branchId) ? userInfo.branchId[0] : userInfo?.branchId) ||
-      (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") || localStorage.getItem("branchId") : null) ||
-      280;
+      (typeof window !== "undefined" ? localStorage.getItem("zaanvar_claim_backend_branch_id") || localStorage.getItem("branchId") : null);
 
-    const cId = userInfo?.companyId || (branches && branches[0]?.companyId) || 1;
+    const rawCId = userInfo?.companyId || (branches && branches[0]?.companyId);
 
     setSubmitting(true);
     try {
@@ -37,8 +38,8 @@ export default function SupportPage() {
 
       // Support POST call api/companies/support-ticket
       const payload = {
-        branchId: Number(bId),
-        companyId: Number(cId),
+        branchId: rawBId ? Number(rawBId) : "",
+        companyId: rawCId ? Number(rawCId) : "",
         problem: problemText.trim(),
         message: problemText.trim(),
         comment: problemText.trim(),
@@ -80,6 +81,33 @@ export default function SupportPage() {
       </Head>
 
       <div className={styles.pageContainer}>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 14px",
+            marginBottom: "16px",
+            fontSize: "13.5px",
+            fontWeight: "500",
+            color: "#374151",
+            backgroundColor: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+            transition: "all 0.2s ease"
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Back</span>
+        </button>
+
         <div className={styles.card}>
           <h1 className={styles.title}>WRITE YOUR COMMENT HERE</h1>
           <form onSubmit={handleSubmit} className={styles.textareaWrap}>
