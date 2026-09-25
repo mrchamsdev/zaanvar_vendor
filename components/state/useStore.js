@@ -25,6 +25,52 @@
 //       isDogBreedsFromCache: false,
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import Cookies from "js-cookie";
+
+export const clearAllCookies = () => {
+  if (typeof window === "undefined") return;
+
+  try {
+    // 1. Clear via js-cookie for common cookies
+    const allCookies = Cookies.get();
+    if (allCookies && typeof allCookies === "object") {
+      Object.keys(allCookies).forEach((cookieName) => {
+        Cookies.remove(cookieName);
+        Cookies.remove(cookieName, { path: "/" });
+        Cookies.remove(cookieName, { path: "/", domain: window.location.hostname });
+
+        const hostParts = window.location.hostname.split(".");
+        if (hostParts.length > 1) {
+          const rootDomain = "." + hostParts.slice(-2).join(".");
+          Cookies.remove(cookieName, { path: "/", domain: rootDomain });
+        }
+      });
+    }
+
+    // 2. Clear via document.cookie loop
+    if (typeof document !== "undefined" && document.cookie) {
+      const cookies = document.cookie.split(";");
+      const hostname = window.location.hostname;
+      const hostParts = hostname.split(".");
+      const rootDomain = hostParts.length > 1 ? "." + hostParts.slice(-2).join(".") : "";
+
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+        if (name) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${hostname};`;
+          if (rootDomain) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${rootDomain};`;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error clearing cookies on logout:", e);
+  }
+};
 
 const useStore = create(
   persist(
@@ -182,7 +228,13 @@ const useStore = create(
       // Clear all stored data (logout function)
       clearStore: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('hideLowStockAlert');
+          try {
+            clearAllCookies();
+            localStorage.clear();
+            sessionStorage.clear();
+          } catch (e) {
+            console.error("Error clearing browser data on logout:", e);
+          }
         }
         return set({
           selectedPet: null,

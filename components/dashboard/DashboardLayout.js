@@ -3,7 +3,7 @@ import useDashboardData from "./useDashboardData";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import useStore from "../state/useStore";
+import useStore, { clearAllCookies } from "../state/useStore";
 import styles from "../../styles/dashboard/dashboard.module.css";
 import NotificationBell from "./NotificationBell";
 
@@ -781,9 +781,11 @@ const DashboardLayout = ({
 
   /* ── logout ── */
   const handleLogout = () => {
+    clearAllCookies();
     clearStore();
     if (typeof window !== "undefined") {
       localStorage.clear();
+      sessionStorage.clear();
     }
     router.replace("/login");
   };
