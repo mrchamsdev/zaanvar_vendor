@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import axios from "axios";
 import styles from "../../styles/onboarding/onboarding.module.css";
-import useStore from "@/components/state/useStore";
+import useStore, { clearAllCookies } from "@/components/state/useStore";
 import RegisterBusinessModal from "@/components/RegisterBusinessModal";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
@@ -50,9 +50,11 @@ const Onboarding = () => {
   const [hasAssignedBranches, setHasAssignedBranches] = useState(false);
 
   const handleLogout = () => {
+    clearAllCookies();
     if (clearStore) clearStore();
     if (typeof window !== "undefined") {
       localStorage.clear();
+      sessionStorage.clear();
     }
     router.replace("/login");
   };
