@@ -11,12 +11,6 @@ import useStore from "../components/state/useStore";
 import { WebApimanager } from "../components/utilities/WebApiManager";
 
 /* ── icons ── */
-const HeartIcon = ({ filled }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24"
-    fill={filled ? "#ef4444" : "none"} stroke="#ef4444" strokeWidth="2">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-);
 const DirectionsIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5790c" strokeWidth="2">
     <polygon points="3 11 22 2 13 21 11 13 3 11" />
@@ -27,16 +21,34 @@ const ChevronDown = () => (
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
+const GalleryIcon = ({ size = 44, color = "#94a3b8" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3" ry="3" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+/* ─── value validator ───────────────────────────────────── */
+const isValidVal = (val) => {
+  if (val === null || val === undefined) return false;
+  const str = String(val).trim();
+  return str !== "" && str !== "—" && str !== "-" && str !== "null" && str !== "undefined";
+};
+
 /* ─── address string builder ─────────────────────────────── */
 function buildAddress(addr) {
-  if (!addr) return "—";
-  if (typeof addr === "string") return addr;
-  return [addr.flatNo, addr.addressText, addr.area, addr.city, addr.state, addr.country, addr.pincode]
-    .filter(Boolean)
-    .join(", ");
+  if (!addr) return null;
+  if (typeof addr === "string") {
+    const s = addr.trim();
+    return s && s !== "—" && s !== "-" ? s : null;
+  }
+  const parts = [addr.flatNo, addr.addressText, addr.area, addr.city, addr.state, addr.country, addr.pincode]
+    .map(p => (p ? String(p).trim() : ""))
+    .filter(p => p && p !== "—" && p !== "-");
+  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 /* ─── time formatter ─────────────────────────────────────── */
@@ -108,7 +120,7 @@ const SERVICE_DISPLAY_NAMES = {
   petSales: "Pet Sales"
 };
 
-const toStr = (v) => (v && typeof v === 'object' ? (v.name || v.label || String(v.id || '')) : (v ?? '')) || '—';
+const toStr = (v) => (v && typeof v === 'object' ? (v.name || v.label || String(v.id || '')) : (v ?? '')) || '';
 
 const formatService = (s) => {
   const str = toStr(s);
@@ -123,12 +135,12 @@ export default function ProfilePage() {
   const { jwtToken, userInfo } = useStore();
 
   const [slideIdx, setSlideIdx] = useState(0);
-  const [heartFilled, setHeartFilled] = useState(false);
   const [branchOpen, setBranchOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditPhotosModalOpen, setIsEditPhotosModalOpen] = useState(false);
   const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
   const [vendorUserData, setVendorUserData] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchVendorUserData = async () => {
@@ -154,34 +166,31 @@ export default function ProfilePage() {
   const address = company?.address || null;
   const branchAddr = branch?.addressDetails || null;
 
-  /* Slider images: from branch → company → placeholder */
-  const PLACEHOLDERS = [
-    "https://zaanvarprods3.b-cdn.net/media/1773901815100-petsales.png",
-    "https://zaanvarprods3.b-cdn.net/media/1773901839732-petdaycare.png",
-    "https://zaanvarprods3.b-cdn.net/media/1773901858062-Petgrooming.png",
-  ];
-
+  /* Raw photos from branch or company */
   const rawImages = useMemo(() => {
-    if (branch?.images?.length) return branch.images;
-    if (branch?.branchImages?.length) return branch.branchImages;
-    if (branch?.clinicProfileImage) return [branch.clinicProfileImage];
-    if (branch?.companyLogo) return [branch.companyLogo];
-    if (branch?.companylogo) return [branch.companylogo];
-    if (company?.images?.length) return company.images;
+    if (branch?.images?.length) return branch.images.filter(isValidVal);
+    if (branch?.branchImages?.length) return branch.branchImages.filter(isValidVal);
+    if (branch?.clinicProfileImage && isValidVal(branch.clinicProfileImage)) return [branch.clinicProfileImage];
+    if (branch?.companyLogo && isValidVal(branch.companyLogo)) return [branch.companyLogo];
+    if (branch?.companylogo && isValidVal(branch.companylogo)) return [branch.companylogo];
+    if (company?.images?.length) return company.images.filter(isValidVal);
     return [];
   }, [branch, company]);
 
-  const images = useMemo(() => {
-    if (!rawImages.length) return PLACEHOLDERS;
+  useEffect(() => {
+    setImgError(false);
+    setSlideIdx(0);
+  }, [selectedBranchId, rawImages]);
 
+  const images = useMemo(() => {
+    if (!rawImages.length) return [];
     return rawImages.map(img => {
-      if (!img) return PLACEHOLDERS[0];
-      // If it's already a full URL, return it. Otherwise, prepend IMAGE_URL
+      if (!img) return "";
       if (img.startsWith("http")) return img;
       const baseUrl = IMAGE_URL?.endsWith('/') ? IMAGE_URL : `${IMAGE_URL}/`;
       const cleanPath = img.startsWith('/') ? img.slice(1) : img;
       return `${baseUrl}${cleanPath}`;
-    });
+    }).filter(Boolean);
   }, [rawImages]);
 
   /* Company creation date */
@@ -189,13 +198,13 @@ export default function ProfilePage() {
   const parsedDate = startDate ? parseApiToLocal(startDate) : null;
   const dateLabel = parsedDate
     ? parsedDate.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
-    : "—";
+    : null;
 
-  const detailRows = [
+  const rawDetailRows = [
     {
       emoji: "👤",
       label: "Name of owner",
-      value: branch?.ownerName || branch?.ownername || branch?.vendorDetails?.name || `${vendor?.firstName || ""} ${vendor?.lastName || ""}`.trim() || "—"
+      value: branch?.ownerName || branch?.ownername || branch?.vendorDetails?.name || `${vendor?.firstName || ""} ${vendor?.lastName || ""}`.trim()
     },
     {
       emoji: "⚥",
@@ -205,44 +214,46 @@ export default function ProfilePage() {
     {
       emoji: "📧",
       label: "Email",
-      value: branch?.vendorDetails?.email || vendor?.email || "—"
+      value: branch?.vendorDetails?.email || vendor?.email
     },
     {
       emoji: "📱",
       label: "Mobile",
-      value: branch?.vendorDetails?.phone || branch?.vendorDetails?.mobile || vendor?.phoneNumber || "—"
+      value: branch?.vendorDetails?.phone || branch?.vendorDetails?.mobile || vendor?.phoneNumber
     },
     {
       emoji: "📍",
       label: "Company Location",
-      value: branch?.address || buildAddress(address) || "—"
+      value: branch?.address ? buildAddress(branch.address) : buildAddress(address)
     },
     {
       emoji: "🌐",
       label: "Company Website",
-      value: company?.socialMediaLinks?.website || "—"
+      value: company?.socialMediaLinks?.website
     },
     {
       emoji: "🏢",
       label: "Business Type",
-      value: (branch?.featureType?.length ? branch.featureType.map(formatService) : company?.servicesProvided?.map(formatService))?.join(", ") || "—"
+      value: (branch?.featureType?.length ? branch.featureType.map(formatService) : company?.servicesProvided?.map(formatService))?.map(toStr)?.filter(isValidVal)?.join(", ")
     },
     {
       emoji: "📧",
       label: "Company Email",
-      value: branch?.contactUs?.email || company?.email || "—"
+      value: branch?.contactUs?.email || company?.email
     },
     {
       emoji: "📱",
       label: "Company Mobile Number",
-      value: branch?.contactUs?.mobile ? `+91 ${branch.contactUs.mobile}` : company?.phoneNo ? `+91 ${company.phoneNo}` : "—"
+      value: branch?.contactUs?.mobile ? `+91 ${branch.contactUs.mobile}` : company?.phoneNo ? `+91 ${company.phoneNo}` : null
     },
   ];
+
+  const detailRows = rawDetailRows.filter(r => isValidVal(r.value));
 
   /* Feature / categories / pets */
   const featureTypes = useMemo(() => {
     const list = branch?.featureType || branch?.availableServices || [];
-    return list.map(formatService);
+    return list.map(formatService).map(toStr).filter(isValidVal);
   }, [branch]);
 
   const categories = useMemo(() => {
@@ -256,145 +267,198 @@ export default function ProfilePage() {
       });
     }
     if (branchCats.length > 0) {
-      return branchCats.map(toStr);
+      return branchCats.map(toStr).filter(isValidVal);
     }
-    return (company?.servicesProvided || []).map(formatService);
+    return (company?.servicesProvided || []).map(formatService).map(toStr).filter(isValidVal);
   }, [branch, company]);
 
   const availablePets = useMemo(() => {
     const pets = new Set();
-
     if (Array.isArray(branch?.petsSupported)) {
-      branch.petsSupported.forEach(p => pets.add(p));
+      branch.petsSupported.forEach(p => isValidVal(p) && pets.add(toStr(p)));
     }
     if (Array.isArray(branch?.availablePets)) {
-      branch.availablePets.forEach(p => pets.add(p));
+      branch.availablePets.forEach(p => isValidVal(p) && pets.add(toStr(p)));
     }
     if (branch?.services) {
       Object.keys(branch.services).forEach(svcKey => {
         const svc = branch.services[svcKey];
         if (svc) {
-          if (Array.isArray(svc.supportedPets)) {
-            svc.supportedPets.forEach(p => pets.add(p));
-          }
-          if (Array.isArray(svc.AvailablePets)) {
-            svc.AvailablePets.forEach(p => pets.add(p));
-          }
-          if (Array.isArray(svc.breedsName)) {
-            svc.breedsName.forEach(p => pets.add(p));
-          }
+          if (Array.isArray(svc.supportedPets)) svc.supportedPets.forEach(p => isValidVal(p) && pets.add(toStr(p)));
+          if (Array.isArray(svc.AvailablePets)) svc.AvailablePets.forEach(p => isValidVal(p) && pets.add(toStr(p)));
+          if (Array.isArray(svc.breedsName)) svc.breedsName.forEach(p => isValidVal(p) && pets.add(toStr(p)));
         }
       });
     }
-
     if (Array.isArray(branch?.petSales?.[0]?.breedsName)) {
-      branch.petSales[0].breedsName.forEach(p => pets.add(p));
+      branch.petSales[0].breedsName.forEach(p => isValidVal(p) && pets.add(toStr(p)));
     }
     if (Array.isArray(branch?.petShops?.[0]?.AvailablePets)) {
-      branch.petShops[0].AvailablePets.forEach(p => pets.add(p));
+      branch.petShops[0].AvailablePets.forEach(p => isValidVal(p) && pets.add(toStr(p)));
     }
     if (Array.isArray(branch?.petShops?.[0]?.supportedPets)) {
-      branch.petShops[0].supportedPets.forEach(p => pets.add(p));
+      branch.petShops[0].supportedPets.forEach(p => isValidVal(p) && pets.add(toStr(p)));
     }
-
-    return Array.from(pets);
+    return Array.from(pets).filter(isValidVal);
   }, [branch]);
 
-  const topbarButtons = [
-    // { label: "+ Add Rooms",    color: "purple", action: "addRooms" },
-    // { label: "+ Add Bookings", color: "red",    action: "addBookings" },
-    // { label: "+ Add More",     color: "gray",   action: "addMore" },
-  ];
+  const companyAddressStr = branch?.address ? buildAddress(branch.address) : buildAddress(address);
+  const branchAddressStr = buildAddress(branchAddr);
+
+  const isAssigned = useMemo(() => {
+    const hasVerifiedFlag = Boolean(userInfo?.hasVerifiedBusiness || userInfo?.isVerified);
+    if (hasVerifiedFlag) return true;
+
+    if (selectedBranchId && String(selectedBranchId) !== "0" && String(selectedBranchId) !== "null" && String(selectedBranchId) !== "undefined") {
+      return true;
+    }
+
+    if (Array.isArray(branches) && branches.length > 0) return true;
+
+    const hasVerifiedBranchInCompany = Array.isArray(userInfo?.vendorCompanies) && userInfo.vendorCompanies.some(c =>
+      Array.isArray(c.branches) && c.branches.length > 0
+    );
+    if (hasVerifiedBranchInCompany) return true;
+
+    const hasVerifiedBranchDirect = Array.isArray(userInfo?.branches) && userInfo.branches.length > 0;
+    if (hasVerifiedBranchDirect) return true;
+
+    return false;
+  }, [userInfo, branches, selectedBranchId]);
+
+  const hasTimings = Boolean(
+    (branch?.openingTime && branch?.closingTime) ||
+    (branch?.timings && Object.keys(branch.timings).length > 0)
+  );
 
   return (
-    <DashboardLayout topbarButtons={topbarButtons}>
+    <DashboardLayout topbarButtons={[]}>
       <div className={styles.profileWrap}>
 
         {/* ── Left Column ── */}
         <div className={styles.profileLeft}>
 
-          {/* Image Slider */}
-          <div className={styles.profileImgSlider}>
-            <img
-              src={images[slideIdx] || PLACEHOLDERS[0]}
-              alt="Company"
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }}
+          {/* Image Slider or Gallery Icon Fallback */}
+          {images.length > 0 && !imgError ? (
+            <div className={styles.profileImgSlider}>
+              <img
+                src={images[slideIdx]}
+                alt="Company"
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }}
+                onClick={() => setMediaViewerOpen(true)}
+                onError={() => setImgError(true)}
+              />
 
-            />
-
-            {images.length > 1 && (
-              <div className={styles.sliderDots}>
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    className={`${styles.sliderDot} ${i === slideIdx ? styles.sliderDotActive : ""}`}
-                    onClick={() => setSlideIdx(i)}
-                    aria-label={`Image ${i + 1}`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Company name + date */}
-          <div className={styles.profileInfo} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            <div>
-              <h3 className={styles.profileCompanyName}>
-                {company?.name || vendor?.businessName || "Company name"}
-              </h3>
-              <span className={styles.profileStartDate}>
-                Company Starting date : {dateLabel}
-              </span>
+              {images.length > 1 && (
+                <div className={styles.sliderDots}>
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      className={`${styles.sliderDot} ${i === slideIdx ? styles.sliderDotActive : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSlideIdx(i);
+                      }}
+                      aria-label={`Image ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
+          ) : (
+            <div
+              className={styles.profileImgSlider}
               style={{
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1.5px solid #f5790c",
-                background: "#ffffff",
-                color: "#f5790c",
-                fontSize: "13px",
-                fontWeight: "600",
-                cursor: "pointer",
-                display: "inline-flex",
+                display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                gap: "6px",
-                whiteSpace: "nowrap",
-                transition: "all 0.15s ease"
+                justifyContent: "center",
+                background: "#f8fafc",
+                border: "1.5px dashed #cbd5e1",
+                borderRadius: "12px",
+                minHeight: "220px",
+                cursor: "pointer",
+                gap: "8px",
+                padding: "24px",
+                textAlign: "center"
               }}
             >
-              ✏️ Edit Business
-            </button>
-          </div>
+              <GalleryIcon size={44} color="#94a3b8" />
+              <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>
+                No photos added
+              </span>
+            </div>
+          )}
+
+          {/* Company name + date + Edit Business */}
+          {(isAssigned || isValidVal(dateLabel)) && (
+            <div className={styles.profileInfo} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div>
+                {isAssigned && (company?.name || vendor?.businessName) && (
+                  <h3 className={styles.profileCompanyName}>
+                    {company?.name || vendor?.businessName}
+                  </h3>
+                )}
+                {isValidVal(dateLabel) && (
+                  <span className={styles.profileStartDate}>
+                    Company Starting date : {dateLabel}
+                  </span>
+                )}
+              </div>
+              {isAssigned && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    border: "1.5px solid #f5790c",
+                    background: "#ffffff",
+                    color: "#f5790c",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  ✏️ Edit Business
+                </button>
+              )}
+            </div>
+          )}
 
           {/* About */}
-          {company?.aboutCompany && (
+          {isValidVal(company?.aboutCompany) && (
             <div className={styles.profileAbout}>
               <h4>About {company.name}</h4>
               <p>{company.aboutCompany}</p>
             </div>
           )}
 
-          {/* Branch Details */}
-          <div className={styles.detailsCard}>
-            <h4 className={styles.detailsCardTitle}>Branch Details</h4>
-            {detailRows.map((row, i) => (
-              <div key={i} className={styles.detailRow}>
-                <div className={styles.detailIcon}>{row.emoji}</div>
-                <span className={styles.detailLabel}>{row.label}</span>
-                <span className={styles.detailValue}>{row.value}</span>
-              </div>
-            ))}
-          </div>
+          {/* Branch Details - Only show if rows exist */}
+          {detailRows.length > 0 && (
+            <div className={styles.detailsCard}>
+              <h4 className={styles.detailsCardTitle}>Branch Details</h4>
+              {detailRows.map((row, i) => (
+                <div key={i} className={styles.detailRow}>
+                  <div className={styles.detailIcon}>{row.emoji}</div>
+                  <span className={styles.detailLabel}>{row.label}</span>
+                  <span className={styles.detailValue}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Right Column ── */}
         <div className={styles.profileRight}>
 
-          {/* Company Address */}
-          {(branch?.address || address) && (
+          {/* Company Address - Only show if valid */}
+          {isValidVal(companyAddressStr) && (
             <div className={styles.addressCard}>
               <div className={styles.addressHeader}>
                 <h4 className={styles.addressTitle}>Company Address :</h4>
@@ -402,9 +466,7 @@ export default function ProfilePage() {
                   <DirectionsIcon /><span>Directions</span>
                 </button>
               </div>
-              <p className={styles.addressText}>
-                {branch?.address ? buildAddress(branch.address) : buildAddress(address)}
-              </p>
+              <p className={styles.addressText}>{companyAddressStr}</p>
             </div>
           )}
 
@@ -432,8 +494,8 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Branch Address */}
-          {branchAddr && (
+          {/* Branch Address - Only show if valid */}
+          {isValidVal(branchAddressStr) && (
             <div className={styles.addressCard}>
               <div className={styles.addressHeader}>
                 <h4 className={styles.addressTitle}>Branch Address :</h4>
@@ -441,79 +503,90 @@ export default function ProfilePage() {
                   <DirectionsIcon /><span>Directions</span>
                 </button>
               </div>
-              <p className={styles.addressText}>{buildAddress(branchAddr)}</p>
+              <p className={styles.addressText}>{branchAddressStr}</p>
             </div>
           )}
 
-          {/* Timings */}
-          <div className={styles.timingsCard}>
-            <div className={styles.timingsHeader}>
-              <h4 className={styles.timingsTitle}>Timings</h4>
-              {branch?.openingTime && branch?.closingTime ? (
-                <span className={styles.timingsRange}>
-                  {formatTime12h(branch.openingTime)} – {formatTime12h(branch.closingTime)}
-                </span>
-              ) : null}
-            </div>
-            {DAYS.map((day) => {
-              const key = day.toLowerCase();
-              const slot = getTimingSlot(
-                branch?.timings,
-                key,
-                branch?.openingTime,
-                branch?.closingTime,
-                branch?.closedOn
-              );
-              return (
-                <div key={day} className={styles.timingProfileRow}>
-                  <span className={styles.timingDayName}>{day}</span>
-                  <div className={styles.timingStatus}>
-                    {slot.open ? (
-                      <>
-                        <span className={styles.timingOpen}>Open</span>
-                        <span className={styles.timingUntil}>Until</span>
-                        <span className={styles.timingTime}>{formatTime12h(slot.close)}</span>
-                      </>
-                    ) : (
-                      <span className={styles.timingClosed}>Closed</span>
-                    )}
+          {/* Timings - Only show if timings exist */}
+          {hasTimings && (
+            <div className={styles.timingsCard}>
+              <div className={styles.timingsHeader}>
+                <h4 className={styles.timingsTitle}>Timings</h4>
+                {branch?.openingTime && branch?.closingTime ? (
+                  <span className={styles.timingsRange}>
+                    {formatTime12h(branch.openingTime)} – {formatTime12h(branch.closingTime)}
+                  </span>
+                ) : null}
+              </div>
+              {DAYS.map((day) => {
+                const key = day.toLowerCase();
+                const slot = getTimingSlot(
+                  branch?.timings,
+                  key,
+                  branch?.openingTime,
+                  branch?.closingTime,
+                  branch?.closedOn
+                );
+                return (
+                  <div key={day} className={styles.timingProfileRow}>
+                    <span className={styles.timingDayName}>{day}</span>
+                    <div className={styles.timingStatus}>
+                      {slot.open ? (
+                        <>
+                          <span className={styles.timingOpen}>Open</span>
+                          <span className={styles.timingUntil}>Until</span>
+                          <span className={styles.timingTime}>{formatTime12h(slot.close)}</span>
+                        </>
+                      ) : (
+                        <span className={styles.timingClosed}>Closed</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Feature Type / Categories / Available Pets */}
-          <div className={styles.featureGrid}>
-            <div className={styles.featureCol}>
-              <h4>Service Type</h4>
-              {featureTypes.length ? featureTypes.map((item, i) => (
-                <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐾</div>{toStr(item)}
-                </div>
-              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
+                );
+              })}
             </div>
+          )}
 
-            <div className={styles.featureCol}>
-              <h4>Categories</h4>
-              {categories.length ? categories.map((s, i) => (
-                <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐾</div>{toStr(s)}
+          {/* Feature Type / Categories / Available Pets - Only show columns & section with values */}
+          {(featureTypes.length > 0 || categories.length > 0 || availablePets.length > 0) && (
+            <div className={styles.featureGrid}>
+              {featureTypes.length > 0 && (
+                <div className={styles.featureCol}>
+                  <h4>Service Type</h4>
+                  {featureTypes.map((item, i) => (
+                    <div key={i} className={styles.featureItem}>
+                      <div className={styles.featureDot}>🐾</div>{toStr(item)}
+                    </div>
+                  ))}
                 </div>
-              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
-            </div>
+              )}
 
-            <div className={styles.featureCol}>
-              <h4>Available pets</h4>
-              {availablePets.length ? availablePets.map((p, i) => (
-                <div key={i} className={styles.featureItem}>
-                  <div className={styles.featureDot}>🐕</div>{toStr(p)}
+              {categories.length > 0 && (
+                <div className={styles.featureCol}>
+                  <h4>Categories</h4>
+                  {categories.map((s, i) => (
+                    <div key={i} className={styles.featureItem}>
+                      <div className={styles.featureDot}>🐾</div>{toStr(s)}
+                    </div>
+                  ))}
                 </div>
-              )) : <span style={{ fontSize: 12, color: "#aaa" }}>—</span>}
+              )}
+
+              {availablePets.length > 0 && (
+                <div className={styles.featureCol}>
+                  <h4>Available pets</h4>
+                  {availablePets.map((p, i) => (
+                    <div key={i} className={styles.featureItem}>
+                      <div className={styles.featureDot}>🐕</div>{toStr(p)}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
+
       <EditBusinessModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

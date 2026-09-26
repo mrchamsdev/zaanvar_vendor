@@ -243,30 +243,15 @@ function isUserAssignedAndVerified(userInfo, branches = [], selectedBranchId = n
     return true;
   }
 
-  if (typeof window !== "undefined") {
-    const localSelected = localStorage.getItem("selectedBranchId");
-    const localBackend = localStorage.getItem("zaanvar_claim_backend_branch_id");
-    const localScraped = localStorage.getItem("zaanvar_claim_scraped_branch_id");
-    if (
-      (localSelected && localSelected !== "null" && localSelected !== "undefined" && localSelected !== "0") ||
-      (localBackend && localBackend !== "null" && localBackend !== "undefined" && localBackend !== "0") ||
-      (localScraped && localScraped !== "null" && localScraped !== "undefined" && localScraped !== "0")
-    ) {
-      return true;
-    }
-  }
-
   if (Array.isArray(branches) && branches.length > 0) return true;
 
   const hasVerifiedBranchInCompany = Array.isArray(userInfo?.vendorCompanies) && userInfo.vendorCompanies.some(c =>
-    (Array.isArray(c.branches) && c.branches.length > 0) || Boolean(c.id || c.compId || c.companyId)
+    Array.isArray(c.branches) && c.branches.length > 0
   );
   if (hasVerifiedBranchInCompany) return true;
 
   const hasVerifiedBranchDirect = Array.isArray(userInfo?.branches) && userInfo.branches.length > 0;
   if (hasVerifiedBranchDirect) return true;
-
-  if (userInfo?.branchId || userInfo?.companyId || userInfo?.compId) return true;
 
   return false;
 }
@@ -318,7 +303,6 @@ function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
     return [
       { label: "Home", path: "/home", icon: <IconHome /> },
       { label: "Profile", path: "/profile", icon: <IconUser /> },
-      { label: "Reviews", path: "/reviews", icon: <IconStar /> },
       { label: "Change PIN", path: "/change-pin", icon: <IconLock /> },
       { label: "My Subscription", path: "/my-subscription", icon: <IconPackage /> },
       { label: "Privacy & Policy", path: "/privacy-policy", icon: <IconUser /> },
@@ -423,7 +407,7 @@ function buildMenuFromVendor(userInfo, branches = [], selectedBranchId = null) {
     }
   });
 
-  if (hasFullPackage || (!hasGrooming && !hasDaycare && !hasClinic && !hasPOS)) {
+  if (hasFullPackage || (validActiveSubs.length > 0 && !hasGrooming && !hasDaycare && !hasClinic && !hasPOS)) {
     hasGrooming = true;
     hasDaycare = true;
     hasClinic = true;
