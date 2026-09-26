@@ -149,12 +149,30 @@ const TABS = [
   "Additional Information",
 ];
 
+const sanitizeExperienceInput = (val) => {
+  if (!val) return "";
+  let cleaned = String(val).replace(/[^0-9.]/g, "");
+  const parts = cleaned.split(".");
+  if (parts.length > 2) {
+    cleaned = parts[0] + "." + parts.slice(1).join("");
+  }
+  const [intPart, decPart] = cleaned.split(".");
+  const sanitizedInt = intPart.slice(0, 3);
+  if (decPart !== undefined) {
+    return `${sanitizedInt}.${decPart.slice(0, 2)}`;
+  }
+  return sanitizedInt;
+};
+
 const blankBranch = () => ({
   branchName: "",
   branchLocation: "",
   branchEmail: "",
   branchPhone: "",
+  branchPhoneCode: "+91",
+  branchCountryCode: "IN",
   branchOpeningDate: "",
+  durationInput: "",
   dataStoreType: "",
   businessName: "",
   selectedServices: [],
@@ -165,6 +183,7 @@ const blankBranch = () => ({
   specialHours: [],
   is24x7: false,
   branchAddress: {},
+  logo: null,
   morePhotos: [],
 });
 
@@ -487,16 +506,127 @@ function BranchServiceDetailsSection({
 
 // ─── AddressSection Sub-component ────────────────────────────────────────────
 function AddressSection({ title, address = {}, onChange, errors = {} }) {
+  const [geoLoading, setGeoLoading] = useState(false);
+
   const handleGeoLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          onChange("latitude", pos.coords.latitude.toFixed(4));
-          onChange("longitude", pos.coords.longitude.toFixed(4));
-        },
-        (err) => console.error("Geolocation error:", err)
-      );
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
     }
+
+    setGeoLoading(true);
+    const toastId = toast.loading("Fetching your current location...");
+
+    const onSuccess = async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const latStr = lat.toFixed(6);
+      const lngStr = lng.toFixed(6);
+
+      const locationUpdate = {
+        latitude: latStr,
+        longitude: lngStr,
+      };
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          const pincode = addr.postcode || "";
+
+          const areaParts = [
+            addr.road,
+            addr.suburb || addr.neighbourhood || addr.subdistrict || addr.locality || addr.quarter,
+            addr.county
+          ].filter(Boolean);
+          const areaName = areaParts.length > 0
+            ? areaParts.join(", ")
+            : (addr.suburb || addr.neighbourhood || data.name || "");
+
+          const cityName = addr.city || addr.town || addr.village || addr.county || addr.city_district || "";
+          const stateName = addr.state || "";
+          const countryName = addr.country || "";
+          const countryCodeVal = (addr.country_code || "").toUpperCase();
+
+          if (pincode) locationUpdate.pincode = pincode.replace(/\D/g, "").slice(0, 6);
+          if (areaName) locationUpdate.area = areaName;
+
+          const countriesList = Country.getAllCountries();
+          if (countryCodeVal || countryName) {
+            const foundC = countriesList.find(
+              c => c.isoCode === countryCodeVal || c.name.toLowerCase() === countryName.toLowerCase()
+            );
+            if (foundC) {
+              locationUpdate.countryCode = foundC.isoCode;
+              locationUpdate.country = foundC.name;
+
+              const stList = State.getStatesOfCountry(foundC.isoCode);
+              const foundS = stList.find(
+                s => s.name.toLowerCase() === stateName.toLowerCase() || stateName.toLowerCase().includes(s.name.toLowerCase())
+              );
+              if (foundS) {
+                locationUpdate.stateCode = foundS.isoCode;
+                locationUpdate.state = foundS.name;
+
+                if (cityName) {
+                  const ctList = City.getCitiesOfState(foundC.isoCode, foundS.isoCode);
+                  const foundCity = ctList.find(
+                    c => c.name.toLowerCase() === cityName.toLowerCase() || cityName.toLowerCase().includes(c.name.toLowerCase())
+                  );
+                  locationUpdate.city = foundCity ? foundCity.name : cityName;
+                }
+              }
+            }
+          }
+        }
+      } catch (geoErr) {
+        console.warn("Reverse geocode lookup warning:", geoErr);
+      } finally {
+        onChange(locationUpdate);
+        toast.dismiss(toastId);
+        toast.success("Location retrieved successfully!");
+        setGeoLoading(false);
+      }
+    };
+
+    const onError = (err) => {
+      if (err.code === err.TIMEOUT) {
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          (fallbackErr) => {
+            toast.dismiss(toastId);
+            setGeoLoading(false);
+            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+              toast.error("Location permission denied. Please allow location access in browser settings.");
+            } else {
+              toast.error("Location request timed out. Please enter coordinates manually.");
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        );
+        return;
+      }
+
+      toast.dismiss(toastId);
+      setGeoLoading(false);
+      if (err.code === err.PERMISSION_DENIED) {
+        toast.error("Location permission denied. Please allow location access in browser settings.");
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        toast.error("Location position unavailable. Please enter coordinates manually.");
+      } else {
+        toast.error("Could not fetch location. Please enter manually.");
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
   };
 
   const inputStyle = {
@@ -532,9 +662,10 @@ function AddressSection({ title, address = {}, onChange, errors = {} }) {
         <button
           type="button"
           onClick={handleGeoLocation}
-          style={{ background: "none", border: "none", color: "#1a73e8", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          disabled={geoLoading}
+          style={{ background: "none", border: "none", color: geoLoading ? "#9ca3af" : "#1a73e8", fontSize: 13, fontWeight: 600, cursor: geoLoading ? "not-allowed" : "pointer" }}
         >
-          Get Geo location
+          {geoLoading ? "Fetching location..." : "Get Geo location"}
         </button>
       </div>
 
@@ -737,7 +868,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
         const userRes = await webApi.get(`vendor-users/${uId}`);
         const uData = userRes?.data?.data || userRes?.data || userRes?.user || userRes || {};
 
-        const fullName = `${uData.firstName || ""} ${uData.lastName || ""}`.trim() || uData.name || "";
+        const fullName = (`${uData.firstName || ""} ${uData.lastName || ""}`.trim() || uData.name || "").replace(/[^a-zA-Z\s]/g, "");
         setUserForm({
           fullName,
           email: uData.email || uData.personalEmail || "",
@@ -766,7 +897,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
         if (vendorData || userInfo) {
           const v = vendorData || userInfo;
           setUserForm({
-            fullName: `${v.firstName || ""} ${v.lastName || ""}`.trim() || v.name || "",
+            fullName: (`${v.firstName || ""} ${v.lastName || ""}`.trim() || v.name || "").replace(/[^a-zA-Z\s]/g, ""),
             email: v.email || "",
             mobileNumber: v.phoneNumber || v.phone || "",
             gender: v.gender || "",
@@ -807,9 +938,10 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
 
     if (bSource) {
       const parsedCompPhone = parsePhoneAndCode(bSource.phone);
+      const cName = (bSource.name || bSource.businessName || bSource.branchName || "").replace(/[^a-zA-Z\s]/g, "");
       setCompanyForm(prev => ({
         ...prev,
-        companyName: bSource.name || bSource.businessName || bSource.branchName || prev.companyName,
+        companyName: cName || prev.companyName,
         companyEmail: bSource.email || prev.companyEmail,
         companyPhone: parsedCompPhone.number || prev.companyPhone,
         companyPhoneCode: parsedCompPhone.code || prev.companyPhoneCode || "+91",
@@ -822,7 +954,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
 
       setBranches([{
         ...blankBranch(),
-        branchName: bSource.name || bSource.businessName || bSource.branchName || "",
+        branchName: cName,
         branchEmail: bSource.email || "",
         branchPhone: bSource.phone || "",
         selectedServices: bSource.petTypes || bSource.servicesList || [],
@@ -845,25 +977,35 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
   if (!open) return null;
 
   const handleUserChange = (key, val) => {
-    setUserForm(p => ({ ...p, [key]: val }));
+    const sanitizedVal = key === "fullName" ? val.replace(/[^a-zA-Z\s]/g, "") : val;
+    setUserForm(p => ({ ...p, [key]: sanitizedVal }));
     setFormErrors(prev => ({ ...prev, [key]: "" }));
   };
 
   const handleCompanyChange = (key, val) => {
     setFormErrors(prev => ({ ...prev, [key]: "" }));
+    let sanitizedVal = val;
+    if (key === "companyName" || key === "roleOfPerson") {
+      sanitizedVal = typeof val === "string" ? val.replace(/[^a-zA-Z\s]/g, "") : val;
+    }
+
     if (key === "services") {
       setCompanyForm(p => ({ ...p, services: val }));
       setBranches(prev => prev.map(b => ({ ...b, selectedServices: val })));
     } else {
-      setCompanyForm(p => ({ ...p, [key]: val }));
+      setCompanyForm(p => ({ ...p, [key]: sanitizedVal }));
     }
   };
 
   const handleBranchChange = (idx, key, val) => {
     setFormErrors(prev => ({ ...prev, [`${key}_${idx}`]: "" }));
+    let sanitizedVal = val;
+    if (key === "branchName" || key === "businessName") {
+      sanitizedVal = typeof val === "string" ? val.replace(/[^a-zA-Z\s]/g, "") : val;
+    }
     setBranches(prev => {
       const next = [...prev];
-      next[idx] = { ...next[idx], [key]: val };
+      next[idx] = { ...next[idx], [key]: sanitizedVal };
       return next;
     });
   };
@@ -871,6 +1013,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
   // ── Tab Validation ──
   const validateTab = (tabIndex) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const nameRegex = /^[a-zA-Z\s]+$/;
     const phoneRegex = /^\d{10}$/;
     const newErrors = {};
 
@@ -878,6 +1021,8 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
     if (tabIndex === 0) {
       if (!userForm.fullName || !userForm.fullName.trim()) {
         newErrors.fullName = "Please enter your full name.";
+      } else if (!nameRegex.test(userForm.fullName.trim())) {
+        newErrors.fullName = "Full name can contain letters and spaces only.";
       }
       if (!userForm.gender) {
         newErrors.gender = "Please select your gender.";
@@ -909,9 +1054,13 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
     if (tabIndex === 1) {
       if (!companyForm.companyName || !companyForm.companyName.trim()) {
         newErrors.companyName = "Please enter company name.";
+      } else if (!nameRegex.test(companyForm.companyName.trim())) {
+        newErrors.companyName = "Company name can contain letters and spaces only.";
       }
       if (!companyForm.roleOfPerson || !companyForm.roleOfPerson.trim()) {
         newErrors.roleOfPerson = "Please enter role of person.";
+      } else if (!nameRegex.test(companyForm.roleOfPerson.trim())) {
+        newErrors.roleOfPerson = "Role of person can contain letters and spaces only.";
       }
       if (!companyForm.companyEmail || !companyForm.companyEmail.trim()) {
         newErrors.companyEmail = "Please enter company email.";
@@ -1118,8 +1267,12 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                 }
                 if (!item.categories || item.categories.length === 0) {
                   newErrors[`petStore_${itemIdx}_categories`] = `Please select Product Categories in Pet Store #${itemIdx + 1}.`;
-                } else if (item.categories.includes("Other") && (!item.customCategory || !item.customCategory.trim())) {
-                  newErrors[`petStore_${itemIdx}_customCategory`] = `Please enter Custom Category in Pet Store #${itemIdx + 1}.`;
+                } else if (item.categories.includes("Other")) {
+                  if (!item.customCategory || !item.customCategory.trim()) {
+                    newErrors[`petStore_${itemIdx}_customCategory`] = `Please enter Custom Category in Pet Store #${itemIdx + 1}.`;
+                  } else if (!nameRegex.test(item.customCategory.trim())) {
+                    newErrors[`petStore_${itemIdx}_customCategory`] = `Custom Category can contain letters and spaces only in Pet Store #${itemIdx + 1}.`;
+                  }
                 }
               });
             }
@@ -1363,13 +1516,13 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Company name <span style={{ color: "#e74c3c" }}>*</span></label>
                   <input style={{ ...inputStyle, border: formErrors.companyName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Company Name"
-                    value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value)} />
+                    value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                   {formErrors.companyName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyName}</span>}
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Role of Person <span style={{ color: "#e74c3c" }}>*</span></label>
                   <input style={{ ...inputStyle, border: formErrors.roleOfPerson ? "1px solid #ef4444" : inputStyle.border }} placeholder="Owner / Manager"
-                    value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value)} />
+                    value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                   {formErrors.roleOfPerson && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.roleOfPerson}</span>}
                 </div>
                 <div style={fieldWrap}>
@@ -1390,16 +1543,26 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                           const dial = cObj?.dialCode || "+91";
                           handleCompanyChange("companyCountryCode", code);
                           handleCompanyChange("companyPhoneCode", dial);
+                          const digits = getRawPhoneDigits(companyForm.companyPhone);
+                          const maxLen = getPhoneLength(code);
+                          const trimmed = digits.slice(0, maxLen);
+                          handleCompanyChange("companyPhone", trimmed ? `${dial}${trimmed}` : "");
                         }}
                       />
                     </div>
                     <input
                       type="tel"
                       style={{ ...inputStyle, flex: 1, border: formErrors.companyPhone ? "1px solid #ef4444" : inputStyle.border }}
-                      placeholder="Company Phone"
-                      maxLength={15}
+                      placeholder={`Enter ${getPhoneLength(companyForm.companyCountryCode || "IN") !== 15 ? getPhoneLength(companyForm.companyCountryCode || "IN") + "-digit " : ""}phone number`}
+                      maxLength={getPhoneLength(companyForm.companyCountryCode || "IN")}
                       value={getRawPhoneDigits(companyForm.companyPhone)}
-                      onChange={e => handleCompanyChange("companyPhone", e.target.value.replace(/\D/g, ""))}
+                      onChange={e => {
+                        const code = companyForm.companyPhoneCode || "+91";
+                        const iso = companyForm.companyCountryCode || "IN";
+                        const maxLen = getPhoneLength(iso);
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, maxLen);
+                        handleCompanyChange("companyPhone", digits ? `${code}${digits}` : "");
+                      }}
                     />
                   </div>
                   {formErrors.companyPhone && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyPhone}</span>}
@@ -1414,7 +1577,7 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
                         style={{ ...inputStyle, flex: 1, border: formErrors.companyOpeningDate ? "1px solid #ef4444" : inputStyle.border }}
                         value={companyForm.durationInput || ""}
                         onChange={(e) => {
-                          const val = e.target.value;
+                          const val = sanitizeExperienceInput(e.target.value);
                           const converted = convertDurationToDate(val);
                           handleCompanyChange("durationInput", val);
                           if (converted) {
@@ -1499,32 +1662,142 @@ export default function EditBusinessModal({ open, onClose, onSuccess, branchData
           {/* ══════ TAB 3: ADDITIONAL INFORMATION ══════ */}
           {activeTab === 3 && (
             <div>
-              <AddressSection
-                title="Company Address"
-                address={companyForm.address || {}}
-                errors={formErrors}
-                onChange={(field, val) =>
-                  setCompanyForm(prev => ({
-                    ...prev,
-                    address: { ...(prev.address || {}), [field]: val }
-                  }))
-                }
-              />
+              {businessType !== "Enterprise" ? (
+                // Independent Mode: Branch Address, Branch Logo, Branch Related Photos
+                <>
+                  <AddressSection
+                    title="Branch Address"
+                    address={branches[0]?.branchAddress || companyForm.address || {}}
+                    errors={formErrors}
+                    onChange={(fieldOrObj, val) => {
+                      if (typeof fieldOrObj === "object") {
+                        const updated = { ...(branches[0]?.branchAddress || companyForm.address || {}), ...fieldOrObj };
+                        handleBranchChange(0, "branchAddress", updated);
+                        setCompanyForm(prev => ({ ...prev, address: updated }));
+                      } else {
+                        const updated = { ...(branches[0]?.branchAddress || companyForm.address || {}), [fieldOrObj]: val };
+                        handleBranchChange(0, "branchAddress", updated);
+                        setCompanyForm(prev => ({ ...prev, address: updated }));
+                      }
+                    }}
+                  />
 
-              <PhotoUploadSection
-                title="Company Logo"
-                photos={companyForm.logo ? [companyForm.logo] : []}
-                onUpload={files => setCompanyForm(prev => ({ ...prev, logo: files[0] }))}
-                onRemove={() => setCompanyForm(prev => ({ ...prev, logo: null }))}
-                single
-              />
+                  <PhotoUploadSection
+                    title="Branch Logo"
+                    photos={(branches[0]?.logo || companyForm.logo) ? [(branches[0]?.logo || companyForm.logo)] : []}
+                    onUpload={files => {
+                      handleBranchChange(0, "logo", files[0]);
+                      setCompanyForm(prev => ({ ...prev, logo: files[0] }));
+                    }}
+                    onRemove={() => {
+                      handleBranchChange(0, "logo", null);
+                      setCompanyForm(prev => ({ ...prev, logo: null }));
+                    }}
+                    single
+                  />
 
-              <PhotoUploadSection
-                title="Related Photos"
-                photos={companyForm.relatedPhotos || []}
-                onUpload={files => setCompanyForm(prev => ({ ...prev, relatedPhotos: [...(prev.relatedPhotos || []), ...files] }))}
-                onRemove={idx => setCompanyForm(prev => ({ ...prev, relatedPhotos: (prev.relatedPhotos || []).filter((_, i) => i !== idx) }))}
-              />
+                  <PhotoUploadSection
+                    title="Branch Related Photos"
+                    photos={(branches[0]?.morePhotos?.length > 0 ? branches[0].morePhotos : companyForm.relatedPhotos) || []}
+                    onUpload={files => {
+                      const next = [...(branches[0]?.morePhotos || companyForm.relatedPhotos || []), ...files];
+                      handleBranchChange(0, "morePhotos", next);
+                      setCompanyForm(prev => ({ ...prev, relatedPhotos: next }));
+                    }}
+                    onRemove={idx => {
+                      const next = (branches[0]?.morePhotos || companyForm.relatedPhotos || []).filter((_, i) => i !== idx);
+                      handleBranchChange(0, "morePhotos", next);
+                      setCompanyForm(prev => ({ ...prev, relatedPhotos: next }));
+                    }}
+                  />
+                </>
+              ) : (
+                // Enterprise Mode: Company Address/Logo/Photos AND Branch Address/Logo/Photos for each branch
+                <>
+                  <AddressSection
+                    title="Company Address"
+                    address={companyForm.address || {}}
+                    errors={formErrors}
+                    onChange={(fieldOrObj, val) => {
+                      if (typeof fieldOrObj === "object") {
+                        setCompanyForm(prev => ({
+                          ...prev,
+                          address: { ...(prev.address || {}), ...fieldOrObj }
+                        }));
+                      } else {
+                        setCompanyForm(prev => ({
+                          ...prev,
+                          address: { ...(prev.address || {}), [fieldOrObj]: val }
+                        }));
+                      }
+                    }}
+                  />
+
+                  <PhotoUploadSection
+                    title="Company Logo"
+                    photos={companyForm.logo ? [companyForm.logo] : []}
+                    onUpload={files => setCompanyForm(prev => ({ ...prev, logo: files[0] }))}
+                    onRemove={() => setCompanyForm(prev => ({ ...prev, logo: null }))}
+                    single
+                  />
+
+                  <PhotoUploadSection
+                    title="Company Related Photos"
+                    photos={companyForm.relatedPhotos || []}
+                    onUpload={files => setCompanyForm(prev => ({ ...prev, relatedPhotos: [...(prev.relatedPhotos || []), ...files] }))}
+                    onRemove={idx => setCompanyForm(prev => ({ ...prev, relatedPhotos: (prev.relatedPhotos || []).filter((_, i) => i !== idx) }))}
+                  />
+
+                  {branches.map((branch, idx) => (
+                    <div key={idx} style={{ marginTop: 32, paddingTop: 24, borderTop: "2px dashed #e5e7eb" }}>
+                      <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a73e8" }}>
+                        Branch {String(idx + 1).padStart(2, "0")} ({branch.branchName || `Branch ${idx + 1}`}) Details
+                      </h3>
+                      <AddressSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Address`}
+                        address={branch.branchAddress || {}}
+                        errors={formErrors}
+                        onChange={(fieldOrObj, val) => {
+                          if (typeof fieldOrObj === "object") {
+                            handleBranchChange(idx, "branchAddress", {
+                              ...(branch.branchAddress || {}),
+                              ...fieldOrObj,
+                            });
+                          } else {
+                            handleBranchChange(idx, "branchAddress", {
+                              ...(branch.branchAddress || {}),
+                              [fieldOrObj]: val,
+                            });
+                          }
+                        }}
+                      />
+
+                      <PhotoUploadSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Logo`}
+                        photos={branch.logo ? [branch.logo] : []}
+                        onUpload={files => handleBranchChange(idx, "logo", files[0])}
+                        onRemove={() => handleBranchChange(idx, "logo", null)}
+                        single
+                      />
+
+                      <PhotoUploadSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Related Photos`}
+                        photos={branch.morePhotos || []}
+                        onUpload={files =>
+                          handleBranchChange(idx, "morePhotos", [...(branch.morePhotos || []), ...files])
+                        }
+                        onRemove={photoIdx =>
+                          handleBranchChange(
+                            idx,
+                            "morePhotos",
+                            (branch.morePhotos || []).filter((_, i) => i !== photoIdx)
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>

@@ -251,7 +251,7 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
                       type="text"
                       placeholder="Enter custom service name"
                       value={s.otherServiceName}
-                      onChange={(e) => updateService(i, "otherServiceName", e.target.value)}
+                      onChange={(e) => updateService(i, "otherServiceName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
                       autoFocus
                     />
                   </div>
@@ -333,7 +333,7 @@ const GroomingFields = ({ branch, branchIndex, type, setBranches, petList, avail
                 className={styles.selected}
                 placeholder="Enter package name"
                 value={p.packageName || ""}
-                onChange={(e) => updatePackage(i, "packageName", e.target.value)}
+                onChange={(e) => updatePackage(i, "packageName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
               />
             </div>
 

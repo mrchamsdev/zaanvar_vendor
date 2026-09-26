@@ -138,6 +138,7 @@ const SignIn = ({ onSignUpClick }) => {
 
   // ── Register form ──────────────────────────────────────────────────────────
   const [regDetails, setRegDetails] = useState({ name: "", email: "", mobile: "", password: "" });
+  const [regCountryCode, setRegCountryCode] = useState("IN");
   const [regErrors, setRegErrors] = useState({ name: "", email: "", mobile: "", password: "" });
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
@@ -230,6 +231,19 @@ const SignIn = ({ onSignUpClick }) => {
       }));
     }
   }, [countryCode, countries, isInitialized]);
+
+  useEffect(() => {
+    if (regDetails.mobile && isInitialized) {
+      const maxLen = getPhoneLength(regCountryCode);
+      if (regDetails.mobile.length > maxLen)
+        setRegDetails((p) => ({ ...p, mobile: p.mobile.slice(0, maxLen) }));
+      const len = regDetails.mobile.length;
+      setRegErrors((p) => ({
+        ...p,
+        mobile: len > 0 && len < maxLen ? `Enter ${maxLen} digits for this country.` : "",
+      }));
+    }
+  }, [regCountryCode, countries, isInitialized]);
 
   // ── OTP resend countdown ───────────────────────────────────────────────────
   useEffect(() => {
@@ -340,9 +354,10 @@ const SignIn = ({ onSignUpClick }) => {
       return;
     }
     if (name === "mobile") {
-      const digits = value.replace(/\D/g, "").slice(0, 10);
+      const maxPhoneLen = getPhoneLength(regCountryCode);
+      const digits = value.replace(/\D/g, "").slice(0, maxPhoneLen);
       setRegDetails((p) => ({ ...p, mobile: digits }));
-      setRegErrors((p) => ({ ...p, mobile: digits.length === 0 ? "" : digits.length < 10 ? "Enter 10 digit mobile number" : "" }));
+      setRegErrors((p) => ({ ...p, mobile: digits.length === 0 ? "" : digits.length < maxPhoneLen ? `Enter ${maxPhoneLen} digits for this country.` : "" }));
       return;
     }
     if (name === "password") {
@@ -360,16 +375,19 @@ const SignIn = ({ onSignUpClick }) => {
     // Validate
     const newErrors = { name: "", email: "", mobile: "", password: "" };
     let hasError = false;
+    const maxPhoneLen = getPhoneLength(regCountryCode);
     if (!regDetails.name.trim()) { newErrors.name = "Name is required"; hasError = true; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regDetails.email)) { newErrors.email = "Enter a valid email address"; hasError = true; }
-    if (regDetails.mobile.length !== 10) { newErrors.mobile = "Enter 10 digit mobile number"; hasError = true; }
+    if (regDetails.mobile.length !== maxPhoneLen) { newErrors.mobile = `Enter ${maxPhoneLen} digit mobile number`; hasError = true; }
     if (!/^[0-9]{6}$/.test(regDetails.password)) { newErrors.password = "Password must be exactly 6 digits"; hasError = true; }
     if (!agreeTerms) { toast.error("Please agree to the Terms of Use and Privacy Policy"); hasError = true; }
     if (hasError) { setRegErrors(newErrors); return; }
 
     setRegLoading(true);
     try {
-      const fullMobile = `+91${regDetails.mobile}`;
+      const country = countries.find((c) => c.code === regCountryCode);
+      const dialCode = country?.dialCode || "+91";
+      const fullMobile = `${dialCode}${regDetails.mobile}`;
       const payload = {
         name: regDetails.name.trim(),
         email: regDetails.email.trim(),
@@ -542,25 +560,28 @@ const SignIn = ({ onSignUpClick }) => {
   );
 
   // Render REGISTER form
-  const renderRegisterForm = (s) => (
+  const renderRegisterForm = (s, isMob) => (
     <>
       <h3 className={s.formTitle}>Create Your Account</h3>
       <form className={s.form} onSubmit={handleSendOtp}>
         {/* Name */}
         <div className={s.inputGroup}>
           <span className={s.inputIcon}><PersonIcon /></span>
-          <input type="text" name="name" value={regDetails.name} onChange={handleRegChange}
+          <input type="letters" name="name" value={regDetails.name} onChange={handleRegChange}
             className={s.input} placeholder="Enter Your Full Name" autoComplete="off" />
         </div>
         {regErrors.name && <span className={s.error}>{regErrors.name}</span>}
 
-        {/* Mobile fixed +91 */}
+        {/* Mobile with SearchableCountryCode */}
         <div className={s.inputGroup}>
           <span className={s.inputIcon}><PhoneIcon /></span>
           <div className={s.phoneWrapper}>
-            <span className={styles.newDialCodeFixed}>+91</span>
+            <SearchableCountryCode countries={countries} selectedCode={regCountryCode}
+              onSelect={(code) => setRegCountryCode(code)}
+              {...(isMob ? { className: styles.newMobSearchableCountry } : {})} />
             <input type="tel" name="mobile" value={regDetails.mobile} onChange={handleRegChange}
-              className={s.input} maxLength={10} placeholder="Phone (10 digits)"
+              className={s.input} maxLength={getPhoneLength(regCountryCode)}
+              placeholder={`Phone (${getPhoneLength(regCountryCode)} digits)`}
               inputMode="numeric" autoComplete="off" />
           </div>
         </div>
@@ -618,7 +639,7 @@ const SignIn = ({ onSignUpClick }) => {
         <h3 className={styles.otpTitle}>Verify OTP</h3>
         <p className={styles.otpSubtitle}>
           We&apos;ve sent you a text message containing a verification code to your phone{" "}
-          <strong>{maskMobile(otpMobile.replace("+91", ""))}</strong>
+          <strong>{maskMobile(otpMobile)}</strong>
         </p>
         <p className={styles.otpLabel}>Enter Your 6 digit code</p>
 
@@ -742,7 +763,7 @@ const SignIn = ({ onSignUpClick }) => {
 
           <div className={styles.newFormCard}>
             {view === "login" && renderLoginForm(desktopS, false)}
-            {view === "register" && renderRegisterForm(desktopS)}
+            {view === "register" && renderRegisterForm(desktopS, false)}
             {view === "otp" && renderOtpForm(desktopS)}
           </div>
         </div>
@@ -775,7 +796,7 @@ const SignIn = ({ onSignUpClick }) => {
           )}
 
           {view === "login" && renderLoginForm(mobileS, true)}
-          {view === "register" && renderRegisterForm(mobileS)}
+          {view === "register" && renderRegisterForm(mobileS, true)}
           {view === "otp" && renderOtpForm(mobileS)}
         </div>
       </div>

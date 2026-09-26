@@ -130,7 +130,7 @@ const SitterFields = ({ branch, branchIndex, setBranches, petList, errors = {} }
                   className={styles.flexInputTwo}
                   placeholder="e.g. Dog Walking / Day Sitting"
                   value={item.serviceName}
-                  onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
+                  onChange={(e) => updateList("items", idx, "serviceName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
                 />
                 <input
                   className={styles.flexInputOne}

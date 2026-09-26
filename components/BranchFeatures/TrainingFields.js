@@ -220,7 +220,7 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList, errors = {}
                 style={{ border: errItemName ? "1px solid #ef4444" : undefined }}
                 placeholder="Service Name"
                 value={item.serviceName}
-                onChange={(e) => updateList("items", idx, "serviceName", e.target.value)}
+                onChange={(e) => updateList("items", idx, "serviceName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
               />
               <input
                 className={styles.flexSmall}
@@ -297,7 +297,7 @@ const TrainingFields = ({ branch, branchIndex, setBranches, petList, errors = {}
             className={styles.flexPackageName}
             placeholder="Package Name"
             value={pkg.packageName}
-            onChange={(e) => updateList("packages", idx, "packageName", e.target.value)}
+            onChange={(e) => updateList("packages", idx, "packageName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
           />
           <div style={{ flex: "1 0 calc(50% - 12px)", minWidth: 200 }}>
             <MultiSelectDropdown

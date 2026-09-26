@@ -157,13 +157,31 @@ const DATA_STORE_TYPES = ["manual", "semi-automated", "automated"];
 const PAYMENT_OPTIONS = ["Cash", "UPI", "NetBanking", "CreditCard", "DebitCard"];
 const BUSINESS_TYPES = ["Independent", "Enterprise"];
 
+const sanitizeExperienceInput = (val) => {
+  if (!val) return "";
+  let cleaned = String(val).replace(/[^0-9.]/g, "");
+  const parts = cleaned.split(".");
+  if (parts.length > 2) {
+    cleaned = parts[0] + "." + parts.slice(1).join("");
+  }
+  const [intPart, decPart] = cleaned.split(".");
+  const sanitizedInt = intPart.slice(0, 3);
+  if (decPart !== undefined) {
+    return `${sanitizedInt}.${decPart.slice(0, 2)}`;
+  }
+  return sanitizedInt;
+};
+
 // ─── Blank branch template ────────────────────────────────────────────────────
 const blankBranch = () => ({
   branchName: "",
   branchLocation: "",
   branchEmail: "",
   branchPhone: "",
+  branchPhoneCode: "+91",
+  branchCountryCode: "IN",
   branchOpeningDate: "",
+  durationInput: "",
   dataStoreType: "",
   businessName: "",
   selectedServices: [],
@@ -174,6 +192,7 @@ const blankBranch = () => ({
   specialHours: [],
   is24x7: false,
   branchAddress: {},
+  logo: null,
   morePhotos: [],
 });
 
@@ -729,16 +748,127 @@ function BranchServiceDetailsSection({
 
 // ─── AddressSection Sub-component (Additional Information) ────────────────────
 function AddressSection({ title, address = {}, onChange, errors = {} }) {
+  const [geoLoading, setGeoLoading] = useState(false);
+
   const handleGeoLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          onChange("latitude", pos.coords.latitude.toFixed(4));
-          onChange("longitude", pos.coords.longitude.toFixed(4));
-        },
-        (err) => console.error("Geolocation error:", err)
-      );
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
     }
+
+    setGeoLoading(true);
+    const toastId = toast.loading("Fetching your current location...");
+
+    const onSuccess = async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const latStr = lat.toFixed(6);
+      const lngStr = lng.toFixed(6);
+
+      const locationUpdate = {
+        latitude: latStr,
+        longitude: lngStr,
+      };
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          const pincode = addr.postcode || "";
+          
+          const areaParts = [
+            addr.road,
+            addr.suburb || addr.neighbourhood || addr.subdistrict || addr.locality || addr.quarter,
+            addr.county
+          ].filter(Boolean);
+          const areaName = areaParts.length > 0
+            ? areaParts.join(", ")
+            : (addr.suburb || addr.neighbourhood || data.name || "");
+
+          const cityName = addr.city || addr.town || addr.village || addr.county || addr.city_district || "";
+          const stateName = addr.state || "";
+          const countryName = addr.country || "";
+          const countryCodeVal = (addr.country_code || "").toUpperCase();
+
+          if (pincode) locationUpdate.pincode = pincode.replace(/\D/g, "").slice(0, 6);
+          if (areaName) locationUpdate.area = areaName;
+
+          const countriesList = Country.getAllCountries();
+          if (countryCodeVal || countryName) {
+            const foundC = countriesList.find(
+              c => c.isoCode === countryCodeVal || c.name.toLowerCase() === countryName.toLowerCase()
+            );
+            if (foundC) {
+              locationUpdate.countryCode = foundC.isoCode;
+              locationUpdate.country = foundC.name;
+
+              const stList = State.getStatesOfCountry(foundC.isoCode);
+              const foundS = stList.find(
+                s => s.name.toLowerCase() === stateName.toLowerCase() || stateName.toLowerCase().includes(s.name.toLowerCase())
+              );
+              if (foundS) {
+                locationUpdate.stateCode = foundS.isoCode;
+                locationUpdate.state = foundS.name;
+
+                if (cityName) {
+                  const ctList = City.getCitiesOfState(foundC.isoCode, foundS.isoCode);
+                  const foundCity = ctList.find(
+                    c => c.name.toLowerCase() === cityName.toLowerCase() || cityName.toLowerCase().includes(c.name.toLowerCase())
+                  );
+                  locationUpdate.city = foundCity ? foundCity.name : cityName;
+                }
+              }
+            }
+          }
+        }
+      } catch (geoErr) {
+        console.warn("Reverse geocode lookup warning:", geoErr);
+      } finally {
+        onChange(locationUpdate);
+        toast.dismiss(toastId);
+        toast.success("Location retrieved successfully!");
+        setGeoLoading(false);
+      }
+    };
+
+    const onError = (err) => {
+      if (err.code === err.TIMEOUT) {
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          (fallbackErr) => {
+            toast.dismiss(toastId);
+            setGeoLoading(false);
+            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+              toast.error("Location permission denied. Please allow location access in browser settings.");
+            } else {
+              toast.error("Location request timed out. Please enter coordinates manually.");
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        );
+        return;
+      }
+
+      toast.dismiss(toastId);
+      setGeoLoading(false);
+      if (err.code === err.PERMISSION_DENIED) {
+        toast.error("Location permission denied. Please allow location access in browser settings.");
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        toast.error("Location position unavailable. Please enter coordinates manually.");
+      } else {
+        toast.error("Could not fetch location. Please enter manually.");
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
   };
 
   const inputStyle = {
@@ -774,9 +904,10 @@ function AddressSection({ title, address = {}, onChange, errors = {} }) {
         <button
           type="button"
           onClick={handleGeoLocation}
-          style={{ background: "none", border: "none", color: "#1a73e8", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          disabled={geoLoading}
+          style={{ background: "none", border: "none", color: geoLoading ? "#9ca3af" : "#1a73e8", fontSize: 13, fontWeight: 600, cursor: geoLoading ? "not-allowed" : "pointer" }}
         >
-          Get Geo location
+          {geoLoading ? "Fetching location..." : "Get Geo location"}
         </button>
       </div>
 
@@ -953,7 +1084,12 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove, errors =
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch name <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input style={{ ...inputStyle, border: getErr("branchName") ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Branch Name" {...field("branchName")} />
+          <input
+            style={{ ...inputStyle, border: getErr("branchName") ? "1px solid #ef4444" : inputStyle.border }}
+            placeholder="Enter Branch Name"
+            value={branch.branchName || ""}
+            onChange={e => onChange(index, "branchName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
+          />
           {getErr("branchName") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchName")}</span>}
         </div>
         <div style={fieldWrap}>
@@ -974,7 +1110,7 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove, errors =
                 style={{ ...inputStyle, flex: 1, border: getErr("branchOpeningDate") ? "1px solid #ef4444" : inputStyle.border }}
                 value={branch.durationInput || ""}
                 onChange={(e) => {
-                  const val = e.target.value;
+                  const val = sanitizeExperienceInput(e.target.value);
                   const converted = convertDurationToDate(val);
                   onChange(index, "durationInput", val);
                   if (converted) {
@@ -1011,7 +1147,12 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove, errors =
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Business Name (optional)</label>
-          <input style={inputStyle} placeholder="Enter Business name" {...field("businessName")} />
+          <input
+            style={inputStyle}
+            placeholder="Enter Business name"
+            value={branch.businessName || ""}
+            onChange={e => onChange(index, "businessName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
+          />
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Email <span style={{ color: "#e74c3c" }}>*</span></label>
@@ -1020,9 +1161,38 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove, errors =
         </div>
         <div style={fieldWrap}>
           <label style={labelStyle}>Branch Phone Number <span style={{ color: "#e74c3c" }}>*</span></label>
-          <input type="tel" style={{ ...inputStyle, border: getErr("branchPhone") ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter 10-digit phone number" maxLength={10}
-            value={branch.branchPhone || ""}
-            onChange={e => onChange(index, "branchPhone", e.target.value.replace(/\D/g, ""))} />
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ border: getErr("branchPhone") ? "1px solid #ef4444" : "1px solid #d1d5db", borderRadius: 6, background: "#fff", padding: "2px 6px", height: "40px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+              <SearchableCountryCode
+                countries={ALL_COUNTRIES_DIAL}
+                selectedCode={branch.branchCountryCode || "IN"}
+                onSelect={(code) => {
+                  const cObj = ALL_COUNTRIES_DIAL.find((c) => c.code === code);
+                  const dial = cObj?.dialCode || "+91";
+                  onChange(index, "branchCountryCode", code);
+                  onChange(index, "branchPhoneCode", dial);
+                  const digits = getRawPhoneDigits(branch.branchPhone);
+                  const maxLen = getPhoneLength(code);
+                  const trimmed = digits.slice(0, maxLen);
+                  onChange(index, "branchPhone", trimmed ? `${dial}${trimmed}` : "");
+                }}
+              />
+            </div>
+            <input
+              type="tel"
+              style={{ ...inputStyle, flex: 1, border: getErr("branchPhone") ? "1px solid #ef4444" : inputStyle.border }}
+              placeholder={`Enter ${getPhoneLength(branch.branchCountryCode || "IN") !== 15 ? getPhoneLength(branch.branchCountryCode || "IN") + "-digit " : ""}phone number`}
+              maxLength={getPhoneLength(branch.branchCountryCode || "IN")}
+              value={getRawPhoneDigits(branch.branchPhone)}
+              onChange={e => {
+                const code = branch.branchPhoneCode || "+91";
+                const iso = branch.branchCountryCode || "IN";
+                const maxLen = getPhoneLength(iso);
+                const digits = e.target.value.replace(/\D/g, "").slice(0, maxLen);
+                onChange(index, "branchPhone", digits ? `${code}${digits}` : "");
+              }}
+            />
+          </div>
           {getErr("branchPhone") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("branchPhone")}</span>}
         </div>
         <div style={fieldWrap}>
@@ -1038,8 +1208,9 @@ function BranchSection({ branch, index, onChange, onRemove, showRemove, errors =
 
       {/* Services */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ ...labelStyle, marginBottom: 8 }}>Services</label>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Services <span style={{ color: "#e74c3c" }}>*</span></label>
         <ServicesCheckboxes selected={branch.selectedServices || []} onChange={val => onChange(index, "selectedServices", val)} />
+        {getErr("selectedServices") && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{getErr("selectedServices")}</span>}
       </div>
 
       {/* Hours / Timings */}
@@ -1120,7 +1291,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
 
   // ── Tab 0: User Information ──────────────────────────────────────────────────
   const [userForm, setUserForm] = useState({
-    fullName: userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "",
+    fullName: (userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || "").replace(/[^a-zA-Z\s]/g, ""),
     email: userInfo?.email || "",
     mobileNumber: userInfo?.phoneNumber || userInfo?.mobileNumber || "",
     gender: userInfo?.gender || "",
@@ -1129,7 +1300,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
   React.useEffect(() => {
     if (open && userInfo) {
       setUserForm(prev => ({
-        fullName: userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || prev.fullName,
+        fullName: (userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || prev.fullName).replace(/[^a-zA-Z\s]/g, ""),
         email: userInfo?.email || prev.email,
         mobileNumber: userInfo?.phoneNumber || userInfo?.mobileNumber || prev.mobileNumber,
         gender: userInfo?.gender || prev.gender,
@@ -1378,6 +1549,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
 
   const validateTab = (tabIndex) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const nameRegex = /^[a-zA-Z\s]+$/;
     const phoneRegex = /^\d{10}$/;
     const newErrors = {};
 
@@ -1385,6 +1557,8 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
     if (tabIndex === 0) {
       if (!userForm.fullName || !userForm.fullName.trim()) {
         newErrors.fullName = "Please enter your full name.";
+      } else if (!nameRegex.test(userForm.fullName.trim())) {
+        newErrors.fullName = "Full name can contain letters and spaces only.";
       }
       if (!userForm.gender) {
         newErrors.gender = "Please select your gender.";
@@ -1417,6 +1591,8 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
       if (showCompanyInfo) {
         if (!companyForm.companyName || !companyForm.companyName.trim()) {
           newErrors.companyName = "Please enter company name.";
+        } else if (!nameRegex.test(companyForm.companyName.trim())) {
+          newErrors.companyName = "Company name can contain letters and spaces only.";
         }
         if (!companyForm.companyEmail || !companyForm.companyEmail.trim()) {
           newErrors.companyEmail = "Please enter company email.";
@@ -1431,11 +1607,11 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
         } else if (expectedCompLen !== 15 ? rawCompPhone.length !== expectedCompLen : (rawCompPhone.length < 7 || rawCompPhone.length > 15)) {
           newErrors.companyPhone = expectedCompLen !== 15 ? `Please enter a valid ${expectedCompLen}-digit company phone number.` : "Please enter a valid company phone number.";
         }
-        if (!companyForm.companyWebsite || !companyForm.companyWebsite.trim()) {
-          newErrors.companyWebsite = "Please enter company website.";
-        }
+
         if (!companyForm.roleOfPerson || !companyForm.roleOfPerson.trim()) {
           newErrors.roleOfPerson = "Please enter role of the registering person.";
+        } else if (!nameRegex.test(companyForm.roleOfPerson.trim())) {
+          newErrors.roleOfPerson = "Role of person can contain letters and spaces only.";
         }
         if (!companyForm.gender) {
           newErrors.companyGender = "Please select company contact gender.";
@@ -1451,6 +1627,11 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
 
         if (!b.branchName || !b.branchName.trim()) {
           newErrors[`branchName_${i}`] = `Please enter branch name${bLabel}.`;
+        } else if (!nameRegex.test(b.branchName.trim())) {
+          newErrors[`branchName_${i}`] = `Branch name can contain letters and spaces only${bLabel}.`;
+        }
+        if (b.businessName && b.businessName.trim() && !nameRegex.test(b.businessName.trim())) {
+          newErrors[`businessName_${i}`] = `Business name can contain letters and spaces only${bLabel}.`;
         }
         if (!b.branchLocation) {
           newErrors[`branchLocation_${i}`] = `Please select branch location${bLabel}.`;
@@ -1481,6 +1662,20 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
             newErrors[`branchTimings_${i}`] = `Please set branch timings or select 24/7 Open${bLabel}.`;
           }
         }
+
+        const activeSvcs = (b.selectedServices && b.selectedServices.length > 0) ? b.selectedServices : companyForm.services;
+        if (!activeSvcs || activeSvcs.length === 0) {
+          newErrors[`selectedServices_${i}`] = `Please select at least one service${bLabel}.`;
+          if (!newErrors.services) {
+            newErrors.services = "Please select at least one service.";
+          }
+        }
+      }
+
+      const hasCompanyServices = Array.isArray(companyForm.services) && companyForm.services.length > 0;
+      const hasBranchServices = branches.some(b => Array.isArray(b.selectedServices) && b.selectedServices.length > 0);
+      if (!hasCompanyServices && !hasBranchServices) {
+        newErrors.services = "Please select at least one service.";
       }
 
       setFormErrors(newErrors);
@@ -1664,8 +1859,12 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   }
                   if (!item.categories || item.categories.length === 0) {
                     newErrors[`petStore_${i}_${itemIdx}_categories`] = `Please select Product Categories in Pet Store #${itemIdx + 1}${bLabel}.`;
-                  } else if (item.categories.includes("Other") && (!item.customCategory || !item.customCategory.trim())) {
-                    newErrors[`petStore_${i}_${itemIdx}_customCat`] = `Please specify custom category for 'Other' in Pet Store #${itemIdx + 1}${bLabel}.`;
+                  } else if (item.categories.includes("Other")) {
+                    if (!item.customCategory || !item.customCategory.trim()) {
+                      newErrors[`petStore_${i}_${itemIdx}_customCat`] = `Please specify custom category for 'Other' in Pet Store #${itemIdx + 1}${bLabel}.`;
+                    } else if (!nameRegex.test(item.customCategory.trim())) {
+                      newErrors[`petStore_${i}_${itemIdx}_customCat`] = `Custom Category can contain letters and spaces only in Pet Store #${itemIdx + 1}${bLabel}.`;
+                    }
                   }
                 });
               }
@@ -1952,7 +2151,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Full Name <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input style={{ ...inputStyle, background: "#f3f4f6", border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
+                  <input style={{ ...inputStyle, background: "#f3f4f6", cursor: "not-allowed", border: formErrors.fullName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Full Name"
                     readOnly disabled value={userForm.fullName} onChange={e => handleUserChange("fullName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                   {formErrors.fullName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.fullName}</span>}
                 </div>
@@ -1969,7 +2168,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                 </div>
                 <div style={fieldWrap}>
                   <label style={labelStyle}>Email <span style={{ color: "#e74c3c" }}>*</span></label>
-                  <input type="email" style={{ ...inputStyle, cursor: "not-allowed", border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
+                  <input type="email" style={{ ...inputStyle, border: formErrors.email ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Email ID"
                     value={userForm.email} onChange={e => handleUserChange("email", e.target.value)} />
                   {formErrors.email && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.email}</span>}
                 </div>
@@ -2013,7 +2212,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Company name <span style={{ color: "#e74c3c" }}>*</span></label>
                       <input style={{ ...inputStyle, border: formErrors.companyName ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter Company Name"
-                        value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value)} />
+                        value={companyForm.companyName} onChange={e => handleCompanyChange("companyName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                       {formErrors.companyName && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyName}</span>}
                     </div>
                     <div style={fieldWrap}>
@@ -2035,30 +2234,38 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                               handleCompanyChange("companyCountryCode", code);
                               handleCompanyChange("companyPhoneCode", dial);
                               const digits = getRawPhoneDigits(companyForm.companyPhone);
-                              handleCompanyChange("companyPhone", digits ? `${dial}${digits}` : "");
+                              const maxLen = getPhoneLength(code);
+                              const trimmed = digits.slice(0, maxLen);
+                              handleCompanyChange("companyPhone", trimmed ? `${dial}${trimmed}` : "");
                             }}
                           />
                         </div>
-                        <input type="tel" style={{ ...inputStyle, flex: 1, border: formErrors.companyPhone ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter phone number" maxLength={15}
+                        <input
+                          type="tel"
+                          style={{ ...inputStyle, flex: 1, border: formErrors.companyPhone ? "1px solid #ef4444" : inputStyle.border }}
+                          placeholder={`Enter ${getPhoneLength(companyForm.companyCountryCode || "IN") !== 15 ? getPhoneLength(companyForm.companyCountryCode || "IN") + "-digit " : ""}phone number`}
+                          maxLength={getPhoneLength(companyForm.companyCountryCode || "IN")}
                           value={getRawPhoneDigits(companyForm.companyPhone)}
                           onChange={e => {
                             const code = companyForm.companyPhoneCode || "+91";
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 15);
+                            const iso = companyForm.companyCountryCode || "IN";
+                            const maxLen = getPhoneLength(iso);
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, maxLen);
                             handleCompanyChange("companyPhone", digits ? `${code}${digits}` : "");
-                          }} />
+                          }}
+                        />
                       </div>
                       {formErrors.companyPhone && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyPhone}</span>}
                     </div>
                     <div style={fieldWrap}>
-                      <label style={labelStyle}>Company Website <span style={{ color: "#e74c3c" }}>*</span></label>
+                      <label style={labelStyle}>Company Website </label>
                       <input style={{ ...inputStyle, border: formErrors.companyWebsite ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter here"
                         value={companyForm.companyWebsite} onChange={e => handleCompanyChange("companyWebsite", e.target.value)} />
-                      {formErrors.companyWebsite && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.companyWebsite}</span>}
                     </div>
                     <div style={fieldWrap}>
                       <label style={labelStyle}>Role of the Registering Person <span style={{ color: "#e74c3c" }}>*</span></label>
                       <input style={{ ...inputStyle, border: formErrors.roleOfPerson ? "1px solid #ef4444" : inputStyle.border }} placeholder="Enter here"
-                        value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value)} />
+                        value={companyForm.roleOfPerson} onChange={e => handleCompanyChange("roleOfPerson", e.target.value.replace(/[^a-zA-Z\s]/g, ""))} />
                       {formErrors.roleOfPerson && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.roleOfPerson}</span>}
                     </div>
                     <div style={fieldWrap}>
@@ -2082,7 +2289,7 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                             style={{ ...inputStyle, flex: 1, border: formErrors.companyOpeningDate ? "1px solid #ef4444" : inputStyle.border }}
                             value={companyForm.durationInput || ""}
                             onChange={(e) => {
-                              const val = e.target.value;
+                              const val = sanitizeExperienceInput(e.target.value);
                               const converted = convertDurationToDate(val);
                               handleCompanyChange("durationInput", val);
                               if (converted) {
@@ -2123,11 +2330,12 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   {/* Services */}
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <label style={{ ...labelStyle, marginBottom: 0 }}>Services</label>
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>Services <span style={{ color: "#e74c3c" }}>*</span></label>
                       <span style={{ fontSize: 16, color: "#6b7280" }}>^</span>
                     </div>
                     <ServicesCheckboxes selected={companyForm.services}
                       onChange={val => handleCompanyChange("services", val)} />
+                    {formErrors.services && <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>{formErrors.services}</span>}
                   </div>
 
                   {/* About Company */}
@@ -2233,17 +2441,79 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
           {activeTab === 3 && (
             <div>
               {!isEnterprise ? (
-                // Independent Mode: Company Address, Company Logo, Related Photos
+                // Independent Mode: Branch Address, Branch Logo, Branch Related Photos
+                <>
+                  <AddressSection
+                    title="Branch Address"
+                    address={branches[0]?.branchAddress || companyForm.address || {}}
+                    onChange={(fieldOrObj, val) => {
+                      if (typeof fieldOrObj === "object") {
+                        const updatedAddr = { ...(branches[0]?.branchAddress || companyForm.address || {}), ...fieldOrObj };
+                        handleBranchChange(0, "branchAddress", updatedAddr);
+                        setCompanyForm(prev => ({ ...prev, address: updatedAddr }));
+                      } else {
+                        setFormErrors(prev => ({ ...prev, [`branch_0_${fieldOrObj}`]: "", [`company_${fieldOrObj}`]: "" }));
+                        const updatedAddr = { ...(branches[0]?.branchAddress || companyForm.address || {}), [fieldOrObj]: val };
+                        handleBranchChange(0, "branchAddress", updatedAddr);
+                        setCompanyForm(prev => ({ ...prev, address: updatedAddr }));
+                      }
+                    }}
+                    errors={{
+                      country: formErrors[`branch_0_country`] || formErrors.company_country,
+                      state: formErrors[`branch_0_state`] || formErrors.company_state,
+                      city: formErrors[`branch_0_city`] || formErrors.company_city,
+                      pincode: formErrors[`branch_0_pincode`] || formErrors.company_pincode,
+                    }}
+                  />
+
+                  <PhotoUploadSection
+                    title="Branch Logo"
+                    photos={(branches[0]?.logo || companyForm.logo) ? [(branches[0]?.logo || companyForm.logo)] : []}
+                    onUpload={files => {
+                      handleBranchChange(0, "logo", files[0]);
+                      setCompanyForm(prev => ({ ...prev, logo: files[0] }));
+                    }}
+                    onRemove={() => {
+                      handleBranchChange(0, "logo", null);
+                      setCompanyForm(prev => ({ ...prev, logo: null }));
+                    }}
+                    single
+                  />
+
+                  <PhotoUploadSection
+                    title="Branch Related Photos"
+                    photos={(branches[0]?.morePhotos?.length > 0 ? branches[0].morePhotos : companyForm.relatedPhotos) || []}
+                    onUpload={files => {
+                      const next = [...(branches[0]?.morePhotos || companyForm.relatedPhotos || []), ...files];
+                      handleBranchChange(0, "morePhotos", next);
+                      setCompanyForm(prev => ({ ...prev, relatedPhotos: next }));
+                    }}
+                    onRemove={idx => {
+                      const next = (branches[0]?.morePhotos || companyForm.relatedPhotos || []).filter((_, i) => i !== idx);
+                      handleBranchChange(0, "morePhotos", next);
+                      setCompanyForm(prev => ({ ...prev, relatedPhotos: next }));
+                    }}
+                  />
+                </>
+              ) : (
+                // Enterprise Mode: Company Address/Logo/Photos AND Branch Address/Logo/Photos for each branch
                 <>
                   <AddressSection
                     title="Company Address"
                     address={companyForm.address || {}}
-                    onChange={(field, val) => {
-                      setFormErrors(prev => ({ ...prev, [`company_${field}`]: "" }));
-                      setCompanyForm(prev => ({
-                        ...prev,
-                        address: { ...(prev.address || {}), [field]: val }
-                      }));
+                    onChange={(fieldOrObj, val) => {
+                      if (typeof fieldOrObj === "object") {
+                        setCompanyForm(prev => ({
+                          ...prev,
+                          address: { ...(prev.address || {}), ...fieldOrObj }
+                        }));
+                      } else {
+                        setFormErrors(prev => ({ ...prev, [`company_${fieldOrObj}`]: "" }));
+                        setCompanyForm(prev => ({
+                          ...prev,
+                          address: { ...(prev.address || {}), [fieldOrObj]: val }
+                        }));
+                      }
                     }}
                     errors={{
                       country: formErrors.company_country,
@@ -2262,50 +2532,67 @@ export default function RegisterBusinessModal({ open, onClose, onSuccess, userIn
                   />
 
                   <PhotoUploadSection
-                    title="Related Photos"
+                    title="Company Related Photos"
                     photos={companyForm.relatedPhotos || []}
                     onUpload={files => setCompanyForm(prev => ({ ...prev, relatedPhotos: [...(prev.relatedPhotos || []), ...files] }))}
                     onRemove={idx => setCompanyForm(prev => ({ ...prev, relatedPhotos: (prev.relatedPhotos || []).filter((_, i) => i !== idx) }))}
                   />
-                </>
-              ) : (
-                // Enterprise Mode: Branch Address & Related Photos for each branch
-                branches.map((branch, idx) => (
-                  <div key={idx} style={{ marginBottom: 32 }}>
-                    <AddressSection
-                      title={`Branch ${String(idx + 1).padStart(2, "0")} Address`}
-                      address={branch.branchAddress || {}}
-                      onChange={(field, val) => {
-                        setFormErrors(prev => ({ ...prev, [`branch_${idx}_${field}`]: "" }));
-                        handleBranchChange(idx, "branchAddress", {
-                          ...(branch.branchAddress || {}),
-                          [field]: val,
-                        });
-                      }}
-                      errors={{
-                        country: formErrors[`branch_${idx}_country`],
-                        state: formErrors[`branch_${idx}_state`],
-                        city: formErrors[`branch_${idx}_city`],
-                        pincode: formErrors[`branch_${idx}_pincode`],
-                      }}
-                    />
 
-                    <PhotoUploadSection
-                      title={`Branch ${String(idx + 1).padStart(2, "0")} Related Photos`}
-                      photos={branch.morePhotos || []}
-                      onUpload={files =>
-                        handleBranchChange(idx, "morePhotos", [...(branch.morePhotos || []), ...files])
-                      }
-                      onRemove={photoIdx =>
-                        handleBranchChange(
-                          idx,
-                          "morePhotos",
-                          (branch.morePhotos || []).filter((_, i) => i !== photoIdx)
-                        )
-                      }
-                    />
-                  </div>
-                ))
+                  {branches.map((branch, idx) => (
+                    <div key={idx} style={{ marginTop: 32, paddingTop: 24, borderTop: "2px dashed #e5e7eb" }}>
+                      <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1a73e8" }}>
+                        Branch {String(idx + 1).padStart(2, "0")} ({branch.branchName || `Branch ${idx + 1}`}) Details
+                      </h3>
+                      <AddressSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Address`}
+                        address={branch.branchAddress || {}}
+                        onChange={(fieldOrObj, val) => {
+                          if (typeof fieldOrObj === "object") {
+                            handleBranchChange(idx, "branchAddress", {
+                              ...(branch.branchAddress || {}),
+                              ...fieldOrObj,
+                            });
+                          } else {
+                            setFormErrors(prev => ({ ...prev, [`branch_${idx}_${fieldOrObj}`]: "" }));
+                            handleBranchChange(idx, "branchAddress", {
+                              ...(branch.branchAddress || {}),
+                              [fieldOrObj]: val,
+                            });
+                          }
+                        }}
+                        errors={{
+                          country: formErrors[`branch_${idx}_country`],
+                          state: formErrors[`branch_${idx}_state`],
+                          city: formErrors[`branch_${idx}_city`],
+                          pincode: formErrors[`branch_${idx}_pincode`],
+                        }}
+                      />
+
+                      <PhotoUploadSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Logo`}
+                        photos={branch.logo ? [branch.logo] : []}
+                        onUpload={files => handleBranchChange(idx, "logo", files[0])}
+                        onRemove={() => handleBranchChange(idx, "logo", null)}
+                        single
+                      />
+
+                      <PhotoUploadSection
+                        title={`Branch ${String(idx + 1).padStart(2, "0")} Related Photos`}
+                        photos={branch.morePhotos || []}
+                        onUpload={files =>
+                          handleBranchChange(idx, "morePhotos", [...(branch.morePhotos || []), ...files])
+                        }
+                        onRemove={photoIdx =>
+                          handleBranchChange(
+                            idx,
+                            "morePhotos",
+                            (branch.morePhotos || []).filter((_, i) => i !== photoIdx)
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                </>
               )}
 
               {/* Privacy Footer */}

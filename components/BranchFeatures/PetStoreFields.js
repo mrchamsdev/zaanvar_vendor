@@ -55,6 +55,11 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
         ...prev,
         [index]: "Custom category is required when 'Other' is selected",
       }));
+    } else if (hasOther && !/^[a-zA-Z\s]+$/.test(customValue.trim())) {
+      setCustomCategoryErrors((prev) => ({
+        ...prev,
+        [index]: "Custom category can contain letters and spaces only",
+      }));
     } else {
       setCustomCategoryErrors((prev) => {
         const newErrors = { ...prev };
@@ -199,7 +204,7 @@ const PetStoreFields = ({ branch, branchIndex, type, setBranches, petList, avail
                 <input
                   value={item.customCategory}
                   onChange={(e) =>
-                    updateItemField(index, "customCategory", e.target.value)
+                    updateItemField(index, "customCategory", e.target.value.replace(/[^a-zA-Z\s]/g, ""))
                   }
                   style={{ border: errCustom ? "1px solid #ef4444" : undefined }}
                   className={`${styles.input} ${errCustom ? styles.inputError : ""}`}

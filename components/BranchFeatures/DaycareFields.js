@@ -225,7 +225,7 @@ const DaycareFields = ({ branch, branchIndex, type, setBranches, petList, availa
                   style={{ border: errPkgName ? "1px solid #ef4444" : undefined }}
                   placeholder="Enter package name"
                   value={pkg.packageName || ""}
-                  onChange={(e) => updatePackage(i, "packageName", e.target.value)}
+                  onChange={(e) => updatePackage(i, "packageName", e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
                 />
                 {errPkgName && (
                   <span style={{ color: "#ef4444", fontSize: 11, marginTop: 4, display: "block" }}>

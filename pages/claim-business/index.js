@@ -437,6 +437,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [shopFrontPhoto, setShopFrontPhoto] = useState("");
   const [selfiePhoto, setSelfiePhoto] = useState("");
+  const [submittedFrontError, setSubmittedFrontError] = useState(false);
+  const [submittedSelfieError, setSubmittedSelfieError] = useState(false);
+
+  useEffect(() => {
+    setSubmittedFrontError(false);
+    setSubmittedSelfieError(false);
+  }, [shopFrontPhoto, selfiePhoto, view]);
   const [videoUpload, setVideoUpload] = useState("");
   const [showOtpView, setShowOtpView] = useState(false);
   const [isSubmittingOtp, setIsSubmittingOtp] = useState(false);
@@ -1695,7 +1702,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
   // POST progress for Step 1: VERIFY_BUSINESS
   const handleBranchesNext = async () => {
-    if (selectedBranchIndices.length === 0) return;
+    if (selectedBranchIndices.length === 0) {
+      toast.error("Please select a business to proceed.");
+      return;
+    }
 
     try {
       const API_URL = window.location.hostname !== "support.zaanvar.com"
@@ -2060,10 +2070,10 @@ const ClaimBusiness = ({ forcedView = null }) => {
       let res = null;
       try {
         if (filter === "verified") {
-
-          res = await axios.post(`${API_URL}verification/verify-single-otp`, fallbackPayload);
-        } else {
           res = await axios.post(`${API_URL}scraped-branches/claim/verify`, verifyPayload);
+
+        } else {
+          res = await axios.post(`${API_URL}verification/verify-single-otp`, fallbackPayload);
         }
       } catch (primaryErr) {
         console.warn("Primary claim verify error, trying fallback endpoint:", primaryErr);
@@ -2135,7 +2145,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
       setCurrentTicketStep(stepUpper);
     }
 
-    if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "REJECTED") {
+    if (stepUpper === "DOCUMENT_VERIFICATION" || stepUpper === "DOCUMENTS_UPLOADED" || stepUpper === "DOCUMENTS_SUBMITTED" || stepUpper === "REJECTED") {
       setView("dispute_docs");
       const API_URL = window.location.hostname !== "support.zaanvar.com"
         ? "https://dev.zaanvar.com/api/"
@@ -3452,7 +3462,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                         >
                           • Support
                         </button>
-                        {view !== "verify_otp" && !showOtpView && (
+                        {view === "verify_method" && (
                           <button
                             type="button"
                             className={styles.dropdownItem}
@@ -3888,12 +3898,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                   <button
                     type="button"
                     onClick={() => {
-                      const stepU = (inProgressTicket?.currentStep || inProgressTicket?.current_step || currentTicketStep || "").toUpperCase();
-                      if (stepU === "DOCUMENT_VERIFICATION" || stepU === "DOCUMENTS_UPLOADED" || stepU === "REJECTED") {
-                        setView("dispute_docs");
-                      } else {
-                        setView("submitted");
-                      }
+                      resumeClaimStep(inProgressTicket);
                     }}
                     style={{
                       padding: "9px 18px",
@@ -4703,7 +4708,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
-                          toast.info("Resending OTP code...");
+                          router.push("/support");
                         }}
                         style={{ color: '#1a73e8', fontWeight: '600', textDecoration: 'none' }}
                       >
@@ -4958,56 +4963,66 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                         <div className={styles.photosRow}>
                           <div className={styles.photoContainer}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {shopFrontPhoto ||
-                              branchImagesList[0] ||
-                              selectedBranch?.branchImages?.[0] ||
-                              selectedBranch?.images?.[0] ? (
-                              <img
-                                src={formatPhotoUrl(
-                                  shopFrontPhoto ||
-                                  branchImagesList[0] ||
-                                  selectedBranch?.branchImages?.[0] ||
-                                  selectedBranch?.images?.[0]
-                                )}
-                                alt="Shop Front Photo"
-                                className={styles.photoImg}
-                              />
-                            ) : (
-                              <div className={styles.noPhotoPlaceholder}>
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                  <circle cx="8.5" cy="8.5" r="1.5" />
-                                  <polyline points="21 15 16 10 5 21" />
-                                </svg>
-                              </div>
-                            )}
+                            {(() => {
+                              const rawFront =
+                                shopFrontPhoto ||
+                                (branchImagesList && !PLACEHOLDERS.includes(branchImagesList[0]) ? branchImagesList[0] : null) ||
+                                selectedBranch?.branchImages?.[0] ||
+                                selectedBranch?.images?.[0];
+                              const formattedFront = formatPhotoUrl(rawFront);
+
+                              if (formattedFront && !submittedFrontError) {
+                                return (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={formattedFront}
+                                    alt=""
+                                    className={styles.photoImg}
+                                    onError={() => setSubmittedFrontError(true)}
+                                  />
+                                );
+                              }
+                              return (
+                                <div className={styles.noPhotoPlaceholder}>
+                                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                  </svg>
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className={styles.photoContainer}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {selfiePhoto ||
-                              branchImagesList[1] ||
-                              selectedBranch?.branchImages?.[1] ||
-                              selectedBranch?.images?.[1] ? (
-                              <img
-                                src={
-                                  selfiePhoto ||
-                                  branchImagesList[1] ||
-                                  selectedBranch?.branchImages?.[1] ||
-                                  selectedBranch?.images?.[1]
-                                }
-                                alt="Verification / Selfie Photo"
-                                className={styles.photoImg}
-                              />
-                            ) : (
-                              <div className={styles.noPhotoPlaceholder}>
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                  <circle cx="8.5" cy="8.5" r="1.5" />
-                                  <polyline points="21 15 16 10 5 21" />
-                                </svg>
-                              </div>
-                            )}
+                            {(() => {
+                              const rawSelfie =
+                                selfiePhoto ||
+                                (branchImagesList && !PLACEHOLDERS.includes(branchImagesList[1]) ? branchImagesList[1] : null) ||
+                                selectedBranch?.branchImages?.[1] ||
+                                selectedBranch?.images?.[1];
+                              const formattedSelfie = formatPhotoUrl(rawSelfie);
+
+                              if (formattedSelfie && !submittedSelfieError) {
+                                return (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={formattedSelfie}
+                                    alt=""
+                                    className={styles.photoImg}
+                                    onError={() => setSubmittedSelfieError(true)}
+                                  />
+                                );
+                              }
+                              return (
+                                <div className={styles.noPhotoPlaceholder}>
+                                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                  </svg>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -5088,7 +5103,17 @@ const ClaimBusiness = ({ forcedView = null }) => {
                             </div>
 
                             <p className={styles.resendOtpText}>
-                              Didn&apos;t Receive code? <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Resending OTP code..."); }} className={styles.resendLink}>Please contact the support</a>
+                              Didn&apos;t Receive code?{" "}
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  router.push("/support");
+                                }}
+                                className={styles.resendLink}
+                              >
+                                Please contact the support
+                              </a>
                             </p>
                             <button
                               type="button"
