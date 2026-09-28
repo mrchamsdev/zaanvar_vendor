@@ -19,10 +19,10 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-       {
-      protocol: "https",
-      hostname: "zaanvar-care.b-cdn.net",
-    },
+      {
+        protocol: "https",
+        hostname: "zaanvar-care.b-cdn.net",
+      },
       {
         protocol: 'https',
         hostname: 'cdn.builder.io',
@@ -37,11 +37,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'dev-api.zaanvar.com', 
+        hostname: 'dev-api.zaanvar.com',
       },
       {
         protocol: 'https',
-        hostname: 'images.pexels.com', 
+        hostname: 'images.pexels.com',
       },
       {
         protocol: 'https',
@@ -63,10 +63,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "zaanvaerwebstories.b-cdn.net",
       },
-      {
-        protocol: "https",
-        hostname: "zaanvar.s3.ap-south-1.amazonaws.com",
-      },
+      // {
+      //   protocol: "https",
+      //   hostname: "zaanvar.s3.ap-south-1.amazonaws.com",
+      // },
       {
         protocol: 'https',
         hostname: 'encrypted-tbn0.gstatic.com',
@@ -79,7 +79,7 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'www.shutterstock.com',
       },
-      
+
     ],
   },
 
