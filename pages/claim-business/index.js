@@ -75,7 +75,7 @@ const getBranchCategories = (b) => {
   if (typeof rawList === "string" && rawList.trim()) {
     return rawList.split(",").map(s => s.trim()).filter(Boolean);
   }
-  const title = String(b.fullName || b.branchName || b.companyName || b.name || "").toLowerCase();
+  const title = String(b.branchName || b.fullName || b.companyName || b.name || "").toLowerCase();
   const found = [];
   if (title.includes("grooming") || title.includes("spa")) found.push("Pet Grooming");
   if (title.includes("daycare") || title.includes("boarding") || title.includes("kennel")) found.push("Pet Daycare");
@@ -817,7 +817,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
           const claimDraft = ticket.draftData || ticket.draft_data || {};
           const branchDetails = ticket.scrapedBranch || ticket.scraped_branch || {};
           setFormData({
-            businessName: claimDraft.companyName || ticket.companyName || branchDetails.fullName || branchDetails.branchName || "",
+            businessName: claimDraft.companyName || ticket.companyName || branchDetails.branchName || branchDetails.fullName || "",
             businessPhone: claimDraft.phoneNo || ticket.phoneNo || branchDetails.branchPhoneNumber || branchDetails.mobileNumber || "",
             businessEmail: claimDraft.email || ticket.email || branchDetails.branchEmail || branchDetails.email || "",
             userName: claimDraft.userName || ticket.userName || userInfo?.name || "",
@@ -1124,7 +1124,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                 const matchedBranches = searchData
                   .filter(r => {
-                    const coreItem = getCoreName(r.fullName || r.branchName);
+                    const coreItem = getCoreName(r.branchName || r.fullName);
                     return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
                   })
                   .map(r => ({
@@ -1369,7 +1369,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
             const draft = ticket.draftData || ticket.draft_data || {};
             setFormData({
-              businessName: draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "",
+              businessName: draft.companyName || selectedBranch.branchName || selectedBranch.fullName || "",
               businessPhone: draft.phoneNo || selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || userInfo?.phoneNumber || userInfo?.phone || "",
               businessEmail: ticket.email || draft.email || selectedBranch.branchEmail || selectedBranch.email || userInfo?.email || "",
               userName: userInfo?.name || `${userInfo?.firstName || ""} ${userInfo?.lastName || ""}`.trim() || draft.userName || "",
@@ -1382,7 +1382,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
               setView("details");
             } else if (stepUpper === "COMPANY_DETAILS") {
               const mainAddr = draft.companyAddress || selectedBranch.branchLocation || "";
-              const compName = draft.companyName || selectedBranch.fullName || selectedBranch.branchName || "";
+              const compName = draft.companyName || selectedBranch.branchName || selectedBranch.fullName || "";
 
               try {
                 const searchRes = await axios.get(`${API_URL}scraped-branches/non-duplicates`, {
@@ -1394,13 +1394,13 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                 const matchedBranches = searchData
                   .filter(r => {
-                    const coreItem = getCoreName(r.fullName || r.branchName);
+                    const coreItem = getCoreName(r.branchName || r.fullName);
                     return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
                   })
                   .map(r => ({
                     id: r.id,
-                    name: r.fullName || r.branchName || r.companyName || compName,
-                    title: r.fullName || r.branchName || r.companyName || compName,
+                    name: r.branchName || r.fullName || r.companyName || compName,
+                    title: r.branchName || r.fullName || r.companyName || compName,
                     address: r.branchLocation || "Location not provided"
                   }));
                 if (matchedBranches.length === 0) {
@@ -1446,7 +1446,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
       const userPhone = userInfo?.phoneNumber || userInfo?.phone || "";
       const userEmail = userInfo?.email || "";
 
-      const companyName = selectedBranch.fullName || selectedBranch.branchName || "";
+      const companyName = selectedBranch.branchName || selectedBranch.fullName || "";
       const phoneNo = selectedBranch.branchPhoneNumber || selectedBranch.mobileNumber || userPhone;
       const email = selectedBranch.branchEmail || selectedBranch.email || userEmail;
       const companyAddress = selectedBranch.branchLocation || "";
@@ -1675,19 +1675,19 @@ const ClaimBusiness = ({ forcedView = null }) => {
     }
 
     const mainAddr = formData.companyAddress || "Location not provided";
-    const compName = formData.businessName || selectedBranch?.fullName || selectedBranch?.branchName || selectedBranch?.companyName || "";
+    const compName = formData.businessName || selectedBranch?.branchName || selectedBranch?.fullName || selectedBranch?.companyName || "";
     const coreSelected = getCoreName(compName);
     const cleanBrand = coreSelected.split(/\s+/).slice(0, 2).join(" ");
 
     const matchedBranches = results
       .filter(r => {
-        const coreItem = getCoreName(r.fullName || r.branchName);
+        const coreItem = getCoreName(r.branchName || r.fullName);
         return coreItem.startsWith(cleanBrand) || coreItem === coreSelected;
       })
       .map(r => ({
         id: r.id,
-        name: r.fullName || r.branchName || r.companyName || compName,
-        title: r.fullName || r.branchName || r.companyName || compName,
+        name: r.branchName || r.fullName || r.companyName || compName,
+        title: r.branchName || r.fullName || r.companyName || compName,
         address: r.branchLocation || (r.locations ? r.locations[0] : "Location not provided")
       }));
 
@@ -1819,7 +1819,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
           userId: vendorUserId,
           groomerID: vendorUserId,
           draftData: {
-            companyName: formData.businessName || selectedBranch?.fullName || selectedBranch?.branchName || "",
+            companyName: formData.businessName || selectedBranch?.branchName || selectedBranch?.fullName || "",
             phoneNo: formData.businessPhone || selectedBranch?.branchPhoneNumber || selectedBranch?.mobileNumber || "",
             email: formData.businessEmail || selectedBranch?.branchEmail || selectedBranch?.email || "",
             userName: formData.userName || userInfo?.name || "",
@@ -1849,7 +1849,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
         groomerID: vendorUserId,
         verificationOption: "VIDEO",
         draftData: {
-          companyName: formData.businessName || selectedBranch?.fullName || selectedBranch?.branchName || "",
+          companyName: formData.businessName || selectedBranch?.branchName || selectedBranch?.fullName || "",
           phoneNo: formData.businessPhone || selectedBranch?.branchPhoneNumber || selectedBranch?.mobileNumber || "",
           email: formData.businessEmail || selectedBranch?.branchEmail || selectedBranch?.email || "",
           userName: formData.userName || userInfo?.name || "",
@@ -3659,7 +3659,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                       <>
                         <div className={styles.resultsList}>
                           {results.map((item) => {
-                            const name = item.companyName || item.fullName || item.branchName || "Unnamed Business";
+                            const name = item.companyName || item.branchName || item.fullName || "Unnamed Business";
                             const isSelected = selectedBranch && (
                               (selectedBranch.id && item.id && selectedBranch.id === item.id) ||
                               (selectedBranch.companyName && item.companyName && selectedBranch.companyName === item.companyName)
@@ -3773,7 +3773,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
 
                         <div className={styles.previewInfo}>
                           <h2 className={styles.previewName}>
-                            {selectedBranch.fullName || selectedBranch.branchName || "Unnamed Business"}
+                            {selectedBranch?.companyName || selectedBranch?.branchName || selectedBranch?.fullName || "Unnamed Business"}
                           </h2>
                           <span className={styles.previewSub}>
                             {getBranchCategories(selectedBranch).slice(0, 2).join(" / ")}
@@ -4489,7 +4489,7 @@ const ClaimBusiness = ({ forcedView = null }) => {
                               <h4 className={styles.branchRowTitle}>
                                 {branch.title && branch.title !== "Is this your business ?"
                                   ? branch.title
-                                  : (branch.name || branch.fullName || branch.branchName || formData.businessName || selectedBranch?.fullName || selectedBranch?.companyName || "Business Name")}
+                                  : (branch.name || branch.branchName || branch.fullName || formData.businessName || selectedBranch?.fullName || selectedBranch?.companyName || "Business Name")}
                               </h4>
                               <p className={styles.branchRowDesc}>{branch.address}</p>
                             </div>
